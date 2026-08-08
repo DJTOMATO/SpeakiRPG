@@ -2,7 +2,7 @@
 
 Speaki RPG is an unofficial Electron client for the browser MMORPG Speaki RPG with built-in Discord Rich Presence support.
 
-This desktop wrapper improves your Speaki experience by automatically reading game stats from the page or clipboard and publishing your player name, level, and EXP to Discord.
+This desktop wrapper improves your Speaki experience by automatically reading game stats from the page DOM and publishing your player name, level, and EXP to Discord.
 
 ## Key Features
 
@@ -12,8 +12,8 @@ This desktop wrapper improves your Speaki experience by automatically reading ga
 - **Automatic page capture**
   - Reads player data directly from the game DOM when the game page is loaded.
   - Works even when the game is running in the Electron webview.
-- **Clipboard fallback support**
-  - Monitors clipboard changes and parses game text data if page DOM capture is unavailable.
+- **DOM-only updates**
+  - Reads player data directly from the game DOM without relying on clipboard monitoring.
 - **Manual refresh shortcut**
   - Press `Ctrl+Shift+D` to force a Rich Presence update from the current game page.
 - **Discord activity buttons**
@@ -27,16 +27,17 @@ Speaki RPG is designed for players who want a lightweight desktop launcher for t
 
 The client is especially useful if you want:
 
-- Rich presence updates without manually copying text.
+- Rich presence updates.
 - Automatic detection of player name and level.
 - A consistent desktop interface for Speaki RPG.
+- Enhanced framerate
 
 ## Installation
 
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/<your-username>/BetterSpeakiMMO.git
+git clone https://github.com/DJTOMATO/SpeakiRPG.git
 cd BetterSpeakiMMO
 ```
 
@@ -66,7 +67,7 @@ This project includes an `electron-builder` configuration for Windows NSIS packa
 
 - Open the client and navigate to the Speaki RPG login/game page.
 - The app will attempt to capture your current player stats from the game page.
-- If DOM capture is not available, it will read clipboard text and parse player stats from copied game data.
+- If the relevant player stats are present in the page DOM, the app will publish them to Discord.
 - Your self-updating Rich Presence is sent to Discord using the configured RPC client.
 
 ## Supported stats
