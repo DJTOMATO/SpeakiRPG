@@ -1,102 +1,60 @@
-# Speaki RPG Electron Client
+# Speaki RPG Desktop Companion
 
-Speaki RPG is an unofficial Electron client for the browser MMORPG Speaki RPG with built-in Discord Rich Presence support.
+Hey there! **Speaki RPG Electron Client** is a custom desktop app and launcher for the browser MMORPG **Speaki RPG**. It brings the game out of your browser tab and adds awesome Discord integration so your friends can see your grinding progress in real time!
 
-This desktop wrapper improves your Speaki experience by automatically reading game stats from the page DOM and publishing your player name, level, and EXP to Discord.
+![Alt Text for Image](https://bae.lena.moe/pSuXeftp2QLi.jpg)
+![Alt Text for Image](https://bae.lena.moe/uc0DNmmIsLDV.png)
+---
 
-## Key Features
+## What Makes It Awesome?
 
-- **Discord Rich Presence integration**
-  - Share your current Speaki RPG status in Discord automatically.
-  - Displays player name, level, and EXP progress where available.
-- **Automatic page capture**
-  - Reads player data directly from the game DOM when the game page is loaded.
-  - Works even when the game is running in the Electron webview.
-- **DOM-only updates**
-  - Reads player data directly from the game DOM without relying on clipboard monitoring.
-- **Manual refresh shortcut**
-  - Press `Ctrl+Shift+D` to force a Rich Presence update from the current game page.
-- **Discord activity buttons**
-  - Includes quick action buttons for the Speaki MMO website and the SpeakiRPG GitHub releases page.
-- **Auto-updating presence**
-  - Periodically refreshes presence after loading a game page and whenever the game stats change.
+* **Discord Rich Presence:** Automatically shows your current character name, level, and XP right on your Discord profile.
+* **Smart & Automatic:** It quietly reads your stats straight from the game page—no messy setup or clipboard copying needed.
+* **Quick Refresh:** Stuck or want to force an update? Just hit `Ctrl+Shift+D`.
+* **Handy Buttons:** Includes quick links directly to the Speaki MMO website and GitHub releases.
+* **Smooth Experience:** Gives you a dedicated desktop wrapper for a cleaner, smoother session.
 
-## Why use this app?
+---
 
-Speaki RPG is designed for players who want a lightweight desktop launcher for the web game while keeping their Discord friends informed about their progress.
+## Quick Start Guide
 
-The client is especially useful if you want:
+Want to get it running on your PC? Just follow these steps:
 
-- Rich presence updates.
-- Automatic detection of player name and level.
-- A consistent desktop interface for Speaki RPG.
-- Enhanced framerate
-
-## Installation
-
-1. Clone the repository:
-
+1. **Clone the repository:**
 ```bash
 git clone https://github.com/DJTOMATO/SpeakiRPG.git
 cd SpeakiRPG
+
 ```
 
-2. Install dependencies:
 
+2. **Install dependencies:**
 ```bash
 npm install
+
 ```
 
-3. Run the app:
 
+3. **Launch the app:**
 ```bash
 npm start
+
 ```
 
-## Build for release
+*Want to build a standalone installer? Just run `npm run build` using electron-builder!*
 
-Build the Electron app using electron-builder:
+---
 
-```bash
-npm run build
-```
+## How to Use It
 
-This project includes an `electron-builder` configuration for Windows NSIS packaging.
+1. Open up the desktop client and log into Speaki RPG.
+2. The app will automatically catch your player name, level, and XP.
+3. Your Discord status will update instantly to show off your hard work!
 
-## Usage
+---
 
-- Open the client and navigate to the Speaki RPG login/game page.
-- The app will attempt to capture your current player stats from the game page.
-- If the relevant player stats are present in the page DOM, the app will publish them to Discord.
-- Your self-updating Rich Presence is sent to Discord using the configured RPC client.
+## Good to Know
 
-## Supported stats
-
-- Player name
-- Level
-- EXP progress (when available)
-
-## Known details
-
-- This client is not affiliated with Speaki RPG’s official developers.
-- The app does not ship any game assets.
-- Discord Rich Presence buttons may depend on the Discord client and presence support.
-
-## Contributing
-
-Contributions are welcome. To contribute:
-
-1. Fork the repository.
-2. Create a new branch for your changes.
-3. Commit with clear messages.
-4. Submit a pull request.
-
-Issues and improvements are best tracked via GitHub issues.
-
-## License
-
-This project is licensed under the GNU License. See the `LICENSE` file for details.
-
-## Support
-
-For questions or bug reports, open an issue in this repository.
+* **Unofficial:** This is a fan-made project and isn't officially affiliated with the Speaki RPG creators. No game assets are included.
+* **Want to help out?** Contributions, bug reports, and pull requests are always welcome over on GitHub!
+* **License:** Licensed under the GNU License.
