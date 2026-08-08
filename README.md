@@ -37,7 +37,7 @@ The client is especially useful if you want:
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/DJTOMATO/SpeakiRPG.git
+git clone https://github.com/DJTOMATO/BetterSpeakiMMO.git
 cd BetterSpeakiMMO
 ```
 
