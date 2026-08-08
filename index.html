@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading...</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-image: url('https://lena.moe/speaki.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            overflow: hidden;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            margin: 10px 0;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Loading</h1>
+
+    <script>
+        let load = () => {
+            load = () => {}; // self-destruction
+            const defaultSite = "https://speakirpg.overture.io.kr/";
+            window.electronAPI.loadSite(defaultSite);
+        };
+        document.addEventListener("DOMContentLoaded", () => setTimeout(() => load(), 200)); // skip image loading if taking too long
+        window.onload = () => load();
+    </script>
+
+
+</body>
+
+
+</html>
