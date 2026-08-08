@@ -16,9 +16,13 @@ Hey there! **Speaki RPG Electron Client** is a custom desktop app and launcher f
 
 ---
 
-## Quick Start Guide
+## Download 
 
-Want to get it running on your PC? Just follow these steps:
+Head to [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) and get the latest version setup file.
+
+## Self-compile Quick Start Guide
+
+Want to get it running on your PC by yourself? Just follow these steps:
 
 1. **Clone the repository:**
 ```bash
