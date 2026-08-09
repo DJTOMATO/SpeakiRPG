@@ -43,9 +43,9 @@ let statsTimeout = null;
 let lastUpdateTime = 0;
 const MIN_UPDATE_INTERVAL_MS = 10000; // minimum 10s between updates
 
-async function updateDiscordActivity(level, playerName, exp = null) {
+async function updateDiscordActivity(level, playerName, exp = null, location = null) {
   const setActivity = async () => {
-    const detailsText = playerName || 'Unknown Player';
+    const detailsText = playerName ? (location ? `${playerName} • ${location}` : playerName) : (location ? `Unknown Player • ${location}` : 'Unknown Player');
     let stateText = level ? `Level ${String(level)}` : 'In-Game';
     if (exp) {
       stateText += ` • ${exp}`;
@@ -84,23 +84,25 @@ async function updateDiscordActivity(level, playerName, exp = null) {
 }
 
 async function capturePageStats() {
-  if (!mainWindow || mainWindow.isDestroyed()) return { level: null, playerName: null, exp: null };
+  if (!mainWindow || mainWindow.isDestroyed()) return { level: null, playerName: null, exp: null, location: null };
   try {
     return await mainWindow.webContents.executeJavaScript(`
       (function() {
         const nameEl = document.querySelector('.sr-player-card__name');
         const levelEl = document.querySelector('.sr-player-card__portrait-wrap .sr-player-card__lv-badge');
         const expEl = document.querySelector('.sr-player-card__exp-track');
+        const locationEl = document.querySelector('.sr-minimap-frame__caption');
         return {
           playerName: nameEl ? nameEl.innerText.trim() : null,
           level: levelEl ? levelEl.innerText.trim() : null,
-          exp: expEl ? expEl.getAttribute('title') || expEl.innerText.trim() : null
+          exp: expEl ? expEl.getAttribute('title') || expEl.innerText.trim() : null,
+          location: locationEl ? locationEl.innerText.trim() : null
         };
       })();
     `, true);
   } catch (err) {
     console.error('Error capturing page stats:', err);
-    return { level: null, playerName: null, exp: null };
+    return { level: null, playerName: null, exp: null, location: null };
   }
 }
 
@@ -133,8 +135,8 @@ async function createWindow() {
         try {
           const stats = await capturePageStats();
           console.log('Captured page stats shortcut:', stats);
-          if (stats.playerName || stats.level || stats.exp) {
-            await updateDiscordActivity(stats.level, stats.playerName, stats.exp);
+          if (stats.playerName || stats.level || stats.exp || stats.location) {
+            await updateDiscordActivity(stats.level, stats.playerName, stats.exp, stats.location);
           } else {
             console.log('No player stats were found in the DOM for the manual refresh.');
           }
@@ -201,11 +203,11 @@ ipcMain.on('load-site', async (event, url) => {
     try {
       const stats = await capturePageStats();
       console.log('Auto capture page stats:', stats);
-      if (stats.playerName || stats.level || stats.exp) {
+      if (stats.playerName || stats.level || stats.exp || stats.location) {
         const now = Date.now();
         if (now - lastUpdateTime > MIN_UPDATE_INTERVAL_MS) {
           lastUpdateTime = now;
-          await updateDiscordActivity(stats.level, stats.playerName, stats.exp);
+          await updateDiscordActivity(stats.level, stats.playerName, stats.exp, stats.location);
         } else {
           console.log('Update throttled; skipping');
         }
