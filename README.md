@@ -3,7 +3,7 @@
 Hey there! **Speaki RPG Electron Client** is a custom desktop app and launcher for the browser MMORPG **Speaki RPG**. It brings the game out of your browser tab and adds awesome Discord integration so your friends can see your grinding progress in real time!
 
 ![Alt Text for Image](https://bae.lena.moe/pSuXeftp2QLi.jpg)
-![Alt Text for Image](https://bae.lena.moe/uc0DNmmIsLDV.png)
+![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
 ---
 
 ## What Makes It Awesome?
