@@ -5,6 +5,7 @@ const RPC = require('discord-rpc');
 const clientId = '861430403955949569';
 
 const rpc = new RPC.Client({ transport: 'ipc' });
+const rpcTimestamp = Date.now()
 
 const faviconUrl = 'https://bae.lena.moe/NZK9hLUtkKij.png';
 
@@ -54,7 +55,7 @@ async function updateDiscordActivity(level, playerName, exp = null, location = n
     return rpc.setActivity({
       details: detailsText,
       state: stateText,
-      startTimestamp: Date.now(),
+      startTimestamp: rpcTimestamp,
       largeImageKey: 'logo',
       largeImageText: 'Speaki RPG',
       smallImageKey: 'logo',
