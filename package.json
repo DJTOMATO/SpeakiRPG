@@ -1,6 +1,6 @@
 {
   "name": "SpeakiRPG",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Speaki RPG with Discord Rich Presence integration",
   "main": "main.js",
   "scripts": {
@@ -33,7 +33,8 @@
       "preload.js",
       "index.html",
       "node_modules/**/*",
-      "SpeakiMod.js"
+      "SpeakiMod.js",
+      "injector.js"
     ]
   }
 }
