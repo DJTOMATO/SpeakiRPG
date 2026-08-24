@@ -16,6 +16,22 @@ Hey there! **Speaki RPG Electron Client** is a custom desktop app and launcher f
 
 ---
 
+## Implementation of SpeakiMod! Thanks @Alluseri for the hard work!
+
+
+<img width="1228" height="592" alt="image" src="https://github.com/user-attachments/assets/83c211f4-b4fa-4840-8782-71ac4f4d8668" />
+
+Additional Features:
+
+- Exp per minute calculation
+- Dance anywhere
+- Joayo Button
+- Channel Stats
+- Lots of camera fun
+- Walk to portal
+
+---
+
 ## Download 
 
 Head to [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) and get the latest version setup file.
