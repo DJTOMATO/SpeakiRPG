@@ -86,3 +86,6 @@ npm start
 * **Unofficial:** This is a fan-made project and isn't officially affiliated with the Speaki RPG creators. No game assets are included.
 * **Want to help out?** Contributions, bug reports, and pull requests are always welcome over on GitHub!
 * **License:** Licensed under the GNU License.
+
+
+<img src="https://cdn.nest.rip/uploads/96578d20-4e61-4cab-9978-d01789edebbb.png">
