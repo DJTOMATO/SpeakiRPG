@@ -228,6 +228,12 @@ function buildElement(tag, characteristics, inner, callback) {
 	return elem;
 }
 
+function setText(elem, text) {
+	if (elem && elem.innerText !== text) {
+		elem.innerText = text;
+	}
+}
+
 var lunHudElements = {
 	playersNearby: null,
 	expTrackerL1: null,
@@ -241,7 +247,9 @@ var lunHudElements = {
 	}
 };
 var lunPanelElements = {
-	targetZone: null
+	targetZone: null,
+	resetCameraBtn: null,
+	walkToPortalBtn: null
 };
 var lunMenuFoldingLevel = 0;
 
@@ -367,7 +375,8 @@ document.head.appendChild(buildElement(
 			border-radius: 8px;
 			padding: 6px;
 		}
-		#spkmod-pq.hidden {
+		/* honest to god forgot CSS is stupid like that */
+		.hidden, #spkmod-pq.hidden {
 			display: none;
 		}
 		#spkmod-pq-pbar {
@@ -388,15 +397,15 @@ document.body.appendChild(
 		}, [
 			buildElement("span", {
 				id: "spkmod-header",
-				innerText: "SpeakiMod v5.rc-4",
+				innerText: "SpeakiMod v5",
 				onclick: _ => {
 					lunMenuFoldingLevel = (lunMenuFoldingLevel + 1) % 4;
 					switch (lunMenuFoldingLevel) {
 						case 0:
-							// TODO: Hide/unhide channel tracker should disable the tracker functionality
 							document.querySelector("#spkmod-panel").style.display = "";
 							lunHudElements.channelTracker.style.display = "";
 							document.querySelector("#spkmod-hud").style.opacity = "";
+							lunChannelTrackerNextTicks = 0;
 							break;
 						case 1:
 							document.querySelector("#spkmod-panel").style.display = "none";
@@ -455,8 +464,8 @@ document.body.appendChild(
 					gameState.moveSendAccumulator = 1;
 				}
 			}),
-			buildElement("button", { // TODO: Hide when not watching anyone?
-				className: "spkmod-panel-btn",
+			lunPanelElements.resetCameraBtn = buildElement("button", {
+				className: "spkmod-panel-btn hidden",
 				innerText: "Reset Camera",
 				value: "",
 				onclick: _ => {
@@ -493,18 +502,17 @@ document.body.appendChild(
 			buildElement("div", {
 				className: "spkmod-panel-cat"
 			}, [
-				buildElement("button", {
+				lunPanelElements.walkToPortalBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
 					innerText: "Walk to Portal",
 					value: "",
 					onclick: e => {
 						if (lunWalkToPortal == -1) {
 							lunWalkToPortal = lunPanelElements.targetZone.value - 0;
-							e.target.innerText = "Stop Walking";
+							setText(e.target, "Stop Walking");
 							chatLog(`Walking to ${lunPanelElements.targetZone.options[lunPanelElements.targetZone.selectedIndex].innerText} (${lunWalkToPortal}).`);
 						} else {
 							resetWalkToPortal();
-							e.target.innerText = "Walk to Portal";
 							chatLog("Stopped autowalking.");
 						}
 
@@ -576,6 +584,7 @@ function watchPlayer(name) {
 		const pi = Object.values(Object.fromEntries(gameState.remotePlayers.remotePlayers)).find(t => t.info.name == name);
 		if (pi) {
 			gameState.cameraController.target = pi.container;
+			lunPanelElements.resetCameraBtn.classList.remove("hidden");
 			chatLog(`The camera will be following ${name} now.`);
 			return;
 		} else {
@@ -585,6 +594,7 @@ function watchPlayer(name) {
 		chatLog("The camera will be following you now.");
 	}
 
+	lunPanelElements.resetCameraBtn.classList.add("hidden");
 	gameState.cameraController.target = gameState.playerContainer;
 }
 
@@ -611,6 +621,12 @@ var lunPinnedQuestId = 0;
 var lunPinnedQuestContent = null;
 var lunPinnedQuestNextQueryTick = 0;
 
+function updatePinnedQuestDisplay(quest) {
+	lunPinnedQuestContent = `${i18n(`content.quest.${quest.code}.description`)} ${quest.currentAmount} / ${quest.targetAmount}`;
+	setText(lunHudElements.pinnedQuest.content, lunPinnedQuestContent);
+	lunHudElements.pinnedQuest.pbar.style.width = `${((quest.currentAmount / quest.targetAmount) * 100).toFixed(0)}%`;
+}
+
 function unpinQuest() {
 	lunHudElements.pinnedQuest.panel.className = "hidden";
 
@@ -621,13 +637,11 @@ function unpinQuest() {
 }
 
 function pinQuest(quest) {
-	lunPinnedQuestContent = `${i18n(`content.quest.${quest.code}.description`)} ${quest.currentAmount} / ${quest.targetAmount}`;
 	lunPinnedQuestPeriod = quest.period;
 	lunPinnedQuestId = quest.questId;
 	lunPinnedQuestNextQueryTick = lunTickCount + sec(1);
 
-	lunHudElements.pinnedQuest.content.innerText = lunPinnedQuestContent;
-	lunHudElements.pinnedQuest.pbar.style.width = `${(quest.currentAmount / quest.targetAmount * 100).toFixed(0)}%`;
+	updatePinnedQuestDisplay(quest);
 
 	lunHudElements.pinnedQuest.panel.className = "";
 }
@@ -662,11 +676,14 @@ function onGameDataUpdate() {
 function resetWalkToPortal() {
 	lunWalkToPortal = -1;
 	Object.values(Waypoints).forEach(t => t.forEach(w => w.crossed = false));
+	setText(lunPanelElements.walkToPortalBtn, "Walk to Portal");
 }
 
-// TODO: Compare values before setting innerText so it doesn't flash like crazy in Inspector
 function tick() {
-	// TODO: Reset some settings if player is dead
+	if (gameState.isDead && lunWalkToPortal != -1) {
+		resetWalkToPortal();
+		chatLog("Stopped autowalking because you died (lol)");
+	}
 
 	lunAutoTravelTarget = null;
 	lunTickCount++;
@@ -675,8 +692,8 @@ function tick() {
 	var playerExp = gameState.myStat.exp;
 	var zoneId = gameState.zoneId % 10000;
 
-	lunHudElements.playersNearby.innerText = `Players nearby: ${gameState.remotePlayers.remotePlayers.size}`;
-	lunHudElements.zoneId.innerText = `Zone ID: ${zoneId}`;
+	setText(lunHudElements.playersNearby, `Players nearby: ${gameState.remotePlayers.remotePlayers.size}`);
+	setText(lunHudElements.zoneId, `Zone ID: ${zoneId}`);
 
 	if (lunExpTrackerStartExp > playerExp || lunTickCount >= lunExpTrackerNextTicks) {
 		lunExpTrackerSpeed = (playerExp - lunExpTrackerStartExp) / lunExpTrackerWindow * (1000 / lunTPS);
@@ -685,17 +702,18 @@ function tick() {
 		lunExpTrackerStartExp = playerExp;
 	}
 
+	var expTrackerL1 = "0 EXP per minute";
+	var expTrackerL2 = "Until next level: N/A";
 	if (lunExpTrackerSpeed > 0) {
-		lunHudElements.expTrackerL1.innerText = `${(lunExpTrackerSpeed * 60).toFixed(2)} EXP per minute`;
-		lunHudElements.expTrackerL2.innerText = `Until next level: ~${((gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60).toFixed(2)} min`;
-	} else {
-		lunHudElements.expTrackerL1.innerText = "0 EXP per minute";
-		lunHudElements.expTrackerL2.innerText = "Until next level: N/A";
+		expTrackerL1 = `${(lunExpTrackerSpeed * 60).toFixed(2)} EXP per minute`;
+		expTrackerL2 = `Until next level: ~${((gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60).toFixed(2)} min`;
 	}
+	expTrackerL1 += ` (${((lunExpTrackerNextTicks - lunTickCount) * lunTPS / 1000).toFixed(0)}s)`;
 
-	lunHudElements.expTrackerL1.innerText += ` (${((lunExpTrackerNextTicks - lunTickCount) * lunTPS / 1000).toFixed(0)}s)`;
+	setText(lunHudElements.expTrackerL1, expTrackerL1);
+	setText(lunHudElements.expTrackerL2, expTrackerL2);
 
-	if (lunTickCount >= lunChannelTrackerNextTicks) {
+	if (lunMenuFoldingLevel < 2 && lunTickCount >= lunChannelTrackerNextTicks) {
 		fetch("https://sr1.overture.io.kr/api/realtime/channels", {
 			"method": "GET",
 			"headers": {
@@ -705,11 +723,11 @@ function tick() {
 		}).then(async x => {
 			var resp = (await x.json());
 			if (!x.ok) {
-				lunHudElements.channelTracker.innerText = `Channel tracker: Error ${x.status}`;
+				setText(lunHudElements.channelTracker, `Channel tracker: Error ${x.status}`);
 				return;
 			}
 
-			lunHudElements.channelTracker.innerText = resp.map(t => `Channel ${t.channel}: ${t.population}/${t.capacity}`).join("\n");
+			setText(lunHudElements.channelTracker, resp.map(t => `Channel ${t.channel}: ${t.population}/${t.capacity}`).join("\n"));
 		});
 
 		lunChannelTrackerNextTicks = lunTickCount + lunChannelTrackerWindow;
@@ -725,7 +743,7 @@ function tick() {
 		}).then(async x => {
 			var resp = (await x.json());
 			if (!x.ok) {
-				lunHudElements.pinnedQuest.content.innerText = `Failed to update quest info: ${x.status}`;
+				setText(lunHudElements.pinnedQuest.content, `Failed to update quest info: ${x.status}`);
 				return;
 			}
 
@@ -735,11 +753,7 @@ function tick() {
 				return;
 			}
 
-			// TODO: This is probably duplicate code from pinQuest
-			lunPinnedQuestContent = `${i18n(`content.quest.${q.code}.description`)} ${q.currentAmount} / ${q.targetAmount}`;
-
-			lunHudElements.pinnedQuest.content.innerText = lunPinnedQuestContent;
-			lunHudElements.pinnedQuest.pbar.style.width = `${(q.currentAmount / q.targetAmount * 100).toFixed(0)}%`;
+			updatePinnedQuestDisplay(q);
 		});
 
 		lunPinnedQuestNextQueryTick += lunPinnedQuestInterval;
@@ -748,8 +762,6 @@ function tick() {
 	gameState.remotePlayers.remotePlayers.forEach(t => t.container.children[0].children[1].visible = !lunNametagsHidden);
 
 	if (lunWalkToPortal != -1 && zoneId) {
-		// TODO: This doesn't reset the button state
-
 		const currentIndex = ZoneSequences.indexOf(zoneId - 0);
 		const targetIndex = ZoneSequences.indexOf(lunWalkToPortal - 0);
 
@@ -805,7 +817,7 @@ function tick() {
 			if (dvk < 2.9) {
 				if (lunSleep < 0) {
 					gameState.tryUsePortal()
-					lunSleep = sec(2);
+					lunSleep = sec(0.5);
 				}
 
 				if (dvk <= 1.5) // humanize
@@ -856,7 +868,7 @@ gameState.trySendChat = (msg) => {
 					return;
 				}
 
-				chatLog(`Set camera zoom to ${gameState.cameraController.cameraZoomDistance = Number.parseInt(cmd[1]) || 12}!`);
+				chatLog(`Set camera zoom to ${gameState.cameraController.cameraZoomDistance = Number.parseInt(cmd[1], 10) || 12}!`);
 				break;
 			default:
 				chatLog(`Unknown command: ${cmd[0]}`);
