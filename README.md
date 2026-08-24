@@ -23,12 +23,20 @@ Hey there! **Speaki RPG Electron Client** is a custom desktop app and launcher f
 
 Additional Features:
 
-- Exp per minute calculation
+- Nearby player count
+- EXP tracker (EXP per minute and time until next level estimation)
+- Channel tracker
 - Dance anywhere
-- Joayo Button
-- Channel Stats
-- Lots of camera fun
-- Walk to portal
+- Say "joayo!" anywhere
+- Lock the camera (like in old PS1 games)
+- ViewClip (allow the camera to phase through walls)
+- Watch the game from another player's perspective
+- Hide other players' nametags
+- Turn Speaki to face the camera (useful for posing)
+- Quest pinning
+- Automatically walk towards portals (must be attended, because no auto-eat & no obstacle avoidance)
+- Fold the HUD by clicking on the mod title (up to 3 clicks)
+- Control camera zoom (!zoom chat command)
 
 ---
 
