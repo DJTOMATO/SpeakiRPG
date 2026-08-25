@@ -61,7 +61,7 @@ Hey there! **Speaki RPG Electron Client** is a custom desktop app and launcher f
 
     🇰🇷 "다른 유저들에게 피해가 가지 않는것이 확실하면, 아무래도 좋습니다."
     🇺🇸 As long as it's certain that it doesn't harm other users, it doesn't matter.
-    🇯🇵 他のユーザーに被害が及ばないことが確実であれば、問題あり
+    🇯🇵 他のユーザーに被害がないことが確実であれば、どうしても良い
     
 So, according to the official developer statement:
 * **Allowed:** Client modifications and tool usage/customization, **provided they do not harm other users** or disrupt fair play.
