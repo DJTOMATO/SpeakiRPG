@@ -9,21 +9,20 @@
 🇰🇷 **Speaki RPG Desktop**은 브라우저 기반 MMORPG 게임인 **Speaki RPG**를 위한 맞춤형 데스크톱 앱이자 런처입니다. 브라우저 탭에서 게임을 꺼내 데스크톱에서 즐길 수 있도록 해주며, 멋진 Discord 연동 기능과 친구들이 실시간으로 게임 진행 상황을 확인할 수 있는 다양한 재미있는 기능들을 제공합니다!
 
 ## Table of Contents / 目次 / 목차
-- [1. What Makes It Awesome?](#1-what-makes-it-awesome--何が素晴らしいのか--무엇이-이-제품을-멋지게-만드는-걸까요)
-- [2. Additional Features](#2-additional-features--追加機能--추가-기능)
-- [3. Official Developer Stance & Usage Policy](#3-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책)
-- [4. Download](#4-download--ダウンロード--다운로드)
-- [5. Self-compile Quick Start Guide](#5-self-compile-quick-start-guide--セルフコンパイルクイックスタートガイド--자체-컴파일-빠른-시작-가이드)
-- [6. How to Use It](#6-how-to-use-it--使い方--사용-방법)
-- [7. Good to Know](#7-good-to-know--留意事項--알아두어야-할-사항)
-- [8. Want to Collaborate?](#7-want-to-collaborate--協力を希望される方へ--기여하고-싶으신가요)
-- ## Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?
+- [1. What Makes It Awesome?](#1-what-makes-it-awesome)
+- [2. Additional Features](#2-additional-features)
+- [3. Official Developer Stance & Usage Policy](#3-official-developer-stance--usage-policy)
+- [4. Download](#4-download)
+- [5. Self-compile Quick Start Guide](#5-self-compile-quick-start-guide)
+- [6. How to Use It](#6-how-to-use-it)
+- [7. Good to Know](#7-good-to-know)
+- [8. Want to Collaborate?](#8-want-to-collaborate)
 
 
 ![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
 ---
 
-## What Makes It Awesome? / 何が素晴らしいのか？ / 무엇이 이 제품을 멋지게 만드는 걸까요?
+<h2 id="1-what-makes-it-awesome">1. What Makes It Awesome? / 何が素晴らしいのか？ / 무엇이 이 제품을 멋지게 만드는 걸까요?</h2>
 
 ![Alt Text for Image](https://bae.lena.moe/pSuXeftp2QLi.jpg)
 
@@ -50,7 +49,7 @@
 
 <img width="1228" height="592" alt="image" src="https://github.com/user-attachments/assets/83c211f4-b4fa-4840-8782-71ac4f4d8668" />
 
-## Additional Features / 追加機能 / 추가 기능:
+<h2 id="2-additional-features">2. Additional Features / 追加機能 / 추가 기능</h2>
 
 🇺🇸 
 - Nearby player count
@@ -102,16 +101,16 @@
 
 ---
 
-## ⚠️ Official Developer Stance & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책
+<h2 id="3-official-developer-stance--usage-policy">3. Official Developer Stance & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책</h2>
 
-🇺🇸 [Regarding the Official Developer Statement]
-The Korean translation of the official statement by SpeakyMMODeveloper is as follows:
+* 🇺🇸 [Regarding the Official Developer Statement]
+* The Korean translation of the official statement by SpeakyMMODeveloper is as follows:
 
-🇯🇵【公式開発者の声明について】
-SpeakyMMODeveloperによる公式声明の日本語訳は以下の通りです。
+* 🇯🇵【公式開発者の声明について】
+* SpeakyMMODeveloperによる公式声明の日本語訳は以下の通りです。
 
-🇰🇷[공식 개발자의 성명에 대하여]
-SpeakyMMODeveloper의 공식 성명에 대한 한국어 번역은 다음과 같습니다.
+* 🇰🇷[공식 개발자의 성명에 대하여]
+* SpeakyMMODeveloper의 공식 성명에 대한 한국어 번역은 다음과 같습니다.
 
 <img width="462" height="259" alt="devresponse" src="https://github.com/user-attachments/assets/3e96eae6-845a-43ba-9af2-18e51f038a89" />
 
@@ -154,13 +153,13 @@ So, according to the official developer statement:
 * **시행:** 금지 기준은 전적으로 개발자의 주관적인 판단에 달려 있습니다. 사용자는 스스로 판단해야 하며, 다른 사용자에게 피해를 주지 않는다고 확신하는 경우 일반적으로 허용됩니다. 사용에 따른 책임은 사용자에게 있습니다.
 ---
 
-## Download / ダウンロード / 다운로드
+<h2 id="4-download">4. Download / ダウンロード / 다운로드</h2>
 
 * 🇺🇸 Head to [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) and get the latest version setup file.
 * 🇯🇵 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)から最新バージョンのセットアップファイルをダウンロードしてください。
 * 🇰🇷 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)로 이동하여 최신 버전 설치 파일을 다운로드하세요.
 
-## Self-compile Quick Start Guide / セルフコンパイルクイックスタートガイド / 자체 컴파일 빠른 시작 가이드
+<h2 id="5-self-compile-quick-start-guide">5. Self-compile Quick Start Guide / セルフコンパイルクイックスタートガイド / 자체 컴파일 빠른 시작 가이드</h2>
 
 * 🇺🇸 Want to run it yourself? Follow these steps:
 * 🇯🇵 ご自身で実行したい場合は以下の手順に従ってください：
@@ -191,7 +190,7 @@ npm start
 
 ---
 
-## How to Use It / 使い方 / 사용 방법
+<h2 id="6-how-to-use-it">6. How to Use It / 使い方 / 사용 방법</h2>
 
 🇺🇸
 1. Open up the desktop client and log into Speaki RPG.
@@ -213,7 +212,7 @@ npm start
 
 ---
 
-## Good to Know / 留意事項 / 알아두어야 할 사항
+<h2 id="7-good-to-know">7. Good to Know / 留意事項 / 알아두어야 할 사항</h2>
 
 🇺🇸
 * **Unofficial:** This is a fan-made project and isn't officially affiliated with the Speaki RPG creators. No game assets are included.
@@ -237,7 +236,7 @@ npm start
 * **공식 입장 요약:** 다른 사용자에게 피해를 주지 않고 공정한 플레이를 방해하지 않는 한 클라이언트 수정 및 도구 사용이 허용됩니다 (단, 제재 기준은 전적으로 개발자의 주관적 판단에 따릅니다).
 --
 
-## Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?
+<h2 id="8-want-to-collaborate">8. Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?</h2>
 
 🇺🇸 Want to collaborate? Reach out to us, [send a pull request](https://github.com/DJTOMATO/SpeakiRPG/pulls), or [submit an issue](https://github.com/DJTOMATO/SpeakiRPG/issues) on GitHub!
 🇯🇵 開発に協力したいですか？お気軽にご連絡いただくか、GitHubにて[プルリクエストを送信](https://github.com/DJTOMATO/SpeakiRPG/pulls)または[イシューを提出](https://github.com/DJTOMATO/SpeakiRPG/issues)してください！
