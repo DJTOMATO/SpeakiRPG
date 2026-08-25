@@ -8,7 +8,8 @@
 
 🇰🇷 **Speaki RPG Desktop**은 브라우저 기반 MMORPG 게임인 **Speaki RPG**를 위한 맞춤형 데스크톱 앱이자 런처입니다. 브라우저 탭에서 게임을 꺼내 데스크톱에서 즐길 수 있도록 해주며, 멋진 Discord 연동 기능과 친구들이 실시간으로 게임 진행 상황을 확인할 수 있는 다양한 재미있는 기능들을 제공합니다!
 
-## Table of Contents / 目次 / 목차
+<h2 id="table-of-contents">Table of Contents / 目次 / 목차</h2>
+
 - [1. What Makes It Awesome?](#1-what-makes-it-awesome)
 - [2. Additional Features](#2-additional-features)
 - [3. Official Developer Stance & Usage Policy](#3-official-developer-stance--usage-policy)
@@ -24,6 +25,7 @@
 
 <h2 id="1-what-makes-it-awesome">1. What Makes It Awesome? / 何が素晴らしいのか？ / 무엇이 이 제품을 멋지게 만드는 걸까요?</h2>
 
+[⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 ![Alt Text for Image](https://bae.lena.moe/pSuXeftp2QLi.jpg)
 
 🇺🇸 
@@ -45,11 +47,13 @@
 * **풍부한 게임플레이 기능:** SpeakiMod(아래 참조) 덕분에 다양한 편의성 기능이 추가되었습니다!
 
 ## Implementation of SpeakiMod! / SpeakiModの実装！/ SpeakiMod 구현!
-## Thanks @Alluseri for the hard work!
+## Thanks @Alluseri for the hard work! / @Alluseriさん、ご尽力ありがとうございます！/ @Alluseri님, 수고해 주셔서 감사합니다!
 
 <img width="1228" height="592" alt="image" src="https://github.com/user-attachments/assets/83c211f4-b4fa-4840-8782-71ac4f4d8668" />
 
 <h2 id="2-additional-features">2. Additional Features / 追加機能 / 추가 기능</h2>
+
+[⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
 🇺🇸 
 - Nearby player count
@@ -102,6 +106,8 @@
 ---
 
 <h2 id="3-official-developer-stance--usage-policy">3. Official Developer Stance & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책</h2>
+
+[⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
 * 🇺🇸 [Regarding the Official Developer Statement]
 * The Korean translation of the official statement by SpeakyMMODeveloper is as follows:
@@ -160,11 +166,15 @@ So, according to the official developer statement:
 
 <h2 id="4-download">4. Download / ダウンロード / 다운로드</h2>
 
+[⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
+
 * 🇺🇸 Head to [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) and get the latest version setup file.
 * 🇯🇵 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)から最新バージョンのセットアップファイルをダウンロードしてください。
 * 🇰🇷 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)로 이동하여 최신 버전 설치 파일을 다운로드하세요.
 
 <h2 id="5-self-compile-quick-start-guide">5. Self-compile Quick Start Guide / セルフコンパイルクイックスタートガイド / 자체 컴파일 빠른 시작 가이드</h2>
+
+[⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
 * 🇺🇸 Want to run it yourself? Follow these steps:
 * 🇯🇵 ご自身で実行したい場合は以下の手順に従ってください：
@@ -197,6 +207,8 @@ npm start
 
 <h2 id="6-how-to-use-it">6. How to Use It / 使い方 / 사용 방법</h2>
 
+[⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
+
 🇺🇸
 1. Open up the desktop client and log into Speaki RPG.
 2. The app will automatically catch your player name, level, and XP.
@@ -218,6 +230,8 @@ npm start
 ---
 
 <h2 id="7-good-to-know">7. Good to Know / 留意事項 / 알아두어야 할 사항</h2>
+
+[⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
 🇺🇸
 * **Unofficial:** This is a fan-made project and isn't officially affiliated with the Speaki RPG creators. No game assets are included.
@@ -243,10 +257,13 @@ npm start
 
 <h2 id="8-want-to-collaborate">8. Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?</h2>
 
-🇺🇸 Want to collaborate? Reach out to us, [send a pull request](https://github.com/DJTOMATO/SpeakiRPG/pulls), or [submit an issue](https://github.com/DJTOMATO/SpeakiRPG/issues) on GitHub!
+[⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
-🇯🇵 開発に協力したいですか？お気軽にご連絡いただくか、GitHubにて[プルリクエストを送信](https://github.com/DJTOMATO/SpeakiRPG/pulls)または[イシューを提出](https://github.com/DJTOMATO/SpeakiRPG/issues)してください！
+🇺🇸 Want to collaborate? Reach out to us, [send a pull request]([https://github.com/DJTOMATO/SpeakiRPG/pulls]%28https://github.com/DJTOMATO/SpeakiRPG/pulls%29), or [submit an issue]([https://github.com/DJTOMATO/SpeakiRPG/issues]%28https://github.com/DJTOMATO/SpeakiRPG/issues%29) on GitHub!
 
-🇰🇷 협업하고 싶으신가요? 저희에게 연락하거나 GitHub에 [풀 리퀘스트를 보내고](https://github.com/DJTOMATO/SpeakiRPG/pulls) [이슈를 등록](https://github.com/DJTOMATO/SpeakiRPG/issues)해 주세요!
+🇯🇵 開発に協力したいですか？お気軽にご連絡いただくか、GitHubにて[プルリクエストを送信]([https://github.com/DJTOMATO/SpeakiRPG/pulls]%28https://github.com/DJTOMATO/SpeakiRPG/pulls%29)または[イシューを提出]([https://github.com/DJTOMATO/SpeakiRPG/issues]%28https://github.com/DJTOMATO/SpeakiRPG/issues%29)してください！日本語が母語の方による文章の修正・翻訳も大歓迎です！
+
+🇰🇷 협업하고 싶으신가요? 저희에게 연락하거나 GitHub에 [풀 리퀘스트를 보내고]([https://github.com/DJTOMATO/SpeakiRPG/pulls]%28https://github.com/DJTOMATO/SpeakiRPG/pulls%29) [이슈를 등록]([https://github.com/DJTOMATO/SpeakiRPG/issues]%28https://github.com/DJTOMATO/SpeakiRPG/issues%29)해 주세요! 한국어가 모국어인 분들의 문서 수정 및 번역도 언제나 환영합니다!
+
 
 <img src="https://cdn.nest.rip/uploads/96578d20-4e61-4cab-9978-d01789edebbb.png">
