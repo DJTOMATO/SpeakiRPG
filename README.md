@@ -61,7 +61,7 @@ Hey there! **Speaki RPG Electron Client** is a custom desktop app and launcher f
 
     🇰🇷 "다른 유저들에게 피해가 가지 않는것이 확실하면, 아무래도 좋습니다."
     🇺🇸 As long as it's certain that it doesn't harm other users, it doesn't matter.
-    🇯🇵 他のユーザーに被害がないことが確実であれば、どうしても良い
+    🇯🇵 他のユーザーに被害がないことが確実であれば、問題ありません。
     
 So, according to the official developer statement:
 * **Allowed:** Client modifications and tool usage/customization, **provided they do not harm other users** or disrupt fair play.
@@ -107,7 +107,7 @@ npm start
 
 1. Open up the desktop client and log into Speaki RPG.
 2. The app will automatically catch your player name, level, and XP.
-3. Your Discord status will update instantly to show off your hard work!
+3. Your Discord status will update instantly to show off your hard work! (You can force update it with CTRL+SHIFT+D
 
 ---
 
