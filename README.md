@@ -8,16 +8,17 @@
 
 🇰🇷 **Speaki RPG Desktop**은 브라우저 기반 MMORPG 게임인 **Speaki RPG**를 위한 맞춤형 데스크톱 앱이자 런처입니다. 브라우저 탭에서 게임을 꺼내 데스크톱에서 즐길 수 있도록 해주며, 멋진 Discord 연동 기능과 친구들이 실시간으로 게임 진행 상황을 확인할 수 있는 다양한 재미있는 기능들을 제공합니다!
 
+
 <h2 id="table-of-contents">Table of Contents / 目次 / 목차</h2>
 
-- [1. What Makes It Awesome?](#1-what-makes-it-awesome)
-- [2. Additional Features](#2-additional-features)
-- [3. Official Developer Stance & Usage Policy](#3-official-developer-stance--usage-policy)
-- [4. Download](#4-download)
-- [5. Self-compile Quick Start Guide](#5-self-compile-quick-start-guide)
-- [6. How to Use It](#6-how-to-use-it)
-- [7. Good to Know](#7-good-to-know)
-- [8. Want to Collaborate?](#8-want-to-collaborate)
+- [1. What Makes It Awesome? / 何が素晴らしいのか？ / 무엇이 이 제품을 멋지게 만드는 걸까요?](#1-what-makes-it-awesome--何が素晴らしいのか--무엇이-이-제품을-멋지게-만드는-걸까요)
+- [2. Additional Features / 追加機能 / 추가 기능](#2-additional-features--追加機能--추가-기능)
+- [3. Official Developer Stance & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책](#3-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책)
+- [4. Download / ダウンロード / 다운로드](#4-download--ダウンロード--다운로드)
+- [5. Self-compile Quick Start Guide / セルフコンパイルクイックスタートガイド / 자체 컴파일 빠른 시작 가이드](#5-self-compile-quick-start-guide--セルフコンパイルクイックスタートガイド--자체-컴파일-빠른-시작-가이드)
+- [6. How to Use It / 使い方 / 사용 방법](#6-how-to-use-it--使い方--사용-방법)
+- [7. Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?](#7-want-to-collaborate--協力を希望される方へ--기여하고-싶으신가요)
+- [8. Good to Know / 留意事項 / 알아두어야 할 사항](#8-good-to-know--留意事項--알아두어야-할-사항)
 
 
 ![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
