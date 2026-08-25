@@ -43,8 +43,6 @@ Hey there! **Speaki RPG Electron Client** is a custom desktop app and launcher f
 ## ⚠️ Developer Stance & Usage Policy
 <img width="462" height="259" alt="devresponse" src="https://github.com/user-attachments/assets/3e96eae6-845a-43ba-9af2-18e51f038a89" />
 
-Here are the translations for those exact phrases:
-
 * **"다른 유저들에게 피해가 가지 않는 선의 클라이언트 조작을 허용하였습니다."**
 * *Translation:* "Client modifications to the extent that they do not harm other users have been permitted."
 
