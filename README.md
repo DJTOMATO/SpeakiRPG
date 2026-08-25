@@ -80,12 +80,11 @@
 - チャンネルトラッカー
 - どこでもダンス
 - どこでも「チョワヨ！」と叫ぶ
-- スピキをカメラの方に向ける（ポーズをとるのに便利）
 - カメラをロック（昔のPS1ゲームのように）
 - 視点が壁をすり抜ける（ビュークリップ）
 - 他のプレイヤーの視点からゲームを観戦
 - 他のプレイヤーの名前タグを非表示
-- スピーキをカメラの方に向ける（ポーズをとるのに便利）
+- スピキをカメラの方に向ける（ポーズをとるのに便利）
 - クエストのピン留め
 - ポータルに向かって自動で歩く（自動で食事したり障害物を避けたりしないため、注意が必要です）
 - MODタイトルをクリックしてHUDを折りたたむ（最大3回まで）
@@ -155,7 +154,7 @@ So, according to the official developer statement:
 * **Enforcement:** Ban criteria are entirely at the developer's subjective discretion. Users must exercise their own judgment—if you are certain it does not affect others, it is generally permitted. Use at your own risk.
 ---
 🇯🇵
-公式開発者声明によると、以下の通りです。
+公式開発者からの声明を要約すると、以下の通りです。
 * **許可:** クライアントの変更およびツールの使用/カスタマイズは、**他のユーザーに損害を与えたり、公平なプレイを妨害したりしない限り**可能です。
 * **禁止:** 他のプレイヤーに悪影響を与える行為（例：自動狩り、ボットの使用、チート行為）は禁止です。
 * **適用:** 禁止基準は開発者の主観的な裁量に完全に委ねられています。ユーザーは各自の判断で行動する必要があります。他のユーザーに悪影響を与えないと確信できる場合は、一般的に許可されます。自己責任でご利用ください。
@@ -273,12 +272,11 @@ npm start
 
 <img width="235" height="236" alt="1765896114857749" src="https://github.com/user-attachments/assets/08d51e52-7f46-4a24-97d1-d4e4bfc5d114" />
 
+🇺🇸 Want to collaborate? Reach out to us, [send a pull request](https://github.com/DJTOMATO/SpeakiRPG/pulls), or [submit an issue](https://github.com/DJTOMATO/SpeakiRPG/issues) on GitHub!
 
-🇺🇸 Want to collaborate? Reach out to us, [send a pull request]([https://github.com/DJTOMATO/SpeakiRPG/pulls]%28https://github.com/DJTOMATO/SpeakiRPG/pulls%29), or [submit an issue]([https://github.com/DJTOMATO/SpeakiRPG/issues]%28https://github.com/DJTOMATO/SpeakiRPG/issues%29) on GitHub!
+🇯🇵 開発に協力したいですか？お気軽にご連絡いただくか、GitHubにて[pull requestを送信](https://github.com/DJTOMATO/SpeakiRPG/pulls)または[issueを提出](https://github.com/DJTOMATO/SpeakiRPG/issues)してください！日本語が第一言語の方による文章の修正・翻訳も大歓迎です！
 
-🇯🇵 開発に協力したいですか？お気軽にご連絡いただくか、GitHubにて[プルリクエストを送信]([https://github.com/DJTOMATO/SpeakiRPG/pulls]%28https://github.com/DJTOMATO/SpeakiRPG/pulls%29)または[イシューを提出]([https://github.com/DJTOMATO/SpeakiRPG/issues]%28https://github.com/DJTOMATO/SpeakiRPG/issues%29)してください！日本語が母語の方による文章の修正・翻訳も大歓迎です！
-
-🇰🇷 협업하고 싶으신가요? 저희에게 연락하거나 GitHub에 [풀 리퀘스트를 보내고]([https://github.com/DJTOMATO/SpeakiRPG/pulls]%28https://github.com/DJTOMATO/SpeakiRPG/pulls%29) [이슈를 등록]([https://github.com/DJTOMATO/SpeakiRPG/issues]%28https://github.com/DJTOMATO/SpeakiRPG/issues%29)해 주세요! 한국어가 모국어인 분들의 문서 수정 및 번역도 언제나 환영합니다!
+🇰🇷 협업하고 싶으신가요? 저희에게 연락하거나 GitHub에 [풀 리퀘스트를 보내고](https://github.com/DJTOMATO/SpeakiRPG/pulls) [이슈를 등록](https://github.com/DJTOMATO/SpeakiRPG/issues)해 주세요! 한국어가 모국어인 분들의 문서 수정 및 번역도 언제나 환영합니다!
 
 <h2 id="faq">FAQ / よくある質問 / 자주 묻는 질문</h2>
 
@@ -339,7 +337,7 @@ npm start
 - いいえ、これは無料プロジェクトであり、今後も無料であり続けます。
 
 🇯🇵 **ベストなちびキャラは？**
-- Rufoです。それ以上の質問は受け付けません。
+- ルポです。それ以上の質問は受け付けません。
 
 🇯🇵 **これを使用すると公式開発者からBANされますか？**
 - いいえ — 詳細は上記の[公式開発者の見解および使用ポリシー](#3-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책)セクションをご確認ください。
