@@ -338,7 +338,8 @@ npm start
 - いいえ、これは無料プロジェクトであり、今後も無料であり続けます。
 
 🇯🇵 **Best使徒は？**
-- ルポです。異論は認めない。
+- ルポです。異論は認めない。<img width="32" height="32" alt="image" src="https://github.com/user-attachments/assets/c30f8b97-c0e3-4bd1-bc77-742a2f9dd21f" />
+
 
 🇯🇵 **これを使用すると公式開発者からBANされますか？**
 - いいえ — 詳細は上記の[公式開発者の見解および使用ポリシー](#3-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책)セクションをご確認ください。
