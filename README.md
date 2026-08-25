@@ -338,7 +338,7 @@ npm start
 - いいえ、これは無料プロジェクトであり、今後も無料であり続けます。
 
 🇯🇵 **Best使徒は？**
-- ルポです。異論は認めない。<img width="32" height="32" alt="image" src="https://github.com/user-attachments/assets/c30f8b97-c0e3-4bd1-bc77-742a2f9dd21f" />
+- ルポです。異論は認めない。<img width="32" height="32" alt="image" src="https://github.com/user-attachments/assets/c30f8b97-c0e3-4bd1-bc77-742a2f9dd21f" /> BestだけにBeast……ふふっ。
 
 
 🇯🇵 **これを使用すると公式開発者からBANされますか？**
