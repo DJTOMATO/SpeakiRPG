@@ -79,6 +79,7 @@
 - 経験値トラッカー（1分あたりの経験値と次のレベルまでの推定時間）
 - チャンネルトラッカー
 - どこでもダンス
+- どこでも「チョワヨ！」と叫ぶ
 - スピキをカメラの方に向ける（ポーズをとるのに便利）
 - カメラをロック（昔のPS1ゲームのように）
 - 視点が壁をすり抜ける（ビュークリップ）
@@ -127,25 +128,25 @@
 <img width="462" height="259" alt="devresponse" src="https://github.com/user-attachments/assets/3e96eae6-845a-43ba-9af2-18e51f038a89" />
 
 ---
-* 🇰🇷 "다른 유저들에게 피해가 가지 않는 선의 클라이언트 조작을 허용하였습니다."
 * 🇺🇸 Client modifications to the extent that they do not harm other users have been permitted.
 * 🇯🇵 他のユーザーに被害が及ばない範囲でのクライアント改変を許可しました。
+* 🇰🇷 "다른 유저들에게 피해가 가지 않는 선의 클라이언트 조작을 허용하였습니다."
 ---
-* 🇰🇷 "이 툴을 사용/개조하셔도됩니다."
 * 🇺🇸 You are free to use or modify this tool.
 * 🇯🇵 このツールを使用・改造しても構いません。
+* 🇰🇷 "이 툴을 사용/개조하셔도됩니다."
 --- 
-* 🇰🇷 "여전히 다른 유저들에게 피해가 가는(자동 사냥 등)은 제재 대상입니다."
 * 🇺🇸 Anything that still harms other users (such as auto-hunting) remains subject to penalties.
 * 🇯🇵 他のユーザーに迷惑をかける行為（自動狩りなど）は依然として制裁対象です。
+* 🇰🇷 "여전히 다른 유저들에게 피해가 가는(자동 사냥 등)은 제재 대상입니다."
 ---
-* 🇰🇷 "제재 기준은 완전히 주관적이라(나, 즉 운영자) 유저들이 알아서 판단해야합니다."
 * 🇺🇸 The criteria for penalties are completely subjective (i.e., me, the operator), so users must judge for themselves.
 * 🇯🇵 制裁の基準は完全に主観的（私、つまり運営者）であるため、ユーザー自身で判断する必要があります。
+* 🇰🇷 "제재 기준은 완전히 주관적이라(나, 즉 운영자) 유저들이 알아서 판단해야합니다."
 --- 
-* 🇰🇷 "다른 유저들에게 피해가 가지 않는것이 확실하면, 아무래도 좋습니다."
 * 🇺🇸 As long as it's certain that it doesn't harm other users, it doesn't matter.
 * 🇯🇵 他のユーザーに被害がないことが確実であれば、問題ありません。
+* 🇰🇷 "다른 유저들에게 피해가 가지 않는것이 확실하면, 아무래도 좋습니다."
 ---
 🇺🇸   
 So, according to the official developer statement:
