@@ -19,6 +19,8 @@
 - [6. How to Use It / 使い方 / 사용 방법](#6-how-to-use-it--使い方--사용-방법)
 - [7. Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?](#7-want-to-collaborate--協力を希望される方へ--기여하고-싶으신가요)
 - [8. Good to Know / 留意事項 / 알아두어야 할 사항](#8-good-to-know--留意事項--알아두어야-할-사항)
+- [9. FAQ / よくある質問 / 자주 묻는 질문](#faq)
+- [10. Credits / クレジット / 크레딧](#credits)
 
 
 ![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
@@ -111,16 +113,16 @@
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
 * 🇺🇸 [Regarding the Official Developer Statement]
-* The Korean translation of the official statement by SpeakyMMODeveloper is as follows:
+* The Korean translation of the official statement by SpeakiMMODeveloper is as follows:
 ---
 
 * 🇯🇵【公式開発者の声明について】
-* SpeakyMMODeveloperによる公式声明の日本語訳は以下の通りです。
+* SpeakiMMODeveloperによる公式声明の日本語訳は以下の通りです。
 
 ---
 
 * 🇰🇷[공식 개발자의 성명에 대하여]
-* SpeakyMMODeveloper의 공식 성명에 대한 한국어 번역은 다음과 같습니다.
+* SpeakiMMODeveloper의 공식 성명에 대한 한국어 번역은 다음과 같습니다.
 ---
 
 <img width="462" height="259" alt="devresponse" src="https://github.com/user-attachments/assets/3e96eae6-845a-43ba-9af2-18e51f038a89" />
@@ -169,6 +171,9 @@ So, according to the official developer statement:
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
+<img width="264" height="213" alt="1778253476070028" src="https://github.com/user-attachments/assets/caaa2f1c-b522-4cf6-8fa2-f44677b8db7a" />
+
+
 * 🇺🇸 Head to [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) and get the latest version setup file.
 * 🇯🇵 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)から最新バージョンのセットアップファイルをダウンロードしてください。
 * 🇰🇷 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)로 이동하여 최신 버전 설치 파일을 다운로드하세요.
@@ -210,6 +215,9 @@ npm start
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
+<img width="203" height="124" alt="HHUUUaybIAA5i4g" src="https://github.com/user-attachments/assets/4ba2eb21-8e70-4605-8b5d-cd6031229b29" />
+
+
 🇺🇸
 1. Open up the desktop client and log into Speaki RPG.
 2. The app will automatically catch your player name, level, and XP.
@@ -233,6 +241,9 @@ npm start
 <h2 id="7-good-to-know">7. Good to Know / 留意事項 / 알아두어야 할 사항</h2>
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
+
+<img width="125" height="113" alt="DONT" src="https://github.com/user-attachments/assets/c76b1d40-e0a7-4904-b250-38b73f02db54" />
+
 
 🇺🇸
 * **Unofficial:** This is a fan-made project and isn't officially affiliated with the Speaki RPG creators. No game assets are included.
@@ -260,11 +271,139 @@ npm start
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
+<img width="235" height="236" alt="1765896114857749" src="https://github.com/user-attachments/assets/08d51e52-7f46-4a24-97d1-d4e4bfc5d114" />
+
+
 🇺🇸 Want to collaborate? Reach out to us, [send a pull request]([https://github.com/DJTOMATO/SpeakiRPG/pulls]%28https://github.com/DJTOMATO/SpeakiRPG/pulls%29), or [submit an issue]([https://github.com/DJTOMATO/SpeakiRPG/issues]%28https://github.com/DJTOMATO/SpeakiRPG/issues%29) on GitHub!
 
 🇯🇵 開発に協力したいですか？お気軽にご連絡いただくか、GitHubにて[プルリクエストを送信]([https://github.com/DJTOMATO/SpeakiRPG/pulls]%28https://github.com/DJTOMATO/SpeakiRPG/pulls%29)または[イシューを提出]([https://github.com/DJTOMATO/SpeakiRPG/issues]%28https://github.com/DJTOMATO/SpeakiRPG/issues%29)してください！日本語が母語の方による文章の修正・翻訳も大歓迎です！
 
 🇰🇷 협업하고 싶으신가요? 저희에게 연락하거나 GitHub에 [풀 리퀘스트를 보내고]([https://github.com/DJTOMATO/SpeakiRPG/pulls]%28https://github.com/DJTOMATO/SpeakiRPG/pulls%29) [이슈를 등록]([https://github.com/DJTOMATO/SpeakiRPG/issues]%28https://github.com/DJTOMATO/SpeakiRPG/issues%29)해 주세요! 한국어가 모국어인 분들의 문서 수정 및 번역도 언제나 환영합니다!
 
+<h2 id="faq">FAQ / よくある質問 / 자주 묻는 질문</h2>
+
+[⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
+
+🇺🇸 **Is this safe to use / will I get banned?**
+- Per the developer's official statement, client modifications that don't harm other players are permitted. Features like auto-hunting or anything that gives you an unfair advantage over other players are not covered by this and could get you banned. Use good judgment.
+
+🇺🇸 **Does this work on Mac / Linux?**
+- The pre-built releases are for Windows. Mac/Linux users can try the [Self-compile Quick Start Guide](#5-self-compile-quick-start-guide) to build it themselves, though it isn't officially tested on those platforms.
+
+🇺🇸 **Is this free?**
+- Yes, completely free and open source under the GNU License.
+
+🇺🇸 **Does this modify game files or include game assets?**
+- No. This is a standalone desktop wrapper/launcher — no game assets are included and no game files are modified.
+
+🇺🇸 **Why isn't my Discord status updating?**
+- Make sure Discord is open and running before you launch Speaki RPG Desktop. You can also force an update with CTRL+SHIFT+D.
+
+🇺🇸 **Is this affiliated with the official Speaki RPG team?**
+- No, this is an unofficial, fan-made project.
+
+🇺🇸 **Will this give me a virus / get me hacked?**
+- No — the source code is fully open and available in this repository, so anyone can inspect exactly what it does before running it. If you don't trust the pre-built release, use the [Self-compile Quick Start Guide](#5-self-compile-quick-start-guide) to build it yourself from source.
+
+🇺🇸 **Do you accept donations?**
+- No, this is a free project and will stay that way.
+
+🇺🇸 **Best chibi?**
+- Rufo. No further questions.
+
+🇺🇸 **Will I get banned by the official developer for using this?**
+- No — check the [Official Developer Stance & Usage Policy](#3-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책) section above for the full details.
+
+
+---
+
+🇯🇵 **安全に使用できますか？ / BANされませんか？**
+- 開発者の公式声明によると、他のプレイヤーに害を及ぼさないクライアント改変は許可されています。自動狩りなど、他プレイヤーに対して不公平な優位性をもたらす機能はこれに該当せず、BANされる可能性があります。ご自身の判断でご利用ください。
+
+🇯🇵 **Mac／Linuxで使用できますか？**
+- 配布されているビルド版はWindows向けです。Mac／Linuxをお使いの方は[セルフコンパイルクイックスタートガイド](#5-self-compile-quick-start-guide)を参照してご自身でビルドしてください。ただし、これらの環境での動作は公式にテストされていません。
+
+🇯🇵 **無料ですか？**
+- はい、完全無料でオープンソースです（GNUライセンス）。
+
+🇯🇵 **ゲームファイルを改変したり、ゲームアセットを含んでいますか？**
+- いいえ。これはスタンドアロンのデスクトップラッパー／ランチャーであり、ゲームアセットは含まれておらず、ゲームファイルの改変も行いません。
+
+🇯🇵 **Discordのステータスが更新されないのですが？**
+- Speaki RPG Desktopを起動する前にDiscordを開いて実行しておいてください。CTRL+SHIFT+Dで強制更新することもできます。
+
+🇯🇵 **ウイルスに感染したり、ハッキングされたりしませんか？**
+- いいえ — ソースコードは完全に公開されており、このリポジトリで誰でも実際の動作内容を確認できます。ビルド済みのリリース版を信用できない場合は、[セルフコンパイルクイックスタートガイド](#5-self-compile-quick-start-guide)を参照して、ソースからご自身でビルドしてください。
+
+🇯🇵 **寄付を受け付けていますか？**
+- いいえ、これは無料プロジェクトであり、今後も無料であり続けます。
+
+🇯🇵 **ベストなちびキャラは？**
+- Rufoです。それ以上の質問は受け付けません。
+
+🇯🇵 **これを使用すると公式開発者からBANされますか？**
+- いいえ — 詳細は上記の[公式開発者の見解および使用ポリシー](#3-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책)セクションをご確認ください。
+
+
+🇯🇵 **公式のSpeaki RPGチームと提携していますか？**
+- いいえ、これは非公式のファンメイドプロジェクトです。
+
+---
+
+🇰🇷 **사용해도 안전한가요? / 밴을 당하나요?**
+- 개발자의 공식 성명에 따르면 다른 플레이어에게 피해를 주지 않는 클라이언트 수정은 허용됩니다. 자동 사냥 등 다른 플레이어에게 불공정한 이점을 주는 기능은 여기에 해당되지 않으며, 밴의 대상이 될 수 있습니다. 스스로 판단하여 사용하시기 바랍니다.
+
+🇰🇷 **Mac / Linux에서도 사용할 수 있나요?**
+- 배포되는 빌드 버전은 Windows용입니다. Mac/Linux 사용자는 [자체 컴파일 빠른 시작 가이드](#5-self-compile-quick-start-guide)를 참고하여 직접 빌드할 수 있지만, 해당 환경에서는 공식적으로 테스트되지 않았습니다.
+
+🇰🇷 **무료인가요?**
+- 네, 완전 무료이며 GNU 라이센스로 오픈소스입니다.
+
+🇰🇷 **게임 파일을 수정하거나 게임 에셋을 포함하나요?**
+- 아니요. 이 프로그램은 독립형 데스크톱 래퍼/런처이며, 게임 에셋은 포함되어 있지 않고 게임 파일을 수정하지도 않습니다.
+
+🇰🇷 **Discord 상태가 업데이트되지 않아요.**
+- Speaki RPG Desktop을 실행하기 전에 Discord가 열려 있고 실행 중인지 확인하세요. CTRL+SHIFT+D로 강제 업데이트할 수도 있습니다.
+
+🇰🇷 **바이러스에 걸리거나 해킹당하지 않나요?**
+- 아니요 — 소스 코드가 완전히 공개되어 있어 이 저장소에서 누구나 실제 동작 내용을 직접 확인할 수 있습니다. 빌드된 릴리스 버전을 신뢰할 수 없다면 [자체 컴파일 빠른 시작 가이드](#5-self-compile-quick-start-guide)를 참고하여 소스에서 직접 빌드하세요.
+
+🇰🇷 **기부를 받으시나요?**
+- 아니요, 이 프로젝트는 무료 프로젝트이며 앞으로도 무료로 유지됩니다.
+
+🇰🇷 **최고의 치비 캐릭터는?**
+- Rufo입니다. 더 이상의 질문은 받지 않습니다.
+
+🇰🇷 **이걸 사용하면 공식 개발자에게 밴당하나요?**
+- 아니요 — 자세한 내용은 위의 [공식 개발자 입장 및 사용 정책](#3-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책) 섹션을 확인하세요.
+
+🇰🇷 **공식 Speaki RPG 팀과 제휴되어 있나요?**
+- 아니요, 이 프로젝트는 비공식 팬메이드 프로젝트입니다.
+
+<h2 id="credits">Credits / クレジット / 크레딧</h2>
+
+[⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
+
+🇺🇸
+* **Original Game:** EPID Games
+* **Speaki MMO Development:** GMDT
+* **Client Coding:** Glas
+* **SpeakiMOD Feature Extender:** @Alluseri
+* **Japanese Proof-reading:** dancing_stick_man
+
+🇯🇵
+* **オリジナルゲーム:** EPID Games
+* **Speaki MMO開発:** GMDT
+* **クライアントコーディング:** Glas
+* **SpeakiMOD機能拡張:** @Alluseri
+* **日本語校正:** dancing_stick_man
+
+🇰🇷
+* **오리지널 게임:** EPID Games
+* **Speaki MMO 개발:** GMDT
+* **클라이언트 코딩:** Glas
+* **SpeakiMOD 기능 확장:** @Alluseri
+* **일본어 교정:** dancing_stick_man
+---
 
 <img src="https://cdn.nest.rip/uploads/96578d20-4e61-4cab-9978-d01789edebbb.png">
