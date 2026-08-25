@@ -307,7 +307,7 @@ npm start
 🇺🇸 **Do you accept donations?**
 - No, this is a free project and will stay that way.
 
-🇺🇸 **Best chibi?**
+🇺🇸 **Who is the best Apostle??**
 - Rufo. No further questions.
 
 🇺🇸 **Will I get banned by the official developer for using this?**
@@ -337,12 +337,11 @@ npm start
 🇯🇵 **寄付を受け付けていますか？**
 - いいえ、これは無料プロジェクトであり、今後も無料であり続けます。
 
-🇯🇵 **ベストなちびキャラは？**
-- ルポです。それ以上の質問は受け付けません。
+🇯🇵 **Best使徒は？**
+- ルポです。異論は認めない。
 
 🇯🇵 **これを使用すると公式開発者からBANされますか？**
 - いいえ — 詳細は上記の[公式開発者の見解および使用ポリシー](#3-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책)セクションをご確認ください。
-
 
 🇯🇵 **公式のSpeaki RPGチームと提携していますか？**
 - いいえ、これは非公式のファンメイドプロジェクトです。
@@ -370,8 +369,8 @@ npm start
 🇰🇷 **기부를 받으시나요?**
 - 아니요, 이 프로젝트는 무료 프로젝트이며 앞으로도 무료로 유지됩니다.
 
-🇰🇷 **최고의 치비 캐릭터는?**
-- Rufo입니다. 더 이상의 질문은 받지 않습니다.
+🇰🇷 **최고의 사도는 누구입니까?**
+- Lupo입니다. 더 이상의 질문은 받지 않습니다.
 
 🇰🇷 **이걸 사용하면 공식 개발자에게 밴당하나요?**
 - 아니요 — 자세한 내용은 위의 [공식 개발자 입장 및 사용 정책](#3-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책) 섹션을 확인하세요.
@@ -388,21 +387,21 @@ npm start
 * **Speaki MMO Development:** GMDT
 * **Client Coding:** Glas
 * **SpeakiMOD Feature Extender:** @Alluseri
-* **Japanese Proof-reading:** Japanese Risty
+* **README Japanese Proof-reading:** Japanese Risty
 
 🇯🇵
 * **オリジナルゲーム:** EPID Games
 * **Speaki MMO開発:** GMDT
 * **クライアントコーディング:** Glas
 * **SpeakiMOD機能拡張:** @Alluseri
-* **日本語訳校正:** Japanese Risty
+* **README日本語訳校正:** Japanese Risty
 
 🇰🇷
 * **오리지널 게임:** EPID Games
 * **Speaki MMO 개발:** GMDT
 * **클라이언트 코딩:** Glas
 * **SpeakiMOD 기능 확장:** @Alluseri
-* **일본어 교정:** Japanese Risty
+* **README일본어 교정:** Japanese Risty
 ---
 
 <img src="https://cdn.nest.rip/uploads/96578d20-4e61-4cab-9978-d01789edebbb.png">
