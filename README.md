@@ -16,13 +16,16 @@
 - [5. Self-compile Quick Start Guide](#5-self-compile-quick-start-guide--セルフコンパイルクイックスタートガイド--자체-컴파일-빠른-시작-가이드)
 - [6. How to Use It](#6-how-to-use-it--使い方--사용-방법)
 - [7. Good to Know](#7-good-to-know--留意事項--알아두어야-할-사항)
---
+- [8. Want to Collaborate?](#7-want-to-collaborate--協力を希望される方へ--기여하고-싶으신가요)
+- ## Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?
 
-![Alt Text for Image](https://bae.lena.moe/pSuXeftp2QLi.jpg)
+
 ![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
 ---
 
 ## What Makes It Awesome? / 何が素晴らしいのか？ / 무엇이 이 제품을 멋지게 만드는 걸까요?
+
+![Alt Text for Image](https://bae.lena.moe/pSuXeftp2QLi.jpg)
 
 🇺🇸 
 * **Discord Rich Presence:** Automatically shows your current character name, level, and XP right on your Discord profile.
@@ -103,32 +106,34 @@
 
 🇺🇸 [Regarding the Official Developer Statement]
 The Korean translation of the official statement by SpeakyMMODeveloper is as follows:
+
 🇯🇵【公式開発者の声明について】
 SpeakyMMODeveloperによる公式声明の日本語訳は以下の通りです。
+
 🇰🇷[공식 개발자의 성명에 대하여]
 SpeakyMMODeveloper의 공식 성명에 대한 한국어 번역은 다음과 같습니다.
 
 <img width="462" height="259" alt="devresponse" src="https://github.com/user-attachments/assets/3e96eae6-845a-43ba-9af2-18e51f038a89" />
 
-🇰🇷 "다른 유저들에게 피해가 가지 않는 선의 클라이언트 조작을 허용하였습니다."
-🇺🇸 Client modifications to the extent that they do not harm other users have been permitted.
-🇯🇵 他のユーザーに被害が及ばない範囲でのクライアント改変を許可しました。
+* 🇰🇷 "다른 유저들에게 피해가 가지 않는 선의 클라이언트 조작을 허용하였습니다."
+* 🇺🇸 Client modifications to the extent that they do not harm other users have been permitted.
+* 🇯🇵 他のユーザーに被害が及ばない範囲でのクライアント改変を許可しました。
 
-🇰🇷 "이 툴을 사용/개조하셔도됩니다."
-🇺🇸 You are free to use or modify this tool.
-🇯🇵 このツールを使用・改造しても構いません。
-
-🇰🇷 "여전히 다른 유저들에게 피해가 가는(자동 사냥 등)은 제재 대상입니다."
-🇺🇸 Anything that still harms other users (such as auto-hunting) remains subject to penalties.
-🇯🇵 他のユーザーに迷惑をかける行為（自動狩りなど）は依然として制裁対象です。
-
-🇰🇷 "제재 기준은 완전히 주관적이라(나, 즉 운영자) 유저들이 알아서 판단해야합니다."
-🇺🇸 The criteria for penalties are completely subjective (i.e., me, the operator), so users must judge for themselves.
-🇯🇵 制裁の基準は完全に主観的（私、つまり運営者）であるため、ユーザー自身で判断する必要があります。
-
-🇰🇷 "다른 유저들에게 피해가 가지 않는것이 확실하면, 아무래도 좋습니다."
-🇺🇸 As long as it's certain that it doesn't harm other users, it doesn't matter.
-🇯🇵 他のユーザーに被害がないことが確実であれば、問題ありません。
+* 🇰🇷 "이 툴을 사용/개조하셔도됩니다."
+* 🇺🇸 You are free to use or modify this tool.
+* 🇯🇵 このツールを使用・改造しても構いません。
+ 
+* 🇰🇷 "여전히 다른 유저들에게 피해가 가는(자동 사냥 등)은 제재 대상입니다."
+* 🇺🇸 Anything that still harms other users (such as auto-hunting) remains subject to penalties.
+* 🇯🇵 他のユーザーに迷惑をかける行為（自動狩りなど）は依然として制裁対象です。
+ 
+* 🇰🇷 "제재 기준은 완전히 주관적이라(나, 즉 운영자) 유저들이 알아서 판단해야합니다."
+* 🇺🇸 The criteria for penalties are completely subjective (i.e., me, the operator), so users must judge for themselves.
+* 🇯🇵 制裁の基準は完全に主観的（私、つまり運営者）であるため、ユーザー自身で判断する必要があります。
+ 
+* 🇰🇷 "다른 유저들에게 피해가 가지 않는것이 확실하면, 아무래도 좋습니다."
+* 🇺🇸 As long as it's certain that it doesn't harm other users, it doesn't matter.
+* 🇯🇵 他のユーザーに被害がないことが確実であれば、問題ありません。
 
 🇺🇸   
 So, according to the official developer statement:
@@ -151,17 +156,15 @@ So, according to the official developer statement:
 
 ## Download / ダウンロード / 다운로드
 
-🇺🇸 Head to [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) and get the latest version setup file.
-🇯🇵 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)から最新バージョンのセットアップファイルをダウンロードしてください。
-🇰🇷 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)로 이동하여 최신 버전 설치 파일을 다운로드하세요.
-
-Here is the short, fused, and flag-prefixed version:
+* 🇺🇸 Head to [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) and get the latest version setup file.
+* 🇯🇵 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)から最新バージョンのセットアップファイルをダウンロードしてください。
+* 🇰🇷 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)로 이동하여 최신 버전 설치 파일을 다운로드하세요.
 
 ## Self-compile Quick Start Guide / セルフコンパイルクイックスタートガイド / 자체 컴파일 빠른 시작 가이드
 
-🇺🇸 Want to run it yourself? Follow these steps:
-🇯🇵 ご自身で実行したい場合は以下の手順に従ってください：
-🇰🇷 직접 실행하고 싶으신가요? 다음 단계를 따르세요:
+* 🇺🇸 Want to run it yourself? Follow these steps:
+* 🇯🇵 ご自身で実行したい場合は以下の手順に従ってください：
+* 🇰🇷 직접 실행하고 싶으신가요? 다음 단계를 따르세요:
 
 1. **Clone / クローン / 복제:**
 
@@ -182,30 +185,27 @@ npm install
 npm start
 ```
 
-🇺🇸 *Want a standalone installer? Run `npm run build` using electron-builder!*
-🇯🇵 *スタンドアロン版のビルドには `npm run build` (electron-builder) を実行してください！*
-🇰🇷 *독립형 설치 프로그램은 `npm run build` (electron-builder)를 실행하세요!*
+* 🇺🇸 *Want a standalone installer? Run `npm run build` using electron-builder!*
+* 🇯🇵 *スタンドアロン版のビルドには `npm run build` (electron-builder) を実行してください！*
+* 🇰🇷 *독립형 설치 프로그램은 `npm run build` (electron-builder)를 실행하세요!*
 
 ---
 
 ## How to Use It / 使い方 / 사용 방법
 
 🇺🇸
-
 1. Open up the desktop client and log into Speaki RPG.
 2. The app will automatically catch your player name, level, and XP.
 3. Your Discord status will update instantly to show off your hard work! (You can force update it with CTRL+SHIFT+D)
 4. [Additional Features](https://www.google.com/search?q=%232-additional-features--%E8%BF%BD%E5%8A%A0%E6%A9%9F%E8%83%BD--%EC%B6%94%EA%B0%80-%EA%B8%B0%EB%8A%A5) will appear to the left.
 
 🇯🇵
-
 1. デスクトップクライアントを開き、Speaki RPGにログインします。
 2. アプリが自動的にプレイヤー名、レベル、経験値を検出します。
 3. あなたの頑張りを示すために、Discordステータスが即座に更新されます！（CTRL+SHIFT+Dで強制更新も可能です）
 4. [追加機能](https://www.google.com/search?q=%232-additional-features--%E8%BF%BD%E5%8A%A0%E6%A9%9F%E8%83%BD--%EC%B6%94%EA%B0%80-%EA%B8%B0%EB%8A%A5)が左側に表示されます。
 
 🇰🇷
-
 1. 데스크톱 클라이언트를 열고 Speaki RPG에 로그인합니다.
 2. 앱이 플레이어 이름, 레벨, 경험치를 자동으로 감지합니다.
 3. 여러분의 노력을 뽐낼 수 있도록 Discord 상태가 즉시 업데이트됩니다! (CTRL+SHIFT+D로 강제 업데이트할 수도 있습니다)
@@ -216,7 +216,6 @@ npm start
 ## Good to Know / 留意事項 / 알아두어야 할 사항
 
 🇺🇸
-
 * **Unofficial:** This is a fan-made project and isn't officially affiliated with the Speaki RPG creators. No game assets are included.
 * **Want to help out?** Contributions, bug reports, and pull requests are always welcome over on GitHub!
 * **License:** Licensed under the GNU License.
@@ -224,7 +223,6 @@ npm start
 * **Official Stance Summary:** Client modifications and tool usage are permitted as long as they do not harm other users or disrupt fair play (though enforcement is entirely at the developer's subjective discretion).
 
 🇯🇵
-
 * **非公式:** これはファンメイドのプロジェクトであり、Speaki RPGのクリエイターとは公式に提携していません。ゲームアセットは含まれていません。
 * **協力したいですか？** 貢献、バグ報告、プルリクエストはGitHubでいつでも大歓迎です！
 * **ライセンス:** GNUライセンスの下でライセンスされています。
@@ -232,11 +230,17 @@ npm start
 * **公式見解の概要:** 他のユーザーに迷惑をかけず公平なプレイを妨げない範囲であればクライアントの変更やツールの使用は許可されています（ただし制裁基準は開発者の主観的裁量に完全に委ねられます）。
 
 🇰🇷
-
 * **비공식:** 이 프로젝트는 팬이 만든 프로젝트이며 Speaki RPG 크리에이터와 공식적으로 제휴되어 있지 않습니다. 게임 에셋은 포함되어 있지 않습니다.
 * **기여하고 싶으신가요?** 기여, 버그 리포트, 풀 리퀘스트는 GitHub에서 언제든지 환영합니다!
 * **라이센스:** GNU 라이센스에 따라 라이센스가 부여됩니다.
 * **모드 기능 가시성:** 모드 제목을 최대 3번 클릭하여 HUD를 접을 수 있다는 점을 잊지 마세요!
 * **공식 입장 요약:** 다른 사용자에게 피해를 주지 않고 공정한 플레이를 방해하지 않는 한 클라이언트 수정 및 도구 사용이 허용됩니다 (단, 제재 기준은 전적으로 개발자의 주관적 판단에 따릅니다).
+--
+
+## Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?
+
+🇺🇸 Want to collaborate? Reach out to us, [send a pull request](https://github.com/DJTOMATO/SpeakiRPG/pulls), or [submit an issue](https://github.com/DJTOMATO/SpeakiRPG/issues) on GitHub!
+🇯🇵 開発に協力したいですか？お気軽にご連絡いただくか、GitHubにて[プルリクエストを送信](https://github.com/DJTOMATO/SpeakiRPG/pulls)または[イシューを提出](https://github.com/DJTOMATO/SpeakiRPG/issues)してください！
+🇰🇷 협업하고 싶으신가요? 저희에게 연락하거나 GitHub에 [풀 리퀘스트를 보내고](https://github.com/DJTOMATO/SpeakiRPG/pulls) [이슈를 등록](https://github.com/DJTOMATO/SpeakiRPG/issues)해 주세요!
 
 <img src="https://cdn.nest.rip/uploads/96578d20-4e61-4cab-9978-d01789edebbb.png">
