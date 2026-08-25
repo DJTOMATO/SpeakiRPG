@@ -116,8 +116,9 @@
 * The Korean translation of the official reaction by SpeakiMMODeveloper is as follows:
 ---
 
-* 🇯🇵【公式開発者の見解について】
-* SpeakiMMODeveloperによる公式声明の日本語訳は以下の通りです。
+* 🇯🇵【公式開発者からの見解】
+* SpeakiMMODeveloperによる公式見解の日本語訳は以下の通りです。
+
 ---
 
 * 🇰🇷[공식 개발자의 성명에 대하여]
@@ -387,21 +388,21 @@ npm start
 * **Speaki MMO Development:** GMDT
 * **Client Coding:** Glas
 * **SpeakiMOD Feature Extender:** @Alluseri
-* **Japanese Proof-reading:** dancing_stick_man
+* **Japanese Proof-reading:** Japanese Risty
 
 🇯🇵
 * **オリジナルゲーム:** EPID Games
 * **Speaki MMO開発:** GMDT
 * **クライアントコーディング:** Glas
 * **SpeakiMOD機能拡張:** @Alluseri
-* **日本語校正:** dancing_stick_man
+* **日本語訳校正:** Japanese Risty
 
 🇰🇷
 * **오리지널 게임:** EPID Games
 * **Speaki MMO 개발:** GMDT
 * **클라이언트 코딩:** Glas
 * **SpeakiMOD 기능 확장:** @Alluseri
-* **일본어 교정:** dancing_stick_man
+* **일본어 교정:** Japanese Risty
 ---
 
 <img src="https://cdn.nest.rip/uploads/96578d20-4e61-4cab-9978-d01789edebbb.png">
