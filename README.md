@@ -155,7 +155,7 @@ So, according to the official developer statement:
 * **Enforcement:** Ban criteria are entirely at the developer's subjective discretion. Users must exercise their own judgment—if you are certain it does not affect others, it is generally permitted. Use at your own risk.
 ---
 🇯🇵
-公式開発者からの声明を要約すると、以下の通りです。
+公式開発者からの見解を要約すると、以下の通りです。
 * **許可:** クライアントの変更およびツールの使用/カスタマイズは、**他のユーザーに損害を与えたり、公平なプレイを妨害したりしない限り**可能です。
 * **禁止:** 他のプレイヤーに悪影響を与える行為（例：自動狩り、ボットの使用、チート行為）は禁止です。
 * **適用:** 禁止基準は開発者の主観的な裁量に完全に委ねられています。ユーザーは各自の判断で行動する必要があります。他のユーザーに悪影響を与えないと確信できる場合は、一般的に許可されます。自己責任でご利用ください。
