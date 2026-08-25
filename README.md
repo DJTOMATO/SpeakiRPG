@@ -63,7 +63,7 @@
 - EXP tracker (EXP per minute and time until next level estimation)
 - Channel tracker
 - Dance anywhere
-- Say "joayo!" anywhere
+- Say "Cho-wa-yo!" anywhere
 - Lock the camera (like in old PS1 games)
 - ViewClip (allow the camera to phase through walls)
 - Watch the game from another player's perspective
@@ -79,9 +79,9 @@
 - 経験値トラッカー（1分あたりの経験値と次のレベルまでの推定時間）
 - チャンネルトラッカー
 - どこでもダンス
-- どこでも「ジョアヨ！」と叫ぶ
+- スピキをカメラの方に向ける（ポーズをとるのに便利）
 - カメラをロック（昔のPS1ゲームのように）
-- ビュークリップ（カメラが壁をすり抜ける）
+- 視点が壁をすり抜ける（ビュークリップ）
 - 他のプレイヤーの視点からゲームを観戦
 - 他のプレイヤーの名前タグを非表示
 - スピーキをカメラの方に向ける（ポーズをとるのに便利）
@@ -112,13 +112,12 @@
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
-* 🇺🇸 [Regarding the Official Developer Statement]
-* The Korean translation of the official statement by SpeakiMMODeveloper is as follows:
+* 🇺🇸 [Regarding the Official Developer Reaction]
+* The Korean translation of the official reaction by SpeakiMMODeveloper is as follows:
 ---
 
-* 🇯🇵【公式開発者の声明について】
+* 🇯🇵【公式開発者の見解について】
 * SpeakiMMODeveloperによる公式声明の日本語訳は以下の通りです。
-
 ---
 
 * 🇰🇷[공식 개발자의 성명에 대하여]
