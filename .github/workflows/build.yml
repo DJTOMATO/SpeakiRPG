@@ -21,7 +21,8 @@ jobs:
 
       - name: Build Mac App
         run: npm run build:mac
-
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
