@@ -111,16 +111,16 @@
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
 * 🇺🇸 [Regarding the Official Developer Statement]
-* The Korean translation of the official statement by SpeakyMMODeveloper is as follows:
+* The Korean translation of the official statement by SpeakiMMODeveloper is as follows:
 ---
 
 * 🇯🇵【公式開発者の声明について】
-* SpeakyMMODeveloperによる公式声明の日本語訳は以下の通りです。
+* SpeakiMMODeveloperによる公式声明の日本語訳は以下の通りです。
 
 ---
 
 * 🇰🇷[공식 개발자의 성명에 대하여]
-* SpeakyMMODeveloper의 공식 성명에 대한 한국어 번역은 다음과 같습니다.
+* SpeakiMMODeveloper의 공식 성명에 대한 한국어 번역은 다음과 같습니다.
 ---
 
 <img width="462" height="259" alt="devresponse" src="https://github.com/user-attachments/assets/3e96eae6-845a-43ba-9af2-18e51f038a89" />
@@ -169,6 +169,9 @@ So, according to the official developer statement:
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
+<img width="264" height="213" alt="1778253476070028" src="https://github.com/user-attachments/assets/caaa2f1c-b522-4cf6-8fa2-f44677b8db7a" />
+
+
 * 🇺🇸 Head to [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) and get the latest version setup file.
 * 🇯🇵 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)から最新バージョンのセットアップファイルをダウンロードしてください。
 * 🇰🇷 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)로 이동하여 최신 버전 설치 파일을 다운로드하세요.
@@ -210,6 +213,9 @@ npm start
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
+<img width="203" height="124" alt="HHUUUaybIAA5i4g" src="https://github.com/user-attachments/assets/4ba2eb21-8e70-4605-8b5d-cd6031229b29" />
+
+
 🇺🇸
 1. Open up the desktop client and log into Speaki RPG.
 2. The app will automatically catch your player name, level, and XP.
@@ -233,6 +239,9 @@ npm start
 <h2 id="7-good-to-know">7. Good to Know / 留意事項 / 알아두어야 할 사항</h2>
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
+
+<img width="125" height="113" alt="DONT" src="https://github.com/user-attachments/assets/c76b1d40-e0a7-4904-b250-38b73f02db54" />
+
 
 🇺🇸
 * **Unofficial:** This is a fan-made project and isn't officially affiliated with the Speaki RPG creators. No game assets are included.
@@ -259,6 +268,9 @@ npm start
 <h2 id="8-want-to-collaborate">8. Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?</h2>
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
+
+<img width="235" height="236" alt="1765896114857749" src="https://github.com/user-attachments/assets/08d51e52-7f46-4a24-97d1-d4e4bfc5d114" />
+
 
 🇺🇸 Want to collaborate? Reach out to us, [send a pull request]([https://github.com/DJTOMATO/SpeakiRPG/pulls]%28https://github.com/DJTOMATO/SpeakiRPG/pulls%29), or [submit an issue]([https://github.com/DJTOMATO/SpeakiRPG/issues]%28https://github.com/DJTOMATO/SpeakiRPG/issues%29) on GitHub!
 
