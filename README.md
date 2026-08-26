@@ -11,14 +11,14 @@
 
 <h2 id="table-of-contents">Table of Contents / 目次 / 목차</h2>
 
-- [1. What Makes It Awesome? / 何が素晴らしいのか？ / 무엇이 이 제품을 멋지게 만드는 걸까요?](#1-what-makes-it-awesome--何が素晴らしいのか--무엇이-이-제품을-멋지게-만드는-걸까요)
-- [2. Additional Features / 追加機能 / 추가 기능](#2-additional-features--追加機能--추가-기능)
+- [1. What Makes It Awesome? / 何が素晴らしいのか？ / 무엇이 이 제품을 멋지게 만드는 걸까요?](#1-what-makes-it-awesome)
+- [2. Additional Features / 追加機能 / 추가 기능](#2-additional-features)
 - [3. Official Developer Reaction & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책](#3-official-developer-reaction--usage-policy)
-- [4. Download / ダウンロード / 다운로드](#4-download--ダウンロード--다운로드)
-- [5. Self-compile Quick Start Guide / セルフコンパイルクイックスタートガイド / 자체 컴파일 빠른 시작 가이드](#5-self-compile-quick-start-guide--セルフコンパイルクイックスタートガイド--자체-컴파일-빠른-시작-가이드)
-- [6. How to Use It / 使い方 / 사용 방법](#6-how-to-use-it--使い方--사용-방법)
-- [7. Good to Know / 留意事項 / 알아두어야 할 사항](#8-good-to-know--留意事項--알아두어야-할-사항)
-- [8. Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?](#7-want-to-collaborate--協力を希望される方へ--기여하고-싶으신가요)
+- [4. Download / ダウンロード / 다운로드](#4-download)
+- [5. Self-compile Quick Start Guide / セルフコンパイルクイックスタートガイド / 자체 컴파일 빠른 시작 가이드](#5-self-compile-quick-start-guide)
+- [6. How to Use It / 使い方 / 사용 방법](#6-how-to-use-it)
+- [7. Good to Know / 留意事項 / 알아두어야 할 사항](#7-good-to-know)
+- [8. Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?](#8-want-to-collaborate)
 - [9. FAQ / よくある質問 / 자주 묻는 질문](#faq)
 - [10. Credits / クレジット / 크레딧](#credits)
 
