@@ -59,6 +59,8 @@
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
+<img width="533" height="307" alt="image" src="https://github.com/user-attachments/assets/c4dbb386-8849-47d9-9d69-4f91c531cc0b" />
+
 🇺🇸 
 - Nearby player count
 - EXP tracker (EXP per minute and time until next level estimation)
