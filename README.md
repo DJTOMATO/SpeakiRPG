@@ -67,6 +67,7 @@
 - Say "Cho-wa-yo!" anywhere
 - Lock the camera (like in old PS1 games)
 - ViewClip (allow the camera to phase through walls)
+- Spin very fast (defeating the mobile monopoly)
 - Watch the game from another player's perspective
 - Hide other players' nametags
 - Turn Speaki to face the camera (useful for posing)
@@ -83,6 +84,7 @@
 - どこでも「チョワヨ！」と叫ぶ
 - カメラをロック（昔のPS1ゲームのように）
 - 視点が壁をすり抜ける（ビュークリップ）
+- 超高速回転（モバイル独占企業を打ち負かす）
 - 他のプレイヤーの視点からゲームを観戦
 - 他のプレイヤーの名前タグを非表示
 - スピキをカメラの方に向ける（ポーズをとるのに便利）
@@ -99,6 +101,7 @@
 - 어디서든 "조요!" 외치기
 - 카메라 고정 (옛날 PS1 게임처럼)
 - 뷰클립 (카메라가 벽을 통과하게 함)
+- 매우 빠르게 회전하세요 (모바일 독점을 무너뜨리세요)
 - 다른 플레이어의 시점에서 게임 보기
 - 다른 플레이어의 이름표 숨기기
 - 스피키를 카메라 쪽으로 돌리기 (포즈를 취할 때 유용)
