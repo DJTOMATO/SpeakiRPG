@@ -578,7 +578,7 @@ document.body.appendChild(
 				buildElement("input", {
 					type: "range",
 					min: "0.1",
-					max: "2.5",
+					max: "2.0",
 					step: "0.1",
 					value: window.BeyBladeSpeed || 1,
 					style: "width: 110px; height: 3px; accent-color: #fff; cursor: pointer; margin: 0;",
@@ -826,7 +826,7 @@ if (!window.__beyBladeLoopRunning) {
 			const delta = (currentTime - window.__beyBladeLastTime) / 1000;
 			const clampedDelta = Math.min(delta, 0.1);
 			const speedMultiplier = window.BeyBladeSpeed || 3;
-			const baseSpeed = 15.0;
+			const baseSpeed = 10.0;
 
 			window.beyBladeAngle += baseSpeed * speedMultiplier * clampedDelta;
 			gameState.playerContainer.rotation.y = window.beyBladeAngle;
