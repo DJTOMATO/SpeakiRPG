@@ -51,7 +51,8 @@
 * **풍부한 게임플레이 기능:** SpeakiMod(아래 참조) 덕분에 다양한 편의성 기능이 추가되었습니다!
 
 ## Implementation of SpeakiMod! / SpeakiModの実装！/ SpeakiMod 구현!
-## Thanks @Alluseri for the hard work! / @Alluseriさん、ご尽力ありがとうございます！/ @Alluseri님, 수고해 주셔서 감사합니다!
+ 
+- Derived from [SpeakiMod by Alluseri](https://github.com/Alluseri/SpeakiMod), licensed under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause).
 
 <img width="1228" height="592" alt="image" src="https://github.com/user-attachments/assets/83c211f4-b4fa-4840-8782-71ac4f4d8668" />
 
@@ -409,6 +410,13 @@ npm start
 * **클라이언트 코딩:** Glas
 * **SpeakiMOD 기능 확장:** @Alluseri
 * **README일본어 교정:** Japanese Risty
+  
+---
+
+## Third-Party Components
+
+* **speakimod.js** – Derived from [SpeakiMod by Alluseri](https://github.com/Alluseri/SpeakiMod), licensed under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause).
+
 ---
 
 <img src="https://cdn.nest.rip/uploads/96578d20-4e61-4cab-9978-d01789edebbb.png">
