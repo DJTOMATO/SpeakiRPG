@@ -17,8 +17,8 @@
 - [4. Download / ダウンロード / 다운로드](#4-download--ダウンロード--다운로드)
 - [5. Self-compile Quick Start Guide / セルフコンパイルクイックスタートガイド / 자체 컴파일 빠른 시작 가이드](#5-self-compile-quick-start-guide--セルフコンパイルクイックスタートガイド--자체-컴파일-빠른-시작-가이드)
 - [6. How to Use It / 使い方 / 사용 방법](#6-how-to-use-it--使い方--사용-방법)
-- [7. Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?](#7-want-to-collaborate--協力を希望される方へ--기여하고-싶으신가요)
-- [8. Good to Know / 留意事項 / 알아두어야 할 사항](#8-good-to-know--留意事項--알아두어야-할-사항)
+- [7. Good to Know / 留意事項 / 알아두어야 할 사항](#8-good-to-know--留意事項--알아두어야-할-사항)
+- [8. Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?](#7-want-to-collaborate--協力を希望される方へ--기여하고-싶으신가요)
 - [9. FAQ / よくある質問 / 자주 묻는 질문](#faq)
 - [10. Credits / クレジット / 크레딧](#credits)
 
