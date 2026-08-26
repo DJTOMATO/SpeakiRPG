@@ -13,7 +13,7 @@
 
 - [1. What Makes It Awesome? / 何が素晴らしいのか？ / 무엇이 이 제품을 멋지게 만드는 걸까요?](#1-what-makes-it-awesome--何が素晴らしいのか--무엇이-이-제품을-멋지게-만드는-걸까요)
 - [2. Additional Features / 追加機能 / 추가 기능](#2-additional-features--追加機能--추가-기능)
-- [3. Official Developer Stance & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책](#3-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책)
+- [3. Official Developer Reaction & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책](#3-official-developer-reaction--usage-policy)
 - [4. Download / ダウンロード / 다운로드](#4-download--ダウンロード--다운로드)
 - [5. Self-compile Quick Start Guide / セルフコンパイルクイックスタートガイド / 자체 컴파일 빠른 시작 가이드](#5-self-compile-quick-start-guide--セルフコンパイルクイックスタートガイド--자체-컴파일-빠른-시작-가이드)
 - [6. How to Use It / 使い方 / 사용 방법](#6-how-to-use-it--使い方--사용-방법)
@@ -114,8 +114,7 @@
 - 카메라 확대/축소 (채팅창에 !zoom 명령어 입력)
 
 ---
-
-<h2 id="3-official-developer-stance--usage-policy">3. Official Developer Reaction & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책</h2>
+<h2 id="3-official-developer-reaction--usage-policy">3. Official Developer Reaction & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책</h2>
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
