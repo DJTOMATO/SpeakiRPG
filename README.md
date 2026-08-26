@@ -30,7 +30,7 @@
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
-<img width="1521" height="565" alt="image" src="https://github.com/user-attachments/assets/03609522-76c2-4e05-b7dd-86f8252edefb" />
+<img width="1326" height="557" alt="image" src="https://github.com/user-attachments/assets/12db9ecf-3d66-4cbe-bae8-29f61f9fdd89" />
 
 🇺🇸 
 * **Discord Rich Presence:** Automatically shows your current character name, level, and XP right on your Discord profile.
@@ -54,13 +54,11 @@
  
 - Derived from [SpeakiMod by Alluseri](https://github.com/Alluseri/SpeakiMod), licensed under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause).
 
-<img width="1228" height="592" alt="image" src="https://github.com/user-attachments/assets/83c211f4-b4fa-4840-8782-71ac4f4d8668" />
-
 <h2 id="2-additional-features">2. Additional Features / 追加機能 / 추가 기능</h2>
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
-<img width="533" height="307" alt="image" src="https://github.com/user-attachments/assets/c4dbb386-8849-47d9-9d69-4f91c531cc0b" />
+<img width="411" height="451" alt="image" src="https://github.com/user-attachments/assets/2101c9f6-2e86-487d-8e41-037903b25164" />
 
 🇺🇸 
 - Nearby player count
@@ -78,6 +76,9 @@
 - Automatically walk towards portals (must be attended, because no auto-eat & no obstacle avoidance)
 - Fold the HUD by clicking on the mod title (up to 3 clicks)
 - Control camera zoom (!zoom chat command)
+- Shake (rapid camera-following jitter, like a shocked reaction)
+- Moonwalk (always face away from the camera while moving)
+- Language switcher (choose between English / 日本語 / 한국어)
 
 🇯🇵 
 - 周囲のプレイヤー数
@@ -95,6 +96,9 @@
 - ポータルに向かって自動で歩く（自動で食事したり障害物を避けたりしないため、注意が必要です）
 - MODタイトルをクリックしてHUDを折りたたむ（最大3回まで）
 - カメラのズームを制御（!zoomチャットコマンド）
+- シェイク（カメラ方向に素早く震える、驚いたようなリアクション）
+- ムーンウォーク（移動中、常にカメラと逆を向く）
+- 言語切り替え機能（English / 日本語 / 한국어 から選択可能）
 
 🇰🇷
 - 주변 플레이어 수 표시
@@ -112,7 +116,10 @@
 - 포털로 자동 이동 (자동으로 음식을 먹거나 장애물을 피하지 못하므로 플레이어가 직접 조작해야 함)
 - 모드 제목을 클릭하여 HUD 접기 (최대 3회 클릭)
 - 카메라 확대/축소 (채팅창에 !zoom 명령어 입력)
-
+-쉐이크 (카메라 방향으로 빠르게 떨리는, 놀란 듯한 반응)
+- 문워크 (이동 중 항상 카메라 반대 방향을 바라봄)
+- 언어 전환 기능 (English / 日本語 / 한국어 중 선택 가능)
+  
 ---
 <h2 id="3-official-developer-reaction--usage-policy">3. Official Developer Reaction & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책</h2>
 
