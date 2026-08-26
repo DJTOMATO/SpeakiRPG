@@ -29,7 +29,8 @@
 <h2 id="1-what-makes-it-awesome">1. What Makes It Awesome? / 何が素晴らしいのか？ / 무엇이 이 제품을 멋지게 만드는 걸까요?</h2>
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
-![Alt Text for Image](https://bae.lena.moe/pSuXeftp2QLi.jpg)
+
+<img width="1521" height="565" alt="image" src="https://github.com/user-attachments/assets/03609522-76c2-4e05-b7dd-86f8252edefb" />
 
 🇺🇸 
 * **Discord Rich Presence:** Automatically shows your current character name, level, and XP right on your Discord profile.
@@ -108,7 +109,7 @@
 
 ---
 
-<h2 id="3-official-developer-stance--usage-policy">3. Official Developer Stance & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책</h2>
+<h2 id="3-official-developer-stance--usage-policy">3. Official Developer Reaction & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책</h2>
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
