@@ -438,7 +438,7 @@ document.body.appendChild(
 		}, [
 			buildElement("span", {
 				id: "spkmod-header",
-				innerText: "SpeakiMod v5.1",
+				innerText: "SpeakiMod D v5.1.1",
 				onclick: _ => {
 					lunMenuFoldingLevel = (lunMenuFoldingLevel + 1) % 4;
 					switch (lunMenuFoldingLevel) {
@@ -506,14 +506,13 @@ document.body.appendChild(
 					gameState.moveSendAccumulator = 1;
 				}
 			}),
-			buildElement("div", {
-				className: "spkmod-panel-cat"
-			}, [
+
+			buildElement("div", { className: "spkmod-panel-cat" }, [
 				buildElement("button", {
 					id: "spkmod-beyblade-main-btn",
 					className: "spkmod-panel-btn",
-					style: "flex: 2;",
-					innerText: "BeyBlade: OFF",
+					style: "width: 100%;",
+					innerText: `BeyBlade: ${window.BeyBladeActive ? "ON" : "OFF"} (x${window.BeyBladeSpeed || 1})`,
 					value: "",
 					onclick: e => {
 						window.BeyBladeActive = !window.BeyBladeActive;
@@ -522,51 +521,42 @@ document.body.appendChild(
 						if (window.BeyBladeActive) {
 							chatLog(`BeyBlade activated at x${window.BeyBladeSpeed || 1}!`);
 						} else {
-							// 1. Reset character rotation to face the camera
 							if (gameState.playerContainer && gameState.cameraController) {
 								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
 								gameState.moveSendAccumulator = 1;
 							}
 
-							// 2. Resume dancing if dance was active before BeyBlade
 							if (window.wasDancing) {
 								setTimeout(() => {
 									gameState.sendEmoteNow(Emotes.Dance);
-								}, 100); // Brief delay so camera rotation finishes applying first
+								}, 150);
 							}
 
 							chatLog("BeyBlade deactivated.");
 						}
 					}
+				})
+			]),
+
+			// Row 2: Boxed Slider Container (Styled like a button)
+			buildElement("div", {
+				className: "spkmod-panel-cat",
+				style: "display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.4); border: 1.5px solid #fff; border-radius: 6px; padding: 4px 10px; height: 32px;"
+			}, [
+				buildElement("span", {
+					style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none;",
+					innerText: "Speed"
 				}),
-				buildElement("button", {
-					className: "spkmod-panel-btn spkmod-panel-btn-small",
-					innerText: "x1",
-					value: "",
-					onclick: _ => {
-						window.BeyBladeSpeed = 1;
+				buildElement("input", {
+					type: "range",
+					min: "0.1",
+					max: "5",
+					step: "0.1",
+					value: window.BeyBladeSpeed || 1,
+					style: "width: 110px; height: 3px; accent-color: #fff; cursor: pointer; margin: 0;",
+					oninput: e => {
+						window.BeyBladeSpeed = parseFloat(e.target.value);
 						updateBeyBladeButtonText();
-						chatLog("BeyBlade speed set to x1");
-					}
-				}),
-				buildElement("button", {
-					className: "spkmod-panel-btn spkmod-panel-btn-small",
-					innerText: "x3.5",
-					value: "",
-					onclick: _ => {
-						window.BeyBladeSpeed = 3.5;
-						updateBeyBladeButtonText();
-						chatLog("BeyBlade speed set to x3.5");
-					}
-				}),
-				buildElement("button", {
-					className: "spkmod-panel-btn spkmod-panel-btn-small",
-					innerText: "x5",
-					value: "",
-					onclick: _ => {
-						window.BeyBladeSpeed = 5;
-						updateBeyBladeButtonText();
-						chatLog("BeyBlade speed set to x5");
 					}
 				})
 			]),
@@ -863,8 +853,8 @@ function tick() {
 		lunExpTrackerStartExp = playerExp;
 	}
 
-	var expTrackerL1 = "0 EXP per minute";
-	var expTrackerL2 = "Until next level: N/A";
+	var expTrackerL1 = "0 EXP/min";
+	var expTrackerL2 = "Next level: N/A";
 	if (lunExpTrackerSpeed > 0) {
 		expTrackerL1 = `${(lunExpTrackerSpeed * 60).toFixed(2)} EXP per minute`;
 		expTrackerL2 = `Until next level: ~${((gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60).toFixed(2)} min`;
