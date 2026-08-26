@@ -837,7 +837,8 @@ function tick() {
 		}
 
 		if (lunTickCount >= window.beyBladeNextJumpTick) {
-			gameState.sendEmoteNow(Emotes.Jump);
+			// gameState.sendEmoteNow(Emotes.Jump);
+			// Disabled for now, testing
 			// Re-roll random jump delay between 25 and 100 ticks (0.5s - 2.0s)
 			const nextInterval = Math.floor(Math.random() * (100 - 25 + 1)) + 25;
 			window.beyBladeNextJumpTick = lunTickCount + nextInterval;
