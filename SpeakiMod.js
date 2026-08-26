@@ -295,11 +295,212 @@ function setText(elem, text) {
 	}
 }
 
+const spkmodTranslations = {
+	en: {
+		langName: "English",
+		header: "SpeakiMod+ v1.0.1",
+		langLabel: "Language",
+		playersNearby: "Players nearby: {0}",
+		zoneId: "Zone ID: {0}",
+		expPerMinute: "{0} EXP/minute ({1}s)",
+		zeroExp: "0 EXP/min",
+		nextLevel: "Next level: ~{0} min",
+		nextLevelNA: "Next level: N/A",
+		channelTracker: "Channel {0}: {1}/{2}",
+		channelTrackerError: "Channel tracker: Error {0}",
+		footerMsg: "github.com/DJTOMATO/SpeakiRPG",
+		dance: "Dance",
+		chowayo: "Chowayo",
+		shakeOn: "Shake: ON",
+		shakeOff: "Shake: OFF",
+		moonwalkOn: "Moonwalk: ON",
+		moonwalkOff: "Moonwalk: OFF",
+		beybladeOn: "BeyBlade: ON (x{0})",
+		beybladeOff: "BeyBlade: OFF (x{0})",
+		speedLabel: "Speed",
+		turnToCamera: "Turn to Camera",
+		resetCamera: "Reset Camera",
+		lockCamera: "Lock Camera",
+		unlockCamera: "Unlock Camera",
+		hideNametags: "Hide Nametags",
+		showNametags: "Show Nametags",
+		viewClipOff: "ViewClip OFF",
+		viewClipOn: "ViewClip ON",
+		goTo: "Go to",
+		stopWalking: "Stop Walking",
+		watchBtn: "[SM] Watch",
+		pinQuestBtn: "Pin Quest",
+		pinnedQuestHeader: "Pinned Quest",
+		pinnedQuestDefault: "Pin a quest to be displayed here until completion.",
+		shakeActivatedMsg: "Shake mode activated!",
+		shakeDeactivatedMsg: "Shake mode deactivated.",
+		moonwalkActivatedMsg: "Moonwalk mode activated!",
+		moonwalkDeactivatedMsg: "Moonwalk mode deactivated.",
+		beybladeActivatedMsg: "BeyBlade activated at x{0}!",
+		beybladeDeactivatedMsg: "BeyBlade deactivated.",
+		walkingToMsg: "Walking to {0} ({1}).",
+		stoppedWalkingMsg: "Stopped autowalking.",
+		watchFollowingMsg: "The camera will be following {0} now.",
+		watchFollowingSelfMsg: "The camera will be following you now.",
+		watchNotFoundMsg: "Couldn't find the target player. The camera will be following you now.",
+		diedMsg: "Stopped autowalking because you died (lol)",
+		noPathMsg: "Stopped autowalking because there doesn't seem to be a way to get to the specified zone (z {0} -> {1}, lw {2} -> {3}).",
+		arrivedMsg: "You've arrived!",
+		noPortalsMsg: "Stopped autowalking because the current zone has no portals registered.",
+		missingPortalMsg: "Stopped autowalking because it seems there is a portal missing.",
+		zoomUsage1Msg: "Usage: !zoom [number]",
+		zoomUsage2Msg: "Legitimate values range from 3 to 12. Higher value = farther camera.",
+		zoomSetMsg: "Set camera zoom to {0}!",
+		unknownCmdMsg: "Unknown command: {0}",
+		availableCmdsMsg: "Available commands: watch, zoom"
+	},
+	ja: {
+		langName: "日本語",
+		header: "SpeakiMod+ v1.0.1",
+		langLabel: "言語",
+		playersNearby: "近くのプレイヤー: {0}",
+		zoneId: "ゾーンID: {0}",
+		expPerMinute: "{0} EXP/分 ({1}秒)",
+		zeroExp: "0 EXP/分",
+		nextLevel: "次のレベルまで: 約{0}分",
+		nextLevelNA: "次のレベル: N/A",
+		channelTracker: "チャンネル {0}: {1}/{2}",
+		channelTrackerError: "チャンネル情報取得エラー: {0}",
+		footerMsg: "github.com/DJTOMATO/SpeakiRPG",
+		dance: "ダンス",
+		chowayo: "チョワヨ",
+		shakeOn: "シェイク: ON",
+		shakeOff: "シェイク: OFF",
+		moonwalkOn: "ムーンウォーク: ON",
+		moonwalkOff: "ムーンウォーク: OFF",
+		beybladeOn: "ベイブレード: ON (x{0})",
+		beybladeOff: "ベイブレード: OFF (x{0})",
+		speedLabel: "速度",
+		turnToCamera: "カメラの方を向く",
+		resetCamera: "カメラをリセット",
+		lockCamera: "カメラをロック",
+		unlockCamera: "カメラのロック解除",
+		hideNametags: "名前を非表示",
+		showNametags: "名前を表示",
+		viewClipOff: "視界クリップ OFF",
+		viewClipOn: "視界クリップ ON",
+		goTo: "移動する",
+		stopWalking: "停止する",
+		watchBtn: "[SM] 視点固定",
+		pinQuestBtn: "クエストを固定",
+		pinnedQuestHeader: "固定中のクエスト",
+		pinnedQuestDefault: "クエストを固定するとここに表示されます。",
+		shakeActivatedMsg: "シェイクモードを有効にしました!",
+		shakeDeactivatedMsg: "シェイクモードを無効にしました。",
+		moonwalkActivatedMsg: "ムーンウォークモードを有効にしました!",
+		moonwalkDeactivatedMsg: "ムーンウォークモードを無効にしました。",
+		beybladeActivatedMsg: "ベイブレードを x{0} で開始しました!",
+		beybladeDeactivatedMsg: "ベイブレードを停止しました。",
+		walkingToMsg: "{0} ({1}) へ移動中です。",
+		stoppedWalkingMsg: "自動移動を停止しました。",
+		watchFollowingMsg: "カメラが {0} を追従します。",
+		watchFollowingSelfMsg: "カメラが自分を追従します。",
+		watchNotFoundMsg: "対象のプレイヤーが見つかりませんでした。カメラは自分を追従します。",
+		diedMsg: "死亡したため自動移動を停止しました (笑)",
+		noPathMsg: "指定したゾーンへの経路が見つからないため自動移動を停止しました (z {0} -> {1}, lw {2} -> {3})。",
+		arrivedMsg: "到着しました!",
+		noPortalsMsg: "現在のゾーンにポータル情報が登録されていないため自動移動を停止しました。",
+		missingPortalMsg: "ポータル情報が不足しているため自動移動を停止しました。",
+		zoomUsage1Msg: "使い方: !zoom [数値]",
+		zoomUsage2Msg: "有効な値は3~12です。値が大きいほどカメラが遠くなります。",
+		zoomSetMsg: "カメラズームを {0} に設定しました!",
+		unknownCmdMsg: "不明なコマンド: {0}",
+		availableCmdsMsg: "使用可能なコマンド: watch, zoom"
+	},
+	ko: {
+		langName: "한국어",
+		header: "SpeakiMod+ v1.0.1",
+		langLabel: "언어",
+		playersNearby: "근처 플레이어: {0}",
+		zoneId: "존 ID: {0}",
+		expPerMinute: "{0} EXP/분 ({1}초)",
+		zeroExp: "0 EXP/분",
+		nextLevel: "다음 레벨까지: 약 {0}분",
+		nextLevelNA: "다음 레벨: N/A",
+		channelTracker: "채널 {0}: {1}/{2}",
+		channelTrackerError: "채널 정보 오류: {0}",
+		footerMsg: "github.com/DJTOMATO/SpeakiRPG",
+		dance: "댄스",
+		chowayo: "초와요",
+		shakeOn: "쉐이크: ON",
+		shakeOff: "쉐이크: OFF",
+		moonwalkOn: "문워크: ON",
+		moonwalkOff: "문워크: OFF",
+		beybladeOn: "베이블레이드: ON (x{0})",
+		beybladeOff: "베이블레이드: OFF (x{0})",
+		speedLabel: "속도",
+		turnToCamera: "카메라 방향으로 전환",
+		resetCamera: "카메라 재설정",
+		lockCamera: "카메라 잠금",
+		unlockCamera: "카메라 잠금 해제",
+		hideNametags: "이름표 숨기기",
+		showNametags: "이름표 표시",
+		viewClipOff: "뷰클립 OFF",
+		viewClipOn: "뷰클립 ON",
+		goTo: "이동",
+		stopWalking: "이동 중지",
+		watchBtn: "[SM] 시점 고정",
+		pinQuestBtn: "퀘스트 고정",
+		pinnedQuestHeader: "고정된 퀘스트",
+		pinnedQuestDefault: "퀘스트를 고정하면 완료될 때까지 여기에 표시됩니다.",
+		shakeActivatedMsg: "쉐이크 모드가 활성화되었습니다!",
+		shakeDeactivatedMsg: "쉐이크 모드가 비활성화되었습니다.",
+		moonwalkActivatedMsg: "문워크 모드가 활성화되었습니다!",
+		moonwalkDeactivatedMsg: "문워크 모드가 비활성화되었습니다.",
+		beybladeActivatedMsg: "베이블레이드가 x{0} 속도로 활성화되었습니다!",
+		beybladeDeactivatedMsg: "베이블레이드가 비활성화되었습니다.",
+		walkingToMsg: "{0} ({1})(으)로 이동 중입니다.",
+		stoppedWalkingMsg: "자동 이동을 중지했습니다.",
+		watchFollowingMsg: "카메라가 이제 {0}님을 따라갑니다.",
+		watchFollowingSelfMsg: "카메라가 이제 나를 따라갑니다.",
+		watchNotFoundMsg: "대상 플레이어를 찾을 수 없습니다. 카메라가 나를 따라갑니다.",
+		diedMsg: "사망하여 자동 이동을 중지했습니다 (ㅋㅋ)",
+		noPathMsg: "지정한 존으로 가는 경로를 찾을 수 없어 자동 이동을 중지했습니다 (z {0} -> {1}, lw {2} -> {3}).",
+		arrivedMsg: "도착했습니다!",
+		noPortalsMsg: "현재 존에 등록된 포털이 없어 자동 이동을 중지했습니다.",
+		missingPortalMsg: "포털 정보가 없어 자동 이동을 중지했습니다.",
+		zoomUsage1Msg: "사용법: !zoom [숫자]",
+		zoomUsage2Msg: "유효한 값은 3~12입니다. 값이 클수록 카메라가 멀어집니다.",
+		zoomSetMsg: "카메라 줌을 {0}(으)로 설정했습니다!",
+		unknownCmdMsg: "알 수 없는 명령어: {0}",
+		availableCmdsMsg: "사용 가능한 명령어: watch, zoom"
+	}
+};
+
+var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) || "en";
+if (!spkmodTranslations[spkmodLang]) spkmodLang = "en";
+
+function t(key, ...args) {
+	var str = (spkmodTranslations[spkmodLang] && spkmodTranslations[spkmodLang][key])
+		|| (spkmodTranslations.en && spkmodTranslations.en[key])
+		|| key;
+	args.forEach((a, i) => { str = str.split(`{${i}}`).join(a); });
+	return str;
+}
+
+var spkmodI18nRenderers = [];
+function refreshI18n() {
+	spkmodI18nRenderers.forEach(fn => fn());
+}
+
+function setLanguage(lang) {
+	if (!spkmodTranslations[lang] || lang === spkmodLang) return;
+	spkmodLang = lang;
+	if (window.localStorage) localStorage.setItem("spkmod-lang", lang);
+	refreshI18n();
+}
+
 var lunHudElements = {
 	playersNearby: null,
 	expTrackerL1: null,
 	expTrackerL2: null,
 	channelTracker: null,
+	footerMsg: null,
 	zoneId: null,
 	pinnedQuest: {
 		panel: null,
@@ -310,7 +511,15 @@ var lunHudElements = {
 var lunPanelElements = {
 	targetZone: null,
 	resetCameraBtn: null,
-	walkToPortalBtn: null
+	walkToPortalBtn: null,
+	headerBtn: null,
+	danceBtn: null,
+	chowayoBtn: null,
+	speedLabel: null,
+	turnToCameraBtn: null,
+	watchBtn: null,
+	pinnedQuestHeader: null,
+	langSelect: null
 };
 var lunMenuFoldingLevel = 0;
 
@@ -348,6 +557,12 @@ document.head.appendChild(buildElement(
 			z-index: 500000;
 			color: #EEE;
 			user-select: none;
+		}
+		#spkmod-footer {
+			font-size: 7pt;
+			border-top: 1px solid #DDD;
+			margin-top: 4px;
+			padding-top: 4px;
 		}
 		#spkmod-main {
 			display: flex;
@@ -453,7 +668,7 @@ document.head.appendChild(buildElement(
 			height: 2px;
 		}
 		`
-		
+
 	}
 ));
 
@@ -464,9 +679,9 @@ document.body.appendChild(
 		buildElement("div", {
 			id: "spkmod-main"
 		}, [
-			buildElement("span", {
+			lunPanelElements.headerBtn = buildElement("span", {
 				id: "spkmod-header",
-				innerText: "SpeakiMod+ v1.0.1",
+				innerText: t("header"),
 				onclick: _ => {
 					lunMenuFoldingLevel = (lunMenuFoldingLevel + 1) % 4;
 					switch (lunMenuFoldingLevel) {
@@ -489,37 +704,41 @@ document.body.appendChild(
 				}
 			}),
 			lunHudElements.playersNearby = buildElement("span", {
-				innerText: "Players nearby: 0"
+				innerText: t("playersNearby", 0)
 			}),
 			lunHudElements.zoneId = buildElement("span", {
-				innerText: "Zone ID: N/A"
+				innerText: t("zoneId", "N/A")
 			}),
 			lunHudElements.expTrackerL1 = buildElement("span", {
-				innerText: "0 EXP per minute"
+				innerText: t("zeroExp")
 			}),
 			lunHudElements.expTrackerL2 = buildElement("span", {
 				id: "spkmod-texpb",
-				innerText: "Until next level: N/A"
+				innerText: t("nextLevelNA")
 			}),
 			lunHudElements.channelTracker = buildElement("span", {
-				innerText: "Channel tracker: N/A"
+				innerText: t("channelTrackerError", "N/A")
+			}),
+			lunHudElements.footerMsg = buildElement("span", {
+				id: "spkmod-footer",
+				innerText: t("footerMsg")
 			})
 		]),
 		buildElement("div", {
 			id: "spkmod-panel"
 		}, [
-			buildElement("button", {
+			lunPanelElements.danceBtn = buildElement("button", {
 				className: "spkmod-panel-btn",
-				innerText: "Dance",
+				innerText: t("dance"),
 				value: "",
 				onclick: _ => {
-					window.wasDancing = true; // Track dance state
+					window.wasDancing = true; 
 					gameState.sendEmoteNow(Emotes.Dance);
 				}
 			}),
-			buildElement("button", {
+			lunPanelElements.chowayoBtn = buildElement("button", {
 				className: "spkmod-panel-btn",
-				innerText: "Chowayo",
+				innerText: t("chowayo"),
 				value: "",
 				onclick: _ => {
 					gameState.sendEmoteNow(Emotes.PumpkinJoayo);
@@ -530,28 +749,26 @@ document.body.appendChild(
 					id: "spkmod-shake-main-btn",
 					className: "spkmod-panel-btn",
 					style: "width: 100%;",
-					innerText: `Shake: ${window.ShakeActive ? "ON" : "OFF"}`,
+					innerText: window.ShakeActive ? t("shakeOn") : t("shakeOff"),
 					value: "",
 					onclick: e => {
 						window.ShakeActive = !window.ShakeActive;
 
 						if (window.ShakeActive) {
-							// Disable conflicting rotation mods
 							window.BeyBladeActive = false;
 							window.MoonwalkActive = false;
 							if (typeof updateBeyBladeButtonText === "function") updateBeyBladeButtonText();
 
-							setText(e.target, "Shake: ON");
-							chatLog("Shake mode activated!");
+							setText(e.target, t("shakeOn"));
+							chatLog(t("shakeActivatedMsg"));
 						} else {
-							setText(e.target, "Shake: OFF");
+							setText(e.target, t("shakeOff"));
 
-							// Snap cleanly back to facing camera direction on turn off
 							if (gameState.playerContainer && gameState.cameraController) {
 								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
 								gameState.moveSendAccumulator = 1;
 							}
-							chatLog("Shake mode deactivated.");
+							chatLog(t("shakeDeactivatedMsg"));
 						}
 					}
 				})
@@ -562,7 +779,7 @@ document.body.appendChild(
 					id: "spkmod-moonwalk-main-btn",
 					className: "spkmod-panel-btn",
 					style: "width: 100%;",
-					innerText: `Moonwalk: ${window.MoonwalkActive ? "ON" : "OFF"}`,
+					innerText: window.MoonwalkActive ? t("moonwalkOn") : t("moonwalkOff"),
 					value: "",
 					onclick: e => {
 						window.MoonwalkActive = !window.MoonwalkActive;
@@ -572,16 +789,16 @@ document.body.appendChild(
 							window.ShakeActive = false;
 							if (typeof updateBeyBladeButtonText === "function") updateBeyBladeButtonText();
 
-							setText(e.target, "Moonwalk: ON");
-							chatLog("Moonwalk mode activated!");
+							setText(e.target, t("moonwalkOn"));
+							chatLog(t("moonwalkActivatedMsg"));
 						} else {
-							setText(e.target, "Moonwalk: OFF");
+							setText(e.target, t("moonwalkOff"));
 
 							if (gameState.playerContainer && gameState.cameraController) {
 								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
 								gameState.moveSendAccumulator = 1;
 							}
-							chatLog("Moonwalk mode deactivated.");
+							chatLog(t("moonwalkDeactivatedMsg"));
 						}
 					}
 				})
@@ -593,14 +810,16 @@ document.body.appendChild(
 					id: "spkmod-beyblade-main-btn",
 					className: "spkmod-panel-btn",
 					style: "width: 100%;",
-					innerText: `BeyBlade: ${window.BeyBladeActive ? "ON" : "OFF"} (x${window.BeyBladeSpeed || 1})`,
+					innerText: t(window.BeyBladeActive ? "beybladeOn" : "beybladeOff", window.BeyBladeSpeed || 1),
 					value: "",
 					onclick: e => {
 						window.BeyBladeActive = !window.BeyBladeActive;
 						updateBeyBladeButtonText();
 
 						if (window.BeyBladeActive) {
-							chatLog(`BeyBlade activated at x${window.BeyBladeSpeed || 1}!`);
+							window.ShakeActive = false;
+							window.MoonwalkActive = false;
+							chatLog(t("beybladeActivatedMsg", window.BeyBladeSpeed || 1));
 						} else {
 							if (gameState.playerContainer && gameState.cameraController) {
 								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
@@ -613,7 +832,7 @@ document.body.appendChild(
 								}, 150);
 							}
 
-							chatLog("BeyBlade deactivated.");
+							chatLog(t("beybladeDeactivatedMsg"));
 						}
 					}
 				})
@@ -623,9 +842,9 @@ document.body.appendChild(
 				className: "spkmod-panel-cat",
 				style: "display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.4); border: 1.5px solid #fff; border-radius: 6px; padding: 4px 10px; height: 32px;"
 			}, [
-				buildElement("span", {
+				lunPanelElements.speedLabel = buildElement("span", {
 					style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none;",
-					innerText: "Speed"
+					innerText: t("speedLabel")
 				}),
 				buildElement("input", {
 					type: "range",
@@ -640,9 +859,9 @@ document.body.appendChild(
 					}
 				})
 			]),
-			buildElement("button", {
+			lunPanelElements.turnToCameraBtn = buildElement("button", {
 				className: "spkmod-panel-btn",
-				innerText: "Turn to Camera",
+				innerText: t("turnToCamera"),
 				value: "",
 				onclick: _ => {
 					gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
@@ -652,37 +871,37 @@ document.body.appendChild(
 
 			lunPanelElements.resetCameraBtn = buildElement("button", {
 				className: "spkmod-panel-btn hidden",
-				innerText: "Reset Camera",
+				innerText: t("resetCamera"),
 				value: "",
 				onclick: _ => {
 					watchPlayer();
 				}
 			}),
-			buildElement("button", {
+			lunPanelElements.lockCameraBtn = buildElement("button", {
 				className: "spkmod-panel-btn",
-				innerText: "Lock Camera",
+				innerText: t("lockCamera"),
 				value: "",
 				onclick: e => {
 					lunCameraLocked = !lunCameraLocked;
-					e.target.innerText = lunCameraLocked ? "Unlock Camera" : "Lock Camera";
+					e.target.innerText = lunCameraLocked ? t("unlockCamera") : t("lockCamera");
 				}
 			}),
-			buildElement("button", {
+			lunPanelElements.nametagsBtn = buildElement("button", {
 				className: "spkmod-panel-btn",
-				innerText: "Hide Nametags",
+				innerText: t("hideNametags"),
 				value: "",
 				onclick: e => {
 					lunNametagsHidden = !lunNametagsHidden;
-					e.target.innerText = lunNametagsHidden ? "Show Nametags" : "Hide Nametags";
+					e.target.innerText = lunNametagsHidden ? t("showNametags") : t("hideNametags");
 				}
 			}),
-			buildElement("button", {
+			lunPanelElements.viewClipBtn = buildElement("button", {
 				className: "spkmod-panel-btn",
-				innerText: "ViewClip OFF",
+				innerText: t("viewClipOff"),
 				value: "",
 				onclick: e => {
 					lunViewClip = !lunViewClip;
-					e.target.innerText = lunViewClip ? "ViewClip ON" : "ViewClip OFF";
+					e.target.innerText = lunViewClip ? t("viewClipOn") : t("viewClipOff");
 				}
 			}),
 			buildElement("div", {
@@ -690,16 +909,16 @@ document.body.appendChild(
 			}, [
 				lunPanelElements.walkToPortalBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
-					innerText: "Go to",
+					innerText: t("goTo"),
 					value: "",
 					onclick: e => {
 						if (lunWalkToPortal == -1) {
 							lunWalkToPortal = lunPanelElements.targetZone.value - 0;
-							setText(e.target, "Stop Walking");
-							chatLog(`Walking to ${lunPanelElements.targetZone.options[lunPanelElements.targetZone.selectedIndex].innerText} (${lunWalkToPortal}).`);
+							setText(e.target, t("stopWalking"));
+							chatLog(t("walkingToMsg", lunPanelElements.targetZone.options[lunPanelElements.targetZone.selectedIndex].innerText, lunWalkToPortal));
 						} else {
 							resetWalkToPortal();
-							chatLog("Stopped autowalking.");
+							chatLog(t("stoppedWalkingMsg"));
 						}
 
 						e.target.blur();
@@ -712,23 +931,43 @@ document.body.appendChild(
 					value: zoneId - 0,
 					innerText: i18n(`content.zone.${zoneId}.name`)
 				})))
+			]),
+			buildElement("div", {
+				className: "spkmod-panel-cat"
+			}, [
+				buildElement("span", {
+					style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none;",
+					innerText: t("langLabel")
+				}),
+				lunPanelElements.langSelect = buildElement("select", {
+					className: "spkmod-panel-combo",
+					value: spkmodLang,
+					onchange: e => {
+						setLanguage(e.target.value);
+					}
+				}, Object.keys(spkmodTranslations).map(code => buildElement("option", {
+					value: code,
+					innerText: spkmodTranslations[code].langName,
+					selected: code === spkmodLang
+				})))
 			])
 		])
 	])
 );
+
 
 document.body.appendChild(
 	lunHudElements.pinnedQuest.panel = buildElement("div", {
 		id: "spkmod-pq",
 		className: "hidden"
 	}, [
-		buildElement("span", {
+		lunPanelElements.pinnedQuestHeader = buildElement("span", {
 			id: "spkmod-pq-header",
-			innerText: "Pinned Quest"
+			innerText: t("pinnedQuestHeader")
 		}),
 		lunHudElements.pinnedQuest.content = buildElement("span", {
 			id: "spkmod-pq-content",
-			innerText: "Pin a quest to be displayed here until completion."
+			innerText: t("pinnedQuestDefault")
 		}),
 		lunHudElements.pinnedQuest.pbar = buildElement("div", {
 			id: "spkmod-pq-pbar"
@@ -741,11 +980,7 @@ function updateBeyBladeButtonText() {
 	if (!mainBtn) return;
 
 	const speed = window.BeyBladeSpeed || 1;
-	if (window.BeyBladeActive) {
-		setText(mainBtn, `BeyBlade: ON (x${speed})`);
-	} else {
-		setText(mainBtn, `BeyBlade: OFF (x${speed})`);
-	}
+	setText(mainBtn, t(window.BeyBladeActive ? "beybladeOn" : "beybladeOff", speed));
 }
 
 function sec(t) {
@@ -783,13 +1018,13 @@ function watchPlayer(name) {
 		if (pi) {
 			gameState.cameraController.target = pi.container;
 			lunPanelElements.resetCameraBtn.classList.remove("hidden");
-			chatLog(`The camera will be following ${name} now.`);
+			chatLog(t("watchFollowingMsg", name));
 			return;
 		} else {
-			chatLog("Couldn't find the target player. The camera will be following you now.");
+			chatLog(t("watchNotFoundMsg"));
 		}
 	} else {
-		chatLog("The camera will be following you now.");
+		chatLog(t("watchFollowingSelfMsg"));
 	}
 
 	lunPanelElements.resetCameraBtn.classList.add("hidden");
@@ -799,9 +1034,9 @@ function watchPlayer(name) {
 var hPartyTarget = document.querySelector(".sr-party-target");
 if (hPartyTarget) {
 	hPartyTarget.insertBefore(
-		buildElement("button", {
+		lunPanelElements.watchBtn = buildElement("button", {
 			className: "sr-btn sr-party-target__btn spkmod-watch-player-btn",
-			innerText: "[SM] Watch",
+			innerText: t("watchBtn"),
 			value: "",
 			onclick: e => {
 				watchPlayer(e.target.parentElement.querySelector(".sr-party-target__name").innerText);
@@ -812,6 +1047,31 @@ if (hPartyTarget) {
 } else {
 	alert("Warning: Couldn't find party target element. The Watch functionality will only be available through chat commands. Mod loaded too early?");
 }
+
+spkmodI18nRenderers.push(() => {
+	setText(lunPanelElements.headerBtn, t("header"));
+	setText(lunPanelElements.danceBtn, t("dance"));
+	setText(lunPanelElements.chowayoBtn, t("chowayo"));
+	setText(lunPanelElements.speedLabel, t("speedLabel"));
+	setText(lunPanelElements.turnToCameraBtn, t("turnToCamera"));
+	setText(lunPanelElements.resetCameraBtn, t("resetCamera"));
+	setText(lunPanelElements.lockCameraBtn, lunCameraLocked ? t("unlockCamera") : t("lockCamera"));
+	setText(lunPanelElements.nametagsBtn, lunNametagsHidden ? t("showNametags") : t("hideNametags"));
+	setText(lunPanelElements.viewClipBtn, lunViewClip ? t("viewClipOn") : t("viewClipOff"));
+	setText(lunPanelElements.walkToPortalBtn, lunWalkToPortal == -1 ? t("goTo") : t("stopWalking"));
+	setText(lunPanelElements.watchBtn, t("watchBtn"));
+	setText(lunPanelElements.pinnedQuestHeader, t("pinnedQuestHeader"));
+	setText(lunHudElements.footerMsg, t("footerMsg"));
+	if (!lunPinnedQuestId) setText(lunHudElements.pinnedQuest.content, t("pinnedQuestDefault"));
+
+	const shakeBtn = document.querySelector("#spkmod-shake-main-btn");
+	if (shakeBtn) setText(shakeBtn, window.ShakeActive ? t("shakeOn") : t("shakeOff"));
+
+	const moonwalkBtn = document.querySelector("#spkmod-moonwalk-main-btn");
+	if (moonwalkBtn) setText(moonwalkBtn, window.MoonwalkActive ? t("moonwalkOn") : t("moonwalkOff"));
+
+	if (typeof updateBeyBladeButtonText === "function") updateBeyBladeButtonText();
+});
 
 const lunPinnedQuestInterval = sec(2);
 var lunPinnedQuestPeriod = null;
@@ -855,7 +1115,7 @@ if (window.questManager) {
 					buildElement("button", {
 						value: "",
 						className: "spkmod-pq-button",
-						innerText: "Pin Quest",
+						innerText: t("pinQuestBtn"),
 						onclick: _ => {
 							pinQuest(quest, questElm);
 						}
@@ -874,7 +1134,7 @@ function onGameDataUpdate() {
 function resetWalkToPortal() {
 	lunWalkToPortal = -1;
 	Object.values(Waypoints).forEach(t => t.forEach(w => w.crossed = false));
-	setText(lunPanelElements.walkToPortalBtn, "Walk to Portal");
+	setText(lunPanelElements.walkToPortalBtn, t("goTo"));
 }
 
 window.beyBladeAngle = window.beyBladeAngle || 0;
@@ -908,12 +1168,12 @@ if (!window.__beyBladeLoopRunning) {
 function tick() {
 	if (gameState.isDead && lunWalkToPortal != -1) {
 		resetWalkToPortal();
-		chatLog("Stopped autowalking because you died (lol)");
+		chatLog(t("diedMsg"));
 	}
 
 	if (window.MoonwalkActive && gameState && gameState.playerContainer && gameState.cameraController) {
 		gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw + Math.PI;
-		gameState.moveSendAccumulator = 1; 
+		gameState.moveSendAccumulator = 1;
 	}
 
 	window.shakeBaseAngle = window.shakeBaseAngle || 0;
@@ -948,8 +1208,8 @@ function tick() {
 	var playerExp = gameState.myStat.exp;
 	var zoneId = gameState.zoneId % 10000;
 
-	setText(lunHudElements.playersNearby, `Players nearby: ${gameState.remotePlayers.remotePlayers.size}`);
-	setText(lunHudElements.zoneId, `Zone ID: ${zoneId}`);
+	setText(lunHudElements.playersNearby, t("playersNearby", gameState.remotePlayers.remotePlayers.size));
+	setText(lunHudElements.zoneId, t("zoneId", zoneId));
 
 	if (lunExpTrackerStartExp > playerExp || lunTickCount >= lunExpTrackerNextTicks) {
 		lunExpTrackerSpeed = (playerExp - lunExpTrackerStartExp) / lunExpTrackerWindow * (1000 / lunTPS);
@@ -958,13 +1218,15 @@ function tick() {
 		lunExpTrackerStartExp = playerExp;
 	}
 
-	var expTrackerL1 = "0 EXP/min";
-	var expTrackerL2 = "Next level: N/A";
+	var expTrackerTimer = ((lunExpTrackerNextTicks - lunTickCount) * lunTPS / 1000).toFixed(0);
+	var expTrackerL1 = t("zeroExp");
+	var expTrackerL2 = t("nextLevelNA");
 	if (lunExpTrackerSpeed > 0) {
-		expTrackerL1 = `${(lunExpTrackerSpeed * 60).toFixed(2)} EXP/minute`;
-		expTrackerL2 = `Next level: ~${((gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60).toFixed(2)} min`;
+		expTrackerL1 = t("expPerMinute", (lunExpTrackerSpeed * 60).toFixed(2), expTrackerTimer);
+		expTrackerL2 = t("nextLevel", ((gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60).toFixed(2));
+	} else {
+		expTrackerL1 += ` (${expTrackerTimer}s)`;
 	}
-	expTrackerL1 += ` (${((lunExpTrackerNextTicks - lunTickCount) * lunTPS / 1000).toFixed(0)}s)`;
 
 	setText(lunHudElements.expTrackerL1, expTrackerL1);
 	setText(lunHudElements.expTrackerL2, expTrackerL2);
@@ -979,11 +1241,11 @@ function tick() {
 		}).then(async x => {
 			var resp = (await x.json());
 			if (!x.ok) {
-				setText(lunHudElements.channelTracker, `Channel tracker: Error ${x.status}`);
+				setText(lunHudElements.channelTracker, t("channelTrackerError", x.status));
 				return;
 			}
 
-			setText(lunHudElements.channelTracker, resp.map(t => `Channel ${t.channel}: ${t.population}/${t.capacity}`).join("\n"));
+			setText(lunHudElements.channelTracker, resp.map(ch => t("channelTracker", ch.channel, ch.population, ch.capacity)).join("\n"));
 		});
 
 		lunChannelTrackerNextTicks = lunTickCount + lunChannelTrackerWindow;
@@ -1022,7 +1284,7 @@ function tick() {
 		const targetIndex = ZoneSequences.indexOf(lunWalkToPortal - 0);
 
 		if (currentIndex == -1 || targetIndex == -1) {
-			chatLog(`Stopped autowalking because there doesn't seem to be a way to get to the specified zone (z ${zoneId} -> ${currentIndex}, lw ${lunWalkToPortal} -> ${targetIndex}).`);
+			chatLog(t("noPathMsg", zoneId, currentIndex, lunWalkToPortal, targetIndex));
 			resetWalkToPortal();
 			return;
 		}
@@ -1031,7 +1293,7 @@ function tick() {
 
 		if (sg == 0) {
 			resetWalkToPortal();
-			chatLog("You've arrived!");
+			chatLog(t("arrivedMsg"));
 			return;
 		} else {
 			const targetZone = ZoneSequences[currentIndex + sg];
@@ -1039,14 +1301,14 @@ function tick() {
 			const portals = Portals[zoneId];
 			if (!portals) {
 				resetWalkToPortal();
-				chatLog("Stopped autowalking because the current zone has no portals registered.");
+				chatLog(t("noPortalsMsg"));
 				return;
 			}
 
 			const targetPortal = portals[targetZone];
 			if (!targetPortal) {
 				resetWalkToPortal();
-				chatLog("Stopped autowalking because it seems there is a portal missing.");
+				chatLog(t("missingPortalMsg"));
 				return;
 			}
 
@@ -1066,9 +1328,7 @@ function tick() {
 
 			lunAutoTravelTarget = targetPortal.pos;
 
-			// tryUsePortal thankfully automatically handles transition delays (for now at least)
-			// this logic HEAVILY relies on that function returning 'true' during transitions
-			// and not sending off anything unnecessary to the server (thanks to gs.findNearbyPortal())
+
 			const dvk = distanceToVector(lunAutoTravelTarget);
 			if (dvk < 2.9) {
 				if (lunSleep < 0) {
@@ -1119,16 +1379,16 @@ gameState.trySendChat = (msg) => {
 				break;
 			case "zoom":
 				if (!cmd[1]) {
-					chatLog("Usage: !zoom [number]");
-					chatLog("Legitimate values range from 3 to 12. Higher value = farther camera.");
+					chatLog(t("zoomUsage1Msg"));
+					chatLog(t("zoomUsage2Msg"));
 					return;
 				}
 
-				chatLog(`Set camera zoom to ${gameState.cameraController.cameraZoomDistance = Number.parseInt(cmd[1], 10) || 12}!`);
+				chatLog(t("zoomSetMsg", gameState.cameraController.cameraZoomDistance = Number.parseInt(cmd[1], 10) || 12));
 				break;
 			default:
-				chatLog(`Unknown command: ${cmd[0]}`);
-				chatLog("Available commands: watch, zoom");
+				chatLog(t("unknownCmdMsg", cmd[0]));
+				chatLog(t("availableCmdsMsg"));
 				break;
 		}
 		return;
