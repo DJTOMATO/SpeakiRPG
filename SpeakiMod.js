@@ -856,8 +856,8 @@ function tick() {
 	var expTrackerL1 = "0 EXP/min";
 	var expTrackerL2 = "Next level: N/A";
 	if (lunExpTrackerSpeed > 0) {
-		expTrackerL1 = `${(lunExpTrackerSpeed * 60).toFixed(2)} EXP per minute`;
-		expTrackerL2 = `Until next level: ~${((gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60).toFixed(2)} min`;
+		expTrackerL1 = `${(lunExpTrackerSpeed * 60).toFixed(2)} EXP/minute`;
+		expTrackerL2 = `Next level: ~${((gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60).toFixed(2)} min`;
 	}
 	expTrackerL1 += ` (${((lunExpTrackerNextTicks - lunTickCount) * lunTPS / 1000).toFixed(0)}s)`;
 
