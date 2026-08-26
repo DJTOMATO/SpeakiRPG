@@ -288,7 +288,7 @@ var lunMenuFoldingLevel = 0;
 
 var lunTickCount = 0;
 var lunSleep = 0;
-const lunTPS = 50;
+const lunTPS = 20;
 const lunExpTrackerWindow = 60000 / lunTPS;
 var lunExpTrackerNextTicks = 0;
 var lunExpTrackerStartExp = 0;
@@ -348,6 +348,7 @@ document.head.appendChild(buildElement(
 			font-size: 11pt;
 			cursor: pointer;
 			outline: none;
+			flex: 1;
 		}
 		.spkmod-watch-player-btn {
 			color: #FFF;
@@ -358,8 +359,14 @@ document.head.appendChild(buildElement(
 		.spkmod-panel-cat {
 			display: flex;
 			flex-direction: row;
-			gap: 4px;
+			gap: 2px;
 			align-items: center;
+		}
+		
+		.spkmod-panel-btn-small {
+			padding: 5px 8px;
+			font-size: 10pt;
+			flex: 1;
 		}
 		.spkmod-panel-counter {
 			outline: none;
@@ -418,6 +425,7 @@ document.head.appendChild(buildElement(
 			height: 2px;
 		}
 		`
+		
 	}
 ));
 
@@ -430,7 +438,7 @@ document.body.appendChild(
 		}, [
 			buildElement("span", {
 				id: "spkmod-header",
-				innerText: "SpeakiMod v5",
+				innerText: "SpeakiMod v5.1",
 				onclick: _ => {
 					lunMenuFoldingLevel = (lunMenuFoldingLevel + 1) % 4;
 					switch (lunMenuFoldingLevel) {
@@ -477,12 +485,13 @@ document.body.appendChild(
 				innerText: "Dance",
 				value: "",
 				onclick: _ => {
+					window.wasDancing = true; // Track dance state
 					gameState.sendEmoteNow(Emotes.Dance);
 				}
 			}),
 			buildElement("button", {
 				className: "spkmod-panel-btn",
-				innerText: "Joayo",
+				innerText: "Chowayo",
 				value: "",
 				onclick: _ => {
 					gameState.sendEmoteNow(Emotes.PumpkinJoayo);
@@ -497,6 +506,70 @@ document.body.appendChild(
 					gameState.moveSendAccumulator = 1;
 				}
 			}),
+			buildElement("div", {
+				className: "spkmod-panel-cat"
+			}, [
+				buildElement("button", {
+					id: "spkmod-beyblade-main-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 2;",
+					innerText: "BeyBlade: OFF",
+					value: "",
+					onclick: e => {
+						window.BeyBladeActive = !window.BeyBladeActive;
+						updateBeyBladeButtonText();
+
+						if (window.BeyBladeActive) {
+							chatLog(`BeyBlade activated at x${window.BeyBladeSpeed || 1}!`);
+						} else {
+							// 1. Reset character rotation to face the camera
+							if (gameState.playerContainer && gameState.cameraController) {
+								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
+								gameState.moveSendAccumulator = 1;
+							}
+
+							// 2. Resume dancing if dance was active before BeyBlade
+							if (window.wasDancing) {
+								setTimeout(() => {
+									gameState.sendEmoteNow(Emotes.Dance);
+								}, 100); // Brief delay so camera rotation finishes applying first
+							}
+
+							chatLog("BeyBlade deactivated.");
+						}
+					}
+				}),
+				buildElement("button", {
+					className: "spkmod-panel-btn spkmod-panel-btn-small",
+					innerText: "x1",
+					value: "",
+					onclick: _ => {
+						window.BeyBladeSpeed = 1;
+						updateBeyBladeButtonText();
+						chatLog("BeyBlade speed set to x1");
+					}
+				}),
+				buildElement("button", {
+					className: "spkmod-panel-btn spkmod-panel-btn-small",
+					innerText: "x3.5",
+					value: "",
+					onclick: _ => {
+						window.BeyBladeSpeed = 3.5;
+						updateBeyBladeButtonText();
+						chatLog("BeyBlade speed set to x3.5");
+					}
+				}),
+				buildElement("button", {
+					className: "spkmod-panel-btn spkmod-panel-btn-small",
+					innerText: "x5",
+					value: "",
+					onclick: _ => {
+						window.BeyBladeSpeed = 5;
+						updateBeyBladeButtonText();
+						chatLog("BeyBlade speed set to x5");
+					}
+				})
+			]),
 			lunPanelElements.resetCameraBtn = buildElement("button", {
 				className: "spkmod-panel-btn hidden",
 				innerText: "Reset Camera",
@@ -582,6 +655,18 @@ document.body.appendChild(
 		})
 	])
 )
+
+function updateBeyBladeButtonText() {
+	const mainBtn = document.querySelector("#spkmod-beyblade-main-btn");
+	if (!mainBtn) return;
+
+	const speed = window.BeyBladeSpeed || 1;
+	if (window.BeyBladeActive) {
+		setText(mainBtn, `BeyBlade: ON (x${speed})`);
+	} else {
+		setText(mainBtn, `BeyBlade: OFF (x${speed})`);
+	}
+}
 
 function sec(t) {
 	return t * lunTPS;
@@ -712,12 +797,54 @@ function resetWalkToPortal() {
 	setText(lunPanelElements.walkToPortalBtn, "Walk to Portal");
 }
 
+window.beyBladeAngle = window.beyBladeAngle || 0;
+window.__beyBladeLastTime = window.__beyBladeLastTime || performance.now();
+
+if (!window.__beyBladeLoopRunning) {
+	window.__beyBladeLoopRunning = true;
+
+	function beyBladeRenderLoop(currentTime) {
+		if (window.BeyBladeActive && gameState && gameState.playerContainer) {
+			const delta = (currentTime - window.__beyBladeLastTime) / 1000;
+			const clampedDelta = Math.min(delta, 0.1);
+			const speedMultiplier = window.BeyBladeSpeed || 3;
+			const baseSpeed = 15.0;
+
+			window.beyBladeAngle += baseSpeed * speedMultiplier * clampedDelta;
+			gameState.playerContainer.rotation.y = window.beyBladeAngle;
+
+			if (Math.random() < 0.2) {
+				gameState.moveSendAccumulator = 1;
+			}
+		}
+
+		window.__beyBladeLastTime = currentTime;
+		requestAnimationFrame(beyBladeRenderLoop);
+	}
+
+	requestAnimationFrame(beyBladeRenderLoop);
+}
+
 function tick() {
 	if (gameState.isDead && lunWalkToPortal != -1) {
 		resetWalkToPortal();
 		chatLog("Stopped autowalking because you died (lol)");
 	}
+	// Schedule next jump tick target reliably
+	if (window.BeyBladeActive && gameState.playerContainer) {
+		if (!window.beyBladeNextJumpTick) {
+			window.beyBladeNextJumpTick = lunTickCount + 50;
+		}
 
+		if (lunTickCount >= window.beyBladeNextJumpTick) {
+			gameState.sendEmoteNow(Emotes.Jump);
+			// Re-roll random jump delay between 25 and 100 ticks (0.5s - 2.0s)
+			const nextInterval = Math.floor(Math.random() * (100 - 25 + 1)) + 25;
+			window.beyBladeNextJumpTick = lunTickCount + nextInterval;
+		}
+	} else {
+		window.beyBladeNextJumpTick = 0;
+	}
 	lunAutoTravelTarget = null;
 	lunTickCount++;
 	lunSleep--;
