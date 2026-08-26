@@ -466,7 +466,7 @@ document.body.appendChild(
 		}, [
 			buildElement("span", {
 				id: "spkmod-header",
-				innerText: "SpeakiMod D v5.1.1",
+				innerText: "SpeakiMod+ v1.0.1",
 				onclick: _ => {
 					lunMenuFoldingLevel = (lunMenuFoldingLevel + 1) % 4;
 					switch (lunMenuFoldingLevel) {
@@ -525,15 +525,68 @@ document.body.appendChild(
 					gameState.sendEmoteNow(Emotes.PumpkinJoayo);
 				}
 			}),
-			buildElement("button", {
-				className: "spkmod-panel-btn",
-				innerText: "Turn to Camera",
-				value: "",
-				onclick: _ => {
-					gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
-					gameState.moveSendAccumulator = 1;
-				}
-			}),
+			buildElement("div", { className: "spkmod-panel-cat" }, [
+				buildElement("button", {
+					id: "spkmod-shake-main-btn",
+					className: "spkmod-panel-btn",
+					style: "width: 100%;",
+					innerText: `Shake: ${window.ShakeActive ? "ON" : "OFF"}`,
+					value: "",
+					onclick: e => {
+						window.ShakeActive = !window.ShakeActive;
+
+						if (window.ShakeActive) {
+							// Disable conflicting rotation mods
+							window.BeyBladeActive = false;
+							window.MoonwalkActive = false;
+							if (typeof updateBeyBladeButtonText === "function") updateBeyBladeButtonText();
+
+							setText(e.target, "Shake: ON");
+							chatLog("Shake mode activated!");
+						} else {
+							setText(e.target, "Shake: OFF");
+
+							// Snap cleanly back to facing camera direction on turn off
+							if (gameState.playerContainer && gameState.cameraController) {
+								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
+								gameState.moveSendAccumulator = 1;
+							}
+							chatLog("Shake mode deactivated.");
+						}
+					}
+				})
+			]),
+
+			buildElement("div", { className: "spkmod-panel-cat" }, [
+				buildElement("button", {
+					id: "spkmod-moonwalk-main-btn",
+					className: "spkmod-panel-btn",
+					style: "width: 100%;",
+					innerText: `Moonwalk: ${window.MoonwalkActive ? "ON" : "OFF"}`,
+					value: "",
+					onclick: e => {
+						window.MoonwalkActive = !window.MoonwalkActive;
+
+						if (window.MoonwalkActive) {
+							window.BeyBladeActive = false;
+							window.ShakeActive = false;
+							if (typeof updateBeyBladeButtonText === "function") updateBeyBladeButtonText();
+
+							setText(e.target, "Moonwalk: ON");
+							chatLog("Moonwalk mode activated!");
+						} else {
+							setText(e.target, "Moonwalk: OFF");
+
+							if (gameState.playerContainer && gameState.cameraController) {
+								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
+								gameState.moveSendAccumulator = 1;
+							}
+							chatLog("Moonwalk mode deactivated.");
+						}
+					}
+				})
+			]),
+
 
 			buildElement("div", { className: "spkmod-panel-cat" }, [
 				buildElement("button", {
@@ -566,7 +619,6 @@ document.body.appendChild(
 				})
 			]),
 
-			// Row 2: Boxed Slider Container (Styled like a button)
 			buildElement("div", {
 				className: "spkmod-panel-cat",
 				style: "display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.4); border: 1.5px solid #fff; border-radius: 6px; padding: 4px 10px; height: 32px;"
@@ -578,7 +630,7 @@ document.body.appendChild(
 				buildElement("input", {
 					type: "range",
 					min: "0.1",
-					max: "2.0",
+					max: "4",
 					step: "0.1",
 					value: window.BeyBladeSpeed || 1,
 					style: "width: 110px; height: 3px; accent-color: #fff; cursor: pointer; margin: 0;",
@@ -588,6 +640,16 @@ document.body.appendChild(
 					}
 				})
 			]),
+			buildElement("button", {
+				className: "spkmod-panel-btn",
+				innerText: "Turn to Camera",
+				value: "",
+				onclick: _ => {
+					gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
+					gameState.moveSendAccumulator = 1;
+				}
+			}),
+
 			lunPanelElements.resetCameraBtn = buildElement("button", {
 				className: "spkmod-panel-btn hidden",
 				innerText: "Reset Camera",
@@ -826,7 +888,7 @@ if (!window.__beyBladeLoopRunning) {
 			const delta = (currentTime - window.__beyBladeLastTime) / 1000;
 			const clampedDelta = Math.min(delta, 0.1);
 			const speedMultiplier = window.BeyBladeSpeed || 3;
-			const baseSpeed = 10.0;
+			const baseSpeed = 15.0;
 
 			window.beyBladeAngle += baseSpeed * speedMultiplier * clampedDelta;
 			gameState.playerContainer.rotation.y = window.beyBladeAngle;
@@ -848,16 +910,31 @@ function tick() {
 		resetWalkToPortal();
 		chatLog("Stopped autowalking because you died (lol)");
 	}
-	// Schedule next jump tick target reliably
+
+	if (window.MoonwalkActive && gameState && gameState.playerContainer && gameState.cameraController) {
+		gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw + Math.PI;
+		gameState.moveSendAccumulator = 1; 
+	}
+
+	window.shakeBaseAngle = window.shakeBaseAngle || 0;
+	if (window.ShakeActive && gameState && gameState.playerContainer && gameState.cameraController) {
+
+		const currentBaseYaw = gameState.cameraController.cameraYaw;
+		const shakeSpeed = 80;   // Jitter frequency
+		const shakeAmount = 0.05; // Jitter amplitude (radians)
+		const offset = Math.sin(performance.now() * 0.001 * shakeSpeed) * shakeAmount;
+
+		gameState.playerContainer.rotation.y = currentBaseYaw + offset;
+		gameState.moveSendAccumulator = 1;
+	}
+
 	if (window.BeyBladeActive && gameState.playerContainer) {
 		if (!window.beyBladeNextJumpTick) {
 			window.beyBladeNextJumpTick = lunTickCount + 50;
 		}
-
 		if (lunTickCount >= window.beyBladeNextJumpTick) {
 			// gameState.sendEmoteNow(Emotes.Jump);
 			// Disabled for now, testing
-			// Re-roll random jump delay between 25 and 100 ticks (0.5s - 2.0s)
 			const nextInterval = Math.floor(Math.random() * (100 - 25 + 1)) + 25;
 			window.beyBladeNextJumpTick = lunTickCount + nextInterval;
 		}
