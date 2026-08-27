@@ -401,21 +401,21 @@ npm start
 * **Speaki MMO Development:** GMDT
 * **Client Coding:** Glas
 * **SpeakiMOD Feature Extender:** Alluseri
-* **README Japanese Proof-reading:** Healthy Elf Named 15T(y)
+* **README & Desktop Client Japanese Proof-reading:** Healthy Elf Named 15T(y)
 
 🇯🇵
 * **オリジナルゲーム:** EPID Games
 * **Speaki MMO開発:** GMDT
 * **クライアントコーディング:** Glas
 * **SpeakiMOD機能拡張:** Alluseri
-* **README日本語訳校正:** JPN_健全なエルフ名15T
+* **READMEファイルおよびデスクトップクライアントの日本語校正:** JPN_健全なエルフ名15T
 
 🇰🇷
 * **오리지널 게임:** EPID Games
 * **Speaki MMO 개발:** GMDT
 * **클라이언트 코딩:** Glas
 * **SpeakiMOD 기능 확장:** Alluseri
-* **README일본어 교정:** JPN_健全なエルフ名15T
+* **README 및 데스크톱 클라이언트 일본어 교정:** JPN_健全なエルフ名15T
   
 ---
 
