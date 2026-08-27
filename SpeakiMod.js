@@ -301,7 +301,7 @@ function setText(elem, text) {
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.0.4",
+		header: "SpeakiMod+ v1.0.5",
 		langLabel: "Language",
 		playersNearby: "Players nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -363,7 +363,7 @@ const spkmodTranslations = {
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.0.4",
+			header: "SpeakiMod+ v1.0.5",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -425,7 +425,7 @@ const spkmodTranslations = {
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.0.4",
+		header: "SpeakiMod+ v1.0.5",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -909,7 +909,7 @@ document.body.appendChild(
 				buildElement("input", {
 					type: "range",
 					min: "0.1",
-					max: "1.5",
+					max: "5.0",
 					step: "0.1",
 					value: window.BeyBladeSpeed || 1,
 					style: "width: 100%; height: 3px; accent-color: #fff; cursor: pointer; margin: 4px 0 0 0;",
@@ -1216,7 +1216,7 @@ if (!window.__beyBladeLoopRunning) {
 			const delta = (currentTime - window.__beyBladeLastTime) / 1000;
 			const clampedDelta = Math.min(delta, 0.1);
 			const speedMultiplier = window.BeyBladeSpeed || 3;
-			const baseSpeed = 15.0;
+			const baseSpeed = 3.0;
 			const direction = window.ReverseBeyBladeActive ? -1 : 1;
 
 			window.beyBladeAngle += direction * baseSpeed * speedMultiplier * clampedDelta;
