@@ -909,7 +909,7 @@ document.body.appendChild(
 				buildElement("input", {
 					type: "range",
 					min: "0.1",
-					max: "2",
+					max: "1.5",
 					step: "0.1",
 					value: window.BeyBladeSpeed || 1,
 					style: "width: 100%; height: 3px; accent-color: #fff; cursor: pointer; margin: 4px 0 0 0;",
