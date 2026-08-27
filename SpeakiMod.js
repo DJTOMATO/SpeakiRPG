@@ -301,7 +301,7 @@ function setText(elem, text) {
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.0.3",
+		header: "SpeakiMod+ v1.0.4",
 		langLabel: "Language",
 		playersNearby: "Players nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -318,8 +318,10 @@ const spkmodTranslations = {
 		shakeOff: "Shake: OFF",
 		moonwalkOn: "Moonwalk: ON",
 		moonwalkOff: "Moonwalk: OFF",
-		beybladeOn: "BeyBlade: ON (x{0})",
-		beybladeOff: "BeyBlade: OFF (x{0})",
+		beybladeOn: "Spin: ON",
+		beybladeOff: "Spin: OFF",
+		reversebeybladeOn: "ReverseSpin: ON",
+		reversebeybladeOff: "ReverseSpin: OFF",
 		speedLabel: "Speed",
 		turnToCamera: "Turn to Camera",
 		resetCamera: "Reset Camera",
@@ -341,6 +343,8 @@ const spkmodTranslations = {
 		moonwalkDeactivatedMsg: "Moonwalk mode deactivated.",
 		beybladeActivatedMsg: "BeyBlade activated at x{0}!",
 		beybladeDeactivatedMsg: "BeyBlade deactivated.",
+		reversebeybladeActivatedMsg: "ReverseBeyblade activated at x{0}!",
+		reversebeybladeDeactivatedMsg: "ReverseBeyblade deactivated.",
 		walkingToMsg: "Walking to {0} ({1}).",
 		stoppedWalkingMsg: "Stopped autowalking.",
 		watchFollowingMsg: "The camera will be following {0} now.",
@@ -359,7 +363,7 @@ const spkmodTranslations = {
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.0.3",
+			header: "SpeakiMod+ v1.0.4",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -376,8 +380,10 @@ const spkmodTranslations = {
 			shakeOff: "ふりふり: OFF",
 			moonwalkOn: "ムーンウォーク: ON",
 			moonwalkOff: "ムーンウォーク: OFF",
-			beybladeOn: "四方を見回す: ON (x{0})",
-			beybladeOff: "四方を見回す: OFF (x{0})",
+			beybladeOn: "四方を見回す: ON",
+			beybladeOff: "四方を見回す: OFF",
+			reversebeybladeOn: "リバースベイブレード：オン",
+			reversebeybladeOff: "リバースベイブレード：オフ",
 			speedLabel: "速度",
 			turnToCamera: "ｽﾋﾟｷを振り向かせる",
 			resetCamera: "カメラをリセット",
@@ -399,6 +405,8 @@ const spkmodTranslations = {
 			moonwalkDeactivatedMsg: "ｽﾋﾟｷが「ムーンウォーク」を終えました。",
 			beybladeActivatedMsg: "ｽﾋﾟｷが見回し始めました！",
 			beybladeDeactivatedMsg: "ｽﾋﾟｷは見回し終えました。",
+			reversebeybladeActivatedMsg: "リバースベイブレードがx{0}で起動しました！",
+			reversebeybladeDeactivatedMsg: "リバースベイブレードが無効化されました。",
 			walkingToMsg: "ｽﾋﾟｷが {0} ({1}) へ移動中です！",
 			stoppedWalkingMsg: "ｽﾋﾟｷが移動を中止しました。",
 			watchFollowingMsg: "カメラが {0} を追従します。",
@@ -417,7 +425,7 @@ const spkmodTranslations = {
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.0.3",
+		header: "SpeakiMod+ v1.0.4",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -434,8 +442,10 @@ const spkmodTranslations = {
 		shakeOff: "쉐이크: OFF",
 		moonwalkOn: "문워크: ON",
 		moonwalkOff: "문워크: OFF",
-		beybladeOn: "베이블레이드: ON (x{0})",
-		beybladeOff: "베이블레이드: OFF (x{0})",
+		beybladeOn: "베이블레이드: ON",
+		beybladeOff: "베이블레이드: OFF",
+		reversebeybladeOn: "리버스베이블레이드: 켜짐",
+		reversebeybladeOff: "리버스베이블레이드: 꺼짐",
 		speedLabel: "속도",
 		turnToCamera: "카메라 방향으로 전환",
 		resetCamera: "카메라 재설정",
@@ -457,6 +467,8 @@ const spkmodTranslations = {
 		moonwalkDeactivatedMsg: "문워크 모드가 비활성화되었습니다.",
 		beybladeActivatedMsg: "베이블레이드가 x{0} 속도로 활성화되었습니다!",
 		beybladeDeactivatedMsg: "베이블레이드가 비활성화되었습니다.",
+		reversebeybladeActivatedMsg: "리버스베이블레이드가 x{0} 속도로 활성화되었습니다!",
+		reversebeybladeDeactivatedMsg: "리버스베이블레이드가 비활성화되었습니다.",
 		walkingToMsg: "{0} ({1})(으)로 이동 중입니다.",
 		stoppedWalkingMsg: "자동 이동을 중지했습니다.",
 		watchFollowingMsg: "카메라가 이제 {0}님을 따라갑니다.",
@@ -757,10 +769,11 @@ document.body.appendChild(
 					value: "",
 					onclick: e => {
 						window.ShakeActive = !window.ShakeActive;
-
+						
 						if (window.ShakeActive) {
 							window.BeyBladeActive = false;
 							window.MoonwalkActive = false;
+							window.ReverseBeyBladeActive = false;
 							if (typeof updateBeyBladeButtonText === "function") updateBeyBladeButtonText();
 
 							setText(e.target, t("shakeOn"));
@@ -791,6 +804,7 @@ document.body.appendChild(
 						if (window.MoonwalkActive) {
 							window.BeyBladeActive = false;
 							window.ShakeActive = false;
+							window.ReverseBeyBladeActive = false;
 							if (typeof updateBeyBladeButtonText === "function") updateBeyBladeButtonText();
 
 							setText(e.target, t("moonwalkOn"));
@@ -814,15 +828,16 @@ document.body.appendChild(
 					id: "spkmod-beyblade-main-btn",
 					className: "spkmod-panel-btn",
 					style: "width: 100%;",
-					innerText: t(window.BeyBladeActive ? "beybladeOn" : "beybladeOff", window.BeyBladeSpeed || 1),
+					innerText: t(window.BeyBladeActive ? "beybladeOn" : "beybladeOff"),
 					value: "",
 					onclick: e => {
 						window.BeyBladeActive = !window.BeyBladeActive;
 						updateBeyBladeButtonText();
-
+						if (typeof updateReverseBeyBladeButtonText === "function") updateReverseBeyBladeButtonText();
 						if (window.BeyBladeActive) {
 							window.ShakeActive = false;
 							window.MoonwalkActive = false;
+							window.ReverseBeyBladeActive = false;
 							chatLog(t("beybladeActivatedMsg", window.BeyBladeSpeed || 1));
 						} else {
 							if (gameState.playerContainer && gameState.cameraController) {
@@ -839,27 +854,70 @@ document.body.appendChild(
 							chatLog(t("beybladeDeactivatedMsg"));
 						}
 					}
-				})
+				}), buildElement("div", { className: "spkmod-panel-cat" }, [
+					buildElement("button", {
+						id: "spkmod-reversebeyblade-main-btn",
+						className: "spkmod-panel-btn",
+						style: "width: 100%;",
+						innerText: t(window.ReverseBeyBladeActive ? "reversebeybladeOn" : "reversebeybladeOff"),
+						value: "",
+						onclick: e => {
+							window.ReverseBeyBladeActive = !window.ReverseBeyBladeActive;
+							updateReverseBeyBladeButtonText();
+
+							if (window.ReverseBeyBladeActive) {
+								window.BeyBladeActive = false;
+								window.ShakeActive = false;
+								window.MoonwalkActive = false;
+								updateBeyBladeButtonText();
+								chatLog(t("reversebeybladeActivatedMsg", window.BeyBladeSpeed || 1));
+							} else {
+								if (gameState.playerContainer && gameState.cameraController) {
+									gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
+									gameState.moveSendAccumulator = 1;
+								}
+
+								if (window.wasDancing) {
+									setTimeout(() => {
+										gameState.sendEmoteNow(Emotes.Dance);
+									}, 150);
+								}
+
+								chatLog(t("reversebeybladeDeactivatedMsg"));
+							}
+						}
+					})
+				]),
 			]),
 
 			buildElement("div", {
 				className: "spkmod-panel-cat",
-				style: "display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.4); border: 1.5px solid #fff; border-radius: 6px; padding: 4px 10px; height: 32px;"
+				style: "display: flex; flex-direction: column; width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.4); border: 1.5px solid #fff; border-radius: 6px; padding: 4px 10px;"
 			}, [
-				lunPanelElements.speedLabel = buildElement("span", {
-					style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none;",
-					innerText: t("speedLabel")
-				}),
+				buildElement("div", {
+					style: "display: flex; align-items: center; justify-content: space-between; width: 100%;"
+				}, [
+					lunPanelElements.speedLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none;",
+						innerText: t("speedLabel")
+					}),
+					lunPanelElements.speedValue = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none;",
+						innerText: "x" + (window.BeyBladeSpeed || 1)
+					})
+				]),
 				buildElement("input", {
 					type: "range",
 					min: "0.1",
 					max: "2",
 					step: "0.1",
 					value: window.BeyBladeSpeed || 1,
-					style: "width: 110px; height: 3px; accent-color: #fff; cursor: pointer; margin: 0;",
+					style: "width: 100%; height: 3px; accent-color: #fff; cursor: pointer; margin: 4px 0 0 0;",
 					oninput: e => {
 						window.BeyBladeSpeed = parseFloat(e.target.value);
+						setText(lunPanelElements.speedValue, "x" + window.BeyBladeSpeed);
 						updateBeyBladeButtonText();
+						updateReverseBeyBladeButtonText();
 					}
 				})
 			]),
@@ -983,8 +1041,14 @@ function updateBeyBladeButtonText() {
 	const mainBtn = document.querySelector("#spkmod-beyblade-main-btn");
 	if (!mainBtn) return;
 
-	const speed = window.BeyBladeSpeed || 1;
-	setText(mainBtn, t(window.BeyBladeActive ? "beybladeOn" : "beybladeOff", speed));
+	setText(mainBtn, t(window.BeyBladeActive ? "beybladeOn" : "beybladeOff"));
+}
+
+function updateReverseBeyBladeButtonText() {
+	const mainBtn = document.querySelector("#spkmod-reversebeyblade-main-btn");
+	if (!mainBtn) return;
+
+	setText(mainBtn, t(window.ReverseBeyBladeActive ? "reversebeybladeOn" : "reversebeybladeOff"));
 }
 
 function sec(t) {
@@ -1148,13 +1212,14 @@ if (!window.__beyBladeLoopRunning) {
 	window.__beyBladeLoopRunning = true;
 
 	function beyBladeRenderLoop(currentTime) {
-		if (window.BeyBladeActive && gameState && gameState.playerContainer) {
+		if ((window.BeyBladeActive || window.ReverseBeyBladeActive) && gameState && gameState.playerContainer) {
 			const delta = (currentTime - window.__beyBladeLastTime) / 1000;
 			const clampedDelta = Math.min(delta, 0.1);
 			const speedMultiplier = window.BeyBladeSpeed || 3;
 			const baseSpeed = 15.0;
+			const direction = window.ReverseBeyBladeActive ? -1 : 1;
 
-			window.beyBladeAngle += baseSpeed * speedMultiplier * clampedDelta;
+			window.beyBladeAngle += direction * baseSpeed * speedMultiplier * clampedDelta;
 			gameState.playerContainer.rotation.y = window.beyBladeAngle;
 
 			if (Math.random() < 0.2) {
@@ -1192,7 +1257,7 @@ function tick() {
 		gameState.moveSendAccumulator = 1;
 	}
 
-	if (window.BeyBladeActive && gameState.playerContainer) {
+	if ((window.BeyBladeActive || window.ReverseBeyBladeActive) && gameState.playerContainer) {
 		if (!window.beyBladeNextJumpTick) {
 			window.beyBladeNextJumpTick = lunTickCount + 50;
 		}
