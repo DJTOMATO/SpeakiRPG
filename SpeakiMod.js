@@ -424,7 +424,7 @@ const spkmodTranslations = {
 		nextLevelNA: "다음 레벨: N/A",
 		channelTracker: "채널 {0}: {1}/{2}",
 		channelTrackerError: "채널 정보 오류: {0}",
-		footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\n이 모드는 SpeakiRPG 또는\n\n Overture.io.kr과 제휴 관계가 없습니다.",
+		footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\n이 모드는 SpeakiRPG 또는\nOverture.io.kr과 제휴 관계가 없습니다.",
 		dance: "댄스",
 		chowayo: "초와요",
 		shakeOn: "쉐이크: ON",
