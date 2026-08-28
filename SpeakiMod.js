@@ -308,10 +308,104 @@ function setText(elem, text) {
 	}
 }
 
+var lunBadWords = {
+	en: [].concat(window.SpeakiModBadWordsEN || [], [
+		"spkmodtestword"
+	]),
+	ja: [].concat(window.SpeakiModBadWordsJA || [], [
+		// "例"
+	]),
+	ko: [].concat(window.SpeakiModBadWordsKO || [], [
+		// "예시"
+	])
+};
+
+var lunBadWordSources = {
+	en: "https://raw.githubusercontent.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/master/en",
+	ja: "https://raw.githubusercontent.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/master/ja",
+	ko: "https://raw.githubusercontent.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/master/ko"
+};
+const lunBadWordCacheKey = "spkmod-badword-cache";
+const lunBadWordCacheMaxAgeMs = 24 * 60 * 60 * 1000; // 24h
+
+async function loadBadWordList(lang, url) {
+	try {
+		const res = await fetch(url);
+		if (!res.ok) {
+			console.warn(`[SpeakiMod] Failed to fetch ${lang} word list: HTTP ${res.status}`);
+			return [];
+		}
+		const text = await res.text();
+		return text.split("\n").map(w => w.trim()).filter(Boolean);
+	} catch (err) {
+		console.warn(`[SpeakiMod] Failed to fetch ${lang} word list (network/CSP blocked?):`, err);
+		return [];
+	}
+}
+
+async function loadAllBadWordLists() {
+	try {
+		const cached = window.localStorage && JSON.parse(localStorage.getItem(lunBadWordCacheKey) || "null");
+		if (cached && (Date.now() - cached.fetchedAt) < lunBadWordCacheMaxAgeMs) {
+			lunBadWords.en = lunBadWords.en.concat(cached.en || []);
+			lunBadWords.ja = lunBadWords.ja.concat(cached.ja || []);
+			lunBadWords.ko = lunBadWords.ko.concat(cached.ko || []);
+			rebuildBadWordRegex();
+			console.log("[SpeakiMod] Loaded profanity filter word lists from cache.");
+			return;
+		}
+	} catch (err) {
+		// corrupt cache, fall through to a fresh fetch
+	}
+
+	const [en, ja, ko] = await Promise.all([
+		loadBadWordList("en", lunBadWordSources.en),
+		loadBadWordList("ja", lunBadWordSources.ja),
+		loadBadWordList("ko", lunBadWordSources.ko)
+	]);
+
+	lunBadWords.en = lunBadWords.en.concat(en);
+	lunBadWords.ja = lunBadWords.ja.concat(ja);
+	lunBadWords.ko = lunBadWords.ko.concat(ko);
+	rebuildBadWordRegex();
+
+	if (window.localStorage && (en.length || ja.length || ko.length)) {
+		localStorage.setItem(lunBadWordCacheKey, JSON.stringify({ en, ja, ko, fetchedAt: Date.now() }));
+	}
+
+	console.log(`[SpeakiMod] Loaded profanity filter: ${en.length} en, ${ja.length} ja, ${ko.length} ko words fetched.`);
+}
+
+var lunFilterEnabled = (window.localStorage && localStorage.getItem("spkmod-filter-enabled")) !== "false";
+
+function setFilterEnabled(enabled) {
+	lunFilterEnabled = enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-filter-enabled", String(enabled));
+}
+
+var lunBadWordRegex = null;
+function rebuildBadWordRegex() {
+	var allWords = Object.values(lunBadWords).flat().filter(Boolean);
+	if (!allWords.length) {
+		lunBadWordRegex = null;
+		return;
+	}
+	var escaped = allWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+	lunBadWordRegex = new RegExp(escaped.join("|"), "giu");
+}
+rebuildBadWordRegex();
+
+function filterName(name) {
+	if (!lunFilterEnabled || !lunBadWordRegex || typeof name !== "string") return name;
+	return name.replace(lunBadWordRegex, m => "*".repeat(m.length));
+}
+
+loadAllBadWordLists();
+
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.1.3",
+		header: "SpeakiMod+ v1.2.0",
 		langLabel: "Language",
 		playersNearby: "Speaki nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -321,8 +415,11 @@ const spkmodTranslations = {
 		nextLevelNA: "Next level: N/A",
 		channelTracker: "Channel {0}: {1}/{2}",
 		channelTrackerError: "Channel tracker: Error {0}",
+		totalPlayersOnline: "Total players: {0}",
 		currencyTracker: "Gold: {0} / Elif: {1}",
 		currencyTrackerError: "Currency: Error {0}",
+		settingsHeader: "Settings",
+		filterToggleLabel: "Filter bad words in names",
 		footerMsg: "Download on github.com\nDJTOMATO/SpeakiRPG\n\nThis mod is not affiliated with\nSpeakiMMO or Overture.io.kr",
 		dance: "Dance",
 		chowayo: "Chowayo",
@@ -376,7 +473,7 @@ const spkmodTranslations = {
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.1.3",
+			header: "SpeakiMod+ v1.2.0",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -386,8 +483,11 @@ const spkmodTranslations = {
 			nextLevelNA: "次のレベル: N/A",
 			channelTracker: "チャンネル {0}: {1}/{2}",
 			channelTrackerError: "チャンネル情報取得エラー: {0}",
+			totalPlayersOnline: "合計プレイヤー数: {0}",
 			currencyTracker: "ゴールド: {0} | エリーフ: {1}",
 			currencyTrackerError: "所持通貨情報取得エラー: {0}",
+			settingsHeader: "設定",
+			filterToggleLabel: "名前の不適切な単語をフィルター",
 			footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\nこのMODはSpeakiMMOまたは\nOverture.io.krとは一切関係ありません\n\n和訳者:JPN_健全なエルフ名15T",
 			dance: "どこでもダンス",
 			chowayo: "Speak「ﾁｮﾜﾖ!」 | お砂あそび",
@@ -441,7 +541,7 @@ const spkmodTranslations = {
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.1.3",
+		header: "SpeakiMod+ v1.2.0",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -451,8 +551,11 @@ const spkmodTranslations = {
 		nextLevelNA: "다음 레벨: N/A",
 		channelTracker: "채널 {0}: {1}/{2}",
 		channelTrackerError: "채널 정보 오류: {0}",
+		totalPlayersOnline: "총 플레이어 수: {0}",
 		currencyTracker: "골드: {0} / 엘리프: {1}",
 		currencyTrackerError: "재화 정보 오류: {0}",
+		settingsHeader: "설정",
+		filterToggleLabel: "이름 욕설 필터링",
 		footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\n이모드는SpeakiMMO또는\n\nOverture.io.kr과 제휴 관계가 없습니다.",
 		dance: "댄스",
 		chowayo: "초와요",
@@ -541,13 +644,15 @@ var lunHudElements = {
 		content: null,
 		pbar: null
 	},
-	currencyTracker: null
+	currencyTracker: null,
+	settingsModal: null
 };
 var lunPanelElements = {
 	targetZone: null,
 	resetCameraBtn: null,
 	walkToPortalBtn: null,
 	headerBtn: null,
+	settingsBtn: null,
 	danceBtn: null,
 	chowayoBtn: null,
 	speedLabel: null,
@@ -555,7 +660,10 @@ var lunPanelElements = {
 	watchBtn: null,
 	pinnedQuestHeader: null,
 	langSelect: null,
-	langLabel: null
+	langLabel: null,
+	settingsHeader: null,
+	filterToggleLabel: null,
+	filterToggleInput: null
 };
 var lunMenuFoldingLevel = 0;
 
@@ -621,9 +729,41 @@ document.head.appendChild(buildElement(
 			flex-direction: column;
 			gap: 2px;
 		}
-		#spkmod-header, #spkmod-texpb, #spkmod-pq-header {
+		#spkmod-header-row, #spkmod-texpb, #spkmod-pq-header {
 			border-bottom: 1px solid #DDD;
 			margin-bottom: 4px;
+		}
+		#spkmod-header-row {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			gap: 6px;
+		}
+		#spkmod-header {
+			flex: 1;
+		}
+		#spkmod-settings-btn {
+			cursor: pointer;
+			font-size: 12pt;
+			user-select: none;
+			flex-shrink: 0;
+		}
+		#spkmod-settings-modal {
+			display: flex;
+			flex-direction: column;
+			position: fixed;
+			z-index: 600000;
+			min-width: 220px;
+			color: #FFF;
+			background: #000C;
+			border: ${spkmodBorderWidth} solid #DDD;
+			border-radius: 8px;
+			padding: 8px;
+			gap: 6px;
+		}
+		#spkmod-settings-close {
+			cursor: pointer;
+			user-select: none;
 		}
 		.spkmod-panel-btn {
 			color: #EEE;
@@ -702,7 +842,7 @@ document.head.appendChild(buildElement(
 			padding: 6px;
 		}
 		/* honest to god forgot CSS is stupid like that */
-		.hidden, #spkmod-pq.hidden {
+		.hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden {
 			display: none;
 		}
 		#spkmod-pq-pbar {
@@ -722,30 +862,32 @@ document.body.appendChild(
 		buildElement("div", {
 			id: "spkmod-main"
 		}, [
-			lunPanelElements.headerBtn = buildElement("span", {
-				id: "spkmod-header",
-				innerText: t("header"),
-				onclick: _ => {
-					lunMenuFoldingLevel = (lunMenuFoldingLevel + 1) % 4;
-					switch (lunMenuFoldingLevel) {
-						case 0:
-							document.querySelector("#spkmod-panel").style.display = "";
-							lunHudElements.channelTracker.style.display = "";
-							document.querySelector("#spkmod-hud").style.opacity = "";
-							lunChannelTrackerNextTicks = 0;
-							break;
-						case 1:
-							document.querySelector("#spkmod-panel").style.display = "none";
-							break;
-						case 2:
-							lunHudElements.channelTracker.style.display = "none";
-							break;
-						case 3:
-							document.querySelector("#spkmod-hud").style.opacity = "10%";
-							break;
+			buildElement("div", { id: "spkmod-header-row" }, [
+				lunPanelElements.headerBtn = buildElement("span", {
+					id: "spkmod-header",
+					innerText: t("header"),
+					onclick: _ => {
+						lunMenuFoldingLevel = (lunMenuFoldingLevel + 1) % 4;
+						switch (lunMenuFoldingLevel) {
+							case 0:
+								document.querySelector("#spkmod-panel").style.display = "";
+								lunHudElements.channelTracker.style.display = "";
+								document.querySelector("#spkmod-hud").style.opacity = "";
+								lunChannelTrackerNextTicks = 0;
+								break;
+							case 1:
+								document.querySelector("#spkmod-panel").style.display = "none";
+								break;
+							case 2:
+								lunHudElements.channelTracker.style.display = "none";
+								break;
+							case 3:
+								document.querySelector("#spkmod-hud").style.opacity = "10%";
+								break;
+						}
 					}
-				}
-			}),
+				})
+			]),
 			lunHudElements.playersNearby = buildElement("span", {
 				innerText: t("playersNearby", 0)
 			}),
@@ -1041,7 +1183,18 @@ document.body.appendChild(
 					value: code,
 					innerText: spkmodTranslations[code].langName,
 					selected: code === spkmodLang
-				})))
+				}))),
+				lunPanelElements.settingsBtn = buildElement("span", {
+					id: "spkmod-settings-btn",
+					innerText: "⚙️",
+					title: "Settings",
+					onclick: _ => {
+						const rect = document.querySelector("#spkmod-hud").getBoundingClientRect();
+						lunHudElements.settingsModal.style.left = (rect.right + 10) + "px";
+						lunHudElements.settingsModal.style.top = rect.top + "px";
+						lunHudElements.settingsModal.classList.toggle("hidden");
+					}
+				})
 			])
 		])
 	])
@@ -1064,6 +1217,40 @@ document.body.appendChild(
 		lunHudElements.pinnedQuest.pbar = buildElement("div", {
 			id: "spkmod-pq-pbar"
 		})
+	])
+)
+
+document.body.appendChild(
+	lunHudElements.settingsModal = buildElement("div", {
+		id: "spkmod-settings-modal",
+		className: "hidden"
+	}, [
+		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
+			lunPanelElements.settingsHeader = buildElement("span", {
+				innerText: t("settingsHeader"),
+				style: "font-weight: bold;"
+			}),
+			buildElement("span", {
+				id: "spkmod-settings-close",
+				innerText: "✕",
+				onclick: _ => {
+					lunHudElements.settingsModal.classList.add("hidden");
+				}
+			})
+		]),
+		buildElement("div", { className: "spkmod-panel-cat" }, [
+			lunPanelElements.filterToggleLabel = buildElement("span", {
+				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+				innerText: t("filterToggleLabel")
+			}),
+			lunPanelElements.filterToggleInput = buildElement("input", {
+				type: "checkbox",
+				checked: lunFilterEnabled,
+				onchange: e => {
+					setFilterEnabled(e.target.checked);
+				}
+			})
+		])
 	])
 )
 
@@ -1162,6 +1349,8 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.pinnedQuestHeader, t("pinnedQuestHeader"));
 	setText(lunHudElements.footerMsg, t("footerMsg"));
 	setText(lunPanelElements.langLabel, t("langLabel"));
+	setText(lunPanelElements.settingsHeader, t("settingsHeader"));
+	setText(lunPanelElements.filterToggleLabel, t("filterToggleLabel"));
 	setText(lunHudElements.currencyTracker, lunLastGold === null
 		? t("currencyTracker", "--", "--")
 		: t("currencyTracker", lunLastGold.toLocaleString(), lunLastElif.toLocaleString()));
@@ -1374,7 +1563,10 @@ function tick() {
 				return;
 			}
 
-			setText(lunHudElements.channelTracker, resp.map(ch => t("channelTracker", ch.channel, ch.population, ch.capacity)).join("\n"));
+			var totalPop = resp.reduce((sum, ch) => sum + (ch.population || 0), 0);
+			setText(lunHudElements.channelTracker,
+				resp.map(ch => t("channelTracker", ch.channel, ch.population, ch.capacity)).join("\n")
+				+ "\n" + t("totalPlayersOnline", totalPop.toLocaleString()));
 		});
 
 		lunChannelTrackerNextTicks = lunTickCount + lunChannelTrackerWindow;
@@ -1555,6 +1747,32 @@ gameState.trySendChat = (msg) => {
 	}
 
 	return hkTrySendChat(msg);
+}
+
+window.filterName = filterName;
+window.lunBadWords = lunBadWords;
+
+var hkChatBoxAppend = gameState.chatBox.append.bind(gameState.chatBox);
+gameState.chatBox.append = (id, name, msg) => {
+	return hkChatBoxAppend(id, filterName(name), filterName(msg));
+};
+
+if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && typeof gameState.remotePlayers.remotePlayers.set === "function") {
+	var hkRemotePlayersSet = gameState.remotePlayers.remotePlayers.set.bind(gameState.remotePlayers.remotePlayers);
+	gameState.remotePlayers.remotePlayers.set = function (key, value) {
+		if (value && value.info && typeof value.info.name === "string") {
+			value.info.name = filterName(value.info.name);
+		}
+		return hkRemotePlayersSet(key, value);
+	};
+
+	gameState.remotePlayers.remotePlayers.forEach(v => {
+		if (v && v.info && typeof v.info.name === "string") {
+			v.info.name = filterName(v.info.name);
+		}
+	});
+} else {
+	console.warn("[SpeakiMod] Could not hook remotePlayers.set — nametag filtering will not work. Please report this.");
 }
 
 setInterval(tick, 50);
