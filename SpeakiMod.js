@@ -292,6 +292,16 @@ function buildElement(tag, characteristics, inner, callback) {
 	return elem;
 }
 
+function findNametagSprite(container) {
+	for (const group of container.children) {
+		for (const child of group.children) {
+			if (child.isSprite) return child;
+		}
+	}
+	return null;
+}
+
+
 function setText(elem, text) {
 	if (elem && elem.innerText !== text) {
 		elem.innerText = text;
@@ -301,7 +311,7 @@ function setText(elem, text) {
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.0.9",
+		header: "SpeakiMod+ v1.1.0",
 		langLabel: "Language",
 		playersNearby: "Speaki nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -363,7 +373,7 @@ const spkmodTranslations = {
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.0.9",
+			header: "SpeakiMod+ v1.1.0",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -425,7 +435,7 @@ const spkmodTranslations = {
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.0.9",
+		header: "SpeakiMod+ v1.1.0",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -534,7 +544,8 @@ var lunPanelElements = {
 	turnToCameraBtn: null,
 	watchBtn: null,
 	pinnedQuestHeader: null,
-	langSelect: null
+	langSelect: null,
+	langLabel: null
 };
 var lunMenuFoldingLevel = 0;
 
@@ -997,7 +1008,7 @@ document.body.appendChild(
 			buildElement("div", {
 				className: "spkmod-panel-cat"
 			}, [
-				buildElement("span", {
+				lunPanelElements.langLabel = buildElement("span", {
 					style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none;",
 					innerText: t("langLabel")
 				}),
@@ -1036,6 +1047,7 @@ document.body.appendChild(
 		})
 	])
 )
+
 
 function updateBeyBladeButtonText() {
 	const mainBtn = document.querySelector("#spkmod-beyblade-main-btn");
@@ -1130,6 +1142,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.watchBtn, t("watchBtn"));
 	setText(lunPanelElements.pinnedQuestHeader, t("pinnedQuestHeader"));
 	setText(lunHudElements.footerMsg, t("footerMsg"));
+	setText(lunPanelElements.langLabel, t("langLabel"));
 	if (!lunPinnedQuestId) setText(lunHudElements.pinnedQuest.content, t("pinnedQuestDefault"));
 
 	const shakeBtn = document.querySelector("#spkmod-shake-main-btn");
@@ -1234,6 +1247,8 @@ if (!window.__beyBladeLoopRunning) {
 
 	requestAnimationFrame(beyBladeRenderLoop);
 }
+
+
 
 function tick() {
 	if (!lunExpTrackerInitialized) {
@@ -1356,7 +1371,15 @@ function tick() {
 		lunPinnedQuestNextQueryTick += lunPinnedQuestInterval;
 	}
 
-	gameState.remotePlayers.remotePlayers.forEach(t => t.container.children[0].children[1].visible = !lunNametagsHidden);
+
+
+
+	gameState.remotePlayers.remotePlayers.forEach(t => {
+		const sprite = findNametagSprite(t.container);
+		if (sprite) sprite.visible = !lunNametagsHidden;
+	});
+
+	
 
 	if (lunWalkToPortal != -1 && zoneId) {
 		const currentIndex = ZoneSequences.indexOf(zoneId - 0);
