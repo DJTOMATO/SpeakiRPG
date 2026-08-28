@@ -311,7 +311,7 @@ function setText(elem, text) {
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.1.2",
+		header: "SpeakiMod+ v1.1.3",
 		langLabel: "Language",
 		playersNearby: "Speaki nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -371,11 +371,12 @@ const spkmodTranslations = {
 		zoomUsage2Msg: "Legitimate values range from 3 to 12. Higher value = farther camera.",
 		zoomSetMsg: "Set camera zoom to {0}!",
 		unknownCmdMsg: "Unknown command: {0}",
-		availableCmdsMsg: "Available commands: watch, zoom"
+		availableCmdsMsg: "Available commands: watch, zoom",
+		nextLevelHours: "Next level: ~{0}h",
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.1.2",
+			header: "SpeakiMod+ v1.1.3",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -435,11 +436,12 @@ const spkmodTranslations = {
 			zoomUsage2Msg: "有効な値は3~12です。値が大きいほどカメラが遠くなります。",
 			zoomSetMsg: "カメラズームを {0} に設定しました!",
 			unknownCmdMsg: "不明なコマンド: {0}",
-			availableCmdsMsg: "使用可能なコマンド: !watch, !zoom"
+			availableCmdsMsg: "使用可能なコマンド: !watch, !zoom",
+			nextLevelHours: "次のレベルまで: 約{0}時間",
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.1.2",
+		header: "SpeakiMod+ v1.1.3",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -499,7 +501,8 @@ const spkmodTranslations = {
 		zoomUsage2Msg: "유효한 값은 3~12입니다. 값이 클수록 카메라가 멀어집니다.",
 		zoomSetMsg: "카메라 줌을 {0}(으)로 설정했습니다!",
 		unknownCmdMsg: "알 수 없는 명령어: {0}",
-		availableCmdsMsg: "사용 가능한 명령어: watch, zoom"
+		availableCmdsMsg: "사용 가능한 명령어: watch, zoom",
+		nextLevelHours: "다음 레벨까지: 약 {0}시간",
 	}
 };
 
@@ -1294,7 +1297,14 @@ function tick() {
 
 	if (lunExpTrackerSpeed > 0) {
 		expTrackerL1 = t("expPerMinute", (lunExpTrackerSpeed * 60).toFixed(0), expTrackerTimer);
-		expTrackerL2 = t("nextLevel", ((gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60).toFixed(0));
+
+		var minutesRemaining = (gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60;
+		if (minutesRemaining >= 60) {
+			var hoursRemaining = (minutesRemaining / 60).toFixed(1);
+			expTrackerL2 = t("nextLevelHours", hoursRemaining);
+		} else {
+			expTrackerL2 = t("nextLevel", minutesRemaining.toFixed(0));
+		}
 	} else {
 		expTrackerL1 += ` (${expTrackerTimer}s)`;
 	}
