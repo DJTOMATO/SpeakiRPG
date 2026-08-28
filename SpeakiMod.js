@@ -452,10 +452,10 @@ const spkmodTranslations = {
 		shakeOff: "쉐이크: ▶️",
 		moonwalkOn: "문워크: ⏸️",
 		moonwalkOff: "문워크: ▶️",
-		beybladeOn: "베이블레이드: ⏸️",
-		beybladeOff: "베이블레이드: ▶️",
-		reversebeybladeOn: "리버스베이블레이드: ⏸️",
-		reversebeybladeOff: "리버스베이블레이드: ▶️",
+		beybladeOn: "베이: ⏸️",
+		beybladeOff: "베이: ▶️",
+		reversebeybladeOn: "리버스: ⏸️",
+		reversebeybladeOff: "리버스: ▶️",
 		speedLabel: "속도",
 		turnToCamera: "카메라 방향으로 전환",
 		resetCamera: "카메라 재설정",
@@ -845,13 +845,14 @@ document.body.appendChild(
 					onclick: e => {
 						window.BeyBladeActive = !window.BeyBladeActive;
 						updateBeyBladeButtonText();
-						if (typeof updateReverseBeyBladeButtonText === "function") updateReverseBeyBladeButtonText();
 						if (window.BeyBladeActive) {
 							window.ShakeActive = false;
 							window.MoonwalkActive = false;
 							window.ReverseBeyBladeActive = false;
+							if (typeof updateReverseBeyBladeButtonText === "function") updateReverseBeyBladeButtonText(); 
 							chatLog(t("beybladeActivatedMsg", window.BeyBladeSpeed || 1));
 						} else {
+							if (typeof updateReverseBeyBladeButtonText === "function") updateReverseBeyBladeButtonText(); 
 							if (gameState.playerContainer && gameState.cameraController) {
 								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
 								gameState.moveSendAccumulator = 1;
