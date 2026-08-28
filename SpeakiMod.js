@@ -1276,31 +1276,21 @@ function tick() {
 	var expTrackerL1 = t("zeroExp");
 	var expTrackerL2 = t("nextLevelNA");
 
-	// Initialize
+	// Initialize on load
 	if (!lunExpTrackerInitialized) {
 		lunExpTrackerStartExp = playerExp;
-		window.lunExpTrackerLastExp = playerExp;
 		lunExpTrackerNextTicks = lunTickCount + lunExpTrackerWindow;
 		lunExpTrackerInitialized = true;
 	}
-	// Reset window every 60s or on level up
+	// Reset window every 60 seconds or upon level-up (EXP reset)
 	else if (playerExp < lunExpTrackerStartExp || lunTickCount >= lunExpTrackerNextTicks) {
-		if (playerExp <= lunExpTrackerStartExp) {
-			lunExpTrackerSpeed = 0; // Reset if no EXP was gained over the full minute
-		}
 		lunExpTrackerStartExp = playerExp;
-		window.lunExpTrackerLastExp = playerExp;
 		lunExpTrackerNextTicks = lunTickCount + lunExpTrackerWindow;
 	}
 
-	// Recalculate speed ONLY when EXP increases (e.g. enemy killed)
-	if (playerExp > window.lunExpTrackerLastExp) {
-		var elapsedTicks = lunTickCount - (lunExpTrackerNextTicks - lunExpTrackerWindow);
-		if (elapsedTicks > 0) {
-			lunExpTrackerSpeed = (playerExp - lunExpTrackerStartExp) / (elapsedTicks / lunTPS);
-		}
-		window.lunExpTrackerLastExp = playerExp;
-	}
+	// Accumulates total EXP gained in the current minute window
+	var expGained = Math.max(0, playerExp - lunExpTrackerStartExp);
+	lunExpTrackerSpeed = expGained / 60; // EXP rate per second over a 60s base
 
 	if (lunExpTrackerSpeed > 0) {
 		expTrackerL1 = t("expPerMinute", (lunExpTrackerSpeed * 60).toFixed(0), expTrackerTimer);
