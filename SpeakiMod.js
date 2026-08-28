@@ -301,7 +301,7 @@ function setText(elem, text) {
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.0.7",
+		header: "SpeakiMod+ v1.0.8",
 		langLabel: "Language",
 		playersNearby: "Players nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -314,14 +314,14 @@ const spkmodTranslations = {
 		footerMsg: "Download URL on github.com\nDJTOMATO/SpeakiRPG\n\nThis mod is not affiliated with\nSpeakiMMO or Overture.io.kr",
 		dance: "Dance",
 		chowayo: "Chowayo",
-		shakeOn: "Shake: ON",
-		shakeOff: "Shake: OFF",
-		moonwalkOn: "Moonwalk: ON",
-		moonwalkOff: "Moonwalk: OFF",
-		beybladeOn: "Spin: ON",
-		beybladeOff: "Spin: OFF",
-		reversebeybladeOn: "ReverseSpin: ON",
-		reversebeybladeOff: "ReverseSpin: OFF",
+		shakeOn: "Shake: ⏸️",
+		shakeOff: "Shake: ▶️",
+		moonwalkOn: "Moonwalk: ⏸️",
+		moonwalkOff: "Moonwalk: ▶️",
+		beybladeOn: "Spin: ⏸️",
+		beybladeOff: "Spin: ▶️",
+		reversebeybladeOn: "R-Spin: ⏸️",
+		reversebeybladeOff: "R-Spin: ▶️",
 		speedLabel: "Speed",
 		turnToCamera: "Turn to Camera",
 		resetCamera: "Reset Camera",
@@ -363,27 +363,27 @@ const spkmodTranslations = {
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.0.7",
+			header: "SpeakiMod+ v1.0.8",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
 			expPerMinute: "{0} 経験値/分 ({1}秒)",
-			zeroExp: "0 EXP/分",
+			zeroExp: "0 経験値/分",
 			nextLevel: "次のレベルまで: 約{0}分",
 			nextLevelNA: "次のレベル: N/A",
 			channelTracker: "チャンネル {0}: {1}/{2}",
 			channelTrackerError: "チャンネル情報取得エラー: {0}",
 			footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\nこのMODはSpeakiMMOまたは\nOverture.io.krとは一切関係ありません\n\n和訳者:JPN_健全なエルフ名15T",
 			dance: "どこでもダンス",
-			chowayo: "お砂あそび (SpeakUpﾁｮﾜﾖ!",
-			shakeOn: "ふりふり: ON",
-			shakeOff: "ふりふり: OFF",
-			moonwalkOn: "ムーンウォーク: ON",
-			moonwalkOff: "ムーンウォーク: OFF",
-			beybladeOn: "左ろーりんぐ: ON",
-			beybladeOff: "左ろーりんぐ: OFF",
-			reversebeybladeOn: "右ろーりんぐ：ON",
-			reversebeybladeOff: "右ろーりんぐ：OFF",
+			chowayo: "Speak「ﾁｮﾜﾖ!」/ お砂あそび",
+			shakeOn: "ふりふり: ⏸️",
+			shakeOff: "ふりふり: ▶️",
+			moonwalkOn: "ムーンウォーク: ⏸️",
+			moonwalkOff: "ムーンウォーク: ▶️",
+			beybladeOn: "左くるりん: ⏸️",
+			beybladeOff: "左くるりん: ▶️",
+			reversebeybladeOn: "右くるりん: ⏸️",
+			reversebeybladeOff: "右くるりん: ▶️",
 			speedLabel: "速度",
 			turnToCamera: "ｽﾋﾟｷを振り向かせる",
 			resetCamera: "カメラをリセット",
@@ -425,7 +425,7 @@ const spkmodTranslations = {
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.0.7",
+		header: "SpeakiMod+ v1.0.8",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -438,14 +438,14 @@ const spkmodTranslations = {
 		footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\n이모드는SpeakiMMO또는\n\nOverture.io.kr과 제휴 관계가 없습니다.",
 		dance: "댄스",
 		chowayo: "초와요",
-		shakeOn: "쉐이크: ON",
-		shakeOff: "쉐이크: OFF",
-		moonwalkOn: "문워크: ON",
-		moonwalkOff: "문워크: OFF",
-		beybladeOn: "베이블레이드: ON",
-		beybladeOff: "베이블레이드: OFF",
-		reversebeybladeOn: "리버스베이블레이드: 켜짐",
-		reversebeybladeOff: "리버스베이블레이드: 꺼짐",
+		shakeOn: "쉐이크: ⏸️",
+		shakeOff: "쉐이크: ▶️",
+		moonwalkOn: "문워크: ⏸️",
+		moonwalkOff: "문워크: ▶️",
+		beybladeOn: "베이블레이드: ⏸️",
+		beybladeOff: "베이블레이드: ▶️",
+		reversebeybladeOn: "리버스베이블레이드: ⏸️",
+		reversebeybladeOff: "리버스베이블레이드: ▶️",
 		speedLabel: "속도",
 		turnToCamera: "카메라 방향으로 전환",
 		resetCamera: "카메라 재설정",
@@ -545,6 +545,7 @@ const lunExpTrackerWindow = 60000 / lunTPS;
 var lunExpTrackerNextTicks = 0;
 var lunExpTrackerStartExp = 0;
 var lunExpTrackerSpeed = 0;
+var lunExpTrackerInitialized = false; 
 
 var lunChannelTrackerWindow = 10000 / lunTPS;
 var lunChannelTrackerNextTicks = 0;
@@ -567,7 +568,7 @@ document.head.appendChild(buildElement(
 			flex-direction: row;
 			gap: 4px;
 			position: absolute;
-			top: 225px;
+			top: 165px;
 			left: 5px;
 			z-index: 500000;
 			color: #EEE;
@@ -775,7 +776,7 @@ document.body.appendChild(
 							window.MoonwalkActive = false;
 							window.ReverseBeyBladeActive = false;
 							if (typeof updateBeyBladeButtonText === "function") updateBeyBladeButtonText();
-
+							if (typeof updateReverseBeyBladeButtonText === "function") updateReverseBeyBladeButtonText();
 							setText(e.target, t("shakeOn"));
 							chatLog(t("shakeActivatedMsg"));
 						} else {
@@ -850,44 +851,43 @@ document.body.appendChild(
 									gameState.sendEmoteNow(Emotes.Dance);
 								}, 150);
 							}
-
+							window.wasDancing = false;
 							chatLog(t("beybladeDeactivatedMsg"));
 						}
 					}
-				}), buildElement("div", { className: "spkmod-panel-cat" }, [
-					buildElement("button", {
-						id: "spkmod-reversebeyblade-main-btn",
-						className: "spkmod-panel-btn",
-						style: "width: 100%;",
-						innerText: t(window.ReverseBeyBladeActive ? "reversebeybladeOn" : "reversebeybladeOff"),
-						value: "",
-						onclick: e => {
-							window.ReverseBeyBladeActive = !window.ReverseBeyBladeActive;
-							updateReverseBeyBladeButtonText();
+				}),
+				buildElement("button", {
+					id: "spkmod-reversebeyblade-main-btn",
+					className: "spkmod-panel-btn",
+					style: "width: 100%;",
+					innerText: t(window.ReverseBeyBladeActive ? "reversebeybladeOn" : "reversebeybladeOff"),
+					value: "",
+					onclick: e => {
+						window.ReverseBeyBladeActive = !window.ReverseBeyBladeActive;
+						updateReverseBeyBladeButtonText();
 
-							if (window.ReverseBeyBladeActive) {
-								window.BeyBladeActive = false;
-								window.ShakeActive = false;
-								window.MoonwalkActive = false;
-								updateBeyBladeButtonText();
-								chatLog(t("reversebeybladeActivatedMsg", window.BeyBladeSpeed || 1));
-							} else {
-								if (gameState.playerContainer && gameState.cameraController) {
-									gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
-									gameState.moveSendAccumulator = 1;
-								}
-
-								if (window.wasDancing) {
-									setTimeout(() => {
-										gameState.sendEmoteNow(Emotes.Dance);
-									}, 150);
-								}
-
-								chatLog(t("reversebeybladeDeactivatedMsg"));
+						if (window.ReverseBeyBladeActive) {
+							window.BeyBladeActive = false;
+							window.ShakeActive = false;
+							window.MoonwalkActive = false;
+							updateBeyBladeButtonText();
+							chatLog(t("reversebeybladeActivatedMsg", window.BeyBladeSpeed || 1));
+						} else {
+							if (gameState.playerContainer && gameState.cameraController) {
+								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
+								gameState.moveSendAccumulator = 1;
 							}
+
+							if (window.wasDancing) {
+								setTimeout(() => {
+									gameState.sendEmoteNow(Emotes.Dance);
+								}, 150);
+							}
+							window.wasDancing = false;
+							chatLog(t("reversebeybladeDeactivatedMsg"));
 						}
-					})
-				]),
+					}
+				})
 			]),
 
 			buildElement("div", {
@@ -1215,7 +1215,7 @@ if (!window.__beyBladeLoopRunning) {
 		if ((window.BeyBladeActive || window.ReverseBeyBladeActive) && gameState && gameState.playerContainer) {
 			const delta = (currentTime - window.__beyBladeLastTime) / 1000;
 			const clampedDelta = Math.min(delta, 0.1);
-			const speedMultiplier = window.BeyBladeSpeed || 3;
+			const speedMultiplier = window.BeyBladeSpeed || 1;
 			const baseSpeed = 3.0;
 			const direction = window.ReverseBeyBladeActive ? -1 : 1;
 
@@ -1235,6 +1235,15 @@ if (!window.__beyBladeLoopRunning) {
 }
 
 function tick() {
+	if (!lunExpTrackerInitialized) {
+		lunExpTrackerStartExp = playerExp;
+		lunExpTrackerNextTicks = lunTickCount + lunExpTrackerWindow;
+		lunExpTrackerInitialized = true;
+	} else if (lunExpTrackerStartExp > playerExp || lunTickCount >= lunExpTrackerNextTicks) {
+		lunExpTrackerSpeed = (playerExp - lunExpTrackerStartExp) / lunExpTrackerWindow * (1000 / lunTPS);
+		lunExpTrackerNextTicks = lunTickCount + lunExpTrackerWindow;
+		lunExpTrackerStartExp = playerExp;
+	}
 	if (gameState.isDead && lunWalkToPortal != -1) {
 		resetWalkToPortal();
 		chatLog(t("diedMsg"));
