@@ -311,7 +311,7 @@ function setText(elem, text) {
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.1.0",
+		header: "SpeakiMod+ v1.1.1",
 		langLabel: "Language",
 		playersNearby: "Speaki nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -321,6 +321,8 @@ const spkmodTranslations = {
 		nextLevelNA: "Next level: N/A",
 		channelTracker: "Channel {0}: {1}/{2}",
 		channelTrackerError: "Channel tracker: Error {0}",
+		currencyTracker: "Gold: {0} / Elif: {1}",
+		currencyTrackerError: "Currency: Error {0}",
 		footerMsg: "Download on github.com\nDJTOMATO/SpeakiRPG\n\nThis mod is not affiliated with\nSpeakiMMO or Overture.io.kr",
 		dance: "Dance",
 		chowayo: "Chowayo",
@@ -373,7 +375,7 @@ const spkmodTranslations = {
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.1.0",
+			header: "SpeakiMod+ v1.1.1",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -383,6 +385,8 @@ const spkmodTranslations = {
 			nextLevelNA: "次のレベル: N/A",
 			channelTracker: "チャンネル {0}: {1}/{2}",
 			channelTrackerError: "チャンネル情報取得エラー: {0}",
+			currencyTracker: "ゴールド: {0} / エリフ: {1}",
+			currencyTrackerError: "所持金情報取得エラー: {0}",
 			footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\nこのMODはSpeakiMMOまたは\nOverture.io.krとは一切関係ありません\n\n和訳者:JPN_健全なエルフ名15T",
 			dance: "どこでもダンス",
 			chowayo: "Speak「ﾁｮﾜﾖ!」 / お砂あそび",
@@ -435,7 +439,7 @@ const spkmodTranslations = {
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.1.0",
+		header: "SpeakiMod+ v1.1.1",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -445,6 +449,8 @@ const spkmodTranslations = {
 		nextLevelNA: "다음 레벨: N/A",
 		channelTracker: "채널 {0}: {1}/{2}",
 		channelTrackerError: "채널 정보 오류: {0}",
+		currencyTracker: "골드: {0} / 엘리프: {1}",
+		currencyTrackerError: "재화 정보 오류: {0}",
 		footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\n이모드는SpeakiMMO또는\n\nOverture.io.kr과 제휴 관계가 없습니다.",
 		dance: "댄스",
 		chowayo: "초와요",
@@ -531,7 +537,8 @@ var lunHudElements = {
 		panel: null,
 		content: null,
 		pbar: null
-	}
+	},
+	currencyTracker: null
 };
 var lunPanelElements = {
 	targetZone: null,
@@ -561,6 +568,11 @@ var lunExpTrackerInitialized = false;
 var lunChannelTrackerWindow = 10000 / lunTPS;
 var lunChannelTrackerNextTicks = 0;
 
+
+var lunCurrencyTrackerWindow = 10000 / lunTPS;
+var lunCurrencyTrackerNextTicks = 0;
+var lunLastGold = null;
+var lunLastElif = null;
 var lunWalkToPortal = -1;
 var lunAutoTravelTarget = null;
 var lunCameraLocked = false;
@@ -746,6 +758,12 @@ document.body.appendChild(
 			}),
 			lunHudElements.channelTracker = buildElement("span", {
 				innerText: t("channelTrackerError", "N/A")
+			}),
+			lunHudElements.channelTracker = buildElement("span", {
+				innerText: t("channelTrackerError", "N/A")
+			}),
+			lunHudElements.currencyTracker = buildElement("span", {
+				innerText: t("currencyTracker", "--", "--")
 			}),
 			lunHudElements.footerMsg = buildElement("span", {
 				id: "spkmod-footer",
@@ -1144,6 +1162,9 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.pinnedQuestHeader, t("pinnedQuestHeader"));
 	setText(lunHudElements.footerMsg, t("footerMsg"));
 	setText(lunPanelElements.langLabel, t("langLabel"));
+	setText(lunHudElements.currencyTracker, lunLastGold === null
+		? t("currencyTracker", "--", "--")
+		: t("currencyTracker", lunLastGold.toLocaleString(), lunLastElif.toLocaleString()));
 	if (!lunPinnedQuestId) setText(lunHudElements.pinnedQuest.content, t("pinnedQuestDefault"));
 
 	const shakeBtn = document.querySelector("#spkmod-shake-main-btn");
@@ -1345,7 +1366,30 @@ function tick() {
 
 		lunChannelTrackerNextTicks = lunTickCount + lunChannelTrackerWindow;
 	}
+	if (lunMenuFoldingLevel < 2 && lunTickCount >= lunCurrencyTrackerNextTicks) {
+		fetch("https://sr1.overture.io.kr/api/items/inventory", {
+			"method": "GET",
+			"headers": {
+				"authorization": `Bearer ${getAuthToken()}`
+			},
+			"mode": "cors"
+		}).then(async x => {
+			if (!x.ok) {
+				setText(lunHudElements.currencyTracker, t("currencyTrackerError", x.status));
+				return;
+			}
 
+			var resp = (await x.json());
+			lunLastGold = resp.find(i => i.itemId === 1)?.quantity ?? 0;
+			lunLastElif = resp.find(i => i.itemId === 2)?.quantity ?? 0;
+
+			setText(lunHudElements.currencyTracker, t("currencyTracker", lunLastGold.toLocaleString(), lunLastElif.toLocaleString()));
+		});
+
+		lunCurrencyTrackerNextTicks = lunTickCount + lunCurrencyTrackerWindow;
+	}
+
+	
 	if (lunPinnedQuestId && lunTickCount >= lunPinnedQuestNextQueryTick) {
 		fetch(`https://sr1.overture.io.kr/api/quests?period=${lunPinnedQuestPeriod}`, {
 			"method": "GET",
