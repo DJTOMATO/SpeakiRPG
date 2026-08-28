@@ -759,9 +759,6 @@ document.body.appendChild(
 			lunHudElements.channelTracker = buildElement("span", {
 				innerText: t("channelTrackerError", "N/A")
 			}),
-			lunHudElements.channelTracker = buildElement("span", {
-				innerText: t("channelTrackerError", "N/A")
-			}),
 			lunHudElements.currencyTracker = buildElement("span", {
 				innerText: t("currencyTracker", "--", "--")
 			}),
