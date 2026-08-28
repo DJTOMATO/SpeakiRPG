@@ -301,7 +301,7 @@ function setText(elem, text) {
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.0.8",
+		header: "SpeakiMod+ v1.0.9",
 		langLabel: "Language",
 		playersNearby: "Players nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -363,7 +363,7 @@ const spkmodTranslations = {
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.0.8",
+			header: "SpeakiMod+ v1.0.9",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -375,7 +375,7 @@ const spkmodTranslations = {
 			channelTrackerError: "チャンネル情報取得エラー: {0}",
 			footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\nこのMODはSpeakiMMOまたは\nOverture.io.krとは一切関係ありません\n\n和訳者:JPN_健全なエルフ名15T",
 			dance: "どこでもダンス",
-			chowayo: "Speak「ﾁｮﾜﾖ!」/ お砂あそび",
+			chowayo: "Speak「ﾁｮﾜﾖ!」 / お砂あそび",
 			shakeOn: "ふりふり: ⏸️",
 			shakeOff: "ふりふり: ▶️",
 			moonwalkOn: "ムーンウォーク: ⏸️",
@@ -425,7 +425,7 @@ const spkmodTranslations = {
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.0.8",
+		header: "SpeakiMod+ v1.0.9",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
