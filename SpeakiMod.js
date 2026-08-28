@@ -487,7 +487,7 @@ const spkmodTranslations = {
 			currencyTracker: "ゴールド: {0} | エリーフ: {1}",
 			currencyTrackerError: "所持通貨情報取得エラー: {0}",
 			settingsHeader: "設定",
-			filterToggleLabel: "他ｽﾋﾟｷ名前の不適切な単語をフィルター",
+			filterToggleLabel: "不適切な単語をフィルター(現在は機能しません)",
 			footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\nこのMODはSpeakiMMOまたは\nOverture.io.krとは一切関係ありません\n\n和訳者:JPN_健全なエルフ名15T",
 			dance: "どこでもダンス",
 			chowayo: "Speak「ﾁｮﾜﾖ!」 | お砂あそび",
