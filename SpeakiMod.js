@@ -559,7 +559,7 @@ var lunMenuFoldingLevel = 0;
 var lunTickCount = 0;
 var lunSleep = 0;
 const lunTPS = 20;
-const lunExpTrackerWindow = 60000 / lunTPS;
+const lunExpTrackerWindow = 60 * lunTPS;
 var lunExpTrackerNextTicks = 0;
 var lunExpTrackerStartExp = 0;
 var lunExpTrackerSpeed = 0;
@@ -1270,15 +1270,46 @@ if (!window.__beyBladeLoopRunning) {
 
 
 function tick() {
+	var playerExp = gameState.myStat.exp;
+	var zoneId = gameState.zoneId % 10000;
+	var expTrackerTimer = Math.max(0, Math.ceil((lunExpTrackerNextTicks - lunTickCount) / lunTPS));
+	var expTrackerL1 = t("zeroExp");
+	var expTrackerL2 = t("nextLevelNA");
+
+	// Initialize
 	if (!lunExpTrackerInitialized) {
 		lunExpTrackerStartExp = playerExp;
+		window.lunExpTrackerLastExp = playerExp;
 		lunExpTrackerNextTicks = lunTickCount + lunExpTrackerWindow;
 		lunExpTrackerInitialized = true;
-	} else if (lunExpTrackerStartExp > playerExp || lunTickCount >= lunExpTrackerNextTicks) {
-		lunExpTrackerSpeed = (playerExp - lunExpTrackerStartExp) / lunExpTrackerWindow * (1000 / lunTPS);
-		lunExpTrackerNextTicks = lunTickCount + lunExpTrackerWindow;
-		lunExpTrackerStartExp = playerExp;
 	}
+	// Reset window every 60s or on level up
+	else if (playerExp < lunExpTrackerStartExp || lunTickCount >= lunExpTrackerNextTicks) {
+		if (playerExp <= lunExpTrackerStartExp) {
+			lunExpTrackerSpeed = 0; // Reset if no EXP was gained over the full minute
+		}
+		lunExpTrackerStartExp = playerExp;
+		window.lunExpTrackerLastExp = playerExp;
+		lunExpTrackerNextTicks = lunTickCount + lunExpTrackerWindow;
+	}
+
+	// Recalculate speed ONLY when EXP increases (e.g. enemy killed)
+	if (playerExp > window.lunExpTrackerLastExp) {
+		var elapsedTicks = lunTickCount - (lunExpTrackerNextTicks - lunExpTrackerWindow);
+		if (elapsedTicks > 0) {
+			lunExpTrackerSpeed = (playerExp - lunExpTrackerStartExp) / (elapsedTicks / lunTPS);
+		}
+		window.lunExpTrackerLastExp = playerExp;
+	}
+
+	if (lunExpTrackerSpeed > 0) {
+		expTrackerL1 = t("expPerMinute", (lunExpTrackerSpeed * 60).toFixed(0), expTrackerTimer);
+		expTrackerL2 = t("nextLevel", ((gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60).toFixed(0));
+	} else {
+		expTrackerL1 += ` (${expTrackerTimer}s)`;
+	}
+
+
 	if (gameState.isDead && lunWalkToPortal != -1) {
 		resetWalkToPortal();
 		chatLog(t("diedMsg"));
@@ -1318,28 +1349,13 @@ function tick() {
 	lunTickCount++;
 	lunSleep--;
 
-	var playerExp = gameState.myStat.exp;
-	var zoneId = gameState.zoneId % 10000;
 
 	setText(lunHudElements.playersNearby, t("playersNearby", gameState.remotePlayers.remotePlayers.size));
 	setText(lunHudElements.zoneId, t("zoneId", zoneId));
 
-	if (lunExpTrackerStartExp > playerExp || lunTickCount >= lunExpTrackerNextTicks) {
-		lunExpTrackerSpeed = (playerExp - lunExpTrackerStartExp) / lunExpTrackerWindow * (1000 / lunTPS);
 
-		lunExpTrackerNextTicks = lunTickCount + lunExpTrackerWindow;
-		lunExpTrackerStartExp = playerExp;
-	}
 
-	var expTrackerTimer = ((lunExpTrackerNextTicks - lunTickCount) * lunTPS / 1000).toFixed(0);
-	var expTrackerL1 = t("zeroExp");
-	var expTrackerL2 = t("nextLevelNA");
-	if (lunExpTrackerSpeed > 0) {
-		expTrackerL1 = t("expPerMinute", (lunExpTrackerSpeed * 60).toFixed(2), expTrackerTimer);
-		expTrackerL2 = t("nextLevel", ((gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60).toFixed(2));
-	} else {
-		expTrackerL1 += ` (${expTrackerTimer}s)`;
-	}
+
 
 	setText(lunHudElements.expTrackerL1, expTrackerL1);
 	setText(lunHudElements.expTrackerL2, expTrackerL2);
