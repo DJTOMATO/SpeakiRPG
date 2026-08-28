@@ -807,7 +807,7 @@ document.body.appendChild(
 							window.ShakeActive = false;
 							window.ReverseBeyBladeActive = false;
 							if (typeof updateBeyBladeButtonText === "function") updateBeyBladeButtonText();
-
+							if (typeof updateReverseBeyBladeButtonText === "function") updateReverseBeyBladeButtonText();
 							setText(e.target, t("moonwalkOn"));
 							chatLog(t("moonwalkActivatedMsg"));
 						} else {
@@ -1139,6 +1139,7 @@ spkmodI18nRenderers.push(() => {
 	if (moonwalkBtn) setText(moonwalkBtn, window.MoonwalkActive ? t("moonwalkOn") : t("moonwalkOff"));
 
 	if (typeof updateBeyBladeButtonText === "function") updateBeyBladeButtonText();
+	if (typeof updateReverseBeyBladeButtonText === "function") updateReverseBeyBladeButtonText();
 });
 
 const lunPinnedQuestInterval = sec(2);
