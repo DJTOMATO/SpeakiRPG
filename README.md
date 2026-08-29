@@ -79,7 +79,8 @@
 - Shake (rapid camera-following jitter, like a shocked reaction)
 - Moonwalk (always face away from the camera while moving)
 - Language switcher (choose between English / 日本語 / 한국어)
-
+- Profanity Filter
+  
 🇯🇵 
 - 周囲のｽﾋﾟｷ数
 - 各チャンネル接続ｽﾋﾟｷ数の表示
@@ -99,7 +100,8 @@
 - 他のｽﾋﾟｷの視点からゲームを観戦
 - MODタイトルをクリックしてMODのHUDを折りたたむ（三段階）
 - クライアント言語切り替え機能（English / 日本語 / 한국어 から選択可能）
-
+- 不適切な言葉のフィルター
+  
 🇰🇷
 - 주변 플레이어 수 표시
 - 경험치 추적기 (분당 경험치 및 다음 레벨까지 예상 시간 표시)
@@ -119,6 +121,7 @@
 -쉐이크 (카메라 방향으로 빠르게 떨리는, 놀란 듯한 반응)
 - 문워크 (이동 중 항상 카메라 반대 방향을 바라봄)
 - 언어 전환 기능 (English / 日本語 / 한국어 중 선택 가능)
+- 욕설 필터
   
 ---
 <h2 id="3-official-developer-reaction--usage-policy">3. Official Developer Reaction & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책</h2>
