@@ -382,6 +382,26 @@ function setFilterEnabled(enabled) {
 	lunFilterEnabled = enabled;
 	if (window.localStorage) localStorage.setItem("spkmod-filter-enabled", String(enabled));
 }
+
+var lunTranslateEnabled = (window.localStorage && localStorage.getItem("spkmod-translate-enabled")) === "true";
+var lunTranslateTarget = (window.localStorage && localStorage.getItem("spkmod-translate-target")) || "en";
+
+function setTranslateEnabled(enabled) {
+	lunTranslateEnabled = enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-translate-enabled", String(enabled));
+	if (lunPanelElements.translateToggleInput) lunPanelElements.translateToggleInput.checked = enabled;
+}
+
+function setTranslateTarget(target) {
+	lunTranslateTarget = target;
+	if (window.localStorage) localStorage.setItem("spkmod-translate-target", target);
+}
+var lunTranslateEmail = (window.localStorage && localStorage.getItem("spkmod-translate-email")) || "";
+function setTranslateEmail(email) {
+	lunTranslateEmail = (email || "").trim();
+	if (window.localStorage) localStorage.setItem("spkmod-translate-email", lunTranslateEmail);
+}
+
 var lunBadWordRegex = null;
 function rebuildBadWordRegex() {
 	var allWords = Object.values(lunBadWords).flat().filter(Boolean);
@@ -411,7 +431,7 @@ loadAllBadWordLists();
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.2.2",
+		header: "SpeakiMod+ v1.2.3",
 		langLabel: "Language",
 		playersNearby: "Speaki nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -477,10 +497,16 @@ const spkmodTranslations = {
 		availableCmdsMsg: "Available commands: watch, zoom",
 		nextLevelHours: "Next level: ~{0}h",
 		credits: "• Original Game: EPID Games\n• Speaki MMO Development: GMDT\n• Client Coding: Glas\n• SpeakiMOD Feature Extender: Alluseri",
+		translateToggleLabel: "Translate chat",
+		translateQuotaHitMsg: "Translation quota hit for today — auto-disabled. Add your email in settings for a higher limit, or re-enable tomorrow.",
+		translateEmailTooltip: "Optional. MyMemory (the free translation service) allows more characters per day if you register an email with them.\nIt's sent only in the translation request itself — SpeakiMod doesn't collect or store it anywhere besides your own browser.",
+		clickToTranslateTooltip: "Click to translate this message",
+		clickToTranslatePrompt: "Translate from which language code? (e.g. en, ja, ko, es, fr)",
+		translateFailedMsg: "Translation failed or the message is already in your target language."
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.2.2",
+			header: "SpeakiMod+ v1.2.3",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -545,11 +571,18 @@ const spkmodTranslations = {
 			unknownCmdMsg: "不明なコマンド: {0}",
 			availableCmdsMsg: "使用可能なコマンド: !watch, !zoom",
 			nextLevelHours: "次のレベルまで: 約{0}時間",
-		credits: "• オリジナルゲーム: EPID Games\n• Speaki MMO開発: GMDT\n• クライアントコーディング: Glas\n• SpeakiMOD機能拡張: Alluseri\n• 日本語翻訳: JPN_健全なエルフ名15T",
+			credits: "• オリジナルゲーム: EPID Games\n• Speaki MMO開発: GMDT\n• クライアントコーディング: Glas\n• SpeakiMOD機能拡張: Alluseri\n• 日本語翻訳: JPN_健全なエルフ名15T",
+			translateToggleLabel: "翻訳",
+			translateQuotaHitMsg: "翻訳の1日の上限に達したため、翻訳機能を自動的に無効化しました。設定でメールアドレスを追加すると上限が増えます。明日になったら再度有効化してください。",
+			translateEmailPlaceholder: "メールアドレス (任意、上限を増やす)",
+			translateEmailTooltip: "任意です。MyMemory(無料翻訳サービス)は、メールアドレスを登録すると1日の翻訳可能文字数が増えます。メールアドレスは翻訳リクエストにのみ送信され、SpeakiModはブラウザ以外の場所に保存しません。",
+			clickToTranslateTooltip: "このメッセージをクリックして翻訳してください",
+			clickToTranslatePrompt: "どの言語コードから翻訳しますか?（例:en、ja、ko、es、fr)",
+			translateFailedMsg: "翻訳に失敗しました。または、メッセージは既に翻訳先の言語で表示されています。"
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.2.2",
+		header: "SpeakiMod+ v1.2.3",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -615,6 +648,13 @@ const spkmodTranslations = {
 		availableCmdsMsg: "사용 가능한 명령어: watch, zoom",
 		nextLevelHours: "다음 레벨까지: 약 {0}시간",
 		credits: "• 오리지널 게임: EPID Games\n• Speaki MMO 개발: GMDT\n• 클라이언트 코딩: Glas\n• SpeakiMOD 기능 확장: Alluseri",
+		translateToggleLabel: "채팅 번역",
+		translateQuotaHitMsg: "오늘 번역 한도에 도달하여 자동으로 비활성화되었습니다. 설정에서 이메일을 추가하면 한도가 늘어나며, 내일 다시 활성화할 수 있습니다.",
+		translateEmailPlaceholder: "당신의 이메일 (선택 사항, 일일 한도를 높입니다)",
+		translateEmailTooltip: "선택 사항입니다. MyMemory(무료 번역 서비스)는 이메일을 등록하면 하루에 번역할 수 있는 문자의 수가 늘어납니다. 이메일은 번역 요청에만 전송되며 SpeakiMod는 브라우저 외부에 저장하지 않습니다.",
+		clickToTranslateTooltip: "이 메시지를 번역하려면 클릭하세요.",
+		clickToTranslatePrompt: "어떤 언어 코드에서 번역하시겠습니까? (예: en, ja, ko, es, fr)",
+		translateFailedMsg: "번역에 실패했거나 메시지가 이미 대상 언어로 되어 있습니다."
 	}
 };
 
@@ -673,7 +713,12 @@ var lunPanelElements = {
 	settingsHeader: null,
 	filterToggleLabel: null,
 	filterToggleInput: null,
-	creditsLabel: null
+	translateToggleLabel: null,
+	translateToggleInput: null,
+	translateTargetSelect: null,
+	translateEmailInput: null,
+	creditsLabel: null,
+	translateEmailInfo: null,
 };
 var lunMenuFoldingLevel = 0;
 
@@ -707,6 +752,9 @@ document.head.appendChild(buildElement(
 	{
 		id: "spkmod-stylesheet",
 		innerHTML: `
+		.sr-chatbox__body-text.spkmod-translated-line { color: #ffd54a !important; -webkit-text-fill-color: #ffd54a !important;  }
+		.sr-chatbox__body-text.spkmod-gmdt-line { font-weight: bold !important; }
+		.sr-chatbox__body-text.spkmod-clickable-line { cursor: pointer !important; pointer-events: auto !important;}
 		#spkmod-hud {
 			display: flex;
 			flex-direction: row;
@@ -798,7 +846,7 @@ document.head.appendChild(buildElement(
 			gap: 2px;
 			align-items: center;
 		}
-		
+		#spkmod-translate-picker .spkmod-panel-btn-small { padding: 3px 8px; font-size: 11px; }
 		.spkmod-panel-btn-small {
 			padding: 5px 8px;
 			font-size: 10pt;
@@ -812,6 +860,7 @@ document.head.appendChild(buildElement(
 			color: #EEE;
 			height: min-content;
 		}
+
 		.spkmod-panel-counter::-webkit-inner-spin-button, 
 		.spkmod-panel-counter::-webkit-outer-spin-button {
 			opacity: 1;
@@ -860,6 +909,7 @@ document.head.appendChild(buildElement(
 			background: #0F0;
 			height: 2px;
 		}
+
 		`
 
 	}
@@ -1275,10 +1325,52 @@ document.body.appendChild(
 				}
 			})
 		]),
+
+		buildElement("div", { className: "spkmod-panel-cat" }, [
+			lunPanelElements.translateToggleLabel = buildElement("span", {
+				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+				innerText: t("translateToggleLabel")
+			}),
+			lunPanelElements.translateTargetSelect = buildElement("select", {
+				className: "spkmod-panel-combo",
+				value: lunTranslateTarget,
+				onchange: e => setTranslateTarget(e.target.value)
+			}, ["en", "ja", "ko", "zh-CN", "es", "fr", "de", "pt", "ru"].map(code => buildElement("option", {
+				value: code,
+				innerText: code,
+				selected: code === lunTranslateTarget
+			}))),
+			lunPanelElements.translateToggleInput = buildElement("input", {
+				type: "checkbox",
+				checked: lunTranslateEnabled,
+				onchange: e => setTranslateEnabled(e.target.checked)
+			})
+		]),
+		buildElement("div", { className: "spkmod-panel-cat", style: "gap: 4px;" }, [
+			buildElement("span", {
+				innerText: "ⓘ",
+				style: "color: #aaa; font-size: 11px; cursor: pointer; flex: 0;",
+				onclick: _ => lunPanelElements.translateEmailInfo.classList.toggle("hidden")
+			}),
+			lunPanelElements.translateEmailInput = buildElement("input", {
+				type: "email",
+				placeholder: t("translateEmailPlaceholder"),
+				value: lunTranslateEmail,
+				style: "flex: 1; font-size: 11px; min-width: 0;",
+				onchange: e => setTranslateEmail(e.target.value)
+			})
+		]),
+		lunPanelElements.translateEmailInfo = buildElement("div", {
+			className: "hidden",
+			style: "color: #aaa; font-size: 10px; line-height: 1.4; padding: 2px 4px 6px;",
+			innerText: t("translateEmailTooltip")
+		}),
+
 		lunPanelElements.creditsLabel = buildElement("div", {
 			style: "color: #aaa; font-size: 10px; margin-left: 20px, margin-top: 6px; white-space: pre-wrap; line-height: 1.4; border-top: 1px solid #555; padding-top: 6px;",
 			innerText: t("credits")
 		})
+
 	])
 )
 
@@ -1320,6 +1412,103 @@ function distanceToVector(vec) {
 
 function getPlayerPos() {
 	return gameState.playerContainer.position;
+}
+
+const lunTranslateCache = new Map(); // `${source}|${target}:${text}` -> translated text
+const lunTranslateMaxLen = 480; // MyMemory free tier is ~500 chars/request
+let lunTranslateQueue = Promise.resolve();
+let lunTranslateLastAt = 0;
+const lunTranslateMinGapMs = 400;s
+
+function guessSourceLang(text) {
+	if (/[\uAC00-\uD7A3]/.test(text)) return "ko"; // Hangul
+	if (/[\u3040-\u30FF\u4E00-\u9FFF]/.test(text)) return "ja"; // Kana / Kanji
+	return "en";
+}
+
+async function translateChatText(text, source, target) {
+	if (!text || !text.trim() || source === target) return null;
+	if (text.length > lunTranslateMaxLen) text = text.slice(0, lunTranslateMaxLen);
+
+	const normalized = text.trim().toLowerCase().replace(/\s+/g, " ");
+	const cacheKey = `${source}|${target}:${normalized}`;
+	if (lunTranslateCache.has(cacheKey)) return lunTranslateCache.get(cacheKey);
+
+	const run = lunTranslateQueue.then(async () => {
+		const wait = lunTranslateLastAt + lunTranslateMinGapMs - Date.now();
+		if (wait > 0) await new Promise(r => setTimeout(r, wait));
+		lunTranslateLastAt = Date.now();
+
+		try {
+			const params = new URLSearchParams({ q: text, langpair: `${source}|${target}` });
+			if (lunTranslateEmail) params.set("de", lunTranslateEmail);
+			// Optional: add &de=you@example.com for a higher daily quota (50k vs 5k chars/day):
+				if (window.localStorage && localStorage.getItem("spkmod-translate-email")) params.set("de", localStorage.getItem("spkmod-translate-email"));
+			const res = await fetch(`https://api.mymemory.translated.net/get?${params}`);
+			if (!res.ok) {
+				console.warn(`[SpeakiMod] Translation HTTP ${res.status}`);
+				return null;
+			}
+			const data = await res.json();
+			if (res.status === 429 || data?.responseStatus === 429) {
+				setTranslateEnabled(false);
+				chatLog(t("translateQuotaHitMsg"));
+				return null;
+			}
+			const translated = data?.responseData?.translatedText;
+			if (!translated || data.responseStatus !== 200) return null;
+			// MyMemory just echoes the input back when it has nothing better
+			if (translated.trim().toLowerCase() === text.trim().toLowerCase()) return null;
+
+			lunTranslateCache.set(cacheKey, translated);
+			return translated;
+		} catch (err) {
+			console.warn("[SpeakiMod] Translation request failed:", err);
+			return null;
+		}
+	});
+
+	lunTranslateQueue = run.catch(() => { });
+	return run;
+}
+
+function maybeTranslateChatMessage(id, name, msg) {
+	if (!lunTranslateEnabled) return;
+	if (id === -1337 || id === -1338) return; // skip SpeakiMod's own system/translation lines
+	if (typeof msg !== "string" || !msg.trim()) return;
+	if (msg.trim().length < 2) return;
+
+	const source = guessSourceLang(msg);
+	translateChatText(msg, source, lunTranslateTarget).then(translated => {
+		if (!translated) return;
+		appendColoredChatLine(-1338, `↳ ${name}`, translated);
+	});
+}	
+
+function observeNextChatNode(matchText, callback) {
+	if (!matchText || !matchText.trim()) return;
+	const chatLogEl = document.querySelector(".sr-chatbox__log");
+	if (!chatLogEl) return;
+
+	let timeoutId;
+	const observer = new MutationObserver(mutations => {
+		for (const mutation of mutations) {
+			for (const node of mutation.addedNodes) {
+				if (node.nodeType !== 1) continue;
+				const bodyText = node.classList?.contains("sr-chatbox__body-text")
+					? node
+					: node.querySelector?.(".sr-chatbox__body-text");
+				if (bodyText && bodyText.textContent && bodyText.textContent.includes(matchText)) {
+					clearTimeout(timeoutId);
+					callback(bodyText);
+					observer.disconnect();
+					return;
+				}
+			}
+		}
+	});
+	observer.observe(chatLogEl, { childList: true, subtree: true });
+	timeoutId = setTimeout(() => observer.disconnect(), 500);
 }
 
 function chatLog(msg) {
@@ -1381,6 +1570,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.filterToggleLabel, t("filterToggleLabel"));
 	setText(lunPanelElements.creditsLabel, t("credits"));
 	setText(lunHudElements.totalPlayersOnline, t("totalPlayersOnline"));
+	
 
 	setText(lunHudElements.currencyTracker, lunLastGold === null
 		? t("currencyTracker", "--", "--")
@@ -1395,6 +1585,12 @@ spkmodI18nRenderers.push(() => {
 
 	if (typeof updateBeyBladeButtonText === "function") updateBeyBladeButtonText();
 	if (typeof updateReverseBeyBladeButtonText === "function") updateReverseBeyBladeButtonText();
+	if (lunPanelElements.translateToggleLabel) setText(lunPanelElements.translateToggleLabel, t("translateToggleLabel"));
+	if (lunPanelElements.translateEmailInput) lunPanelElements.translateEmailInput.placeholder = t("translateEmailPlaceholder");
+	if (lunPanelElements.translateEmailInfo) lunPanelElements.translateEmailInfo.innerText = t("translateEmailTooltip");
+	document.querySelectorAll(".spkmod-clickable-line").forEach(node => {
+		node.title = t("clickToTranslateTooltip");
+	});
 });
 
 const lunPinnedQuestInterval = sec(2);
@@ -1780,9 +1976,85 @@ window.lunBadWords = lunBadWords;
 
 var hkChatBoxAppend = gameState.chatBox.append.bind(gameState.chatBox);
 gameState.chatBox.append = (id, name, msg) => {
-	return hkChatBoxAppend(id, filterName(name), filterName(msg));
+	const filteredName = filterName(name);
+	const filteredMsg = filterName(msg);
+
+	if (filteredMsg && filteredMsg.trim()) {
+		observeNextChatNode(filteredMsg, node => {
+			if (filteredName && filteredName.trim().toUpperCase() === "GMDT") {
+				node.classList.add("spkmod-gmdt-line");
+			}
+			if (id !== -1337 && id !== -1338) {
+				node.classList.add("spkmod-clickable-line");
+				node.title = t("clickToTranslateTooltip");
+				node.addEventListener("click", () => forceTranslateMessage(filteredName, filteredMsg));
+			}
+		});
+	}
+
+	const result = hkChatBoxAppend(id, filteredName, filteredMsg);
+	maybeTranslateChatMessage(id, filteredName, filteredMsg);
+	return result;
 };
 
+function appendColoredChatLine(id, name, text) {
+	observeNextChatNode(text, node => node.classList.add("spkmod-translated-line"));
+	hkChatBoxAppend(id, name, text);
+}
+
+const lunTranslateSourceOptions = ["en", "ja", "ko", "zh-CN", "es", "fr", "de", "pt", "ru"];
+
+function showTranslateSourcePicker(guess, onPick) {
+	const existing = document.getElementById("spkmod-translate-picker");
+	if (existing) existing.remove();
+
+	const picker = buildElement("div", {
+		id: "spkmod-translate-picker",
+		style: `
+			position: fixed; z-index: 2147483647;
+			left: 50%; top: 50%; transform: translate(-50%, -50%);
+			background: rgba(20,20,20,0.95); border: 1.5px solid #fff;
+			border-radius: 8px; padding: 10px 14px; display: flex;
+			flex-direction: column; gap: 8px; min-width: 200px;
+		`
+	}, [
+		buildElement("span", {
+			innerText: t("clickToTranslatePrompt"),
+			style: "color: #fff; font-size: 11px; font-weight: bold;"
+		}),
+		buildElement("div", { style: "display: flex; flex-wrap: wrap; gap: 6px;" },
+			lunTranslateSourceOptions.map(code => buildElement("button", {
+				innerText: code,
+				className: "spkmod-panel-btn-small",
+				style: code === guess ? "outline: 2px solid #ffd54a;" : "",
+				onclick: () => {
+					picker.remove();
+					onPick(code);
+				}
+			}))
+		),
+		buildElement("span", {
+			innerText: "✕",
+			style: "position: absolute; top: 4px; right: 8px; cursor: pointer; color: #aaa; font-size: 11px;",
+			onclick: () => picker.remove()
+		})
+	]);
+
+	document.body.appendChild(picker);
+}
+
+function forceTranslateMessage(name, msg) {
+	const guess = guessSourceLang(msg);
+	showTranslateSourcePicker(guess, source => {
+		translateChatText(msg, source, lunTranslateTarget).then(translated => {
+			if (!translated) {
+				chatLog(t("translateFailedMsg"));
+				return;
+			}
+			appendColoredChatLine(-1338, `↳ ${name}`, translated);
+		});
+	});
+}
 
 if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && typeof gameState.remotePlayers.remotePlayers.set === "function") {
 	var hkRemotePlayersSet = gameState.remotePlayers.remotePlayers.set.bind(gameState.remotePlayers.remotePlayers);
