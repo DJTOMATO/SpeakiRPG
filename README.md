@@ -68,13 +68,13 @@
 - Say "Cho-wa-yo!" anywhere
 - Lock the camera (like in old PS1 games)
 - ViewClip (allow the camera to phase through walls)
-- Spin very fast (defeating the mobile monopoly)
+- Spin fast (defeating the mobile monopoly)
 - Watch the game from another player's perspective
 - Hide other players' nametags
 - Turn Speaki to face the camera (useful for posing)
 - Quest pinning
 - Automatically walk towards portals (must be attended, because no auto-eat & no obstacle avoidance)
-- Fold the HUD by clicking on the mod title (up to 3 clicks)
+- Fold the HUD by clicking on the mod title (up to 3 clicks) or drag it around!
 - Control camera zoom (!zoom chat command)
 - Shake (rapid camera-following jitter, like a shocked reaction)
 - Moonwalk (always face away from the camera while moving)
