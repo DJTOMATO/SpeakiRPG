@@ -476,7 +476,7 @@ const spkmodTranslations = {
 		unknownCmdMsg: "Unknown command: {0}",
 		availableCmdsMsg: "Available commands: watch, zoom",
 		nextLevelHours: "Next level: ~{0}h",
-		credits: "• Original Game: EPID Games\n• Speaki MMO Development: GMDT\n• Client Coding: Glas\n• SpeakiMOD Feature Extender: Alluseri\n• Japanese Proof-reading: JPN_WholesomeElfName15T",
+		credits: "• Original Game: EPID Games\n• Speaki MMO Development: GMDT\n• Client Coding: Glas\n• SpeakiMOD Feature Extender: Alluseri",
 	},
 	ja: {
 			langName: "日本語",
@@ -495,7 +495,7 @@ const spkmodTranslations = {
 			currencyTrackerError: "所持通貨情報取得エラー: {0}",
 			settingsHeader: "設定",
 			filterToggleLabel: "不適切な単語をフィルター(現在は機能しません)",
-			footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\nこのMODはSpeakiMMOまたは\nOverture.io.krとは一切関係ありません\n\n和訳者:JPN_健全なエルフ名15T",
+			footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\nこのMODはSpeakiMMOまたは\nOverture.io.krとは一切関係ありません",
 			dance: "どこでもダンス",
 			chowayo: "Speak「ﾁｮﾜﾖ!」 | お砂あそび",
 			shakeOn: "ふりふり: ⏸️",
@@ -545,7 +545,7 @@ const spkmodTranslations = {
 			unknownCmdMsg: "不明なコマンド: {0}",
 			availableCmdsMsg: "使用可能なコマンド: !watch, !zoom",
 			nextLevelHours: "次のレベルまで: 約{0}時間",
-		credits: "• オリジナルゲーム: EPID Games\n• Speaki MMO開発: GMDT\n• クライアントコーディング: Glas\n• SpeakiMOD機能拡張: Alluseri\n• 日本語校正: JPN_健全なエルフ名15T",
+		credits: "• オリジナルゲーム: EPID Games\n• Speaki MMO開発: GMDT\n• クライアントコーディング: Glas\n• SpeakiMOD機能拡張: Alluseri\n• 日本語翻訳: JPN_健全なエルフ名15T",
 		},
 	ko: {
 		langName: "한국어",
@@ -614,7 +614,7 @@ const spkmodTranslations = {
 		unknownCmdMsg: "알 수 없는 명령어: {0}",
 		availableCmdsMsg: "사용 가능한 명령어: watch, zoom",
 		nextLevelHours: "다음 레벨까지: 약 {0}시간",
-		credits: "• 오리지널 게임: EPID Games\n• Speaki MMO 개발: GMDT\n• 클라이언트 코딩: Glas\n• SpeakiMOD 기능 확장: Alluseri\n• 일본어 교정: JPN_건전한엘프명15T",
+		credits: "• 오리지널 게임: EPID Games\n• Speaki MMO 개발: GMDT\n• 클라이언트 코딩: Glas\n• SpeakiMOD 기능 확장: Alluseri,
 	}
 };
 
