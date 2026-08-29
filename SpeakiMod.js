@@ -708,7 +708,7 @@ document.head.appendChild(buildElement(
 			flex-direction: row;
 			gap: 4px;
 			position: absolute;
-			top: 165px;
+			top: 300px;
 			left: 5px;
 			z-index: 500000;
 			color: #EEE;
