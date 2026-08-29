@@ -382,7 +382,6 @@ function setFilterEnabled(enabled) {
 	lunFilterEnabled = enabled;
 	if (window.localStorage) localStorage.setItem("spkmod-filter-enabled", String(enabled));
 }
-
 var lunBadWordRegex = null;
 function rebuildBadWordRegex() {
 	var allWords = Object.values(lunBadWords).flat().filter(Boolean);
@@ -390,10 +389,17 @@ function rebuildBadWordRegex() {
 		lunBadWordRegex = null;
 		return;
 	}
-	var escaped = allWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+	var escaped = allWords.map(w => {
+		let clean = w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		if (/^[a-zA-Z0-9_]+$/.test(w)) {
+			return "\\b" + clean + "\\b";
+		}
+		return clean;
+	});
+
 	lunBadWordRegex = new RegExp(escaped.join("|"), "giu");
 }
-rebuildBadWordRegex();
 
 function filterName(name) {
 	if (!lunFilterEnabled || !lunBadWordRegex || typeof name !== "string") return name;
@@ -405,7 +411,7 @@ loadAllBadWordLists();
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.2.0",
+		header: "SpeakiMod+ v1.2.1",
 		langLabel: "Language",
 		playersNearby: "Speaki nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -473,7 +479,7 @@ const spkmodTranslations = {
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.2.0",
+			header: "SpeakiMod+ v1.2.1",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -541,7 +547,7 @@ const spkmodTranslations = {
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.2.0",
+		header: "SpeakiMod+ v1.2.1",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -1460,29 +1466,35 @@ if (!window.__beyBladeLoopRunning) {
 }
 
 
-
 function tick() {
+
+	if (gameState.chatBubbles && typeof gameState.chatBubbles.show === "function" && !gameState.chatBubbles.__speakiHooked) {
+		var hkChatBubblesShow = gameState.chatBubbles.show.bind(gameState.chatBubbles);
+		gameState.chatBubbles.show = (e, t, n) => {
+			return hkChatBubblesShow(e, t, filterName(n));
+		};
+		gameState.chatBubbles.__speakiHooked = true; // 
+		console.log("[SpeakiMod] Successfully hooked chatBubbles.show!");
+	}
 	var playerExp = gameState.myStat.exp;
 	var zoneId = gameState.zoneId % 10000;
 	var expTrackerTimer = Math.max(0, Math.ceil((lunExpTrackerNextTicks - lunTickCount) / lunTPS));
 	var expTrackerL1 = t("zeroExp");
 	var expTrackerL2 = t("nextLevelNA");
 
-	// Initialize on load
 	if (!lunExpTrackerInitialized) {
 		lunExpTrackerStartExp = playerExp;
 		lunExpTrackerNextTicks = lunTickCount + lunExpTrackerWindow;
 		lunExpTrackerInitialized = true;
 	}
-	// Reset window every 60 seconds or upon level-up (EXP reset)
+
 	else if (playerExp < lunExpTrackerStartExp || lunTickCount >= lunExpTrackerNextTicks) {
 		lunExpTrackerStartExp = playerExp;
 		lunExpTrackerNextTicks = lunTickCount + lunExpTrackerWindow;
 	}
 
-	// Accumulates total EXP gained in the current minute window
 	var expGained = Math.max(0, playerExp - lunExpTrackerStartExp);
-	lunExpTrackerSpeed = expGained / 60; // EXP rate per second over a 60s base
+	lunExpTrackerSpeed = expGained / 60; 
 
 	if (lunExpTrackerSpeed > 0) {
 		expTrackerL1 = t("expPerMinute", (lunExpTrackerSpeed * 60).toFixed(0), expTrackerTimer);
@@ -1497,7 +1509,6 @@ function tick() {
 	} else {
 		expTrackerL1 += ` (${expTrackerTimer}s)`;
 	}
-
 
 	if (gameState.isDead && lunWalkToPortal != -1) {
 		resetWalkToPortal();
@@ -1538,14 +1549,8 @@ function tick() {
 	lunTickCount++;
 	lunSleep--;
 
-
 	setText(lunHudElements.playersNearby, t("playersNearby", gameState.remotePlayers.remotePlayers.size));
 	setText(lunHudElements.zoneId, t("zoneId", zoneId));
-
-
-
-
-
 	setText(lunHudElements.expTrackerL1, expTrackerL1);
 	setText(lunHudElements.expTrackerL2, expTrackerL2);
 
@@ -1594,7 +1599,6 @@ function tick() {
 		lunCurrencyTrackerNextTicks = lunTickCount + lunCurrencyTrackerWindow;
 	}
 
-	
 	if (lunPinnedQuestId && lunTickCount >= lunPinnedQuestNextQueryTick) {
 		fetch(`https://sr1.overture.io.kr/api/quests?period=${lunPinnedQuestPeriod}`, {
 			"method": "GET",
@@ -1620,9 +1624,6 @@ function tick() {
 
 		lunPinnedQuestNextQueryTick += lunPinnedQuestInterval;
 	}
-
-
-
 
 	gameState.remotePlayers.remotePlayers.forEach(t => {
 		const sprite = findNametagSprite(t.container);
@@ -1757,6 +1758,7 @@ gameState.chatBox.append = (id, name, msg) => {
 	return hkChatBoxAppend(id, filterName(name), filterName(msg));
 };
 
+
 if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && typeof gameState.remotePlayers.remotePlayers.set === "function") {
 	var hkRemotePlayersSet = gameState.remotePlayers.remotePlayers.set.bind(gameState.remotePlayers.remotePlayers);
 	gameState.remotePlayers.remotePlayers.set = function (key, value) {
@@ -1775,4 +1777,6 @@ if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && typeof g
 	console.warn("[SpeakiMod] Could not hook remotePlayers.set — nametag filtering will not work. Please report this.");
 }
 
+
 setInterval(tick, 50);
+
