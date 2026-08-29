@@ -1418,7 +1418,7 @@ const lunTranslateCache = new Map(); // `${source}|${target}:${text}` -> transla
 const lunTranslateMaxLen = 480; // MyMemory free tier is ~500 chars/request
 let lunTranslateQueue = Promise.resolve();
 let lunTranslateLastAt = 0;
-const lunTranslateMinGapMs = 400;s
+const lunTranslateMinGapMs = 400;
 
 function guessSourceLang(text) {
 	if (/[\uAC00-\uD7A3]/.test(text)) return "ko"; // Hangul
