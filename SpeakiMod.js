@@ -614,7 +614,7 @@ const spkmodTranslations = {
 		unknownCmdMsg: "알 수 없는 명령어: {0}",
 		availableCmdsMsg: "사용 가능한 명령어: watch, zoom",
 		nextLevelHours: "다음 레벨까지: 약 {0}시간",
-		credits: "• 오리지널 게임: EPID Games\n• Speaki MMO 개발: GMDT\n• 클라이언트 코딩: Glas\n• SpeakiMOD 기능 확장: Alluseri,
+		credits: "• 오리지널 게임: EPID Games\n• Speaki MMO 개발: GMDT\n• 클라이언트 코딩: Glas\n• SpeakiMOD 기능 확장: Alluseri",
 	}
 };
 
