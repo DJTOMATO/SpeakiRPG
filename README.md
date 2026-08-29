@@ -87,7 +87,7 @@
 - Language switcher (choose between English / 日本語 / 한국어)
 - Profanity Filter
 - Added real-time chat translation (MyMemory API) with a target-language selector and on/off toggle in settings.
-- 
+  
 🇯🇵 
 - 周囲のｽﾋﾟｷ数
 - 各チャンネル接続ｽﾋﾟｷ数の表示
