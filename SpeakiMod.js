@@ -411,7 +411,7 @@ loadAllBadWordLists();
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.2.1",
+		header: "SpeakiMod+ v1.2.2",
 		langLabel: "Language",
 		playersNearby: "Speaki nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -476,10 +476,11 @@ const spkmodTranslations = {
 		unknownCmdMsg: "Unknown command: {0}",
 		availableCmdsMsg: "Available commands: watch, zoom",
 		nextLevelHours: "Next level: ~{0}h",
+		credits: "• Original Game: EPID Games\n• Speaki MMO Development: GMDT\n• Client Coding: Glas\n• SpeakiMOD Feature Extender: Alluseri\n• Japanese Proof-reading: JPN_WholesomeElfName15T",
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.2.1",
+			header: "SpeakiMod+ v1.2.2",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -544,10 +545,11 @@ const spkmodTranslations = {
 			unknownCmdMsg: "不明なコマンド: {0}",
 			availableCmdsMsg: "使用可能なコマンド: !watch, !zoom",
 			nextLevelHours: "次のレベルまで: 約{0}時間",
+		credits: "• オリジナルゲーム: EPID Games\n• Speaki MMO開発: GMDT\n• クライアントコーディング: Glas\n• SpeakiMOD機能拡張: Alluseri\n• 日本語校正: JPN_健全なエルフ名15T",
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.2.1",
+		header: "SpeakiMod+ v1.2.2",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -612,6 +614,7 @@ const spkmodTranslations = {
 		unknownCmdMsg: "알 수 없는 명령어: {0}",
 		availableCmdsMsg: "사용 가능한 명령어: watch, zoom",
 		nextLevelHours: "다음 레벨까지: 약 {0}시간",
+		credits: "• 오리지널 게임: EPID Games\n• Speaki MMO 개발: GMDT\n• 클라이언트 코딩: Glas\n• SpeakiMOD 기능 확장: Alluseri\n• 일본어 교정: JPN_건전한엘프명15T",
 	}
 };
 
@@ -669,7 +672,8 @@ var lunPanelElements = {
 	langLabel: null,
 	settingsHeader: null,
 	filterToggleLabel: null,
-	filterToggleInput: null
+	filterToggleInput: null,
+	creditsLabel: null
 };
 var lunMenuFoldingLevel = 0;
 
@@ -708,7 +712,7 @@ document.head.appendChild(buildElement(
 			flex-direction: row;
 			gap: 4px;
 			position: absolute;
-			top: 300px;
+			top: 265px;
 			left: 5px;
 			z-index: 500000;
 			color: #EEE;
@@ -1176,9 +1180,11 @@ document.body.appendChild(
 				className: "spkmod-panel-cat"
 			}, [
 				lunPanelElements.langLabel = buildElement("span", {
-					style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none;",
+					className: "spkmod-panel-btn", 
+					style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; cursor: default; flex: 0; display: flex; align-items: center; padding: 0px 8px;",
 					innerText: t("langLabel")
 				}),
+
 				lunPanelElements.langSelect = buildElement("select", {
 					className: "spkmod-panel-combo",
 					value: spkmodLang,
@@ -1190,17 +1196,29 @@ document.body.appendChild(
 					innerText: spkmodTranslations[code].langName,
 					selected: code === spkmodLang
 				}))),
-				lunPanelElements.settingsBtn = buildElement("span", {
-					id: "spkmod-settings-btn",
-					innerText: "⚙️",
-					title: "Settings",
-					onclick: _ => {
-						const rect = document.querySelector("#spkmod-hud").getBoundingClientRect();
-						lunHudElements.settingsModal.style.left = (rect.right + 10) + "px";
-						lunHudElements.settingsModal.style.top = rect.top + "px";
-						lunHudElements.settingsModal.classList.toggle("hidden");
-					}
-				})
+				buildElement("div", {
+					className: "spkmod-panel-btn", 
+					style: "display: flex; gap: 12px; align-items: center; justify-content: center; flex: 0; padding: 2px 10px;"
+				}, [
+					lunPanelElements.settingsBtn = buildElement("span", {
+						id: "spkmod-settings-btn",
+						innerText: "⚙️",
+						title: "Settings",
+						style: "cursor: pointer; font-size: 12pt; user-select: none;",
+						onclick: _ => {
+							const rect = document.querySelector("#spkmod-hud").getBoundingClientRect();
+							lunHudElements.settingsModal.style.left = (rect.right + 10) + "px";
+							lunHudElements.settingsModal.style.top = rect.top + "px";
+							lunHudElements.settingsModal.classList.toggle("hidden");
+						}
+					}),
+					lunPanelElements.dragBtn = buildElement("span", {
+						id: "spkmod-drag-btn",
+						innerText: "⚓",
+						title: "Drag Menu",
+						style: "cursor: grab; font-size: 12pt; user-select: none;"
+					})
+				])
 			])
 		])
 	])
@@ -1256,7 +1274,11 @@ document.body.appendChild(
 					setFilterEnabled(e.target.checked);
 				}
 			})
-		])
+		]),
+		lunPanelElements.creditsLabel = buildElement("div", {
+			style: "color: #aaa; font-size: 10px; margin-left: 20px, margin-top: 6px; white-space: pre-wrap; line-height: 1.4; border-top: 1px solid #555; padding-top: 6px;",
+			innerText: t("credits")
+		})
 	])
 )
 
@@ -1357,6 +1379,9 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.langLabel, t("langLabel"));
 	setText(lunPanelElements.settingsHeader, t("settingsHeader"));
 	setText(lunPanelElements.filterToggleLabel, t("filterToggleLabel"));
+	setText(lunPanelElements.creditsLabel, t("credits"));
+	setText(lunHudElements.totalPlayersOnline, t("totalPlayersOnline"));
+
 	setText(lunHudElements.currencyTracker, lunLastGold === null
 		? t("currencyTracker", "--", "--")
 		: t("currencyTracker", lunLastGold.toLocaleString(), lunLastElif.toLocaleString()));
@@ -1777,6 +1802,67 @@ if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && typeof g
 	console.warn("[SpeakiMod] Could not hook remotePlayers.set — nametag filtering will not work. Please report this.");
 }
 
-
 setInterval(tick, 50);
 
+function makeDraggable(element, handle) {
+	let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+	if (handle) {
+		handle.onmousedown = dragMouseDown;
+	}
+
+	function dragMouseDown(e) {
+		e = e || window.event;
+		e.preventDefault();
+		pos3 = e.clientX;
+		pos4 = e.clientY;
+
+		document.onmouseup = closeDragElement;
+		document.onmousemove = elementDrag;
+	}
+
+	function elementDrag(e) {
+		e = e || window.event;
+		e.preventDefault();
+
+		pos1 = pos3 - e.clientX;
+		pos2 = pos4 - e.clientY;
+		pos3 = e.clientX;
+		pos4 = e.clientY;
+
+		element.style.top = (element.offsetTop - pos2) + "px";
+		element.style.left = (element.offsetLeft - pos1) + "px";
+	}
+
+	function closeDragElement() {
+		document.onmouseup = null;
+		document.onmousemove = null;
+
+		if (window.localStorage) {
+			localStorage.setItem("spkmod-window-pos", JSON.stringify({
+				top: element.style.top,
+				left: element.style.left
+			}));
+		}
+	}
+}
+
+const hudWindow = document.getElementById("spkmod-hud");
+const dragHandle = document.getElementById("spkmod-drag-btn");
+
+if (hudWindow && dragHandle) {
+	if (window.localStorage) {
+		const savedPos = localStorage.getItem("spkmod-window-pos");
+		if (savedPos) {
+			try {
+				const parsedPos = JSON.parse(savedPos);
+				hudWindow.style.top = parsedPos.top;
+				hudWindow.style.left = parsedPos.left;
+			} catch (err) {
+				console.warn("[SpeakiMod] Failed to load saved window position.");
+			}
+		}
+	}
+
+	makeDraggable(hudWindow, dragHandle);
+}
