@@ -37,18 +37,24 @@
 * **Smooth Experience:** Gives you a dedicated desktop wrapper for a cleaner, smoother session.
 * **Improved GPU performance**: It automatically sets up your GPU for better 3D rendering.
 * **Rich Gameplay features**: Thanks to SpeakiMod (Read below) several QOL features are introduced!
+* **Real-Time Chat Translation**: Instantly translates in-game chat messages using the MyMemory API
+* **Profanity Filter**: Automatically censors explicit or inappropriate language in chat to keep your in-game communication clean and friendly.
 
 🇯🇵 
 * **Discordリッチプレゼンス:** Discordプロフィールに、現在のキャラクター名、レベル、経験値を自動的に表示します。
 * **スムーズな操作性:** 専用のデスクトップラッパーにより、よりクリーンでスムーズなセッションを実現します。
 * **GPUパフォーマンスの向上:** 3Dレンダリングを向上させるために、GPUを自動的に最適化します。
 * **豊富なゲームプレイ機能:** SpeakiMod（下記参照）のおかげで、様々なQOL機能が追加されました！
-
+* **リアルタイムチャット翻訳**: MyMemory APIを使用してゲーム内チャットメッセージを瞬時に翻訳します。
+* **不適切な言葉のフィルタリング**: チャット内の露骨な表現や不適切な言葉を自動的に検閲し、ゲーム内コミュニケーションをクリーンで友好的なものに保ちます。
+  
 🇰🇷
 * **Discord 풍부한 존재감:** Discord 프로필에 현재 캐릭터 이름, 레벨, 경험치를 자동으로 표시합니다.
 * **부드러운 경험:** 더욱 깔끔하고 부드러운 세션을 위해 전용 데스크톱 래퍼를 제공합니다.
 * **GPU 성능 향상:** 3D 렌더링을 최적화하도록 GPU 설정을 자동으로 조정합니다.
 * **풍부한 게임플레이 기능:** SpeakiMod(아래 참조) 덕분에 다양한 편의성 기능이 추가되었습니다!
+* **실시간 채팅 번역**: MyMemory API를 사용하여 게임 내 채팅 메시지를 즉시 번역합니다.
+* **욕설 필터**: 채팅에서 노골적이거나 부적절한 언어를 자동으로 검열하여 게임 내 소통을 깨끗하고 건전하게 유지합니다.
 
 ## Implementation of SpeakiMod! / SpeakiModの実装！/ SpeakiMod 구현!
  
@@ -80,7 +86,8 @@
 - Moonwalk (always face away from the camera while moving)
 - Language switcher (choose between English / 日本語 / 한국어)
 - Profanity Filter
-  
+- Added real-time chat translation (MyMemory API) with a target-language selector and on/off toggle in settings.
+- 
 🇯🇵 
 - 周囲のｽﾋﾟｷ数
 - 各チャンネル接続ｽﾋﾟｷ数の表示
@@ -101,6 +108,7 @@
 - 他ｽﾋﾟｷの視界を確認
 - MODタイトルをクリックして、MODのHUDを折りたたむ（三段階）
 - クライアント言語切り替え機能（English / 日本語 / 한국어 から選択可能）
+- リアルタイムチャット翻訳機能（MyMemory API）を追加しました。設定画面に翻訳対象言語の選択機能とオン/オフ切り替え機能があります。
   
 🇰🇷
 - 주변 플레이어 수 표시
@@ -122,6 +130,7 @@
 - 문워크 (이동 중 항상 카메라 반대 방향을 바라봄)
 - 언어 전환 기능 (English / 日本語 / 한국어 중 선택 가능)
 - 욕설 필터
+- 설정에 대상 언어 선택기와 켜기/끄기 토글 기능을 갖춘 실시간 채팅 번역 기능(MyMemory API)을 추가했습니다.
   
 ---
 <h2 id="3-official-developer-reaction--usage-policy">3. Official Developer Reaction & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책</h2>
