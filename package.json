@@ -43,6 +43,7 @@
           "AppImage",
           "deb"
         ],
+        "icon": "icon.png",
         "category": "Utility"
       },
     "files": [
