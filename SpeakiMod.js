@@ -431,7 +431,7 @@ loadAllBadWordLists();
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.2.4",
+		header: "SpeakiMod+ v1.2.5",
 		langLabel: "Language",
 		playersNearby: "Speaki nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -449,6 +449,8 @@ const spkmodTranslations = {
 		footerMsg: "Download on github.com\nDJTOMATO/SpeakiRPG\n\nThis mod is not affiliated with\nSpeakiMMO or Overture.io.kr",
 		dance: "Dance",
 		chowayo: "Chowayo",
+		autoJumpOn: "Autojump: ⏸️",
+		autoJumpOff: "Autojump: ▶️",
 		shakeOn: "Shake: ⏸️",
 		shakeOff: "Shake: ▶️",
 		moonwalkOn: "Moonwalk: ⏸️",
@@ -480,6 +482,8 @@ const spkmodTranslations = {
 		beybladeDeactivatedMsg: "L-Spin deactivated.",
 		reversebeybladeActivatedMsg: "R-Spin activated at x{0}!",
 		reversebeybladeDeactivatedMsg: "R-Spin deactivated.",
+		autoJumpActivatedMsg: "Autojump activated!",
+		autoJumpDeactivatedMsg: "Autojump deactivated.",
 		walkingToMsg: "Walking to {0} ({1}).",
 		stoppedWalkingMsg: "Stopped autowalking.",
 		watchFollowingMsg: "The camera will be following {0} now.",
@@ -506,7 +510,7 @@ const spkmodTranslations = {
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.2.4",
+			header: "SpeakiMod+ v1.2.5",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -524,6 +528,8 @@ const spkmodTranslations = {
 			footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\nこのMODはSpeakiMMOまたは\nOverture.io.krとは一切関係ありません",
 			dance: "どこでもダンス",
 			chowayo: "どこでも「ﾁｮﾜﾖ!」",
+			autoJumpOn: "ジャンプ連打: ⏸️",
+			autoJumpOff: "ジャンプ連打: ▶️",
 			shakeOn: "ふりふり: ⏸️",
 			shakeOff: "ふりふり: ▶️",
 			moonwalkOn: "ムーンウォーク: ⏸️",
@@ -555,6 +561,8 @@ const spkmodTranslations = {
 			beybladeDeactivatedMsg: "ｽﾋﾟｷは「くるりん」を終えました。",
 			reversebeybladeActivatedMsg: "ｽﾋﾟｷが「くるりん」を始めました！",
 			reversebeybladeDeactivatedMsg: "ｽﾋﾟｷは「くるりん」を終えました。",
+			autoJumpActivatedMsg: "ｽﾋﾟｷが「ジャンプ連打」を始めました！",
+			autoJumpDeactivatedMsg: "ｽﾋﾟｷは「ジャンプ連打」を終えました。",
 			walkingToMsg: "ｽﾋﾟｷが {0} ({1}) へ移動中です！",
 			stoppedWalkingMsg: "ｽﾋﾟｷが移動を中止しました。",
 			watchFollowingMsg: "カメラが {0} を追従します。",
@@ -582,7 +590,7 @@ const spkmodTranslations = {
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.2.4",
+		header: "SpeakiMod+ v1.2.5",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -600,6 +608,8 @@ const spkmodTranslations = {
 		footerMsg: "github.com/DJTOMATO/SpeakiRPG\n\n이모드는SpeakiMMO또는\n\nOverture.io.kr과 제휴 관계가 없습니다.",
 		dance: "댄스",
 		chowayo: "초와요",
+		autoJumpOn: "점프 반복: ⏸️",
+		autoJumpOff: "점프 반복: ▶️",
 		shakeOn: "쉐이크: ⏸️",
 		shakeOff: "쉐이크: ▶️",
 		moonwalkOn: "문워크: ⏸️",
@@ -631,6 +641,8 @@ const spkmodTranslations = {
 		beybladeDeactivatedMsg: "베이블레이드가 비활성화되었습니다.",
 		reversebeybladeActivatedMsg: "리버스베이블레이드가 x{0} 속도로 활성화되었습니다!",
 		reversebeybladeDeactivatedMsg: "리버스베이블레이드가 비활성화되었습니다.",
+		autoJumpActivatedMsg: "점프 반복 모드가 활성화되었습니다!",
+		autoJumpDeactivatedMsg: "점프 반복 모드가 비활성화되었습니다.",
 		walkingToMsg: "{0} ({1})(으)로 이동 중입니다.",
 		stoppedWalkingMsg: "자동 이동을 중지했습니다.",
 		watchFollowingMsg: "카메라가 이제 {0}님을 따라갑니다.",
@@ -703,6 +715,7 @@ var lunPanelElements = {
 	headerBtn: null,
 	settingsBtn: null,
 	danceBtn: null,
+	autoJumpBtn: null,
 	chowayoBtn: null,
 	speedLabel: null,
 	turnToCameraBtn: null,
@@ -975,15 +988,34 @@ document.body.appendChild(
 		buildElement("div", {
 			id: "spkmod-panel"
 		}, [
-			lunPanelElements.danceBtn = buildElement("button", {
-				className: "spkmod-panel-btn",
-				innerText: t("dance"),
-				value: "",
-				onclick: _ => {
-					window.wasDancing = true;
-					gameState.sendEmoteNow(Emotes.Dance);
-				}
-			}),
+			buildElement("div", { className: "spkmod-panel-cat" }, [
+				lunPanelElements.danceBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					innerText: t("dance"),
+					value: "",
+					onclick: _ => {
+						window.wasDancing = true;
+						gameState.sendEmoteNow(Emotes.Dance);
+					}
+				}),
+				lunPanelElements.autoJumpBtn = buildElement("button", {
+					id: "spkmod-autojump-btn",
+					className: "spkmod-panel-btn",
+					innerText: t(window.AutoJumpActive ? "autoJumpOn" : "autoJumpOff"),
+					value: "",
+					onclick: e => {
+						window.AutoJumpActive = !window.AutoJumpActive;
+						setText(e.target, t(window.AutoJumpActive ? "autoJumpOn" : "autoJumpOff"));
+						if (window.AutoJumpActive) {
+							chatLog(t("autoJumpActivatedMsg"));
+							autoJumpLoop();
+						} else {
+							chatLog(t("autoJumpDeactivatedMsg"));
+							clearTimeout(window.__autoJumpTimeoutId);
+						}
+					}
+				})
+			]),
 			lunPanelElements.chowayoBtn = buildElement("button", {
 				className: "spkmod-panel-btn",
 				innerText: t("chowayo"),
@@ -1374,6 +1406,13 @@ document.body.appendChild(
 	])
 )
 
+const lunJumpAnimMs = 700; // approx. duration of the Jump emote animation — tweak if the loop feels too fast/slow
+
+function autoJumpLoop() {
+	if (!window.AutoJumpActive) return;
+	gameState.sendEmoteNow(Emotes.Jump);
+	window.__autoJumpTimeoutId = setTimeout(autoJumpLoop, lunJumpAnimMs);
+}
 
 function updateBeyBladeButtonText() {
 	const mainBtn = document.querySelector("#spkmod-beyblade-main-btn");
@@ -1455,7 +1494,8 @@ async function translateChatText(text, source, target) {
 				chatLog(t("translateQuotaHitMsg"));
 				return null;
 			}
-			const translated = data?.responseData?.translatedText;
+			let translated = data?.responseData?.translatedText;
+			if (translated) translated = translated.replace(/<\/?[a-zA-Z][^>]*>/g, "").trim();
 			if (!translated || data.responseStatus !== 200) return null;
 			// MyMemory just echoes the input back when it has nothing better
 			if (translated.trim().toLowerCase() === text.trim().toLowerCase()) return null;
@@ -1555,6 +1595,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.headerBtn, t("header"));
 	setText(lunPanelElements.danceBtn, t("dance"));
 	setText(lunPanelElements.chowayoBtn, t("chowayo"));
+	setText(lunPanelElements.autoJumpBtn, t(window.AutoJumpActive ? "autoJumpOn" : "autoJumpOff"));
 	setText(lunPanelElements.speedLabel, t("speedLabel"));
 	setText(lunPanelElements.turnToCameraBtn, t("turnToCamera"));
 	setText(lunPanelElements.resetCameraBtn, t("resetCamera"));
