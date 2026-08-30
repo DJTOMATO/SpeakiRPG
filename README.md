@@ -139,6 +139,7 @@ v
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
 **About SpeakiMod+**
+
 SpeakiMod+ is a heavily modified, completely overhauled fork of the original SpeakiMod. We originally forked this project to thoroughly clean up the codebase to ensure a secure, transparent, and reliable experience for our users. Since then, we have expanded it into a distinctly new project with plenty of custom features.
 
 **SpeakiMod+ について**
