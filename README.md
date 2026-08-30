@@ -1,10 +1,10 @@
 <!-- Each line must translated into korean and also japanese-->
-# Speaki RPG Desktop / Speaki RPG Desktopクライアント / 스피키 RPG 데스크톱 클라이언트
+# Speaki RPG Desktop / Speaki RPG デスクトップクライアント / 스피키 RPG 데스크톱 클라이언트
 # [Download](https://github.com/DJTOMATO/SpeakiRPG/releases) / [ダウンロード](https://github.com/DJTOMATO/SpeakiRPG/releases) / [다운로드](https://github.com/DJTOMATO/SpeakiRPG/releases)
 
 🇺🇸 **Speaki RPG Desktop** is a custom desktop app and launcher for the browser MMORPG **Speaki RPG**. It brings the game out of your browser tab and adds awesome Discord integration plus extra fun features so your friends can see your grinding progress in real time!
 
-🇯🇵 **Speaki RPG Desktop**は、ブラウザMMORPG **Speaki RPG**専用のカスタムデスクトップアプリ兼ランチャーです。ブラウザタブからゲームをデスクトップに拡張し、Discordとの素晴らしい連携機能や、フレンドがあなたのゲーム進行状況をリアルタイムで確認できるなど、楽しい機能を追加します。
+🇯🇵 **Speaki RPG デスクトップクライアント**は、ブラウザMMORPG **Speaki RPG**専用のカスタムデスクトップアプリ兼ランチャーです。ブラウザタブからゲームをデスクトップに拡張し、Discordとの素晴らしい連携機能や、フレンドがあなたのゲーム進行状況をリアルタイムで確認できるなど、楽しい機能を追加します。
 
 🇰🇷 **Speaki RPG Desktop**은 브라우저 기반 MMORPG 게임인 **Speaki RPG**를 위한 맞춤형 데스크톱 앱이자 런처입니다. 브라우저 탭에서 게임을 꺼내 데스크톱에서 즐길 수 있도록 해주며, 멋진 Discord 연동 기능과 친구들이 실시간으로 게임 진행 상황을 확인할 수 있는 다양한 재미있는 기능들을 제공합니다!
 
@@ -90,7 +90,7 @@
 - 各チャンネル接続ｽﾋﾟｷ数の表示
 - 他ｽﾋﾟｷの名前を非表示
 - リアルタイムチャット翻訳機能（MyMemory API）を追加しました。翻訳対象言語の選択機能と、オン/オフ切り替え機能があります。
-- 不適切な単語のフィルタリング (v1.2.2 現在メンテナンス中)
+- 不適切な単語のフィルタリング (現在メンテナンス中)
 - クエストのピン留め
 - 経験値トラッカー（1分あたりの経験値と次のレベルまでの推定時間）
 - ポータルに向かって自動で歩く（自動で回復したり、障害物を避けたりはしません）
