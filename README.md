@@ -13,14 +13,15 @@
 
 - [1. What Makes It Awesome? / 何が素晴らしいのか？ / 무엇이 이 제품을 멋지게 만드는 걸까요?](#1-what-makes-it-awesome)
 - [2. Additional Features / 追加機能 / 추가 기능](#2-additional-features)
-- [3. Official Developer Reaction & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책](#3-official-developer-reaction--usage-policy)
-- [4. Download / ダウンロード / 다운로드](#4-download)
-- [5. Self-compile Quick Start Guide / セルフコンパイルクイックスタートガイド / 자체 컴파일 빠른 시작 가이드](#5-self-compile-quick-start-guide)
-- [6. How to Use It / 使い方 / 사용 방법](#6-how-to-use-it)
-- [7. Good to Know / 留意事項 / 알아두어야 할 사항](#7-good-to-know)
-- [8. Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?](#8-want-to-collaborate)
-- [9. FAQ / よくある質問 / 자주 묻는 질문](#faq)
-- [10. Credits / クレジット / 크레딧](#credits)
+- [3. Implementation of SpeakiMod+! / SpeakiMod+の実装！/ SpeakiMod+ 구현!](#3-speakimod)
+- [4. Official Developer Reaction & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책](#4-official-developer-reaction--usage-policy)
+- [5. Download / ダウンロード / 다운로드](#5-download)
+- [6. Self-compile Quick Start Guide / セルフコンパイルクイックスタートガイド / 자체 컴파일 빠른 시작 가이드](#6-self-compile-quick-start-guide)
+- [7. How to Use It / 使い方 / 사용 방법](#7-how-to-use-it)
+- [8. Good to Know / 留意事項 / 알아두어야 할 사항](#8-good-to-know)
+- [9. Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?](#9-want-to-collaborate)
+- [10. FAQ / よくある質問 / 자주 묻는 질문](#faq)
+- [11. Credits / クレジット / 크레딧](#credits)
 
 
 ![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
@@ -56,32 +57,11 @@
 * **실시간 채팅 번역**: MyMemory API를 사용하여 게임 내 채팅 메시지를 즉시 번역합니다.
 * **욕설 필터**: 채팅에서 노골적이거나 부적절한 언어를 자동으로 검열하여 게임 내 소통을 깨끗하고 건전하게 유지합니다.
 
-<img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
-
-## Implementation of SpeakiMod+! / SpeakiMod+の実装！/ SpeakiMod+ 구현!
-
-**About SpeakiMod+**
-SpeakiMod+ is a heavily modified, completely overhauled fork of the original SpeakiMod. We originally forked this project to thoroughly clean up the codebase to ensure a secure, transparent, and reliable experience for our users. Since then, we have expanded it into a distinctly new project with plenty of custom features.
-
-**SpeakiMod+ について**
-SpeakiMod+ は、オリジナルの SpeakiMod を大幅に変更し、完全にオーバーホールしたフォーク（派生版）です。ユーザーに安全で透明性が高く、信頼できる体験を提供するため、コードベースを徹底的にクリーンアップする目的でこのプロジェクトをフォークしました。その後、多くのカスタム機能を追加し、全く新しいプロジェクトへと発展させました。
-
-**SpeakiMod+ 소개**
-SpeakiMod+는 원본 SpeakiMod를 대대적으로 수정하고 완전히 개편한 포크(Fork) 프로젝트입니다. 사용자에게 안전하고 투명하며 신뢰할 수 있는 환경을 제공하기 위해 코드베이스를 철저히 정리하고자 처음 이 프로젝트를 포크했습니다. 이후 수많은 맞춤형 기능을 추가하여 완전히 새로운 프로젝트로 확장했습니다.
-
-
-*Legal: Derived from [SpeakiMod by Alluseri](https://github.com/Alluseri/SpeakiMod) under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause).*
-
-*法的情報：[BSD 3条項ライセンス](https://opensource.org/licenses/BSD-3-Clause)の下、[Alluseri による SpeakiMod](https://github.com/Alluseri/SpeakiMod) から派生しています。*
-
-*법적 고지: [BSD 3-Clause 라이선스](https://opensource.org/licenses/BSD-3-Clause)에 따라 [Alluseri의 SpeakiMod](https://github.com/Alluseri/SpeakiMod)에서 파생되었습니다.*
-
 <h2 id="2-additional-features">2. Additional Features / 追加機能 / 추가 기능</h2>
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
 <img width="456" height="461" alt="image" src="https://github.com/user-attachments/assets/f51d57d9-2632-4a18-960e-f641133cbd9e" />
-
 
 🇺🇸 
 - Nearby player count
@@ -149,10 +129,33 @@ SpeakiMod+는 원본 SpeakiMod를 대대적으로 수정하고 완전히 개편�
 - 욕설 필터
 - 설정에 대상 언어 선택기와 켜기/끄기 토글 기능을 갖춘 실시간 채팅 번역 기능(MyMemory API)을 추가했습니다.
 
+<img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
+--
+
 <img width="535" height="590" alt="image" src="https://github.com/user-attachments/assets/1e7c0c60-9576-4b3d-9828-8aeac29d0936" />
+v
+<h2 id="3-speakimod">3. Implementation of SpeakiMod+! / SpeakiMod+の実装！/ SpeakiMod+ 구현!</h2>
+
+[⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
+
+**About SpeakiMod+**
+SpeakiMod+ is a heavily modified, completely overhauled fork of the original SpeakiMod. We originally forked this project to thoroughly clean up the codebase to ensure a secure, transparent, and reliable experience for our users. Since then, we have expanded it into a distinctly new project with plenty of custom features.
+
+**SpeakiMod+ について**
+SpeakiMod+ は、オリジナルの SpeakiMod を大幅に変更し、完全にオーバーホールしたフォーク（派生版）です。ユーザーに安全で透明性が高く、信頼できる体験を提供するため、コードベースを徹底的にクリーンアップする目的でこのプロジェクトをフォークしました。その後、多くのカスタム機能を追加し、全く新しいプロジェクトへと発展させました。
+
+**SpeakiMod+ 소개**
+SpeakiMod+는 원본 SpeakiMod를 대대적으로 수정하고 완전히 개편한 포크(Fork) 프로젝트입니다. 사용자에게 안전하고 투명하며 신뢰할 수 있는 환경을 제공하기 위해 코드베이스를 철저히 정리하고자 처음 이 프로젝트를 포크했습니다. 이후 수많은 맞춤형 기능을 추가하여 완전히 새로운 프로젝트로 확장했습니다.
+
+
+*Legal: Derived from [SpeakiMod by Alluseri](https://github.com/Alluseri/SpeakiMod) under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause).*
+
+*法的情報：[BSD 3条項ライセンス](https://opensource.org/licenses/BSD-3-Clause)の下、[Alluseri による SpeakiMod](https://github.com/Alluseri/SpeakiMod) から派生しています。*
+
+*법적 고지: [BSD 3-Clause 라이선스](https://opensource.org/licenses/BSD-3-Clause)에 따라 [Alluseri의 SpeakiMod](https://github.com/Alluseri/SpeakiMod)에서 파생되었습니다.*
 
 ---
-<h2 id="3-official-developer-reaction--usage-policy">3. Official Developer Reaction & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책</h2>
+<h2 id="4-official-developer-reaction--usage-policy">4. Official Developer Reaction & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책</h2>
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
@@ -222,7 +225,7 @@ So, according to the official developer statement:
 * 🇯🇵 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)から最新バージョンのセットアップファイルをダウンロードしてください。
 * 🇰🇷 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)로 이동하여 최신 버전 설치 파일을 다운로드하세요.
 
-<h2 id="5-self-compile-quick-start-guide">5. Self-compile Quick Start Guide / セルフコンパイルクイックスタートガイド / 자체 컴파일 빠른 시작 가이드</h2>
+<h2 id="6-self-compile-quick-start-guide">5. Self-compile Quick Start Guide / セルフコンパイルクイックスタートガイド / 자체 컴파일 빠른 시작 가이드</h2>
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
@@ -255,7 +258,7 @@ npm start
 
 ---
 
-<h2 id="6-how-to-use-it">6. How to Use It / 使い方 / 사용 방법</h2>
+<h2 id="7-how-to-use-it">7. How to Use It / 使い方 / 사용 방법</h2>
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
@@ -282,7 +285,7 @@ npm start
 
 ---
 
-<h2 id="7-good-to-know">7. Good to Know / 留意事項 / 알아두어야 할 사항</h2>
+<h2 id="8-good-to-know">8. Good to Know / 留意事項 / 알아두어야 할 사항</h2>
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
@@ -311,7 +314,7 @@ npm start
 * **공식 입장 요약:** 다른 사용자에게 피해를 주지 않고 공정한 플레이를 방해하지 않는 한 클라이언트 수정 및 도구 사용이 허용됩니다 (단, 제재 기준은 전적으로 개발자의 주관적 판단에 따릅니다).
 --
 
-<h2 id="8-want-to-collaborate">8. Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?</h2>
+<h2 id="9-want-to-collaborate">9. Want to Collaborate? / 協力を希望される方へ / 기여하고 싶으신가요?</h2>
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
@@ -331,7 +334,7 @@ npm start
 - Per the developer's official statement, client modifications that don't harm other players are permitted. Features like auto-hunting or anything that gives you an unfair advantage over other players are not covered by this and could get you banned. Use good judgment.
 
 🇺🇸 **Does this work on Mac / Linux?**
-- The pre-built releases are for Windows. Mac/Linux users can try the [Self-compile Quick Start Guide](#5-self-compile-quick-start-guide) to build it themselves, though it isn't officially tested on those platforms.
+- The pre-built releases are for Windows. Mac/Linux users can try the [Self-compile Quick Start Guide](#6-self-compile-quick-start-guide) to build it themselves, though it isn't officially tested on those platforms.
 
 🇺🇸 **Is this free?**
 - Yes, completely free and open source under the GNU License.
@@ -346,7 +349,7 @@ npm start
 - No, this is an unofficial, fan-made project.
 
 🇺🇸 **Will this give me a virus / get me hacked?**
-- No — the source code is fully open and available in this repository, so anyone can inspect exactly what it does before running it. If you don't trust the pre-built release, use the [Self-compile Quick Start Guide](#5-self-compile-quick-start-guide) to build it yourself from source.
+- No — the source code is fully open and available in this repository, so anyone can inspect exactly what it does before running it. If you don't trust the pre-built release, use the [Self-compile Quick Start Guide](#6-self-compile-quick-start-guide) to build it yourself from source.
 
 🇺🇸 **Do you accept donations?**
 - No, this is a free project and will stay that way.
@@ -355,7 +358,7 @@ npm start
 - Rufo. No further questions.
 
 🇺🇸 **Will I get banned by the official developer for using this?**
-- No — check the [Official Developer Stance & Usage Policy](#3-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책) section above for the full details.
+- No — check the [Official Developer Stance & Usage Policy](#4-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책) section above for the full details.
 
 
 ---
@@ -364,7 +367,7 @@ npm start
 - 開発者の公式声明によると、他のプレイヤーに害を及ぼさないクライアント改変は許可されています。自動狩りなど、他プレイヤーに対して不公平な優位性をもたらす機能はこれに該当せず、BANされる可能性があります。ご自身の判断でご利用ください。
 
 🇯🇵 **Mac／Linuxで使用できますか？**
-- 配布されているビルド版はWindows向けです。Mac／Linuxをお使いの方は[セルフコンパイルクイックスタートガイド](#5-self-compile-quick-start-guide)を参照してご自身でビルドしてください。ただし、これらの環境での動作は公式にテストされていません。
+- 配布されているビルド版はWindows向けです。Mac／Linuxをお使いの方は[セルフコンパイルクイックスタートガイド](#6-self-compile-quick-start-guide)を参照してご自身でビルドしてください。ただし、これらの環境での動作は公式にテストされていません。
 
 🇯🇵 **無料ですか？**
 - はい、完全無料でオープンソースです（GNUライセンス）。
@@ -376,7 +379,7 @@ npm start
 - Speaki RPG Desktopを起動する前にDiscordを開いて実行しておいてください。CTRL+SHIFT+Dで強制更新することもできます。
 
 🇯🇵 **ウイルスに感染したり、ハッキングされたりしませんか？**
-- いいえ — ソースコードは完全に公開されており、このリポジトリで誰でも実際の動作内容を確認できます。ビルド済みのリリース版を信用できない場合は、[セルフコンパイルクイックスタートガイド](#5-self-compile-quick-start-guide)を参照して、ソースからご自身でビルドしてください。
+- いいえ — ソースコードは完全に公開されており、このリポジトリで誰でも実際の動作内容を確認できます。ビルド済みのリリース版を信用できない場合は、[セルフコンパイルクイックスタートガイド](#6-self-compile-quick-start-guide)を参照して、ソースからご自身でビルドしてください。
 
 🇯🇵 **寄付を受け付けていますか？**
 - いいえ、これは無料プロジェクトであり、今後も無料であり続けます。
@@ -386,7 +389,7 @@ npm start
 
 
 🇯🇵 **これを使用すると公式開発者からBANされますか？**
-- いいえ — 詳細は上記の[公式開発者の見解および使用ポリシー](#3-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책)セクションをご確認ください。
+- いいえ — 詳細は上記の[公式開発者の見解および使用ポリシー](#4-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책)セクションをご確認ください。
 
 🇯🇵 **公式のSpeaki RPGチームと提携していますか？**
 - いいえ、これは非公式のファンメイドプロジェクトです。
@@ -397,7 +400,7 @@ npm start
 - 개발자의 공식 성명에 따르면 다른 플레이어에게 피해를 주지 않는 클라이언트 수정은 허용됩니다. 자동 사냥 등 다른 플레이어에게 불공정한 이점을 주는 기능은 여기에 해당되지 않으며, 밴의 대상이 될 수 있습니다. 스스로 판단하여 사용하시기 바랍니다.
 
 🇰🇷 **Mac / Linux에서도 사용할 수 있나요?**
-- 배포되는 빌드 버전은 Windows용입니다. Mac/Linux 사용자는 [자체 컴파일 빠른 시작 가이드](#5-self-compile-quick-start-guide)를 참고하여 직접 빌드할 수 있지만, 해당 환경에서는 공식적으로 테스트되지 않았습니다.
+- 배포되는 빌드 버전은 Windows용입니다. Mac/Linux 사용자는 [자체 컴파일 빠른 시작 가이드](#6-self-compile-quick-start-guide)를 참고하여 직접 빌드할 수 있지만, 해당 환경에서는 공식적으로 테스트되지 않았습니다.
 
 🇰🇷 **무료인가요?**
 - 네, 완전 무료이며 GNU 라이센스로 오픈소스입니다.
@@ -409,7 +412,7 @@ npm start
 - Speaki RPG Desktop을 실행하기 전에 Discord가 열려 있고 실행 중인지 확인하세요. CTRL+SHIFT+D로 강제 업데이트할 수도 있습니다.
 
 🇰🇷 **바이러스에 걸리거나 해킹당하지 않나요?**
-- 아니요 — 소스 코드가 완전히 공개되어 있어 이 저장소에서 누구나 실제 동작 내용을 직접 확인할 수 있습니다. 빌드된 릴리스 버전을 신뢰할 수 없다면 [자체 컴파일 빠른 시작 가이드](#5-self-compile-quick-start-guide)를 참고하여 소스에서 직접 빌드하세요.
+- 아니요 — 소스 코드가 완전히 공개되어 있어 이 저장소에서 누구나 실제 동작 내용을 직접 확인할 수 있습니다. 빌드된 릴리스 버전을 신뢰할 수 없다면 [자체 컴파일 빠른 시작 가이드](#6-self-compile-quick-start-guide)를 참고하여 소스에서 직접 빌드하세요.
 
 🇰🇷 **기부를 받으시나요?**
 - 아니요, 이 프로젝트는 무료 프로젝트이며 앞으로도 무료로 유지됩니다.
@@ -418,7 +421,7 @@ npm start
 - Lupo입니다. 더 이상의 질문은 받지 않습니다.
 
 🇰🇷 **이걸 사용하면 공식 개발자에게 밴당하나요?**
-- 아니요 — 자세한 내용은 위의 [공식 개발자 입장 및 사용 정책](#3-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책) 섹션을 확인하세요.
+- 아니요 — 자세한 내용은 위의 [공식 개발자 입장 및 사용 정책](#4-official-developer-stance--usage-policy--公式開発者の見解および使用ポリシー--공식-개발자-입장-및-사용-정책) 섹션을 확인하세요.
 
 🇰🇷 **공식 Speaki RPG 팀과 제휴되어 있나요?**
 - 아니요, 이 프로젝트는 비공식 팬메이드 프로젝트입니다.
