@@ -43,7 +43,6 @@
         "AppImage",
         "deb"
       ],
-          "desktopName": "SpeakiRPG",
       "icon": "icon.png",
       "category": "Utility",
       "maintainer": "Glas <48269777+DJTOMATO@users.noreply.github.com>"
