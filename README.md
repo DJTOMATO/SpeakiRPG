@@ -30,7 +30,7 @@
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
-<img width="1326" height="557" alt="image" src="https://github.com/user-attachments/assets/12db9ecf-3d66-4cbe-bae8-29f61f9fdd89" />
+<img width="1255" height="649" alt="image" src="https://github.com/user-attachments/assets/94de28f6-c3bb-46ef-abb5-0fd1b055986f" />
 
 🇺🇸 
 * **Discord Rich Presence:** Automatically shows your current character name, level, and XP right on your Discord profile.
@@ -56,6 +56,8 @@
 * **실시간 채팅 번역**: MyMemory API를 사용하여 게임 내 채팅 메시지를 즉시 번역합니다.
 * **욕설 필터**: 채팅에서 노골적이거나 부적절한 언어를 자동으로 검열하여 게임 내 소통을 깨끗하고 건전하게 유지합니다.
 
+<img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
+
 ## Implementation of SpeakiMod! / SpeakiModの実装！/ SpeakiMod 구현!
  
 - Derived from [SpeakiMod by Alluseri](https://github.com/Alluseri/SpeakiMod), licensed under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause).
@@ -64,7 +66,8 @@
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
-<img width="411" height="451" alt="image" src="https://github.com/user-attachments/assets/2101c9f6-2e86-487d-8e41-037903b25164" />
+<img width="456" height="461" alt="image" src="https://github.com/user-attachments/assets/f51d57d9-2632-4a18-960e-f641133cbd9e" />
+
 
 🇺🇸 
 - Nearby player count
@@ -131,7 +134,9 @@
 - 언어 전환 기능 (English / 日本語 / 한국어 중 선택 가능)
 - 욕설 필터
 - 설정에 대상 언어 선택기와 켜기/끄기 토글 기능을 갖춘 실시간 채팅 번역 기능(MyMemory API)을 추가했습니다.
-  
+
+<img width="535" height="590" alt="image" src="https://github.com/user-attachments/assets/1e7c0c60-9576-4b3d-9828-8aeac29d0936" />
+
 ---
 <h2 id="3-official-developer-reaction--usage-policy">3. Official Developer Reaction & Usage Policy / 公式開発者の見解および使用ポリシー / 공식 개발자 입장 및 사용 정책</h2>
 
