@@ -1,10 +1,10 @@
 <!-- Each line must translated into korean and also japanese-->
-# Speaki RPG Desktop / Speaki RPGデスクトップクライアント / 스피키 RPG 데스크톱 클라이언트
+# Speaki RPG Desktop / Speaki RPG Desktopクライアント / 스피키 RPG 데스크톱 클라이언트
 # [Download](https://github.com/DJTOMATO/SpeakiRPG/releases) / [ダウンロード](https://github.com/DJTOMATO/SpeakiRPG/releases) / [다운로드](https://github.com/DJTOMATO/SpeakiRPG/releases)
 
 🇺🇸 **Speaki RPG Desktop** is a custom desktop app and launcher for the browser MMORPG **Speaki RPG**. It brings the game out of your browser tab and adds awesome Discord integration plus extra fun features so your friends can see your grinding progress in real time!
 
-🇯🇵 **Speaki RPG Desktop**は、ブラウザMMORPG **Speaki RPG**専用のカスタムデスクトップアプリ兼ランチャーです。ブラウザタブからゲームをデスクトップに拡張し、Discordとの素晴らしい連携機能や、友達があなたのゲーム進行状況をリアルタイムで確認できる楽しい機能などを追加します。
+🇯🇵 **Speaki RPG Desktop**は、ブラウザMMORPG **Speaki RPG**専用のカスタムデスクトップアプリ兼ランチャーです。ブラウザタブからゲームをデスクトップに拡張し、Discordとの素晴らしい連携機能や、フレンドがあなたのゲーム進行状況をリアルタイムで確認できるなど、楽しい機能を追加します。
 
 🇰🇷 **Speaki RPG Desktop**은 브라우저 기반 MMORPG 게임인 **Speaki RPG**를 위한 맞춤형 데스크톱 앱이자 런처입니다. 브라우저 탭에서 게임을 꺼내 데스크톱에서 즐길 수 있도록 해주며, 멋진 Discord 연동 기능과 친구들이 실시간으로 게임 진행 상황을 확인할 수 있는 다양한 재미있는 기능들을 제공합니다!
 
@@ -89,7 +89,8 @@
 - 周囲のｽﾋﾟｷ数
 - 各チャンネル接続ｽﾋﾟｷ数の表示
 - 他ｽﾋﾟｷの名前を非表示
-- 不適切な単語のフィルタリング (v1.2.2 メンテナンス中)
+- リアルタイムチャット翻訳機能（MyMemory API）を追加しました。翻訳対象言語の選択機能と、オン/オフ切り替え機能があります。
+- 不適切な単語のフィルタリング (v1.2.2 現在メンテナンス中)
 - クエストのピン留め
 - 経験値トラッカー（1分あたりの経験値と次のレベルまでの推定時間）
 - ポータルに向かって自動で歩く（自動で回復したり、障害物を避けたりはしません）
@@ -105,7 +106,6 @@
 - 他ｽﾋﾟｷの視界を確認
 - MODタイトルをクリックして、MODのHUDを折りたたむ（三段階）
 - クライアント言語切り替え機能（English / 日本語 / 한국어 から選択可能）
-- リアルタイムチャット翻訳機能（MyMemory API）を追加しました。設定画面に翻訳対象言語の選択機能とオン/オフ切り替え機能があります。
   
 🇰🇷
 - 주변 플레이어 수 표시
@@ -140,7 +140,7 @@ v
 
 SpeakiMod+ is a heavily modified, completely overhauled fork of the original SpeakiMod. We originally forked this project to thoroughly clean up the codebase to ensure a secure, transparent, and reliable experience for our users. Since then, we have expanded it into a distinctly new project with plenty of custom features.
 
-SpeakiMod+ は、オリジナルの SpeakiMod を大幅に変更し、完全にオーバーホールしたフォーク（派生版）です。ユーザーに安全で透明性が高く、信頼できる体験を提供するため、コードベースを徹底的にクリーンアップする目的でこのプロジェクトをフォークしました。その後、多くのカスタム機能を追加し、全く新しいプロジェクトへと発展させました。
+SpeakiMod+ は、オリジナルの SpeakiMod を大幅に変更し、完全にオーバーホールしたフォーク（派生版）です。安全で透明性が高く信頼できる体験をユーザーに提供するため、コードベースを徹底的にクリーンアップする目的でこのプロジェクトをフォークしました。その後、多くのカスタム機能を追加し、全く新しいプロジェクトへと発展させました。
 
 SpeakiMod+는 원본 SpeakiMod를 대대적으로 수정하고 완전히 개편한 포크(Fork) 프로젝트입니다. 사용자에게 안전하고 투명하며 신뢰할 수 있는 환경을 제공하기 위해 코드베이스를 철저히 정리하고자 처음 이 프로젝트를 포크했습니다. 이후 수많은 맞춤형 기능을 추가하여 완전히 새로운 프로젝트로 확장했습니다.
 
@@ -300,7 +300,7 @@ npm start
 * **非公式:** これはファンメイドのプロジェクトであり、Speaki RPGのクリエイターとは公式に提携していません。ゲームアセットは含まれていません。
 * **協力したいですか？** 貢献、バグ報告、プルリクエストはGitHubでいつでも大歓迎です！
 * **ライセンス:** GNUライセンスの下でライセンスされています。
-* **MOD機能の表示:** MODタイトルを最大3回クリックすることで、HUDを折りたたむことができる点をお忘れなく！（※日本のプレイヤーの皆様もぜひご活用ください）
+* **MOD機能の表示:** MODタイトルをクリックすることで、HUDを折りたためます！
 * **公式見解の概要:** 他のユーザーに迷惑をかけず公平なプレイを妨げない範囲であればクライアントの変更やツールの使用は許可されています（ただし制裁基準は開発者の主観的裁量に完全に委ねられます）。
 ---
 🇰🇷
