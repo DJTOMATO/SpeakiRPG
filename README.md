@@ -138,14 +138,10 @@ v
 
 [⬆ Back to Top / トップへ戻る / 맨 위로](#table-of-contents)
 
-**About SpeakiMod+**
-
 SpeakiMod+ is a heavily modified, completely overhauled fork of the original SpeakiMod. We originally forked this project to thoroughly clean up the codebase to ensure a secure, transparent, and reliable experience for our users. Since then, we have expanded it into a distinctly new project with plenty of custom features.
 
-**SpeakiMod+ について**
 SpeakiMod+ は、オリジナルの SpeakiMod を大幅に変更し、完全にオーバーホールしたフォーク（派生版）です。ユーザーに安全で透明性が高く、信頼できる体験を提供するため、コードベースを徹底的にクリーンアップする目的でこのプロジェクトをフォークしました。その後、多くのカスタム機能を追加し、全く新しいプロジェクトへと発展させました。
 
-**SpeakiMod+ 소개**
 SpeakiMod+는 원본 SpeakiMod를 대대적으로 수정하고 완전히 개편한 포크(Fork) 프로젝트입니다. 사용자에게 안전하고 투명하며 신뢰할 수 있는 환경을 제공하기 위해 코드베이스를 철저히 정리하고자 처음 이 프로젝트를 포크했습니다. 이후 수많은 맞춤형 기능을 추가하여 완전히 새로운 프로젝트로 확장했습니다.
 
 
