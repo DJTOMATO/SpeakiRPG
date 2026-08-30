@@ -36,7 +36,7 @@
 * **Discord Rich Presence:** Automatically shows your current character name, level, and XP right on your Discord profile.
 * **Smooth Experience:** Gives you a dedicated desktop wrapper for a cleaner, smoother session.
 * **Improved GPU performance**: It automatically sets up your GPU for better 3D rendering.
-* **Rich Gameplay features**: Thanks to SpeakiMod (Read below) several QOL features are introduced!
+* **Rich Gameplay features**: Thanks to SpeakiMod+ (Read below) several QOL features are introduced!
 * **Real-Time Chat Translation**: Instantly translates in-game chat messages using the MyMemory API
 * **Profanity Filter**: Automatically censors explicit or inappropriate language in chat to keep your in-game communication clean and friendly.
 
@@ -44,7 +44,7 @@
 * **Discordリッチプレゼンス:** Discordプロフィールに、現在のキャラクター名、レベル、経験値を自動的に表示します。
 * **スムーズな操作性:** 専用のデスクトップラッパーにより、よりクリーンでスムーズなセッションを実現します。
 * **GPUパフォーマンスの向上:** 3Dレンダリングを向上させるために、GPUを自動的に最適化します。
-* **豊富なゲームプレイ機能:** SpeakiMod（下記参照）のおかげで、様々なQOL機能が追加されました！
+* **豊富なゲームプレイ機能:** SpeakiMod+（下記参照）のおかげで、様々なQOL機能が追加されました！
 * **リアルタイムチャット翻訳**: MyMemory APIを使用してゲーム内チャットメッセージを瞬時に翻訳します。
 * **不適切な言葉のフィルタリング**: チャット内の露骨な表現や不適切な言葉を自動的に検閲し、ゲーム内コミュニケーションをクリーンで友好的なものに保ちます。
   
@@ -52,15 +52,29 @@
 * **Discord 풍부한 존재감:** Discord 프로필에 현재 캐릭터 이름, 레벨, 경험치를 자동으로 표시합니다.
 * **부드러운 경험:** 더욱 깔끔하고 부드러운 세션을 위해 전용 데스크톱 래퍼를 제공합니다.
 * **GPU 성능 향상:** 3D 렌더링을 최적화하도록 GPU 설정을 자동으로 조정합니다.
-* **풍부한 게임플레이 기능:** SpeakiMod(아래 참조) 덕분에 다양한 편의성 기능이 추가되었습니다!
+* **풍부한 게임플레이 기능:** SpeakiMod+(아래 참조) 덕분에 다양한 편의성 기능이 추가되었습니다!
 * **실시간 채팅 번역**: MyMemory API를 사용하여 게임 내 채팅 메시지를 즉시 번역합니다.
 * **욕설 필터**: 채팅에서 노골적이거나 부적절한 언어를 자동으로 검열하여 게임 내 소통을 깨끗하고 건전하게 유지합니다.
 
 <img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
 
-## Implementation of SpeakiMod! / SpeakiModの実装！/ SpeakiMod 구현!
- 
-- Derived from [SpeakiMod by Alluseri](https://github.com/Alluseri/SpeakiMod), licensed under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause).
+## Implementation of SpeakiMod+! / SpeakiMod+の実装！/ SpeakiMod+ 구현!
+
+**About SpeakiMod+**
+SpeakiMod+ is a heavily modified, completely overhauled fork of the original SpeakiMod. We originally forked this project to thoroughly clean up the codebase to ensure a secure, transparent, and reliable experience for our users. Since then, we have expanded it into a distinctly new project with plenty of custom features.
+
+**SpeakiMod+ について**
+SpeakiMod+ は、オリジナルの SpeakiMod を大幅に変更し、完全にオーバーホールしたフォーク（派生版）です。ユーザーに安全で透明性が高く、信頼できる体験を提供するため、コードベースを徹底的にクリーンアップする目的でこのプロジェクトをフォークしました。その後、多くのカスタム機能を追加し、全く新しいプロジェクトへと発展させました。
+
+**SpeakiMod+ 소개**
+SpeakiMod+는 원본 SpeakiMod를 대대적으로 수정하고 완전히 개편한 포크(Fork) 프로젝트입니다. 사용자에게 안전하고 투명하며 신뢰할 수 있는 환경을 제공하기 위해 코드베이스를 철저히 정리하고자 처음 이 프로젝트를 포크했습니다. 이후 수많은 맞춤형 기능을 추가하여 완전히 새로운 프로젝트로 확장했습니다.
+
+
+*Legal: Derived from [SpeakiMod by Alluseri](https://github.com/Alluseri/SpeakiMod) under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause).*
+
+*法的情報：[BSD 3条項ライセンス](https://opensource.org/licenses/BSD-3-Clause)の下、[Alluseri による SpeakiMod](https://github.com/Alluseri/SpeakiMod) から派生しています。*
+
+*법적 고지: [BSD 3-Clause 라이선스](https://opensource.org/licenses/BSD-3-Clause)에 따라 [Alluseri의 SpeakiMod](https://github.com/Alluseri/SpeakiMod)에서 파생되었습니다.*
 
 <h2 id="2-additional-features">2. Additional Features / 追加機能 / 추가 기능</h2>
 
