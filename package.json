@@ -46,7 +46,6 @@
           "desktopName": "SpeakiRPG",
       "icon": "icon.png",
       "category": "Utility",
-      "syncDesktopName": true,
       "maintainer": "Glas <48269777+DJTOMATO@users.noreply.github.com>"
     },
     "files": [
