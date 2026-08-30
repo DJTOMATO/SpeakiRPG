@@ -6,8 +6,8 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux"
+    "build:mac": "electron-builder --mac --publish never",
+    "build:linux": "electron-builder --linux --publish never"
     
   },
   "keywords": [
@@ -38,14 +38,17 @@
       ],
       "icon": "icon.icns"
     },
-      "linux": {
-        "target": [
-          "AppImage",
-          "deb"
-        ],
-        "icon": "icon.png",
-        "category": "Utility"
-      },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "icon.png",
+      "category": "Utility",
+      "desktopName": "SpeakiRPG",
+      "syncDesktopName": true,
+      "maintainer": "Glas"
+    },
     "files": [
       "main.js",
       "preload.js",
