@@ -6,7 +6,9 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
-    "build:mac": "electron-builder --mac"
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+    
   },
   "keywords": [
     "electron",
@@ -36,6 +38,13 @@
       ],
       "icon": "icon.icns"
     },
+      "linux": {
+        "target": [
+          "AppImage",
+          "deb"
+        ],
+        "category": "Utility"
+      },
     "files": [
       "main.js",
       "preload.js",
