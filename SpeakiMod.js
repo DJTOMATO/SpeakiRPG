@@ -574,8 +574,8 @@ const spkmodTranslations = {
 			credits: "• オリジナルゲーム: EPID Games\n• Speaki MMO開発: GMDT\n• クライアントコーディング: Glas\n• SpeakiMOD機能拡張: Alluseri\n• 日本語翻訳: JPN_健全なエルフ名15T",
 			translateToggleLabel: "翻訳先の言語を選択 (jaを選択で日本語に翻訳)",
 			translateQuotaHitMsg: "翻訳の1日の上限に達したため、翻訳機能を自動的に無効化しました。設定でメールアドレスを追加すると上限が増えます。明日になったら再度有効化してください。",
-			translateEmailPlaceholder: "メールアドレス (任意です。登録すると、1日の翻訳可能文字数を増やせます。)",
-			translateEmailTooltip: "任意です。MyMemory(無料翻訳サービス)は、メールアドレスを登録すると1日の翻訳可能文字数が増えます。メールアドレスは翻訳リクエストにのみ送信され、SpeakiModはブラウザ以外の場所に保存しません。",
+			translateEmailPlaceholder: "メールアドレス [任意です] 　(詳細は、左のⓘをクリック)",
+			translateEmailTooltip: "MyMemory(無料翻訳サービス)は、メールアドレスを登録すると1日の翻訳可能文字数が増えます。メールアドレスは翻訳リクエストにのみ送信され、SpeakiModはブラウザ以外の場所に保存しません。",
 			clickToTranslateTooltip: "このメッセージをクリックして翻訳してください",
 			clickToTranslatePrompt: "どの言語コードから翻訳しますか?（例:en、ja、ko、es、fr)",
 			translateFailedMsg: "翻訳に失敗しました。または、メッセージは既に翻訳先の言語で表示されています。"
