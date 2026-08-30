@@ -8,7 +8,6 @@
     "build": "electron-builder",
     "build:mac": "electron-builder --mac --publish never",
     "build:linux": "electron-builder --linux --publish never"
-    
   },
   "keywords": [
     "electron",
@@ -27,6 +26,7 @@
   },
   "build": {
     "appId": "com.glas.speakirpg",
+    "desktopName": "SpeakiRPG",
     "win": {
       "target": "nsis",
       "icon": "icon.ico"
@@ -45,9 +45,8 @@
       ],
       "icon": "icon.png",
       "category": "Utility",
-      "desktopName": "SpeakiRPG",
       "syncDesktopName": true,
-      "maintainer": "Glas"
+      "maintainer": "Glas <48269777+DJTOMATO@users.noreply.github.com>"
     },
     "files": [
       "main.js",
