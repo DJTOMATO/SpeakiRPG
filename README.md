@@ -1,8 +1,13 @@
 # Speaki RPG Desktop
 
-[English](README.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
+# ->  [English](README.md) | [日本語](README.ja.md) | [한국어](README.ko.md) <- 
 
-# [Download | ダウンロード | 다운로드 ](https://github.com/DJTOMATO/SpeakiRPG/releases)
+
+<img width="1039" height="441" alt="image" src="https://github.com/user-attachments/assets/02184bea-65d8-4858-af07-895be0b11e77" />
+
+
+
+#  -> [Download | ダウンロード | 다운로드 ](https://github.com/DJTOMATO/SpeakiRPG/releases) <- 
 
 **Speaki RPG Desktop** is a custom desktop app and launcher for the browser MMORPG **Speaki RPG**. It brings the game out of your browser tab and adds awesome Discord integration plus extra fun features so your friends can see your grinding progress in real time!
 
