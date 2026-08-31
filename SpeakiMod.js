@@ -1150,15 +1150,15 @@ function updateDynamicStyles() {
 		isVip = n === "glas" || n === "sp1cky" || n === "gmdt";
 	}
 
-	const urlBg10 = "https://i.imgur.com/Cm0QvN3.png";
-	const urlBg15 = "https://i.imgur.com/4o4Ub4o.png";
-	const urlBg20 = "https://i.imgur.com/bNXnnvF.png";
-	const urlBg25 = "https://i.imgur.com/EK0KK9R.png";
-	const urlBg30 = "https://i.imgur.com/caAmz5b.png";
-	const urlBg35 = "https://i.imgur.com/Bznm0z1.png";
-	const urlBg40 = "https://i.imgur.com/BLG6jfd.png";
-	const urlBg45 = "https://i.imgur.com/pGFQ93U.png";
-	const urlBg50 = "https://i.imgur.com/Prd6MRa.png";
+	const urlBg10 = "https://i.imgur.com/SUqVcO5.png";
+	const urlBg15 = "https://i.imgur.com/1jyUihh.png";
+	const urlBg20 = "https://i.imgur.com/VOhPiYV.png";
+	const urlBg25 = "https://i.imgur.com/Ue6kUK7.png";
+	const urlBg30 = "https://i.imgur.com/HMXSjbC.png";
+	const urlBg35 = "https://i.imgur.com/WSzIC0U.png";
+	const urlBg40 = "https://i.imgur.com/Op8sbcp.png";
+	const urlBg45 = "https://i.imgur.com/UXdgxWx.png";
+	const urlBg50 = "https://i.imgur.com/5Sw1BXu.png";
 
 	if (lunHudBackground === "bg10" && (isVip || level >= 10)) bgImageRule = `url('${urlBg10}')`;
 	else if (lunHudBackground === "bg15" && (isVip || level >= 15)) bgImageRule = `url('${urlBg15}')`;
