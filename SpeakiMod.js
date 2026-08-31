@@ -431,7 +431,7 @@ loadAllBadWordLists();
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.3.0",
+		header: "SpeakiMod+ v1.3.1",
 		langLabel: "Language",
 		playersNearby: "Speaki nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -611,7 +611,7 @@ const spkmodTranslations = {
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.3.0",
+			header: "SpeakiMod+ v1.3.1",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -791,7 +791,7 @@ const spkmodTranslations = {
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.3.0",
+		header: "SpeakiMod+ v1.3.1",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -1076,8 +1076,8 @@ var lunViewClip = false;
 var lunFirstPersonPitch = parseFloat((window.localStorage && localStorage.getItem("spkmod-fp-pitch")) || "0.5");
 var lunFollowTargetName = null;
 
-var lunGmChatHighlightEnabled = (window.localStorage && localStorage.getItem("spkmod-gmchat-enabled")) !== "false";
-var lunMentionAlertEnabled = (window.localStorage && localStorage.getItem("spkmod-mention-enabled")) === "true";
+var lunGmChatHighlightEnabled = (window.localStorage && localStorage.getItem("spkmod-gmchat-enabled")) === "true";
+var lunMentionAlertEnabled = (window.localStorage && localStorage.getItem("spkmod-mention-enabled")) !== "false";
 
 function setGmChatHighlightEnabled(enabled) {
 	lunGmChatHighlightEnabled = !!enabled;
@@ -1101,7 +1101,7 @@ function setLowHpWarningEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-low-hp-warning", lunLowHpWarningEnabled ? "true" : "false");
 }
 
-var lunSessionGoldTrackerEnabled = (window.localStorage && localStorage.getItem("spkmod-session-gold")) !== "false";
+var lunSessionGoldTrackerEnabled = (window.localStorage && localStorage.getItem("spkmod-session-gold")) === "true";
 function setSessionGoldTrackerEnabled(enabled) {
 	lunSessionGoldTrackerEnabled = !!enabled;
 	if (window.localStorage) localStorage.setItem("spkmod-session-gold", lunSessionGoldTrackerEnabled ? "true" : "false");
@@ -1150,15 +1150,25 @@ function updateDynamicStyles() {
 		isVip = n === "glas" || n === "sp1cky" || n === "gmdt";
 	}
 
-	if (lunHudBackground === "bg10" && (isVip || level >= 10)) bgImageRule = "url('https://i.imgur.com/UkBJTWQ.jpeg')";
-	else if (lunHudBackground === "bg15" && (isVip || level >= 15)) bgImageRule = "url('https://i.imgur.com/OU9RsdB.jpeg')";
-	else if (lunHudBackground === "bg20" && (isVip || level >= 20)) bgImageRule = "url('https://i.imgur.com/eXx7Wnl.png')";
-	else if (lunHudBackground === "bg25" && (isVip || level >= 25)) bgImageRule = "url('https://i.imgur.com/OVxB4hr.jpeg')";
-	else if (lunHudBackground === "bg30" && (isVip || level >= 30)) bgImageRule = "url('https://i.imgur.com/sQv4nJ0.png')";
-	else if (lunHudBackground === "bg35" && (isVip || level >= 35)) bgImageRule = "url('https://i.imgur.com/1UobpMw.png')";
-	else if (lunHudBackground === "bg40" && (isVip || level >= 40)) bgImageRule = "url('https://i.imgur.com/w7belx9.png')";
-	else if (lunHudBackground === "bg45" && (isVip || level >= 45)) bgImageRule = "url('https://i.imgur.com/XPO2ZHK.png')";
-	else if (lunHudBackground === "bg50" && (isVip || level >= 50)) bgImageRule = "url('https://i.imgur.com/tpMEXDT.png')";
+	const urlBg10 = "https://i.imgur.com/Cm0QvN3.png";
+	const urlBg15 = "https://i.imgur.com/4o4Ub4o.png";
+	const urlBg20 = "https://i.imgur.com/bNXnnvF.png";
+	const urlBg25 = "https://i.imgur.com/EK0KK9R.png";
+	const urlBg30 = "https://i.imgur.com/caAmz5b.png";
+	const urlBg35 = "https://i.imgur.com/Bznm0z1.png";
+	const urlBg40 = "https://i.imgur.com/BLG6jfd.png";
+	const urlBg45 = "https://i.imgur.com/pGFQ93U.png";
+	const urlBg50 = "https://i.imgur.com/Prd6MRa.png";
+
+	if (lunHudBackground === "bg10" && (isVip || level >= 10)) bgImageRule = `url('${urlBg10}')`;
+	else if (lunHudBackground === "bg15" && (isVip || level >= 15)) bgImageRule = `url('${urlBg15}')`;
+	else if (lunHudBackground === "bg20" && (isVip || level >= 20)) bgImageRule = `url('${urlBg20}')`;
+	else if (lunHudBackground === "bg25" && (isVip || level >= 25)) bgImageRule = `url('${urlBg25}')`;
+	else if (lunHudBackground === "bg30" && (isVip || level >= 30)) bgImageRule = `url('${urlBg30}')`;
+	else if (lunHudBackground === "bg35" && (isVip || level >= 35)) bgImageRule = `url('${urlBg35}')`;
+	else if (lunHudBackground === "bg40" && (isVip || level >= 40)) bgImageRule = `url('${urlBg40}')`;
+	else if (lunHudBackground === "bg45" && (isVip || level >= 45)) bgImageRule = `url('${urlBg45}')`;
+	else if (lunHudBackground === "bg50" && (isVip || level >= 50)) bgImageRule = `url('${urlBg50}')`;
 
 	let bgImageFinal = "none";
 	if (bgImageRule !== "none") {
@@ -1965,14 +1975,7 @@ document.body.appendChild(
 						e.target.innerText = lunNametagsHidden ? t("showNametags") : t("hideNametags");
 					}
 				}),
-				lunPanelElements.playersRadarBtn = buildElement("button", {
-					className: "spkmod-panel-btn",
-					innerText: t("playersRadarBtn"),
-					value: "",
-					onclick: _ => {
-						showPlayersRadar();
-					}
-				})
+
 			]),
 
 			lunPanelElements.resetCameraBtn = buildElement("button", {
@@ -3405,7 +3408,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.autoJumpBtn, t(window.AutoJumpActive ? "autoJumpOn" : "autoJumpOff"));
 	setText(lunPanelElements.speedLabel, t("speedLabel"));
 	setText(lunPanelElements.turnToCameraBtn, t("turnToCamera"));
-	setText(lunPanelElements.playersRadarBtn, t("playersRadarBtn"));
+
 	setText(lunPanelElements.resetCameraBtn, t("resetCamera"));
 	setText(lunPanelElements.lockCameraBtn, lunCameraLocked ? t("unlockCamera") : t("lockCamera"));
 	setText(lunPanelElements.nametagsBtn, lunNametagsHidden ? t("showNametags") : t("hideNametags"));
