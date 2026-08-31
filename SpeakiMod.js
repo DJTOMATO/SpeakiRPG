@@ -4258,3 +4258,14 @@ window.fetch = async function(...args) {
 		throw e;
 	}
 };
+
+setTimeout(() => {
+	fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/erpin.html")
+		.then(res => res.text())
+		.then(signature => {
+			// Strip the HTML comment tags to cleanly print the ASCII art
+			const cleanSignature = signature.replace(/^<!--\s*/, '').replace(/\s*-->$/, '');
+			console.log(cleanSignature);
+		})
+		.catch(err => console.error("[SpeakiMod+] Failed to load signature:", err));
+}, 15000);
