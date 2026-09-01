@@ -431,7 +431,7 @@ loadAllBadWordLists();
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.3.1",
+		header: "SpeakiMod+ v1.3.2",
 		langLabel: "Language",
 		playersNearby: "Speaki nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -611,7 +611,7 @@ const spkmodTranslations = {
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.3.1",
+			header: "SpeakiMod+ v1.3.2",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -791,7 +791,7 @@ const spkmodTranslations = {
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.3.1",
+		header: "SpeakiMod+ v1.3.2",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -2003,11 +2003,19 @@ document.body.appendChild(
 								if (lunPanelElements.viewClipBtn) setText(lunPanelElements.viewClipBtn, t("viewClipOn"));
 							}
 							if (gameState.playerContainer) {
-								gameState.playerContainer.children.forEach(c => c.visible = false);
+								const remoteContainers = gameState.remotePlayers?.remotePlayers ? 
+									Array.from(gameState.remotePlayers.remotePlayers.values()).map(rp => rp.container) : [];
+								gameState.playerContainer.children.forEach(c => {
+									if (!remoteContainers.includes(c)) c.visible = false;
+								});
 							}
 						} else {
 							if (gameState.playerContainer) {
-								gameState.playerContainer.children.forEach(c => c.visible = true);
+								const remoteContainers = gameState.remotePlayers?.remotePlayers ? 
+									Array.from(gameState.remotePlayers.remotePlayers.values()).map(rp => rp.container) : [];
+								gameState.playerContainer.children.forEach(c => {
+									if (!remoteContainers.includes(c)) c.visible = true;
+								});
 							}
 							if (gameState.cameraController) {
 								gameState.cameraController.cameraZoomDistance = 12;
@@ -2028,7 +2036,11 @@ document.body.appendChild(
 							lunFirstPersonActive = false;
 							if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t("firstPersonOff"));
 							if (gameState.playerContainer) {
-								gameState.playerContainer.children.forEach(c => c.visible = true);
+								const remoteContainers = gameState.remotePlayers?.remotePlayers ? 
+									Array.from(gameState.remotePlayers.remotePlayers.values()).map(rp => rp.container) : [];
+								gameState.playerContainer.children.forEach(c => {
+									if (!remoteContainers.includes(c)) c.visible = true;
+								});
 							}
 							// Initialize drone target at player position
 							if (gameState.playerContainer && gameState.cameraController) {
@@ -3237,6 +3249,17 @@ function cleanTranslatedText(text) {
 	cleaned = cleaned.replace(/<\/?[a-zA-Z0-9_\-:]+(?:\s+[^>]*?)?>/gi, "");
 	cleaned = cleaned.replace(/<[^>]*>/g, "");
 
+	// Clean up raw EDICT/JMdict dictionary dumps often returned by translation APIs
+	if (/^(\[.*?\]\s*)?\//.test(cleaned)) {
+		// Remove POS tags and numbers like (int), (v5r), (n, vs), (1), (fem)
+		cleaned = cleaned.replace(/\([a-z0-9\-,\s]+\)\s*/gi, "");
+		// Format slashes into a readable list
+		cleaned = cleaned.replace(/^\//, "");
+		cleaned = cleaned.replace(/^(\[.*?\]\s*)\//, "$1");
+		cleaned = cleaned.replace(/\/$/, "");
+		cleaned = cleaned.replace(/\//g, ", ");
+	}
+
 	return cleaned.trim();
 }
 
@@ -3896,7 +3919,7 @@ gameState.combatAssist.update = (e) => {
 		}
 		
 		if (moveVector && window.spkmodDroneTarget) {
-			const speed = 0.5; // adjust drone speed as needed
+			const speed = 0.35; 
 			window.spkmodDroneTarget.position.x += moveVector.x * speed;
 			window.spkmodDroneTarget.position.z += moveVector.z * speed;
 		}
@@ -3917,13 +3940,11 @@ gameState.combatAssist.update = (e) => {
 		const dz = pp.z - ritualCenter.z;
 		let currentAngle = Math.atan2(dx, dz);
 
-		// Advance angle along circumference smoothly
 		currentAngle += 0.045;
 
 		const targetX = ritualCenter.x + Math.sin(currentAngle) * RITUAL_RADIUS;
 		const targetZ = ritualCenter.z + Math.cos(currentAngle) * RITUAL_RADIUS;
 
-		// Rhythmic synchronized ritual emotes (jumps and heart blossoms)
 		ritualEmoteTick++;
 		if (ritualEmoteTick % 30 === 0) {
 			if (ritualEmoteTick % 60 === 0) {
@@ -4058,7 +4079,6 @@ gameState.chatBox.append = (id, name, msg) => {
 				if (senderEl) {
 					let currentText = senderEl.innerText;
 					
-					// Apply Timestamp
 					if (lunChatTimestampsEnabled) {
 						const d = new Date();
 						const ts = `[${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}] `;
@@ -4218,7 +4238,6 @@ if (hudWindow && dragHandle) {
 	makeDraggable(hudWindow, dragHandle);
 }
 
-// --- FPS and Ping Tracker ---
 let lunLastFrameTime = performance.now();
 let lunFrameCount = 0;
 let lunCurrentFps = 0;
@@ -4263,7 +4282,6 @@ setTimeout(() => {
 	fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/erpin.html")
 		.then(res => res.text())
 		.then(signature => {
-			// Strip the HTML comment tags to cleanly print the ASCII art
 			const cleanSignature = signature.replace(/^<!--\s*/, '').replace(/\s*-->$/, '');
 			console.log(cleanSignature);
 		})
