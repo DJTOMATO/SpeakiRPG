@@ -338,7 +338,7 @@
     "accentColorLabel": "HUDアクセントカラー",
     "fpsPingToggleLabel": "FPS & Pingカウンター",
     "resetTimerToggleLabel": "デイリーリセットタイマー",
-    "resetTimerText": "リセットまで: {0}時間 {1}分 {2}秒",
+    "resetTimerText": "日付変更: {0}時間 {1}分 {2}秒",
     "gamepadRumbleToggleLabel": "ゲームパッドの振動",
     "firstPersonPitchLabel": "1人称視点の高低",
     "exportSettingsBtn": "設定をエクスポート",
