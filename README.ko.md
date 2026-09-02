@@ -27,7 +27,7 @@
 
 [⬆ 맨 위로](#table-of-contents)
 
-<img width="1255" height="649" alt="image" src="https://github.com/user-attachments/assets/94de28f6-c3bb-46ef-abb5-0fd1b055986f" />
+<img width="564" height="534" alt="image" src="https://github.com/user-attachments/assets/b4bf5c88-017e-49d5-8f75-109961c838c8" />
 
 * **Discord 풍부한 존재감:** Discord 프로필에 현재 캐릭터 이름, 레벨, 경험치를 자동으로 표시합니다.
 * **부드러운 경험:** 더욱 깔끔하고 부드러운 세션을 위해 전용 데스크톱 래퍼를 제공합니다.
@@ -40,7 +40,7 @@
 
 [⬆ 맨 위로](#table-of-contents)
 
-<img width="456" height="461" alt="image" src="https://github.com/user-attachments/assets/f51d57d9-2632-4a18-960e-f641133cbd9e" />
+<img width="450" height="537" alt="image" src="https://github.com/user-attachments/assets/6b5c5837-d2ca-488e-8d8c-5d0a8e63a0aa" />
 
 - 주변 플레이어 수 표시
 - 경험치 추적기 (분당 경험치 및 다음 레벨까지 예상 시간 표시)
@@ -88,7 +88,7 @@
 
 ---
 
-<img width="535" height="590" alt="image" src="https://github.com/user-attachments/assets/1e7c0c60-9576-4b3d-9828-8aeac29d0936" />
+<img width="254" height="177" alt="image" src="https://github.com/user-attachments/assets/8971e06c-c687-48ea-b309-8e4eaec74152" />
 
 <h2 id="3-speakimod">3. SpeakiMod+ 구현!</h2>
 
@@ -205,6 +205,8 @@ npm start
 <h2 id="faq">10. 자주 묻는 질문</h2>
 
 [⬆ 맨 위로](#table-of-contents)
+
+<img width="553" height="380" alt="1788325138168569" src="https://github.com/user-attachments/assets/819625ea-bfe4-4977-b5fc-ce72376f2177" />
 
 **사용해도 안전한가요? / 밴을 당하나요?**
 - 개발자의 공식 성명에 따르면 다른 플레이어에게 피해를 주지 않는 클라이언트 수정은 허용됩니다. 자동 사냥 등 다른 플레이어에게 불공정한 이점을 주는 기능은 여기에 해당되지 않으며, 밴의 대상이 될 수 있습니다. 스스로 판단하여 사용하시기 바랍니다.

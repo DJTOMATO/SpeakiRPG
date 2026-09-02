@@ -32,7 +32,7 @@
 
 [⬆ 返回頂部](#table-of-contents)
 
-<img width="1255" height="649" alt="image" src="https://github.com/user-attachments/assets/94de28f6-c3bb-46ef-abb5-0fd1b055986f" />
+<img width="564" height="534" alt="image" src="https://github.com/user-attachments/assets/b4bf5c88-017e-49d5-8f75-109961c838c8" />
 
 * **Discord Rich Presence（豐富個人狀態）:** 自動在你的 Discord 個人檔案中展示目前的角色名稱、等級與經驗值。
 * **流暢體驗:** 採用專用桌面外殼（Wrapper），提供更乾淨、更順暢的遊玩體驗。
@@ -45,7 +45,7 @@
 
 [⬆ 返回頂部](#table-of-contents)
 
-<img width="456" height="461" alt="image" src="https://github.com/user-attachments/assets/f51d57d9-2632-4a18-960e-f641133cbd9e" />
+<img width="450" height="537" alt="image" src="https://github.com/user-attachments/assets/6b5c5837-d2ca-488e-8d8c-5d0a8e63a0aa" />
 
 - 顯示附近斯皮奇數量
 - 經驗值追蹤器（顯示每分鐘獲得 EXP 及升至下一級的預估時間）
@@ -93,7 +93,7 @@
 
 ---
 
-<img width="535" height="590" alt="image" src="https://github.com/user-attachments/assets/1e7c0c60-9576-4b3d-9828-8aeac29d0936" />
+<img width="254" height="177" alt="image" src="https://github.com/user-attachments/assets/8971e06c-c687-48ea-b309-8e4eaec74152" />
 
 <h2 id="3-speakimod">3. SpeakiMod+ 實裝！</h2>
 
@@ -210,6 +210,8 @@ npm start
 <h2 id="faq">10. 常見問題 (FAQ)</h2>
 
 [⬆ 返回頂部](#table-of-contents)
+
+<img width="553" height="380" alt="1788325138168569" src="https://github.com/user-attachments/assets/819625ea-bfe4-4977-b5fc-ce72376f2177" />
 
 **使用這個工具安全嗎？我會被封鎖帳號 (Ban) 嗎？**
 - 根據開發者的官方聲明，只要不損害其他玩家權益的客戶端修改都是允許的。但像自動打怪或任何給予不正當優勢的功能並不在此限，可能會導致帳號被封禁。請自行斟酌並理性使用。

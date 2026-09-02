@@ -27,7 +27,7 @@
 
 [⬆ トップへ戻る](#table-of-contents)
 
-<img width="1255" height="649" alt="image" src="https://github.com/user-attachments/assets/94de28f6-c3bb-46ef-abb5-0fd1b055986f" />
+<img width="564" height="534" alt="image" src="https://github.com/user-attachments/assets/b4bf5c88-017e-49d5-8f75-109961c838c8" />
 
 * **Discordリッチプレゼンス:** Discordプロフィールに、現在のキャラクター名、レベル、経験値を自動的に表示します。
 * **スムーズな操作性:** 専用のデスクトップラッパーにより、よりクリーンでスムーズなセッションを実現します。
@@ -40,7 +40,7 @@
 
 [⬆ トップへ戻る](#table-of-contents)
 
-<img width="456" height="461" alt="image" src="https://github.com/user-attachments/assets/f51d57d9-2632-4a18-960e-f641133cbd9e" />
+<img width="450" height="537" alt="image" src="https://github.com/user-attachments/assets/6b5c5837-d2ca-488e-8d8c-5d0a8e63a0aa" />
 
 - 周囲のｽﾋﾟｷ数
 - 各チャンネル接続ｽﾋﾟｷ数の表示
@@ -88,7 +88,7 @@
 
 ---
 
-<img width="535" height="590" alt="image" src="https://github.com/user-attachments/assets/1e7c0c60-9576-4b3d-9828-8aeac29d0936" />
+<img width="254" height="177" alt="image" src="https://github.com/user-attachments/assets/8971e06c-c687-48ea-b309-8e4eaec74152" />
 
 <h2 id="3-speakimod">3. SpeakiMod+の実装！</h2>
 
@@ -206,6 +206,7 @@ npm start
 
 [⬆ トップへ戻る](#table-of-contents)
 
+<img width="553" height="380" alt="1788325138168569" src="https://github.com/user-attachments/assets/819625ea-bfe4-4977-b5fc-ce72376f2177" />
 **安全に使用できますか？ / BANされませんか？**
 - 開発者の公式声明によると、他のプレイヤーに害を及ぼさないクライアント改変は許可されています。自動狩りなど、他プレイヤーに対して不公平な優位性をもたらす機能はこれに該当せず、BANされる可能性があります。ご自身の判断でご利用ください。
 
