@@ -1,6 +1,6 @@
 # 스피키 RPG 데스크톱 클라이언트
 
-[English](README.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
+[English](README.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [繁體中文](README.zh-tw.md)
 
 # [다운로드](https://github.com/DJTOMATO/SpeakiRPG/releases)
 

@@ -1,6 +1,6 @@
 # Speaki RPG Desktop
 
-# ->  [English](README.md) | [日本語](README.ja.md) | [한국어](README.ko.md) <- 
+# ->  [English](README.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [繁體中文](README.zh-tw.md) <- 
 
 
 <img width="1039" height="441" alt="image" src="https://github.com/user-attachments/assets/02184bea-65d8-4858-af07-895be0b11e77" />
