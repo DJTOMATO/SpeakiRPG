@@ -7,7 +7,7 @@
 
 
 
-#  -> [下載 / Download](https://github.com/DJTOMATO/SpeakiRPG/releases) <- 
+#  -> [下載 / Download](https://github.com/DJTOMATO/SpeakiRPG/releases) | [加入 Discord](https://discord.gg/bruZhcwqRx) <- 
 
 **Speaki RPG Desktop** 是一款專為網頁 MMORPG **Speaki RPG** 設計的自訂桌面應用程式與啟動器。它能將遊戲從瀏覽器分頁中獨立出來，並提供出色的 Discord 狀態整合以及多種趣味功能，讓你的好友能即時看到你的練等與冒險進度！
 
@@ -205,7 +205,7 @@ npm start
 
 <img width="235" height="236" alt="1765896114857749" src="https://github.com/user-attachments/assets/08d51e52-7f46-4a24-97d1-d4e4bfc5d114" />
 
-想一起協作開發嗎？歡迎與我們聯絡，在 GitHub 上 [發起 Pull Request](https://github.com/DJTOMATO/SpeakiRPG/pulls) 或 [提交 Issue 問題回報](https://github.com/DJTOMATO/SpeakiRPG/issues)！也非常歡迎繁體中文母語玩家協助修飾或校對文句！
+想一起協作開發嗎？歡迎加入我們的 [Discord 伺服器](https://discord.gg/bruZhcwqRx) 與我們聯絡，或在 GitHub 上 [發起 Pull Request](https://github.com/DJTOMATO/SpeakiRPG/pulls) 或 [提交 Issue 問題回報](https://github.com/DJTOMATO/SpeakiRPG/issues)！也非常歡迎繁體中文母語玩家協助修飾或校對文句！
 
 <h2 id="faq">10. 常見問題 (FAQ)</h2>
 

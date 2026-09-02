@@ -2,7 +2,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [繁體中文](README.zh-tw.md)
 
-# [다운로드](https://github.com/DJTOMATO/SpeakiRPG/releases)
+# [다운로드](https://github.com/DJTOMATO/SpeakiRPG/releases) | [디스코드 참여](https://discord.gg/bruZhcwqRx)
 
 **Speaki RPG Desktop**은 브라우저 기반 MMORPG 게임인 **Speaki RPG**를 위한 맞춤형 데스크톱 앱이자 런처입니다. 브라우저 탭에서 게임을 꺼내 데스크톱에서 즐길 수 있도록 해주며, 멋진 Discord 연동 기능과 친구들이 실시간으로 게임 진행 상황을 확인할 수 있는 다양한 재미있는 기능들을 제공합니다!
 
@@ -200,7 +200,7 @@ npm start
 
 <img width="235" height="236" alt="1765896114857749" src="https://github.com/user-attachments/assets/08d51e52-7f46-4a24-97d1-d4e4bfc5d114" />
 
-협업하고 싶으신가요? 저희에게 연락하거나 GitHub에 [풀 리퀘스트를 보내고](https://github.com/DJTOMATO/SpeakiRPG/pulls) [이슈를 등록](https://github.com/DJTOMATO/SpeakiRPG/issues)해 주세요! 한국어가 모국어인 분들의 문서 수정 및 번역도 언제나 환영합니다!
+협업하고 싶으신가요? [디스코드](https://discord.gg/bruZhcwqRx)에 참여하여 문의하거나 GitHub에 [풀 리퀘스트를 보내고](https://github.com/DJTOMATO/SpeakiRPG/pulls) [이슈를 등록](https://github.com/DJTOMATO/SpeakiRPG/issues)해 주세요! 한국어가 모국어인 분들의 문서 수정 및 번역도 언제나 환영합니다!
 
 <h2 id="faq">10. 자주 묻는 질문</h2>
 
