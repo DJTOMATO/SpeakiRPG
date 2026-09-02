@@ -1,6 +1,6 @@
 # Speaki RPG デスクトップクライアント
 
-[English:README](README.md) | [イマココ!](README.ja.md) | [한국어:README](README.ko.md) | [繁體中文](README.zh-tw.md)
+[English:README](README.md) | [イマココ!](README.ja.md) | [한국어:README](README.ko.md) | [繁體中文:README](README.zh-tw.md)
 
 # [ダウンロード](https://github.com/DJTOMATO/SpeakiRPG/releases) | [Discordに参加](https://discord.gg/bruZhcwqRx)
 
@@ -248,7 +248,7 @@ npm start
 * **クライアント＆SpeakiMod+コーディング:** Glas
 * **SpeakiMod原作者:** Alluseri
 * **日本語翻訳:** JPN_健全なエルフ名15T
-
+* **繁体字中国語翻訳:** PeiYu
 ---
 
 ## サードパーティコンポーネント
