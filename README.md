@@ -84,6 +84,7 @@
 - **[NEW]** HUD Backgrounds (Unlocks progressively from Level 10 to Level 50)
 - **[NEW]** Session Gold & Elif Tracker (Real-time tracking of currency earned in current session)
 - **[NEW]** FPS & Network Latency Counter
+- **[NEW]** Daily Reset Timer (Shows time remaining until 00:00 KST)
 - **[NEW]** Low HP Critical Warning (Pulsing red screen vignette)
 - **[NEW]** Gamepad Haptic Vibration / Rumble on Damage
 - **[NEW]** Export / Import Settings to JSON

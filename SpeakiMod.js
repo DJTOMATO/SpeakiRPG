@@ -431,7 +431,7 @@ loadAllBadWordLists();
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.3.2",
+		header: "SpeakiMod+ v1.3.3",
 		langLabel: "Language",
 		playersNearby: "Speaki nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -584,6 +584,8 @@ const spkmodTranslations = {
 		bgOpacityGlass: "Glass",
 		accentColorLabel: "Accent Color",
 		fpsPingToggleLabel: "FPS & Latency Counter",
+		resetTimerToggleLabel: "Daily Reset Timer",
+		resetTimerText: "Reset in: {0}h {1}m {2}s",
 		gamepadRumbleToggleLabel: "Gamepad Rumble",
 		firstPersonPitchLabel: "1st Person Pitch",
 		exportSettingsBtn: "Export Settings",
@@ -611,7 +613,7 @@ const spkmodTranslations = {
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.3.2",
+			header: "SpeakiMod+ v1.3.3",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -765,6 +767,8 @@ const spkmodTranslations = {
 			bgOpacityGlass: "ガラス",
 			accentColorLabel: "HUDアクセントカラー",
 			fpsPingToggleLabel: "FPS & Pingカウンター",
+			resetTimerToggleLabel: "デイリーリセットタイマー",
+			resetTimerText: "リセットまで: {0}時間 {1}分 {2}秒",
 			gamepadRumbleToggleLabel: "ゲームパッドの振動",
 			firstPersonPitchLabel: "1人称視点の高低",
 			exportSettingsBtn: "設定をエクスポート",
@@ -791,7 +795,7 @@ const spkmodTranslations = {
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.3.2",
+		header: "SpeakiMod+ v1.3.3",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -944,6 +948,8 @@ const spkmodTranslations = {
 		bgOpacityGlass: "글래스",
 		accentColorLabel: "강조 색상",
 		fpsPingToggleLabel: "FPS & 핑 카운터",
+		resetTimerToggleLabel: "일일 초기화 타이머",
+		resetTimerText: "초기화까지: {0}시간 {1}분 {2}초",
 		gamepadRumbleToggleLabel: "게임패드 진동",
 		firstPersonPitchLabel: "1인칭 피치",
 		exportSettingsBtn: "설정 내보내기",
@@ -1116,6 +1122,15 @@ function setFpsPingEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-fps-ping", lunFpsPingEnabled ? "true" : "false");
 	if (lunHudElements.fpsPingTracker) {
 		lunHudElements.fpsPingTracker.style.display = lunFpsPingEnabled ? "" : "none";
+	}
+}
+
+var lunResetTimerEnabled = (window.localStorage && localStorage.getItem("spkmod-reset-timer")) !== "false";
+function setResetTimerEnabled(enabled) {
+	lunResetTimerEnabled = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-reset-timer", lunResetTimerEnabled ? "true" : "false");
+	if (lunHudElements.resetTimerTracker) {
+		lunHudElements.resetTimerTracker.style.display = lunResetTimerEnabled ? "" : "none";
 	}
 }
 
@@ -1603,6 +1618,10 @@ document.body.appendChild(
 			lunHudElements.fpsPingTracker = buildElement("span", {
 				innerText: t("fpsPingText", "--", "--"),
 				style: lunFpsPingEnabled ? "" : "display: none;"
+			}),
+			lunHudElements.resetTimerTracker = buildElement("span", {
+				innerText: t("resetTimerText", "--", "--", "--"),
+				style: lunResetTimerEnabled ? "" : "display: none;"
 			}),
 			lunHudElements.footerMsg = buildElement("span", {
 				id: "spkmod-footer",
@@ -2270,6 +2289,10 @@ document.body.appendChild(
 		buildElement("div", { className: "spkmod-panel-cat" }, [
 			lunPanelElements.fpsPingLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("fpsPingToggleLabel") }),
 			lunPanelElements.fpsPingToggleInput = buildElement("input", { type: "checkbox", checked: lunFpsPingEnabled, onchange: e => setFpsPingEnabled(e.target.checked) })
+		]),
+		buildElement("div", { className: "spkmod-panel-cat" }, [
+			lunPanelElements.resetTimerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("resetTimerToggleLabel") }),
+			lunPanelElements.resetTimerToggleInput = buildElement("input", { type: "checkbox", checked: lunResetTimerEnabled, onchange: e => setResetTimerEnabled(e.target.checked) })
 		]),
 		buildElement("div", { className: "spkmod-panel-cat" }, [
 			lunPanelElements.gamepadRumbleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("gamepadRumbleToggleLabel") }),
@@ -3454,6 +3477,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.lowHpLabel) setText(lunPanelElements.lowHpLabel, t("lowHpWarningToggleLabel"));
 	if (lunPanelElements.sessionGoldLabel) setText(lunPanelElements.sessionGoldLabel, t("sessionGoldToggleLabel"));
 	if (lunPanelElements.fpsPingLabel) setText(lunPanelElements.fpsPingLabel, t("fpsPingToggleLabel"));
+	if (lunPanelElements.resetTimerLabel) setText(lunPanelElements.resetTimerLabel, t("resetTimerToggleLabel"));
 	if (lunPanelElements.gamepadRumbleLabel) setText(lunPanelElements.gamepadRumbleLabel, t("gamepadRumbleToggleLabel"));
 	if (lunPanelElements.uiScaleLabel) setText(lunPanelElements.uiScaleLabel, t("uiScaleLabel"));
 	if (lunPanelElements.bgOpacityLabel) setText(lunPanelElements.bgOpacityLabel, t("bgOpacityLabel"));
@@ -4244,18 +4268,41 @@ let lunCurrentFps = 0;
 let lunCurrentPing = "--";
 
 function fpsLoop() {
+	const now = performance.now();
 	if (lunFpsPingEnabled) {
-		const now = performance.now();
 		lunFrameCount++;
-		if (now - lunLastFrameTime >= 1000) {
+	}
+
+	if (now - lunLastFrameTime >= 1000) {
+		if (lunFpsPingEnabled) {
 			lunCurrentFps = lunFrameCount;
 			lunFrameCount = 0;
-			lunLastFrameTime = now;
 			if (lunHudElements.fpsPingTracker) {
 				setText(lunHudElements.fpsPingTracker, t("fpsPingText", lunCurrentFps, lunCurrentPing));
 			}
 		}
+
+		if (lunResetTimerEnabled && lunHudElements.resetTimerTracker) {
+			const nowUtc = new Date();
+			const kstOffset = 9 * 60 * 60 * 1000;
+			const kstNow = new Date(nowUtc.getTime() + kstOffset);
+			const kstNextMidnight = new Date(kstNow);
+			kstNextMidnight.setUTCHours(24, 0, 0, 0); // Next midnight in KST
+			const diffMs = kstNextMidnight.getTime() - kstNow.getTime();
+			const diffTotalSeconds = Math.floor(diffMs / 1000);
+			const hours = Math.floor(diffTotalSeconds / 3600);
+			const minutes = Math.floor((diffTotalSeconds % 3600) / 60);
+			const seconds = diffTotalSeconds % 60;
+			setText(lunHudElements.resetTimerTracker, t("resetTimerText", 
+				String(hours).padStart(2, '0'), 
+				String(minutes).padStart(2, '0'),
+				String(seconds).padStart(2, '0')
+			));
+		}
+
+		lunLastFrameTime = now;
 	}
+	
 	requestAnimationFrame(fpsLoop);
 }
 requestAnimationFrame(fpsLoop);
