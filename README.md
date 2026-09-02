@@ -252,6 +252,7 @@ Want to collaborate? Reach out to us, [send a pull request](https://github.com/D
 * **Client and SpeakiMod+ Coding:** Glas
 * **SpeakiMod Original Developer:** Alluseri
 * **Japanese Translation:** JPN_WholesomeElfName15T
+* **Traditional Chinese (zh-TW) Translation:** PeiYu
 
 ---
 
