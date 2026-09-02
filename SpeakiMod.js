@@ -1168,17 +1168,9 @@ document.body.appendChild(
 			]),
 			buildElement("div", { className: "spkmod-panel-cat" }, [
 				lunPanelElements.chowayoBtn = buildElement("button", {
-					className: "spkmod-panel-btn",
-					innerText: t("chowayo"),
-					value: "",
-					onclick: _ => {
-						gameState.sendEmoteNow(Emotes.PumpkinJoayo);
-					}
-				}),
-				lunPanelElements.autoChowayoBtn = buildElement("button", {
 					id: "spkmod-autochowayo-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.AutoChowayoActive ? "autoChowayoOn" : "autoChowayoOff"),
+					innerText: t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"),
 					value: "",
 					onclick: e => {
 						window.AutoChowayoActive = !window.AutoChowayoActive;
@@ -1189,7 +1181,7 @@ document.body.appendChild(
 							chatLog(t("autoChowayoDeactivatedMsg") || "Auto Chowayo deactivated.");
 							clearTimeout(window.__autoChowayoTimeoutId);
 						}
-						setText(e.target, t(window.AutoChowayoActive ? "autoChowayoOn" : "autoChowayoOff"));
+						setText(e.target, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
 					}
 				}),
 				lunPanelElements.heartsBtn = buildElement("button", {
@@ -2972,7 +2964,7 @@ function updateMovementButtonsUI() {
 spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.headerBtn, t("header"));
 	setText(lunPanelElements.danceBtn, t("dance"));
-	setText(lunPanelElements.chowayoBtn, t("chowayo"));
+	setText(lunPanelElements.chowayoBtn, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
 	setText(lunPanelElements.heartsBtn, t("hearts"));
 	setText(lunPanelElements.autoHeartsBtn, t(window.AutoHeartsActive ? "autoHeartsOn" : "autoHeartsOff"));
 	setText(lunPanelElements.petBtn, t("pet"));

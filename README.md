@@ -51,14 +51,14 @@
 - EXP tracker (EXP per minute and time until next level estimation)
 - Channel tracker
 - Dance anywhere
-- Say "Chowayo!" anywhere
+- Say "Chowayo!" anywhere & Auto-Chowayo loop
 - Heart bloom & continuous heart loop (Spread love with single or repeating heart bursts)
 - Lock the camera (like in old PS1 games)
 - ViewClip (allow the camera to phase through walls)
 - Spin fast (defeating the mobile monopoly)
 - True direction-locked Moonwalk (Move in any direction while keeping your facing angle locked)
 - Shake & Super Shake (Rapid camera-following jitter and energetic super-shake reaction)
-- Dance Ritual (Perform synchronized circular orbit dances with rhythmic jumps and hearts)
+- Dance Ritual (Perform synchronized circular orbit dances, now with Reverse Orbit / Inverted option)
 - Turntable photo mode (Continuous 360° orbiting camera for screenshots & clips)
 - Watch the game from another player's perspective
 - Follow player (Auto-follow targeted friends or nearby players with one click)
