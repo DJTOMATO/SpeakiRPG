@@ -179,7 +179,13 @@
     "hudBgLv35": "Lv 35",
     "hudBgLv40": "Lv 40",
     "hudBgLv45": "Lv 45",
-    "hudBgLv50": "Lv 50"
+    "hudBgLv50": "Lv 50",
+    "ritualInverted": "Ritual (Rev): ⏸️",
+    "autoChowayoOn": "A-Chowayo: ⏸️",
+    "autoChowayoOff": "A-Chowayo: ▶️",
+    "ritualInvertedMsg": "Inverted dance ritual activated!",
+    "autoChowayoActivatedMsg": "Auto Chowayo loop activated!",
+    "autoChowayoDeactivatedMsg": "Auto Chowayo loop deactivated."
   },
   "ja": {
     "langName": "日本語",
@@ -361,7 +367,13 @@
     "hudBgLv35": "Lv 35",
     "hudBgLv40": "Lv 40",
     "hudBgLv45": "Lv 45",
-    "hudBgLv50": "Lv 50"
+    "hudBgLv50": "Lv 50",
+    "ritualInverted": "逆💃🏻舞う💃🏻: ⏸️",
+    "autoChowayoOn": "自動ﾁｮﾜﾖ: ⏸️",
+    "autoChowayoOff": "自動ﾁｮﾜﾖ: ▶️",
+    "ritualInvertedMsg": "ｽﾋﾟｷが逆向きに💃🏻舞い💃🏻始めました！",
+    "autoChowayoActivatedMsg": "ｽﾋﾟｷが「自動ﾁｮﾜﾖ」を始めました！",
+    "autoChowayoDeactivatedMsg": "ｽﾋﾟｷは「自動ﾁｮﾜﾖ」を終えました。"
   },
   "ko": {
     "langName": "한국어",
@@ -543,7 +555,13 @@
     "hudBgLv35": "Lv 35",
     "hudBgLv40": "Lv 40",
     "hudBgLv45": "Lv 45",
-    "hudBgLv50": "Lv 50"
+    "hudBgLv50": "Lv 50",
+    "ritualInverted": "역의식 댄스: ⏸️",
+    "autoChowayoOn": "자동 초와요: ⏸️",
+    "autoChowayoOff": "자동 초와요: ▶️",
+    "ritualInvertedMsg": "역방향 의식 댄스 모드가 활성화되었습니다!",
+    "autoChowayoActivatedMsg": "자동 초와요 모드가 활성화되었습니다!",
+    "autoChowayoDeactivatedMsg": "자동 초와요 모드가 비활성화되었습니다."
   },
   "zh-TW": {
     "langName": "繁體中文",

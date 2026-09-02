@@ -1175,6 +1175,23 @@ document.body.appendChild(
 						gameState.sendEmoteNow(Emotes.PumpkinJoayo);
 					}
 				}),
+				lunPanelElements.autoChowayoBtn = buildElement("button", {
+					id: "spkmod-autochowayo-btn",
+					className: "spkmod-panel-btn",
+					innerText: t(window.AutoChowayoActive ? "autoChowayoOn" : "autoChowayoOff"),
+					value: "",
+					onclick: e => {
+						window.AutoChowayoActive = !window.AutoChowayoActive;
+						if (window.AutoChowayoActive) {
+							chatLog(t("autoChowayoActivatedMsg") || "Auto Chowayo activated!");
+							autoChowayoLoop();
+						} else {
+							chatLog(t("autoChowayoDeactivatedMsg") || "Auto Chowayo deactivated.");
+							clearTimeout(window.__autoChowayoTimeoutId);
+						}
+						setText(e.target, t(window.AutoChowayoActive ? "autoChowayoOn" : "autoChowayoOff"));
+					}
+				}),
 				lunPanelElements.heartsBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
 					innerText: t("hearts"),
@@ -1213,7 +1230,7 @@ document.body.appendChild(
 				lunPanelElements.ritualBtn = buildElement("button", {
 					id: "spkmod-ritual-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.RitualActive ? "ritualOn" : "ritualOff"),
+					innerText: t(window.RitualState === 0 ? "ritualOff" : (window.RitualState === 1 ? "ritualOn" : "ritualInverted")),
 					value: "",
 					onclick: e => {
 						toggleRitual(e.target);
@@ -1908,6 +1925,18 @@ function autoHeartsLoop() {
 	window.__autoHeartsTimeoutId = setTimeout(autoHeartsLoop, lunHeartsAnimMs);
 }
 
+window.AutoChowayoActive = false;
+window.__autoChowayoTimeoutId = null;
+const lunChowayoAnimMs = 2800; // tuned for sync
+
+function autoChowayoLoop() {
+	if (!window.AutoChowayoActive) return;
+	if (gameState && typeof gameState.sendEmoteNow === "function") {
+		gameState.sendEmoteNow(Emotes.PumpkinJoayo);
+	}
+	window.__autoChowayoTimeoutId = setTimeout(autoChowayoLoop, lunChowayoAnimMs);
+}
+
 let petSequenceTimeouts = [];
 
 function clearPetSequence() {
@@ -1956,14 +1985,14 @@ function triggerPetSequence() {
 	}, 2050));
 }
 
-window.RitualActive = false;
+window.RitualState = 0; // 0: off, 1: normal, 2: inverted
 let ritualCenter = null;
 let ritualEmoteTick = 0;
 const RITUAL_RADIUS = 1.1; // Sized closely to one player's perimeter
 
 function toggleRitual(btn) {
-	window.RitualActive = !window.RitualActive;
-	if (window.RitualActive) {
+	window.RitualState = (window.RitualState + 1) % 3;
+	if (window.RitualState > 0) {
 		if (lunFollowTargetName && gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
 			const tp = Array.from(gameState.remotePlayers.remotePlayers.values()).find(t => t.info && t.info.name === lunFollowTargetName);
 			if (tp && tp.container) {
@@ -1974,12 +2003,17 @@ function toggleRitual(btn) {
 			ritualCenter = Object.assign({}, getPlayerPos());
 		}
 		ritualEmoteTick = 0;
-		chatLog(t("ritualActivatedMsg"));
+		chatLog(t(window.RitualState === 2 ? "ritualInvertedMsg" : "ritualActivatedMsg") || "Dance ritual activated!");
 	} else {
 		ritualCenter = null;
 		chatLog(t("ritualDeactivatedMsg"));
 	}
-	if (btn) setText(btn, t(window.RitualActive ? "ritualOn" : "ritualOff"));
+	if (btn) {
+		let textKey = "ritualOff";
+		if (window.RitualState === 1) textKey = "ritualOn";
+		if (window.RitualState === 2) textKey = "ritualInverted";
+		setText(btn, t(textKey));
+	}
 }
 
 window.TurntableActive = false;
@@ -2942,7 +2976,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.heartsBtn, t("hearts"));
 	setText(lunPanelElements.autoHeartsBtn, t(window.AutoHeartsActive ? "autoHeartsOn" : "autoHeartsOff"));
 	setText(lunPanelElements.petBtn, t("pet"));
-	setText(lunPanelElements.ritualBtn, t(window.RitualActive ? "ritualOn" : "ritualOff"));
+	setText(lunPanelElements.ritualBtn, t(window.RitualState === 0 ? "ritualOff" : (window.RitualState === 1 ? "ritualOn" : "ritualInverted")));
 	setText(lunPanelElements.turntableBtn, t(window.TurntableActive ? "turntableOn" : "turntableOff"));
 	setText(lunHudElements.discordBtn, t("discordBtn"));
 	setText(lunPanelElements.autoJumpBtn, t(window.AutoJumpActive ? "autoJumpOn" : "autoJumpOff"));
@@ -3452,13 +3486,13 @@ gameState.combatAssist.update = (e) => {
 		};
 	}
 
-	if (window.RitualActive && ritualCenter) {
+	if (window.RitualState > 0 && ritualCenter) {
 		const pp = getPlayerPos();
 		const dx = pp.x - ritualCenter.x;
 		const dz = pp.z - ritualCenter.z;
 		let currentAngle = Math.atan2(dx, dz);
 
-		currentAngle += 0.045;
+		currentAngle += (window.RitualState === 2 ? -0.045 : 0.045);
 
 		const targetX = ritualCenter.x + Math.sin(currentAngle) * RITUAL_RADIUS;
 		const targetZ = ritualCenter.z + Math.cos(currentAngle) * RITUAL_RADIUS;
