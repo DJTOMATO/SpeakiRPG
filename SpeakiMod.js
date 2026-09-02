@@ -431,7 +431,7 @@ loadAllBadWordLists();
 const spkmodTranslations = {
 	en: {
 		langName: "English",
-		header: "SpeakiMod+ v1.3.3",
+		header: "SpeakiMod+ v1.3.4",
 		langLabel: "Language",
 		playersNearby: "Speaki nearby: {0}",
 		zoneId: "Zone ID: {0}",
@@ -613,7 +613,7 @@ const spkmodTranslations = {
 	},
 	ja: {
 			langName: "日本語",
-			header: "SpeakiMod+ v1.3.3",
+			header: "SpeakiMod+ v1.3.4",
 			langLabel: "言語",
 			playersNearby: "近くのｽﾋﾟｷ数: {0}",
 			zoneId: "エリアID: {0}",
@@ -795,7 +795,7 @@ const spkmodTranslations = {
 		},
 	ko: {
 		langName: "한국어",
-		header: "SpeakiMod+ v1.3.3",
+		header: "SpeakiMod+ v1.3.4",
 		langLabel: "언어",
 		playersNearby: "근처 플레이어: {0}",
 		zoneId: "존 ID: {0}",
@@ -1206,7 +1206,7 @@ function updateDynamicStyles() {
 			--spkmod-blur: ${blurRule};
 			--spkmod-accent: ${lunAccentColor};
 		}
-		#spkmod-hud { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
+		#spkmod-hud, #spkmod-settings-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
 		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
 			background: var(--spkmod-bg) !important;
@@ -1225,6 +1225,17 @@ function updateDynamicStyles() {
 	`;
 	if (!document.getElementById("spkmod-dynamic-styles")) {
 		document.head.appendChild(styleTag);
+	}
+	
+	if (typeof lunHudElements !== 'undefined' && lunHudElements.settingsModal && !lunHudElements.settingsModal.classList.contains("hidden")) {
+		setTimeout(() => {
+			let hud = document.querySelector("#spkmod-hud");
+			if (hud) {
+				let rect = hud.getBoundingClientRect();
+				lunHudElements.settingsModal.style.left = (rect.right + 10) + "px";
+				lunHudElements.settingsModal.style.top = rect.top + "px";
+			}
+		}, 10);
 	}
 }
 
@@ -1371,6 +1382,8 @@ document.head.appendChild(buildElement(
 			position: fixed;
 			z-index: 600000;
 			min-width: 220px;
+			max-height: 90vh;
+			overflow-y: auto;
 			color: #FFF;
 			background: #000C;
 			border: ${spkmodBorderWidth} solid #DDD;
@@ -2300,7 +2313,7 @@ document.body.appendChild(
 		]),
 		buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px;" }, [
 			lunPanelElements.uiScaleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("uiScaleLabel") }),
-			lunPanelElements.uiScaleSlider = buildElement("input", { type: "range", min: "0.8", max: "1.3", step: "0.05", value: lunUiScale, style: "width: 70px;", oninput: e => { lunUiScale = e.target.value; updateDynamicStyles(); } })
+			lunPanelElements.uiScaleSlider = buildElement("input", { type: "range", min: "0.8", max: "1.3", step: "0.05", value: lunUiScale, style: "width: 70px;", onchange: e => { lunUiScale = e.target.value; updateDynamicStyles(); } })
 		]),
 		buildElement("div", { className: "spkmod-panel-cat" }, [
 			lunPanelElements.bgOpacityLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("bgOpacityLabel") }),
