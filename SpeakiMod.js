@@ -2090,7 +2090,7 @@ const SPKMOD_GAMEPAD_CONFIG_KEY = "spkmod-gamepad-config";
 
 const SPKMOD_DEFAULT_GAMEPAD_CONFIG = {
 	version: 3,
-	enabled: true,
+	enabled: false,
 	deadzone: 0.15,
 	cameraSensitivity: 1.2,
 	invertCameraX: false,
@@ -2527,10 +2527,26 @@ document.body.appendChild(
 				onclick: _ => lunHudElements.gamepadModal.classList.add("hidden")
 			})
 		]),
-		gamepadModalElements.statusText = buildElement("div", {
-			style: "font-size: 11px; padding: 4px 6px; background: #111; border-radius: 4px; border: 1px solid #333;",
-			innerText: t("gamepadDisconnected")
-		}),
+		buildElement("div", { style: "display: flex; justify-content: space-between; gap: 8px; align-items: stretch;" }, [
+			gamepadModalElements.statusText = buildElement("div", {
+				style: "flex: 1; font-size: 11px; padding: 4px 6px; background: #111; border-radius: 4px; border: 1px solid #333;",
+				innerText: t("gamepadDisconnected")
+			}),
+			gamepadModalElements.enableBtn = buildElement("button", {
+				className: "spkmod-panel-btn",
+				style: "margin: 0; flex: 0 0 auto; padding: 4px 12px; font-weight: bold; color: " + (spkmodGamepadConfig.enabled ? "#4ade80" : "#f87171") + ";",
+				innerText: spkmodGamepadConfig.enabled ? "Gamepad: ON" : "Gamepad: OFF",
+				onclick: () => {
+					spkmodGamepadConfig.enabled = !spkmodGamepadConfig.enabled;
+					saveGamepadConfig();
+					gamepadModalElements.enableBtn.innerText = spkmodGamepadConfig.enabled ? "Gamepad: ON" : "Gamepad: OFF";
+					gamepadModalElements.enableBtn.style.color = spkmodGamepadConfig.enabled ? "#4ade80" : "#f87171";
+					if (!spkmodGamepadConfig.enabled) {
+						updateGamepadModalLive(null);
+					}
+				}
+			})
+		]),
 		gamepadModalElements.pressedKeysText = buildElement("div", {
 			style: "font-size: 10px; color: #ffd54a; min-height: 14px;"
 		}),
@@ -2643,11 +2659,12 @@ function pollGamepadLoop() {
 		}
 	}
 
-	if (gp && spkmodGamepadConfig.enabled) {
+	if (gp) {
 		updateGamepadModalLive(gp);
 
-		const deadzone = spkmodGamepadConfig.deadzone || 0.15;
-		const sens = spkmodGamepadConfig.cameraSensitivity || 1.2;
+		if (spkmodGamepadConfig.enabled) {
+			const deadzone = spkmodGamepadConfig.deadzone || 0.15;
+			const sens = spkmodGamepadConfig.cameraSensitivity || 1.2;
 
 		// 1. Left Stick -> Camera Relative Movement
 		let lx = gp.axes[0] || 0;
@@ -2704,6 +2721,9 @@ function pollGamepadLoop() {
 			}
 
 			gamepadPrevButtons[b] = isPressed;
+		}
+		} else {
+			gamepadMoveVector = null;
 		}
 	} else {
 		gamepadMoveVector = null;
