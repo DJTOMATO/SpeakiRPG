@@ -1929,7 +1929,12 @@ document.body.appendChild(
 					if (lunPanelElements.gamepadSettingsBtn) {
 						lunPanelElements.gamepadSettingsBtn.classList.remove("hidden");
 					}
+					lunHudBackground = "custom";
 					updateHudBgDropdown();
+					if (lunPanelElements.customBgContainer) {
+						lunPanelElements.customBgContainer.classList.remove("hidden");
+					}
+					updateDynamicStyles();
 					chatLog(t("gamepadUnlockedMsg"));
 					window.__spkmodGlasClicks = 0;
 				}
@@ -3071,7 +3076,10 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.bgOpacitySelect) {
 		lunPanelElements.bgOpacitySelect.options[0].innerText = t("bgOpacitySolid");
 		lunPanelElements.bgOpacitySelect.options[1].innerText = t("bgOpacityTransparent");
-		lunPanelElements.bgOpacitySelect.options[2].innerText = t("bgOpacityGlass");
+		lunPanelElements.bgOpacitySelect.options[2].innerText = t("bgOpacitySuperTransparent") || "Super Transparent";
+		lunPanelElements.bgOpacitySelect.options[3].innerText = t("bgOpacityGlass");
+		lunPanelElements.bgOpacitySelect.options[4].innerText = t("bgOpacityLightGlass") || "Light Glass";
+		lunPanelElements.bgOpacitySelect.options[5].innerText = t("bgOpacityHeavyGlass") || "Heavy Glass";
 	}
 	if (lunPanelElements.hudBgLabel) setText(lunPanelElements.hudBgLabel, t("hudBackgroundLabel"));
 	if (lunPanelElements.accentColorLabel) setText(lunPanelElements.accentColorLabel, t("accentColorLabel"));
