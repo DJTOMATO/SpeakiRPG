@@ -741,8 +741,8 @@
         "bgOpacityLabel": "HUD 透明度",
         "bgOpacitySolid": "不透明",
         "bgOpacityTransparent": "半透明",
-        "bgOpacityGlass": "透明",
-        "accentColorLabel": "強調色",
+        "bgOpacityGlass": "黑色霧面",
+        "accentColorLabel": "主題色",
         "fpsPingToggleLabel": "FPS 與 延遲計數器",
         "resetTimerToggleLabel": "換日更新倒數",
         "resetTimerText": "換日重置時間: {0}小時 {1}分 {2}秒",
@@ -775,9 +775,9 @@
         "ritualInvertedMsg": "反向神秘舞蹈",
         "autoChowayoActivatedMsg": "開始自動揪挖唷",
         "autoChowayoDeactivatedMsg": "自動揪挖唷停止",
-        "bgOpacitySuperTransparent": "霧面",
-        "bgOpacityLightGlass": "白色霧面",
-        "bgOpacityHeavyGlass": "黑色霧面",
+        "bgOpacitySuperTransparent": "透明",
+        "bgOpacityLightGlass": "霧面",
+        "bgOpacityHeavyGlass": "深黑霧面",
         "hudBgCustom": "自訂網址"
     },
     "es-419": {
@@ -1126,8 +1126,8 @@
         "bgOpacityLabel": "HUD 透明度",
         "bgOpacitySolid": "不透明",
         "bgOpacityTransparent": "半透明",
-        "bgOpacityGlass": "透明",
-        "accentColorLabel": "强调色",
+        "bgOpacityGlass": "黑雾面",
+        "accentColorLabel": "主题色",
         "fpsPingToggleLabel": "FPS 与 延迟计数器",
         "resetTimerToggleLabel": "每日重置倒数",
         "resetTimerText": "重置时间: {0}小时 {1}分 {2}秒",
@@ -1160,9 +1160,9 @@
         "ritualInvertedMsg": "反向神秘舞蹈",
         "autoChowayoActivatedMsg": "開始自动揪哇哟",
         "autoChowayoDeactivatedMsg": "自动揪哇哟停止",
-        "bgOpacitySuperTransparent": "超透明",
+        "bgOpacitySuperTransparent": "透明",
         "bgOpacityLightGlass": "雾面",
-        "bgOpacityHeavyGlass": "白雾面",
-        "hudBgCustom": "黑雾面"
+        "bgOpacityHeavyGlass": "深黑雾面",
+        "hudBgCustom": "背景制定网址"
     }
 }
