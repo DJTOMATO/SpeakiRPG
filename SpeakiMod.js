@@ -760,14 +760,14 @@ function updateHudBgDropdown() {
 		{ value: "bg50", label: t("hudBgLv50"), reqLevel: 50 }
 	];
 
-	if (lunHudBackground === "custom") {
+	if (lunHudBackground === "custom" || (window.localStorage && localStorage.getItem("spkmod-custom-hud-unlocked") === "true")) {
 		options.push({ value: "custom", label: t("hudBgCustom") || "Custom URL", reqLevel: 0 });
 	}
 	
 	let hasSelection = false;
 	for (const opt of options) {
 		const isUnlocked = isVip || level >= opt.reqLevel;
-		if (isUnlocked || opt.value === "none") {
+		if (isUnlocked || opt.value === "none" || opt.value === "custom") {
 			const el = document.createElement("option");
 			el.value = opt.value;
 			el.innerText = opt.label;
@@ -1835,32 +1835,30 @@ document.body.appendChild(
 			])
 		]),
 		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.hudBgLabel = buildElement("span", { 
-				style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1; cursor: pointer;", 
-				innerText: t("hudBackgroundLabel"),
-				onclick: _ => {
-					const now = Date.now();
-					if (now - (window.__spkmodHudBgLastClick || 0) > 2000) window.__spkmodHudBgClicks = 0;
-					window.__spkmodHudBgLastClick = now;
-					window.__spkmodHudBgClicks = (window.__spkmodHudBgClicks || 0) + 1;
-					if (window.__spkmodHudBgClicks >= 3) {
-						window.__spkmodHudBgClicks = 0;
-						let currentUrl = (window.localStorage && localStorage.getItem("spkmod-custom-hud-bg")) || "";
-						const url = prompt("Enter Custom Image URL for HUD Background:", currentUrl);
-						if (url !== null) {
-							if (window.localStorage) localStorage.setItem("spkmod-custom-hud-bg", url);
-							lunHudBackground = "custom";
-							lunPanelElements.hudBgSelect.value = "custom";
-							if (!Array.from(lunPanelElements.hudBgSelect.options).some(o => o.value === "custom")) {
-								lunPanelElements.hudBgSelect.appendChild(buildElement("option", { value: "custom", innerText: t("hudBgCustom") || "Custom URL" }));
-							}
-							lunPanelElements.hudBgSelect.value = "custom";
-							updateDynamicStyles();
-						}
-					}
+			lunPanelElements.hudBgLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("hudBackgroundLabel") }),
+			lunPanelElements.hudBgSelect = buildElement("select", { className: "spkmod-panel-combo", value: lunHudBackground, onchange: e => { 
+				lunHudBackground = e.target.value; 
+				if (lunPanelElements.customBgContainer) {
+					if (lunHudBackground === "custom") lunPanelElements.customBgContainer.classList.remove("hidden");
+					else lunPanelElements.customBgContainer.classList.add("hidden");
 				}
-			}),
-			lunPanelElements.hudBgSelect = buildElement("select", { className: "spkmod-panel-combo", value: lunHudBackground, onchange: e => { lunHudBackground = e.target.value; updateDynamicStyles(); } })
+				updateDynamicStyles(); 
+			} })
+		]),
+		lunPanelElements.customBgContainer = buildElement("div", { 
+			className: "spkmod-panel-cat" + (lunHudBackground === "custom" ? "" : " hidden"),
+			style: "margin-top: 2px;"
+		}, [
+			buildElement("span", { style: "color: #aaa; font-size: 10px; flex: 1;", innerText: "URL:" }),
+			lunPanelElements.customBgInput = buildElement("input", { 
+				type: "text", 
+				value: (window.localStorage && localStorage.getItem("spkmod-custom-hud-bg")) || "",
+				style: "width: 100px; background: #222; color: #fff; border: 1px solid #444; border-radius: 3px; font-size: 10px; padding: 2px;",
+				oninput: e => {
+					if (window.localStorage) localStorage.setItem("spkmod-custom-hud-bg", e.target.value);
+					updateDynamicStyles();
+				}
+			})
 		]),
 		buildElement("div", { className: "spkmod-panel-cat" }, [
 			lunPanelElements.accentColorLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("accentColorLabel") }),
@@ -1924,10 +1922,14 @@ document.body.appendChild(
 				window.__spkmodGlasLastClick = now;
 				window.__spkmodGlasClicks = (window.__spkmodGlasClicks || 0) + 1;
 				if (window.__spkmodGlasClicks >= 3) {
-					if (window.localStorage) localStorage.setItem("spkmod-gamepad-unlocked", "true");
+					if (window.localStorage) {
+						localStorage.setItem("spkmod-gamepad-unlocked", "true");
+						localStorage.setItem("spkmod-custom-hud-unlocked", "true");
+					}
 					if (lunPanelElements.gamepadSettingsBtn) {
 						lunPanelElements.gamepadSettingsBtn.classList.remove("hidden");
 					}
+					updateHudBgDropdown();
 					chatLog(t("gamepadUnlockedMsg"));
 					window.__spkmodGlasClicks = 0;
 				}
