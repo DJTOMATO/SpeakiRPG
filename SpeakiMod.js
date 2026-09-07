@@ -635,6 +635,15 @@ function updateDynamicStyles() {
 	} else if (lunBgOpacity === "transparent") {
 		bgRule = "rgba(0, 0, 0, 0.4)";
 		blurRule = "none";
+	} else if (lunBgOpacity === "superTransparent") {
+		bgRule = "rgba(0, 0, 0, 0.15)";
+		blurRule = "none";
+	} else if (lunBgOpacity === "lightGlass") {
+		bgRule = "rgba(0, 0, 0, 0.45)";
+		blurRule = "blur(2px)";
+	} else if (lunBgOpacity === "heavyGlass") {
+		bgRule = "rgba(0, 0, 0, 0.85)";
+		blurRule = "blur(8px)";
 	}
 	
 	let bgImageRule = "none";
@@ -665,6 +674,10 @@ function updateDynamicStyles() {
 	else if (lunHudBackground === "bg40" && (isVip || level >= 40)) bgImageRule = `url('${urlBg40}')`;
 	else if (lunHudBackground === "bg45" && (isVip || level >= 45)) bgImageRule = `url('${urlBg45}')`;
 	else if (lunHudBackground === "bg50" && (isVip || level >= 50)) bgImageRule = `url('${urlBg50}')`;
+	else if (lunHudBackground === "custom") {
+		const cUrl = (window.localStorage && localStorage.getItem("spkmod-custom-hud-bg")) || "";
+		if (cUrl) bgImageRule = `url('${cUrl}')`;
+	}
 
 	let bgImageFinal = "none";
 	if (bgImageRule !== "none") {
@@ -746,6 +759,10 @@ function updateHudBgDropdown() {
 		{ value: "bg45", label: t("hudBgLv45"), reqLevel: 45 },
 		{ value: "bg50", label: t("hudBgLv50"), reqLevel: 50 }
 	];
+
+	if (lunHudBackground === "custom") {
+		options.push({ value: "custom", label: t("hudBgCustom") || "Custom URL", reqLevel: 0 });
+	}
 	
 	let hasSelection = false;
 	for (const opt of options) {
@@ -1119,7 +1136,8 @@ document.body.appendChild(
 			}),
 			lunHudElements.footerMsg = buildElement("span", {
 				id: "spkmod-footer",
-				innerText: t("footerMsg")
+				innerText: t("footerMsg"),
+				style: "cursor: move; user-select: none;"
 			}),
 			lunHudElements.discordBtn = buildElement("button", {
 				id: "spkmod-discord-btn",
@@ -1810,11 +1828,38 @@ document.body.appendChild(
 			lunPanelElements.bgOpacitySelect = buildElement("select", { className: "spkmod-panel-combo", value: lunBgOpacity, onchange: e => { lunBgOpacity = e.target.value; updateDynamicStyles(); } }, [
 				buildElement("option", { value: "solid", innerText: t("bgOpacitySolid"), selected: lunBgOpacity === "solid" }),
 				buildElement("option", { value: "transparent", innerText: t("bgOpacityTransparent"), selected: lunBgOpacity === "transparent" }),
-				buildElement("option", { value: "glass", innerText: t("bgOpacityGlass"), selected: lunBgOpacity === "glass" })
+				buildElement("option", { value: "superTransparent", innerText: t("bgOpacitySuperTransparent") || "Super Transparent", selected: lunBgOpacity === "superTransparent" }),
+				buildElement("option", { value: "glass", innerText: t("bgOpacityGlass"), selected: lunBgOpacity === "glass" }),
+				buildElement("option", { value: "lightGlass", innerText: t("bgOpacityLightGlass") || "Light Glass", selected: lunBgOpacity === "lightGlass" }),
+				buildElement("option", { value: "heavyGlass", innerText: t("bgOpacityHeavyGlass") || "Heavy Glass", selected: lunBgOpacity === "heavyGlass" })
 			])
 		]),
 		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.hudBgLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("hudBackgroundLabel") }),
+			lunPanelElements.hudBgLabel = buildElement("span", { 
+				style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1; cursor: pointer;", 
+				innerText: t("hudBackgroundLabel"),
+				onclick: _ => {
+					const now = Date.now();
+					if (now - (window.__spkmodHudBgLastClick || 0) > 2000) window.__spkmodHudBgClicks = 0;
+					window.__spkmodHudBgLastClick = now;
+					window.__spkmodHudBgClicks = (window.__spkmodHudBgClicks || 0) + 1;
+					if (window.__spkmodHudBgClicks >= 3) {
+						window.__spkmodHudBgClicks = 0;
+						let currentUrl = (window.localStorage && localStorage.getItem("spkmod-custom-hud-bg")) || "";
+						const url = prompt("Enter Custom Image URL for HUD Background:", currentUrl);
+						if (url !== null) {
+							if (window.localStorage) localStorage.setItem("spkmod-custom-hud-bg", url);
+							lunHudBackground = "custom";
+							lunPanelElements.hudBgSelect.value = "custom";
+							if (!Array.from(lunPanelElements.hudBgSelect.options).some(o => o.value === "custom")) {
+								lunPanelElements.hudBgSelect.appendChild(buildElement("option", { value: "custom", innerText: t("hudBgCustom") || "Custom URL" }));
+							}
+							lunPanelElements.hudBgSelect.value = "custom";
+							updateDynamicStyles();
+						}
+					}
+				}
+			}),
 			lunPanelElements.hudBgSelect = buildElement("select", { className: "spkmod-panel-combo", value: lunHudBackground, onchange: e => { lunHudBackground = e.target.value; updateDynamicStyles(); } })
 		]),
 		buildElement("div", { className: "spkmod-panel-cat" }, [
@@ -3739,12 +3784,14 @@ if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && typeof g
 
 setInterval(tick, 50);
 
-function makeDraggable(element, handle) {
+function makeDraggable(element, handles) {
 	let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
 
-	if (handle) {
-		handle.onmousedown = dragMouseDown;
-	}
+	handles.forEach(handle => {
+		if (handle) {
+			handle.onmousedown = dragMouseDown;
+		}
+	});
 
 	function dragMouseDown(e) {
 		e = e || window.event;
@@ -3799,7 +3846,8 @@ if (hudWindow && dragHandle) {
 		}
 	}
 
-	makeDraggable(hudWindow, dragHandle);
+	const footerHandle = document.getElementById("spkmod-footer");
+	makeDraggable(hudWindow, [dragHandle, footerHandle]);
 }
 
 let lunLastFrameTime = performance.now();
