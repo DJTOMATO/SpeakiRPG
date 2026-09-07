@@ -249,7 +249,9 @@ npm start
 * **クライアント＆SpeakiMod+コーディング:** Glas
 * **SpeakiMod原作者:** Alluseri
 * **日本語翻訳:** JPN_健全なエルフ名15T
-* **繁体字中国語翻訳:** PeiYu
+* **中国語翻訳:** PeiYu
+* **韓国語翻訳:** Mafty-hobagi
+
 ---
 
 ## サードパーティコンポーネント
