@@ -257,6 +257,10 @@ Want to collaborate? Join our [Discord](https://discord.gg/bruZhcwqRx), [send a 
 * **Traditional Chinese (zh-TW) Translation:** PeiYu
 * **Korean Translation:** Mafty-hobagi
 
+**Fanart Used:**
+A special thanks to the artists who kindly authorized the use of their artwork for the UI backgrounds!
+* [느그 유노(Yuno) - Lv. 40](https://x.com/yyakk__11)
+
 ---
 
 ## Third-Party Components

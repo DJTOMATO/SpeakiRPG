@@ -661,7 +661,7 @@ function updateDynamicStyles() {
 	const urlBg25 = "https://i.imgur.com/Ue6kUK7.png";
 	const urlBg30 = "https://i.imgur.com/HMXSjbC.png";
 	const urlBg35 = "https://i.imgur.com/WSzIC0U.png";
-	const urlBg40 = "https://i.imgur.com/Op8sbcp.png";
+	const urlBg40 = "https://i.imgur.com/NlRyXS3.jpeg";
 	const urlBg45 = "https://i.imgur.com/UXdgxWx.png";
 	const urlBg50 = "https://i.imgur.com/5Sw1BXu.png";
 

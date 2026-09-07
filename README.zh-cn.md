@@ -256,6 +256,10 @@ npm start
 * **日语翻译:** JPN_WholesomeElfName15T
 * **繁体中文 (zh-TW) 翻译:** PeiYu
 
+**使用的同人图：**
+特别感谢授权将其作品用于 UI 背景的画师们！
+* [느그 유노(Yuno) - Lv. 40](https://x.com/yyakk__11)
+
 ---
 
 ## 第三方元件
