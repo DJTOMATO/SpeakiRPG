@@ -533,6 +533,7 @@ var lunPanelElements = {
 	translateEmailInput: null,
 	creditsLabel: null,
 	translateEmailInfo: null,
+	expRateUnitLabel: null,
 	discordBtn: null,
 	gamepadSettingsBtn: null,
 };
@@ -595,6 +596,12 @@ function setSessionGoldTrackerEnabled(enabled) {
 	if (lunHudElements.sessionGoldTracker) {
 		lunHudElements.sessionGoldTracker.style.display = lunSessionGoldTrackerEnabled ? "" : "none";
 	}
+}
+
+var lunExpRatePerHour = (window.localStorage && localStorage.getItem("spkmod-exp-per-hour")) === "true";
+function setExpRatePerHour(enabled) {
+	lunExpRatePerHour = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-exp-per-hour", lunExpRatePerHour ? "true" : "false");
 }
 
 var lunFpsPingEnabled = (window.localStorage && localStorage.getItem("spkmod-fps-ping")) === "true";
@@ -1806,6 +1813,10 @@ document.body.appendChild(
 		buildElement("div", { className: "spkmod-panel-cat" }, [
 			lunPanelElements.sessionGoldLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("sessionGoldToggleLabel") }),
 			lunPanelElements.sessionGoldToggleInput = buildElement("input", { type: "checkbox", checked: lunSessionGoldTrackerEnabled, onchange: e => setSessionGoldTrackerEnabled(e.target.checked) })
+		]),
+		buildElement("div", { className: "spkmod-panel-cat" }, [
+			lunPanelElements.expRateUnitLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("expRateUnitToggleLabel") }),
+			buildElement("input", { type: "checkbox", checked: lunExpRatePerHour, onchange: e => setExpRatePerHour(e.target.checked) })
 		]),
 		buildElement("div", { className: "spkmod-panel-cat" }, [
 			lunPanelElements.fpsPingLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("fpsPingToggleLabel") }),
@@ -3068,6 +3079,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.freeCamBtn) setText(lunPanelElements.freeCamBtn, t(lunDroneModeActive ? "freeCamOn" : "freeCamOff"));
 	if (lunPanelElements.lowHpLabel) setText(lunPanelElements.lowHpLabel, t("lowHpWarningToggleLabel"));
 	if (lunPanelElements.sessionGoldLabel) setText(lunPanelElements.sessionGoldLabel, t("sessionGoldToggleLabel"));
+	if (lunPanelElements.expRateUnitLabel) setText(lunPanelElements.expRateUnitLabel, t("expRateUnitToggleLabel"));
 	if (lunPanelElements.fpsPingLabel) setText(lunPanelElements.fpsPingLabel, t("fpsPingToggleLabel"));
 	if (lunPanelElements.resetTimerLabel) setText(lunPanelElements.resetTimerLabel, t("resetTimerToggleLabel"));
 	if (lunPanelElements.gamepadRumbleLabel) setText(lunPanelElements.gamepadRumbleLabel, t("gamepadRumbleToggleLabel"));
@@ -3094,6 +3106,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunHudElements.currencyTracker, lunLastGold === null
 		? t("currencyTracker", "--", "--")
 		: t("currencyTracker", lunLastGold.toLocaleString(), lunLastElif.toLocaleString()));
+	setText(lunHudElements.sessionGoldTracker, t("sessionGoldText", "--", "--"));
 	if (!lunPinnedQuestId) setText(lunHudElements.pinnedQuest.content, t("pinnedQuestDefault"));
 
 	updateMovementButtonsUI();
@@ -3267,7 +3280,7 @@ function tick() {
 	var playerExp = gameState.myStat.exp;
 	var zoneId = gameState.zoneId % 10000;
 	var expTrackerTimer = Math.max(0, Math.ceil((lunExpTrackerNextTicks - lunTickCount) / lunTPS));
-	var expTrackerL1 = t("zeroExp");
+	var expTrackerL1 = t(lunExpRatePerHour ? "zeroExpPerHour" : "zeroExp");
 	var expTrackerL2 = t("nextLevelNA");
 
 	if (!lunExpTrackerInitialized) {
@@ -3285,7 +3298,8 @@ function tick() {
 	lunExpTrackerSpeed = expGained / 60; 
 
 	if (lunExpTrackerSpeed > 0) {
-		expTrackerL1 = t("expPerMinute", (lunExpTrackerSpeed * 60).toFixed(0), expTrackerTimer);
+		const expRate = lunExpRatePerHour ? lunExpTrackerSpeed * 3600 : lunExpTrackerSpeed * 60;
+		expTrackerL1 = t(lunExpRatePerHour ? "expPerHour" : "expPerMinute", expRate.toFixed(0), expTrackerTimer);
 
 		var minutesRemaining = (gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60;
 		if (minutesRemaining >= 60) {
