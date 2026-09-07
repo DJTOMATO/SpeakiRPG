@@ -255,6 +255,7 @@ Want to collaborate? Join our [Discord](https://discord.gg/bruZhcwqRx), [send a 
 * **SpeakiMod Original Developer:** Alluseri
 * **Japanese Translation:** JPN_WholesomeElfName15T
 * **Traditional Chinese (zh-TW) Translation:** PeiYu
+* **Korean Translation:** Mafty-hobagi
 
 ---
 
