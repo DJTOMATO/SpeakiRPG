@@ -41,7 +41,10 @@
 * **Real-Time Chat Translation**: Instantly translates in-game chat messages using the MyMemory API
 * **Profanity Filter**: Automatically censors explicit or inappropriate language in chat to keep your in-game communication clean and friendly.
 
-<h2 id="2-additional-features">2. Additional Features</h2>
+* **World Map UI**
+* **Dynamic Autowalk Pathfinding**
+* **Accurate Quest Locks**
+\n<h2 id="2-additional-features">2. Additional Features</h2>
 
 [⬆ Back to Top](#table-of-contents)
 

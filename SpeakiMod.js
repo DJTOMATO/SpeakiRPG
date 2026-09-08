@@ -102,7 +102,7 @@ const Emotes = {
 const Portals = {
 	1: {
 		2: {
-			portalId: 1,
+			portalId: 1, requiredQuestCode: null,
 			pos: {
 				x: 95,
 				z: 50
@@ -111,78 +111,92 @@ const Portals = {
 	},
 	2: {
 		1: {
-			portalId: 2,
+			portalId: 2, requiredQuestCode: null,
 			pos: {
 				x: 105,
 				z: 50
 			}
 		},
-		5: {
-			portalId: 7,
+		3: {
+			portalId: 7, requiredQuestCode: null,
 			pos: {
 				x: 196,
 				z: 100
 			}
+		},
+		101: {
+			portalId: 19, requiredQuestCode: "MQ_BOSS_WORLDTREE",
+			pos: {
+				x: 150,
+				z: 195
+			}
+		},
+		201: {
+			portalId: 37, requiredQuestCode: "MQ2_CORE3",
+			pos: {
+				x: 150,
+				z: 5
+			}
 		}
 	},
-	5: {
+	3: {
 		2: {
-			portalId: 8,
+			portalId: 8, requiredQuestCode: null,
 			pos: {
 				x: 204,
 				z: 100
 			}
 		},
-		3: {
-			portalId: 3,
+		4: {
+			portalId: 3, requiredQuestCode: null,
 			pos: {
 				x: 296,
 				z: 120
 			}
 		}
 	},
-	3: {
-		5: {
-			portalId: 4,
+	4: {
+		3: {
+			portalId: 4, requiredQuestCode: null,
 			pos: {
 				x: 306,
 				z: 120
 			}
 		},
-		6: {
-			portalId: 9,
+		5: {
+			portalId: 9, requiredQuestCode: null,
 			pos: {
 				x: 426,
 				z: 100
 			}
 		}
 	},
-	6: {
-		3: {
-			portalId: 10,
+	5: {
+		4: {
+			portalId: 10, requiredQuestCode: null,
 			pos: {
 				x: 434,
 				z: 100
 			}
 		},
-		4: {
-			portalId: 5,
+		6: {
+			portalId: 5, requiredQuestCode: null,
 			pos: {
 				x: 554,
 				z: 100
 			}
 		}
 	},
-	4: {
-		6: {
-			portalId: 6,
+	6: {
+		5: {
+			portalId: 6, requiredQuestCode: null,
 			pos: {
 				x: 580,
 				z: 100
 			}
 		},
 		7: {
-			portalId: 11,
+			portalId: 11, requiredQuestCode: null,
 			pos: {
 				x: 656,
 				z: 100
@@ -190,15 +204,15 @@ const Portals = {
 		}
 	},
 	7: {
-		4: {
-			portalId: 12,
+		6: {
+			portalId: 12, requiredQuestCode: null,
 			pos: {
 				x: 664,
 				z: 100
 			}
 		},
 		8: {
-			portalId: 13,
+			portalId: 13, requiredQuestCode: null,
 			pos: {
 				x: 756,
 				z: 100
@@ -207,14 +221,14 @@ const Portals = {
 	},
 	8: {
 		7: {
-			portalId: 14,
+			portalId: 14, requiredQuestCode: null,
 			pos: {
 				x: 764,
 				z: 100
 			}
 		},
 		9: {
-			portalId: 15,
+			portalId: 15, requiredQuestCode: null,
 			pos: {
 				x: 956,
 				z: 100
@@ -223,14 +237,14 @@ const Portals = {
 	},
 	9: {
 		8: {
-			portalId: 16,
+			portalId: 16, requiredQuestCode: null,
 			pos: {
 				x: 964,
 				z: 100
 			}
 		},
 		10: {
-			portalId: 17,
+			portalId: 17, requiredQuestCode: null,
 			pos: {
 				x: 1136,
 				z: 100
@@ -239,16 +253,317 @@ const Portals = {
 	},
 	10: {
 		9: {
-			portalId: 18,
+			portalId: 18, requiredQuestCode: null,
 			pos: {
 				x: 1144,
 				z: 100
 			}
 		}
+	},
+	101: {
+		2: {
+			portalId: 20, requiredQuestCode: null,
+			pos: {
+				x: 150,
+				z: 205
+			}
+		},
+		102: {
+			portalId: 21, requiredQuestCode: null,
+			pos: {
+				x: 295,
+				z: 300
+			}
+		}
+	},
+	102: {
+		101: {
+			portalId: 22, requiredQuestCode: null,
+			pos: {
+				x: 352.5,
+				z: 300
+			}
+		},
+		103: {
+			portalId: 23, requiredQuestCode: null,
+			pos: {
+				x: 447.5,
+				z: 300
+			}
+		}
+	},
+	103: {
+		102: {
+			portalId: 24, requiredQuestCode: null,
+			pos: {
+				x: 552.5,
+				z: 300
+			}
+		},
+		104: {
+			portalId: 25, requiredQuestCode: null,
+			pos: {
+				x: 647.5,
+				z: 250
+			}
+		}
+	},
+	104: {
+		103: {
+			portalId: 26, requiredQuestCode: "MQ_BOSS_WORLDTREE",
+			pos: {
+				x: 716.25,
+				z: 250
+			}
+		},
+		105: {
+			portalId: 27, requiredQuestCode: "MQ_BOSS_WORLDTREE",
+			pos: {
+				x: 783.75,
+				z: 250
+			}
+		}
+	},
+	105: {
+		104: {
+			portalId: 28, requiredQuestCode: null,
+			pos: {
+				x: 852.5,
+				z: 250
+			}
+		},
+		106: {
+			portalId: 29, requiredQuestCode: null,
+			pos: {
+				x: 947.5,
+				z: 300
+			}
+		}
+	},
+	106: {
+		105: {
+			portalId: 30, requiredQuestCode: null,
+			pos: {
+				x: 1052.5,
+				z: 300
+			}
+		},
+		107: {
+			portalId: 31, requiredQuestCode: null,
+			pos: {
+				x: 1147.5,
+				z: 300
+			}
+		}
+	},
+	107: {
+		106: {
+			portalId: 32, requiredQuestCode: null,
+			pos: {
+				x: 1252.5,
+				z: 300
+			}
+		},
+		108: {
+			portalId: 33, requiredQuestCode: null,
+			pos: {
+				x: 1347.5,
+				z: 300
+			}
+		}
+	},
+	108: {
+		107: {
+			portalId: 34, requiredQuestCode: null,
+			pos: {
+				x: 1405,
+				z: 300
+			}
+		}
+	},
+	201: {
+		2: {
+			portalId: 38, requiredQuestCode: null,
+			pos: {
+				x: 180,
+				z: -5
+			}
+		},
+		202: {
+			portalId: 39, requiredQuestCode: null,
+			pos: {
+				x: 180,
+				z: -155
+			}
+		}
+	},
+	202: {
+		201: {
+			portalId: 40, requiredQuestCode: null,
+			pos: {
+				x: 345,
+				z: -100
+			}
+		},
+		203: {
+			portalId: 41, requiredQuestCode: null,
+			pos: {
+				x: 455,
+				z: -100
+			}
+		}
+	},
+	203: {
+		202: {
+			portalId: 42, requiredQuestCode: null,
+			pos: {
+				x: 525,
+				z: -60
+			}
+		},
+		204: {
+			portalId: 43, requiredQuestCode: null,
+			pos: {
+				x: 675,
+				z: -60
+			}
+		}
+	},
+	204: {
+		203: {
+			portalId: 44, requiredQuestCode: "MQ2_CORE3",
+			pos: {
+				x: 730,
+				z: -50
+			}
+		},
+		205: {
+			portalId: 45, requiredQuestCode: "MQ2_CORE3",
+			pos: {
+				x: 770,
+				z: -50
+			}
+		}
+	},
+	205: {
+		204: {
+			portalId: 46, requiredQuestCode: null,
+			pos: {
+				x: 845,
+				z: -100
+			}
+		},
+		206: {
+			portalId: 47, requiredQuestCode: null,
+			pos: {
+				x: 955,
+				z: -100
+			}
+		}
+	},
+	206: {
+		205: {
+			portalId: 48, requiredQuestCode: null,
+			pos: {
+				x: 1045,
+				z: -100
+			}
+		},
+		207: {
+			portalId: 49, requiredQuestCode: null,
+			pos: {
+				x: 1155,
+				z: -100
+			}
+		}
+	},
+	207: {
+		206: {
+			portalId: 50, requiredQuestCode: null,
+			pos: {
+				x: 1245,
+				z: -100
+			}
+		},
+		208: {
+			portalId: 51, requiredQuestCode: null,
+			pos: {
+				x: 1355,
+				z: -100
+			}
+		}
+	},
+	208: {
+		207: {
+			portalId: 52, requiredQuestCode: null,
+			pos: {
+				x: 1445,
+				z: -100
+			}
+		},
+		209: {
+			portalId: 53, requiredQuestCode: null,
+			pos: {
+				x: 1555,
+				z: -100
+			}
+		}
+	},
+	209: {
+		208: {
+			portalId: 54, requiredQuestCode: null,
+			pos: {
+				x: 1625,
+				z: -60
+			}
+		}
 	}
+};
+
+// [SpeakiMod+] Quest Interceptor & Local Storage
+window.lunCompletedQuests = new Set();
+try {
+	const saved = localStorage.getItem('lunCompletedQuests');
+	if (saved) {
+		JSON.parse(saved).forEach(code => window.lunCompletedQuests.add(code));
+	}
+} catch(e) {}
+
+const origFetch = window.fetch;
+window.fetch = async function(...args) {
+	const response = await origFetch.apply(this, args);
+	const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
+	if (url && url.includes('/api/quests')) {
+		const clone = response.clone();
+		clone.json().then(data => {
+			if (Array.isArray(data)) {
+				data.forEach(q => { if (q.isCompleted) window.lunCompletedQuests.add(q.code); });
+				localStorage.setItem('lunCompletedQuests', JSON.stringify([...window.lunCompletedQuests]));
+			}
+		}).catch(e => {});
+	}
+	return response;
+};
+
+const origXhrOpen = XMLHttpRequest.prototype.open;
+XMLHttpRequest.prototype.open = function(method, url) {
+	this.addEventListener('load', function() {
+		if (url && typeof url === 'string' && url.includes('/api/quests')) {
+			try {
+				let data = JSON.parse(this.responseText);
+				if (Array.isArray(data)) {
+					data.forEach(q => { if (q.isCompleted) window.lunCompletedQuests.add(q.code); });
+					localStorage.setItem('lunCompletedQuests', JSON.stringify([...window.lunCompletedQuests]));
+				}
+			} catch(e) {}
+		}
+	});
+	origXhrOpen.apply(this, arguments);
 };
 // Very cringe and could be generated automatically but gijfogjifsdogd fuck graph theory
 // This won't work btw if I decide to add quest portal support & Monatium
+const WorldZones = [{"zoneId": 1, "minX": 0, "maxX": 100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 2, "minX": 100, "maxX": 200, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 3, "minX": 200, "maxX": 300, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 4, "minX": 300, "maxX": 430, "minZ": 60, "maxZ": 140, "requiredQuestCode": null}, {"zoneId": 5, "minX": 430, "maxX": 560, "minZ": 60, "maxZ": 140, "requiredQuestCode": null}, {"zoneId": 6, "minX": 560, "maxX": 660, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 7, "minX": 660, "maxX": 760, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 8, "minX": 760, "maxX": 960, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 9, "minX": 960, "maxX": 1140, "minZ": 40, "maxZ": 160, "requiredQuestCode": null}, {"zoneId": 10, "minX": 1140, "maxX": 1360, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 11, "minX": 2000, "maxX": 2040, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 12, "minX": 2100, "maxX": 2140, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 13, "minX": 2200, "maxX": 2240, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 101, "minX": 100, "maxX": 300, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 102, "minX": 350, "maxX": 450, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 103, "minX": 550, "maxX": 650, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 104, "minX": 712.5, "maxX": 787.5, "minZ": 212.5, "maxZ": 287.5, "requiredQuestCode": "MQ_BOSS_WORLDTREE"}, {"zoneId": 105, "minX": 850, "maxX": 950, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 106, "minX": 1050, "maxX": 1150, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 107, "minX": 1250, "maxX": 1350, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 108, "minX": 1400, "maxX": 1600, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 181, "minX": 2300, "maxX": 2340, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 182, "minX": 2400, "maxX": 2440, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 900, "minX": 0, "maxX": 1200, "minZ": 0, "maxZ": 25, "requiredQuestCode": null}, {"zoneId": 901, "minX": 0, "maxX": 100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 201, "minX": 120, "maxX": 280, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 202, "minX": 340, "maxX": 460, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 203, "minX": 520, "maxX": 680, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 204, "minX": 725, "maxX": 775, "minZ": -75, "maxZ": -25, "requiredQuestCode": "MQ2_CORE3"}, {"zoneId": 205, "minX": 840, "maxX": 960, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 206, "minX": 1040, "maxX": 1160, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 207, "minX": 1240, "maxX": 1360, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 208, "minX": 1440, "maxX": 1560, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 209, "minX": 1620, "maxX": 1780, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 281, "minX": 2500, "maxX": 2540, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 282, "minX": 2600, "maxX": 2640, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}];
+
 const ZoneSequences = [1, 2, 5, 3, 6, 4, 7, 8, 9, 10];
 const Waypoints = {
 	5: [
@@ -544,7 +859,7 @@ var lunMenuFoldingLevel = 0;
 var lunTickCount = 0;
 var lunSleep = 0;
 const lunTPS = 20;
-const lunExpTrackerWindow = 60 * lunTPS;
+
 var lunExpTrackerNextTicks = 0;
 var lunExpTrackerStartExp = 0;
 var lunExpTrackerSpeed = 0;
@@ -712,6 +1027,7 @@ var lunExpRatePerHour = (window.localStorage && localStorage.getItem("spkmod-exp
 function setExpRatePerHour(enabled) {
 	lunExpRatePerHour = !!enabled;
 	if (window.localStorage) localStorage.setItem("spkmod-exp-per-hour", lunExpRatePerHour ? "true" : "false");
+	lunExpTrackerInitialized = false;
 }
 
 var lunFpsPingEnabled = (window.localStorage && localStorage.getItem("spkmod-fps-ping")) === "true";
@@ -1737,10 +2053,7 @@ document.body.appendChild(
 				lunPanelElements.targetZone = buildElement("select", {
 					className: "spkmod-panel-combo",
 					style: "flex: 1; min-width: 0; height: 28px; padding: 0 4px; font-size: 9.5pt; box-sizing: border-box;"
-				}, Object.keys(Portals).map(zoneId => buildElement("option", {
-					value: zoneId - 0,
-					innerText: i18n(`content.zone.${zoneId}.name`)
-				})))
+				})
 			]),
 			buildElement("div", {
 				className: "spkmod-panel-cat"
@@ -1772,6 +2085,14 @@ document.body.appendChild(
 						}
 						lunHudElements.settingsModal.classList.toggle("hidden");
 					}
+				}),
+				lunPanelElements.mapBtn = buildElement("button", {
+					id: "spkmod-map-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					innerText: "🗺️",
+					title: "World Map",
+					onclick: _ => openMapModal()
 				}),
 				lunPanelElements.dragBtn = buildElement("button", {
 					id: "spkmod-drag-btn",
@@ -2486,6 +2807,221 @@ function executeGamepadAction(actionName) {
 	}
 }
 
+
+const mapModalElements = {};
+let mapUpdateFrame = null;
+
+function openMapModal() {
+	mapModalElements.modalWindow.style.display = "flex";
+	updateMapLoop();
+}
+
+function closeMapModal() {
+	mapModalElements.modalWindow.style.display = "none";
+	if (mapUpdateFrame) cancelAnimationFrame(mapUpdateFrame);
+	mapUpdateFrame = null;
+}
+
+function updateMapLoop() {
+	if (!mapModalElements.canvas || mapModalElements.modalWindow.style.display === "none") {
+		mapUpdateFrame = null;
+		return;
+	}
+	const ctx = mapModalElements.canvas.getContext("2d");
+	const w = mapModalElements.canvas.width;
+	const h = mapModalElements.canvas.height;
+	
+	ctx.clearRect(0, 0, w, h);
+	
+	const padding = 20;
+	const drawW = w - padding * 2;
+	const drawH = h - padding * 2;
+	
+	const connectedZones = new Set();
+	for (const src in Portals) {
+		connectedZones.add(parseInt(src));
+		for (const tgt in Portals[src]) {
+			connectedZones.add(parseInt(tgt));
+		}
+	}
+
+	let rows = [[], [], []];
+	for (const zone of WorldZones) {
+		if (!connectedZones.has(zone.zoneId)) continue;
+		const cz = (zone.minZ + zone.maxZ) / 2;
+		if (cz <= 0) rows[0].push(zone);
+		else if (cz <= 200) rows[1].push(zone);
+		else rows[2].push(zone);
+	}
+	
+	rows.forEach(r => r.sort((a,b) => ((a.minX+a.maxX)/2) - ((b.minX+b.maxX)/2)));
+	
+	const zonePos = {};
+	const boxW = 66;
+	const boxH = 36;
+	
+	for (let r=0; r<3; r++) {
+		if (rows[r].length === 0) continue;
+		let spacingX = drawW / rows[r].length;
+		for (let i=0; i<rows[r].length; i++) {
+			let z = rows[r][i];
+			zonePos[z.zoneId] = {
+				x: padding + i * spacingX + spacingX/2,
+				y: padding + boxH/2 + r * ((drawH - boxH) / 2),
+				zone: z
+			};
+		}
+	}
+	
+	const getLogicalPos = (zid, px, pz) => {
+		const zp = zonePos[zid];
+		if (!zp) return null;
+		const z = zp.zone;
+		let pctX = (px - z.minX) / (z.maxX - z.minX);
+		let pctZ = (pz - z.minZ) / (z.maxZ - z.minZ);
+		pctX = Math.max(0, Math.min(1, pctX));
+		pctZ = Math.max(0, Math.min(1, pctZ));
+		return {
+			x: zp.x - boxW/2 + pctX * boxW,
+			y: zp.y - boxH/2 + pctZ * boxH
+		};
+	};
+
+	ctx.strokeStyle = "rgba(255, 200, 50, 0.4)";
+	ctx.lineWidth = 1.5;
+	for (const src in Portals) {
+		for (const tgt in Portals[src]) {
+			if (Portals[tgt] && Portals[tgt][src] && zonePos[src] && zonePos[tgt]) {
+				const p1 = zonePos[src];
+				const p2 = zonePos[tgt];
+				const pInfo1 = Portals[src][tgt];
+				const pInfo2 = Portals[tgt][src];
+				
+				if (pInfo1 && pInfo2) {
+					const lPos1 = getLogicalPos(parseInt(src), pInfo1.pos.x, pInfo1.pos.z);
+					const lPos2 = getLogicalPos(parseInt(tgt), pInfo2.pos.x, pInfo2.pos.z);
+					
+					if (lPos1 && lPos2) {
+						ctx.beginPath();
+						ctx.moveTo(lPos1.x, lPos1.y);
+						if (Math.abs(lPos1.y - lPos2.y) > 10) { 
+							ctx.lineTo(lPos1.x, (lPos1.y + lPos2.y)/2);
+							ctx.lineTo(lPos2.x, (lPos1.y + lPos2.y)/2);
+						}
+						ctx.lineTo(lPos2.x, lPos2.y);
+						ctx.stroke();
+					}
+				}
+			}
+		}
+	}
+	
+
+	for (const zid in zonePos) {
+		const zp = zonePos[zid];
+		const isCurrent = parseInt(zid) === (gameState?.zoneId % 10000);
+		
+		const bx = zp.x - boxW/2;
+		const by = zp.y - boxH/2;
+		
+		ctx.fillStyle = isCurrent ? "rgb(40, 100, 40)" : "rgb(30, 40, 50)";
+		ctx.strokeStyle = isCurrent ? "rgba(100, 255, 100, 0.8)" : "rgba(150, 180, 200, 0.6)";
+		ctx.lineWidth = isCurrent ? 2 : 1;
+		
+		ctx.fillRect(bx, by, boxW, boxH);
+		ctx.strokeRect(bx, by, boxW, boxH);
+		
+		ctx.fillStyle = "white";
+		ctx.font = "11px sans-serif";
+		ctx.textAlign = "center";
+		ctx.textBaseline = "middle";
+		
+		let rawName = i18n(`content.zone.${zid}.name`);
+		if (rawName.startsWith("content.zone.")) rawName = "Zone " + zid;
+		
+		let words = rawName.split(" ");
+		if (words.length > 1) {
+			let mid = Math.ceil(words.length / 2);
+			let line1 = words.slice(0, mid).join(" ");
+			let line2 = words.slice(mid).join(" ");
+			ctx.fillText(line1, zp.x, zp.y - 6);
+			ctx.fillText(line2, zp.x, zp.y + 6);
+		} else {
+			ctx.fillText(rawName, zp.x, zp.y);
+		}
+	}
+	
+	for (const src in Portals) {
+		for (const tgt in Portals[src]) {
+			const pInfo = Portals[src][tgt];
+			const lPos = getLogicalPos(parseInt(src), pInfo.pos.x, pInfo.pos.z);
+			if (!lPos) continue;
+			
+			if (pInfo.requiredQuestCode) {
+				let isCompleted = false;
+				if (gameState && gameState.zoneId && (gameState.zoneId % 10000) === parseInt(tgt)) {
+					isCompleted = true;
+				}
+				if (window.lunCompletedQuests && window.lunCompletedQuests.has(pInfo.requiredQuestCode)) {
+					isCompleted = true;
+				}
+				
+				if (!isCompleted) {
+					ctx.font = "10px sans-serif";
+					ctx.fillStyle = "white";
+					ctx.textAlign = "center";
+					ctx.textBaseline = "middle";
+					ctx.fillText("🔒", lPos.x, lPos.y);
+					continue;
+				}
+			}
+			
+			ctx.fillStyle = "rgba(255, 200, 50, 0.9)";
+			ctx.beginPath();
+			ctx.arc(lPos.x, lPos.y, 2, 0, Math.PI * 2);
+			ctx.fill();
+		}
+	}
+	
+	if (gameState && gameState.playerContainer && gameState.zoneId) {
+		const pz = gameState.zoneId % 10000;
+		if (zonePos[pz]) {
+			const lPos = getLogicalPos(pz, gameState.playerContainer.position.x, gameState.playerContainer.position.z);
+			if (lPos) {
+				ctx.fillStyle = "red";
+				ctx.strokeStyle = "white";
+				ctx.lineWidth = 1;
+				ctx.beginPath();
+				ctx.arc(lPos.x, lPos.y, 4, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.stroke();
+			}
+		}
+	}
+	
+	mapUpdateFrame = requestAnimationFrame(updateMapLoop);
+}
+
+document.body.appendChild(
+	mapModalElements.modalWindow = buildElement("div", {
+		style: "display: none; position: absolute; top: 20px; left: calc(100vw - 1060px); background: rgba(20, 20, 25, 0.95); border: 1px solid #444; border-radius: 8px; padding: 20px; color: white; flex-direction: column; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 10001;"
+	}, [
+		mapModalElements.titleLabel = buildElement("div", { style: "font-size: 18px; font-weight: bold; margin-bottom: 15px; cursor: move; width: 100%; text-align: center; user-select: none;", innerText: "World Map" }),
+		mapModalElements.canvas = buildElement("canvas", {
+			width: 1000,
+			height: 400,
+			style: "border: 1px solid #666; border-radius: 4px; background: #080808; width: 1000px;"
+		}),
+		buildElement("button", {
+			innerText: "Close",
+			style: "margin-top: 15px; padding: 6px 20px; cursor: pointer; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; font-weight: bold;",
+			onclick: () => closeMapModal()
+		})
+	])
+);
+setTimeout(() => { if (typeof makeDraggable === 'function') makeDraggable(mapModalElements.modalWindow, [mapModalElements.titleLabel]); }, 1000);
+
+
 let gamepadModalElements = {
 	headerTitle: null,
 	statusText: null,
@@ -3167,6 +3703,22 @@ function updateMovementButtonsUI() {
 }
 
 spkmodI18nRenderers.push(() => {
+	if (lunPanelElements.targetZone) {
+		const currentVal = lunPanelElements.targetZone.value;
+		lunPanelElements.targetZone.innerHTML = "";
+		Object.keys(Portals).forEach(zoneId => {
+			let n = window.i18n ? window.i18n(`content.zone.${zoneId}.name`) : `Zone ${zoneId}`;
+			if (!n || n.startsWith("content.zone")) n = `Zone ${zoneId}`;
+			lunPanelElements.targetZone.appendChild(buildElement("option", {
+				value: zoneId - 0,
+				innerText: n
+			}));
+		});
+		if (currentVal) lunPanelElements.targetZone.value = currentVal;
+	}
+});
+
+spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.headerBtn, t("header"));
 	setText(lunPanelElements.danceBtn, t("dance"));
 	setText(lunPanelElements.chowayoBtn, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
@@ -3403,37 +3955,46 @@ function tick() {
 	}
 	var playerExp = gameState.myStat.exp;
 	var zoneId = gameState.zoneId % 10000;
-	var expTrackerTimer = Math.max(0, Math.ceil((lunExpTrackerNextTicks - lunTickCount) / lunTPS));
+	var windowSec = lunExpRatePerHour ? 3600 : 60;
+	var windowTicks = windowSec * lunTPS;
+
+	var expTrackerTimerSec = Math.max(0, Math.ceil((lunExpTrackerNextTicks - lunTickCount) / lunTPS));
+	var timerDisplay = lunExpRatePerHour ? Math.ceil(expTrackerTimerSec / 60) + "m" : expTrackerTimerSec + "s";
+	
 	var expTrackerL1 = t(lunExpRatePerHour ? "zeroExpPerHour" : "zeroExp");
 	var expTrackerL2 = t("nextLevelNA");
 
 	if (!lunExpTrackerInitialized) {
 		lunExpTrackerStartExp = playerExp;
-		lunExpTrackerNextTicks = lunTickCount + lunExpTrackerWindow;
+		lunExpTrackerNextTicks = lunTickCount + windowTicks;
 		lunExpTrackerInitialized = true;
 	}
-
 	else if (playerExp < lunExpTrackerStartExp || lunTickCount >= lunExpTrackerNextTicks) {
 		lunExpTrackerStartExp = playerExp;
-		lunExpTrackerNextTicks = lunTickCount + lunExpTrackerWindow;
+		lunExpTrackerNextTicks = lunTickCount + windowTicks;
 	}
 
 	var expGained = Math.max(0, playerExp - lunExpTrackerStartExp);
-	lunExpTrackerSpeed = expGained / 60; 
+	
+
+	var actualElapsedSec = windowSec - (lunExpTrackerNextTicks - lunTickCount) / lunTPS;
+	var smoothingDivisor = windowSec; 
+	
+	lunExpTrackerSpeed = expGained / smoothingDivisor; 
 
 	if (lunExpTrackerSpeed > 0) {
 		const expRate = lunExpRatePerHour ? lunExpTrackerSpeed * 3600 : lunExpTrackerSpeed * 60;
-		expTrackerL1 = t(lunExpRatePerHour ? "expPerHour" : "expPerMinute", expRate.toFixed(0), expTrackerTimer);
+		expTrackerL1 = t(lunExpRatePerHour ? "expPerHour" : "expPerMinute", expRate.toFixed(0), timerDisplay);
 
 		var minutesRemaining = (gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60;
-		if (minutesRemaining >= 60) {
+		if (minutesRemaining > 60) {
 			var hoursRemaining = (minutesRemaining / 60).toFixed(1);
 			expTrackerL2 = t("nextLevelHours", hoursRemaining);
 		} else {
 			expTrackerL2 = t("nextLevel", minutesRemaining.toFixed(0));
 		}
 	} else {
-		expTrackerL1 += ` (${expTrackerTimer}s)`;
+		expTrackerL1 += ` (${timerDisplay})`;
 	}
 
 	if (gameState.isDead && lunWalkToPortal != -1) {
@@ -3591,23 +4152,56 @@ function tick() {
 	
 
 	if (lunWalkToPortal != -1 && zoneId) {
-		const currentIndex = ZoneSequences.indexOf(zoneId - 0);
-		const targetIndex = ZoneSequences.indexOf(lunWalkToPortal - 0);
+		const startZone = (zoneId - 0) % 10000;
+		const endZone = (lunWalkToPortal - 0) % 10000;
+		
+		let path = null;
+		if (startZone === endZone) {
+			path = [];
+		} else {
+			// BFS Pathfinding
+			let queue = [startZone];
+			let visited = new Set();
+			visited.add(startZone);
+			let parentMap = {};
+			
+			while (queue.length > 0) {
+				let curr = queue.shift();
+				if (curr === endZone) {
+					path = [];
+					let trace = endZone;
+					while (trace !== startZone) {
+						path.unshift(trace);
+						trace = parentMap[trace];
+					}
+					break;
+				}
+				let neighbors = Portals[curr];
+				if (neighbors) {
+					for (let n in neighbors) {
+						let nz = parseInt(n);
+						if (!visited.has(nz)) {
+							visited.add(nz);
+							parentMap[nz] = curr;
+							queue.push(nz);
+						}
+					}
+				}
+			}
+		}
 
-		if (currentIndex == -1 || targetIndex == -1) {
-			chatLog(t("noPathMsg", zoneId, currentIndex, lunWalkToPortal, targetIndex));
+		if (path === null) {
+			chatLog(t("noPathMsg", startZone, -1, endZone, -1));
 			resetWalkToPortal();
 			return;
 		}
 
-		const sg = Math.sign(targetIndex - currentIndex);
-
-		if (sg == 0) {
+		if (path.length === 0) {
 			resetWalkToPortal();
 			chatLog(t("arrivedMsg"));
 			return;
 		} else {
-			const targetZone = ZoneSequences[currentIndex + sg];
+			const targetZone = path[0];
 
 			const portals = Portals[zoneId];
 			if (!portals) {
@@ -3770,6 +4364,15 @@ gameState.trySendChat = (msg) => {
 			case "players":
 			case "who":
 				showPlayersRadar();
+				break;
+			case "pos":
+			case "loc":
+			case "zone":
+				if (gameState && gameState.playerContainer) {
+					const pos = gameState.playerContainer.position;
+					const zid = gameState.zoneId || "Unknown";
+					chatLog(`ZoneID: ${zid} | Pos: X:${Math.round(pos.x)}, Y:${Math.round(pos.y)}, Z:${Math.round(pos.z)}`);
+				}
 				break;
 			case "dance":
 				gameState.sendEmoteNow(Emotes.Dance);
