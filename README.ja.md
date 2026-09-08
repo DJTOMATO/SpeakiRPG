@@ -39,7 +39,8 @@
 * **ワールドマップUI**
 * **動的な自動歩行経路探索**
 * **正確なクエストロック**
-\n<h2 id="2-additional-features">2. 追加機能</h2>
+
+<h2 id="2-additional-features">2. 追加機能</h2>
 
 [⬆ トップへ戻る](#table-of-contents)
 
@@ -205,7 +206,8 @@ npm start
 
 <img width="235" height="236" alt="1765896114857749" src="https://github.com/user-attachments/assets/08d51e52-7f46-4a24-97d1-d4e4bfc5d114" />
 
-開発に協力したいですか？[Discordサーバー](https://discord.gg/bruZhcwqRx)でお気軽にご連絡いただくか、GitHubにて[pull requestを送信](https://github.com/DJTOMATO/SpeakiRPG/pulls)または[issueを提出](https://github.com/DJTOMATO/SpeakiRPG/issues)してください！日本語が第一言語の方による文章の修正・翻訳も大歓迎です！
+開発に協力したいですか？[Discordサーバー](https://discord.gg/bruZhcwqRx)でお気軽にご連絡いただくか、GitHubにて[pull requestを送信](https://github.com/DJTOMATO/SpeakiRPG/pulls)または[issueを提出](https://github.com/DJTOMATO/SpeakiRPG/issues)してください！　　
+日本語が第一言語の方による文章の修正・翻訳も大歓迎です！
 
 <h2 id="faq">10. よくある質問</h2>
 
