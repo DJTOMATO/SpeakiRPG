@@ -865,11 +865,11 @@ var lunExpTrackerStartExp = 0;
 var lunExpTrackerSpeed = 0;
 var lunExpTrackerInitialized = false; 
 
-var lunChannelTrackerWindow = 10000 / lunTPS;
+var lunChannelTrackerWindow = 60000 / lunTPS; // [SpeakiMod+] Reduced from 25s to 60s
 var lunChannelTrackerNextTicks = 0;
 
 
-var lunCurrencyTrackerWindow = 10000 / lunTPS;
+var lunCurrencyTrackerWindow = 60000 / lunTPS; // [SpeakiMod+] Reduced from 25s to 60s
 var lunCurrencyTrackerNextTicks = 0;
 var lunLastGold = null;
 var lunLastElif = null;
@@ -3794,7 +3794,7 @@ spkmodI18nRenderers.push(() => {
 	});
 });
 
-const lunPinnedQuestInterval = sec(2);
+const lunPinnedQuestInterval = sec(30); // [SpeakiMod+] Reduced from 2s to 30s to prevent 429 Too Many Requests
 var lunPinnedQuestPeriod = null;
 var lunPinnedQuestId = 0;
 var lunPinnedQuestContent = null;
