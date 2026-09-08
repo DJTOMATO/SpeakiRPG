@@ -193,7 +193,10 @@
         "bgOpacitySuperTransparent": "Super Transparent",
         "bgOpacityLightGlass": "Light Glass",
         "bgOpacityHeavyGlass": "Heavy Glass",
-        "hudBgCustom": "Custom URL"
+        "hudBgCustom": "Custom URL",
+        "showAllNametagsBtn": "Nametags: Show All",
+        "keepPartyNametagsBtn": "Nametags: Party Only",
+        "hideAllNametagsBtn": "Nametags: Hidden"
     },
     "ja": {
         "langName": "日本語",
@@ -389,7 +392,10 @@
         "bgOpacityLightGlass": "ライトグラス",
         "bgOpacityHeavyGlass": "ヘビーグラス",
         "hudBgCustom": "カスタムURL",
-        "hideKnownBotsToggleLabel": "既知のBotを非表示"
+        "hideKnownBotsToggleLabel": "既知のBotを非表示",
+        "showAllNametagsBtn": "ネームタグ: すべて表示",
+        "keepPartyNametagsBtn": "ネームタグ: パーティのみ",
+        "hideAllNametagsBtn": "ネームタグ: 非表示"
     },
     "ko": {
         "langName": "한국어",
@@ -585,7 +591,10 @@
         "bgOpacityLightGlass": "가벼운 유리",
         "bgOpacityHeavyGlass": "무거운 유리",
         "hudBgCustom": "사용자 지정 URL",
-        "hideKnownBotsToggleLabel": "알려진 봇 숨기기"
+        "hideKnownBotsToggleLabel": "알려진 봇 숨기기",
+        "showAllNametagsBtn": "이름표: 모두 표시",
+        "keepPartyNametagsBtn": "이름표: 파티원만",
+        "hideAllNametagsBtn": "이름표: 숨김"
     },
     "zh-TW": {
         "langName": "繁體中文",

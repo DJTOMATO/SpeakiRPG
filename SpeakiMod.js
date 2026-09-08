@@ -876,7 +876,8 @@ var lunLastElif = null;
 var lunWalkToPortal = -1;
 var lunAutoTravelTarget = null;
 var lunCameraLocked = false;
-var lunNametagsHidden = false;
+var lunNametagMode = 0; // 0: Show All, 1: Party Only, 2: Hide All
+const NAMETAG_MODES = ["showAllNametags", "keepPartyNametags", "hideAllNametags"];
 
 // Add known bot names here. Matching is exact and case-insensitive.
 const lunKnownBotNames = ["NEXThobagi","QAZWSXEDC", "kqland", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki"];
@@ -1941,11 +1942,11 @@ document.body.appendChild(
 			buildElement("div", { className: "spkmod-panel-cat" }, [
 				lunPanelElements.nametagsBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
-					innerText: t("hideNametags"),
+					innerText: t("showAllNametagsBtn"),
 					value: "",
 					onclick: e => {
-						lunNametagsHidden = !lunNametagsHidden;
-						e.target.innerText = lunNametagsHidden ? t("showNametags") : t("hideNametags");
+						lunNametagMode = (lunNametagMode + 1) % 3;
+						e.target.innerText = t(NAMETAG_MODES[lunNametagMode] + "Btn");
 					}
 				}),
 
@@ -3734,7 +3735,7 @@ spkmodI18nRenderers.push(() => {
 
 	setText(lunPanelElements.resetCameraBtn, t("resetCamera"));
 	setText(lunPanelElements.lockCameraBtn, lunCameraLocked ? t("unlockCamera") : t("lockCamera"));
-	setText(lunPanelElements.nametagsBtn, lunNametagsHidden ? t("showNametags") : t("hideNametags"));
+	setText(lunPanelElements.nametagsBtn, t(NAMETAG_MODES[lunNametagMode] + "Btn"));
 	setText(lunPanelElements.viewClipBtn, lunViewClip ? t("viewClipOn") : t("viewClipOff"));
 	setText(lunPanelElements.walkToPortalBtn, lunWalkToPortal == -1 ? t("goTo") : t("stopWalking"));
 	setText(lunPanelElements.watchBtn, t("watchBtn"));
@@ -4130,9 +4131,21 @@ function tick() {
 		lunPinnedQuestNextQueryTick += lunPinnedQuestInterval;
 	}
 
+	let partyNames = null;
 	gameState.remotePlayers.remotePlayers.forEach(t => {
 		const sprite = findNametagSprite(t.container);
-		if (sprite) sprite.visible = !lunNametagsHidden;
+		if (sprite) {
+			if (lunNametagMode === 0) {
+				sprite.visible = true;
+			} else if (lunNametagMode === 2) {
+				sprite.visible = false;
+			} else if (lunNametagMode === 1) {
+				if (partyNames === null) {
+					partyNames = new Set(Array.from(document.querySelectorAll('.sr-party__name')).map(el => el.innerText.trim()));
+				}
+				sprite.visible = partyNames.has(t.info.name);
+			}
+		}
 	});
 	updateKnownBotVisibility();
 	hookKnownBotHeartEmotes();
