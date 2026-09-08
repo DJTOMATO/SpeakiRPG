@@ -3794,7 +3794,7 @@ spkmodI18nRenderers.push(() => {
 	});
 });
 
-const lunPinnedQuestInterval = sec(30); // [SpeakiMod+] Reduced from 2s to 30s to prevent 429 Too Many Requests
+const lunPinnedQuestInterval = sec(60); // [SpeakiMod+] Reduced to 60s to prevent 429 Too Many Requests
 var lunPinnedQuestPeriod = null;
 var lunPinnedQuestId = 0;
 var lunPinnedQuestContent = null;
