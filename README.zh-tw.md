@@ -89,6 +89,8 @@
 - **[NEW]** 手把觸覺震動回饋（受到傷害時控制器震動）
 - **[NEW]** 設定匯出 / 匯入為 JSON 檔案
 
+- **[NEW]** 隱藏已知機器人 (一鍵完全隱藏洗版機器人的模型與表情)
+
 <img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
 
 ---

@@ -84,6 +84,8 @@
 - **[NEW]** ゲームパッド振動機能 (ダメージを受けた時にコントローラーが振動)
 - **[NEW]** 設定の保存/読み込み (JSON形式)
 
+- **[NEW]** 既知のBotを非表示 (スパムBotの姿とエモートを完全に隠す機能)
+
 <img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
 
 ---

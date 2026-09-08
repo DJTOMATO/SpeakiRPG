@@ -536,6 +536,8 @@ var lunPanelElements = {
 	expRateUnitLabel: null,
 	discordBtn: null,
 	gamepadSettingsBtn: null,
+	hideKnownBotsLabel: null,
+	hideKnownBotsToggleInput: null,
 };
 var lunMenuFoldingLevel = 0;
 
@@ -560,6 +562,10 @@ var lunWalkToPortal = -1;
 var lunAutoTravelTarget = null;
 var lunCameraLocked = false;
 var lunNametagsHidden = false;
+
+// Add known bot names here. Matching is exact and case-insensitive.
+const lunKnownBotNames = ["NEXThobagi","QAZWSXEDC", "kqland", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki"];
+var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
 var lunFirstPersonPitch = parseFloat((window.localStorage && localStorage.getItem("spkmod-fp-pitch")) || "0.5");
 var lunFollowTargetName = null;
@@ -575,6 +581,110 @@ function setGmChatHighlightEnabled(enabled) {
 function setMentionAlertEnabled(enabled) {
 	lunMentionAlertEnabled = !!enabled;
 	if (window.localStorage) localStorage.setItem("spkmod-mention-enabled", lunMentionAlertEnabled ? "true" : "false");
+}
+
+function setHideKnownBotsEnabled(enabled) {
+	lunHideKnownBotsEnabled = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-hide-known-bots", lunHideKnownBotsEnabled ? "true" : "false");
+	if (lunPanelElements.hideKnownBotsToggleInput) lunPanelElements.hideKnownBotsToggleInput.checked = lunHideKnownBotsEnabled;
+	updateKnownBotVisibility();
+}
+
+function isKnownBotName(name) {
+	if (typeof name !== "string") return false;
+	const normalizedName = name.trim().toLocaleLowerCase();
+	return lunKnownBotNames.some(botName => botName.trim().toLocaleLowerCase() === normalizedName);
+}
+
+function updateKnownBotVisibility() {
+	if (!gameState?.remotePlayers?.remotePlayers) return;
+	gameState.remotePlayers.remotePlayers.forEach(player => {
+		if (player?.container) {
+			player.container.visible = !lunHideKnownBotsEnabled || !isKnownBotName(player.info?.name);
+		}
+	});
+}
+
+function isKnownBotContainer(container) {
+	if (!container || !gameState?.remotePlayers?.remotePlayers) return false;
+	
+	let current = container;
+	while (current) {
+		for (const player of gameState.remotePlayers.remotePlayers.values()) {
+			if (player?.container === current) return isKnownBotName(player.info?.name);
+		}
+		current = current.parent;
+	}
+	return false;
+}
+
+function isKnownBotBubbleSource(source) {
+	if (!source || !gameState?.remotePlayers?.remotePlayers) return false;
+	if (isKnownBotContainer(source) || isKnownBotContainer(source.container)) return true;
+	if (isKnownBotName(source.info?.name) || isKnownBotName(source.name)) return true;
+
+	for (const player of gameState.remotePlayers.remotePlayers.values()) {
+		const playerInfo = player?.info;
+		if (playerInfo && (source === playerInfo.playerId || source === playerInfo.id || source === playerInfo.userId)) {
+			return isKnownBotName(playerInfo.name);
+		}
+	}
+	return false;
+}
+
+function hookKnownBotHeartEmotes() {
+	const bloomEffects = gameState?.bloomEffects;
+	if (!bloomEffects || typeof bloomEffects.spawnHearts !== "function" || bloomEffects.__speakiKnownBotHooked) return;
+
+	const originalSpawnHearts = bloomEffects.spawnHearts.bind(bloomEffects);
+	bloomEffects.spawnHearts = function(container, ...args) {
+		if (lunHideKnownBotsEnabled && isKnownBotContainer(container)) return;
+		return originalSpawnHearts(container, ...args);
+	};
+	bloomEffects.__speakiKnownBotHooked = true;
+}
+
+function containsRemoteEmote(value, seen = new Set()) {
+	if (typeof value === "number") return Number.isInteger(value) && value >= 1 && value <= 8;
+	if (!value || typeof value !== "object" || seen.has(value)) return false;
+	seen.add(value);
+
+	for (const key of ["emote", "emoteId", "emoteID", "emoteType", "action", "actionId", "id", "val", "value", "data"]) {
+		if (value[key] !== undefined && containsRemoteEmote(value[key], seen)) return true;
+	}
+	return false;
+}
+
+function hookKnownBotPlayerEmotes(player) {
+	if (!player || player.__speakiKnownBotEmotesHooked) return;
+	const methodNames = new Set();
+	let current = player;
+	while (current && current !== Object.prototype) {
+		Object.getOwnPropertyNames(current).forEach(name => methodNames.add(name));
+		current = Object.getPrototypeOf(current);
+	}
+
+	for (const name of methodNames) {
+		if (name === "constructor" || !/emote|emotion|action|animation|effect|update|handle|receive|message/i.test(name)) continue;
+		const original = player[name];
+		if (typeof original !== "function") continue;
+		try {
+			player[name] = function(...args) {
+				if (lunHideKnownBotsEnabled && isKnownBotName(this.info?.name) && args.some(arg => containsRemoteEmote(arg))) {
+					return;
+				}
+				return original.apply(this, args);
+			};
+		} catch (err) {
+			// Some game methods may be non-writable; leave those untouched.
+		}
+	}
+	player.__speakiKnownBotEmotesHooked = true;
+}
+
+function hookKnownBotPlayerEmotesForAll() {
+	if (!gameState?.remotePlayers?.remotePlayers) return;
+	gameState.remotePlayers.remotePlayers.forEach(hookKnownBotPlayerEmotes);
 }
 
 var lunChatTimestampsEnabled = (window.localStorage && localStorage.getItem("spkmod-chat-timestamps")) === "true";
@@ -1752,6 +1862,18 @@ document.body.appendChild(
 				onchange: e => {
 					setMentionAlertEnabled(e.target.checked);
 				}
+			})
+		]),
+
+		buildElement("div", { className: "spkmod-panel-cat" }, [
+			lunPanelElements.hideKnownBotsLabel = buildElement("span", {
+				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+				innerText: t("hideKnownBotsToggleLabel")
+			}),
+			lunPanelElements.hideKnownBotsToggleInput = buildElement("input", {
+				type: "checkbox",
+				checked: lunHideKnownBotsEnabled,
+				onchange: e => setHideKnownBotsEnabled(e.target.checked)
 			})
 		]),
 
@@ -3073,6 +3195,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.filterToggleLabel) setText(lunPanelElements.filterToggleLabel, t("filterToggleLabel"));
 	if (lunPanelElements.gmChatToggleLabel) setText(lunPanelElements.gmChatToggleLabel, t("gmChatToggleLabel"));
 	if (lunPanelElements.mentionAlertToggleLabel) setText(lunPanelElements.mentionAlertToggleLabel, t("mentionAlertToggleLabel"));
+	if (lunPanelElements.hideKnownBotsLabel) setText(lunPanelElements.hideKnownBotsLabel, t("hideKnownBotsToggleLabel"));
 	if (lunPanelElements.chatTimestampLabel) setText(lunPanelElements.chatTimestampLabel, t("chatTimestampToggleLabel"));
 	if (lunPanelElements.fpPitchLabel) setText(lunPanelElements.fpPitchLabel, t("firstPersonPitchLabel"));
 	if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t(lunFirstPersonActive ? "firstPersonOn" : "firstPersonOff"));
@@ -3272,6 +3395,7 @@ function tick() {
 	if (gameState.chatBubbles && typeof gameState.chatBubbles.show === "function" && !gameState.chatBubbles.__speakiHooked) {
 		var hkChatBubblesShow = gameState.chatBubbles.show.bind(gameState.chatBubbles);
 		gameState.chatBubbles.show = (e, t, n) => {
+			if (lunHideKnownBotsEnabled && isKnownBotBubbleSource(e)) return;
 			return hkChatBubblesShow(e, t, filterName(n));
 		};
 		gameState.chatBubbles.__speakiHooked = true; // 
@@ -3449,6 +3573,9 @@ function tick() {
 		const sprite = findNametagSprite(t.container);
 		if (sprite) sprite.visible = !lunNametagsHidden;
 	});
+	updateKnownBotVisibility();
+	hookKnownBotHeartEmotes();
+	hookKnownBotPlayerEmotesForAll();
 
 	if (gameState && gameState.myStat) {
 		const currentLevel = gameState.myStat.level;
@@ -3794,6 +3921,7 @@ if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && typeof g
 		if (value && value.info && typeof value.info.name === "string") {
 			value.info.name = filterName(value.info.name);
 		}
+		hookKnownBotPlayerEmotes(value);
 		return hkRemotePlayersSet(key, value);
 	};
 
@@ -3802,6 +3930,8 @@ if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && typeof g
 			v.info.name = filterName(v.info.name);
 		}
 	});
+	hookKnownBotHeartEmotes();
+	hookKnownBotPlayerEmotesForAll();
 } else {
 	console.warn("[SpeakiMod+] Could not hook remotePlayers.set — nametag filtering will not work. Please report this.");
 }

@@ -84,6 +84,8 @@
 - **[NEW]** 게임패드 진동 기능 (피격 시 컨트롤러 진동)
 - **[NEW]** 설정 내보내기/불러오기 (JSON 포맷)
 
+- **[NEW]** 알려진 봇 숨기기 (도배하는 봇의 모습과 이모티콘을 완전히 숨기는 기능)
+
 <img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
 
 ---

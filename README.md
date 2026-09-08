@@ -88,6 +88,7 @@
 - **[NEW]** Low HP Critical Warning (Pulsing red screen vignette)
 - **[NEW]** Gamepad Haptic Vibration / Rumble on Damage
 - **[NEW]** Export / Import Settings to JSON
+- **[NEW]** Hide Known Bots (Toggle to completely hide and mute emote spammers automatically)
 
 <img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
 

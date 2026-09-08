@@ -140,6 +140,7 @@
         "credits": "• Original Game: EPID Games\n• Speaki MMO Development: GMDT\n• Client and SpeakiMod+ Coding: Glas\n• SpeakiMod Original Developer: Alluseri\n\nFanart Used:\nA special thanks to the artists who kindly\nauthorized the use of their artwork for the UI backgrounds!\n- 느그 유노(Yuno)",
         "gmChatToggleLabel": "Gamemaster talks (highlight)",
         "mentionAlertToggleLabel": "Chat Mention Notification",
+        "hideKnownBotsToggleLabel": "Hide known bots",
         "translateToggleLabel": "Translate chat",
         "translateQuotaHitMsg": "Translation quota hit for today — auto-disabled. Add your email in settings for a higher limit, or re-enable tomorrow.",
         "translateEmailPlaceholder": "Your email (optional, raises daily limit)",
@@ -387,7 +388,8 @@
         "bgOpacitySuperTransparent": "透明: 強",
         "bgOpacityLightGlass": "ライトグラス",
         "bgOpacityHeavyGlass": "ヘビーグラス",
-        "hudBgCustom": "カスタムURL"
+        "hudBgCustom": "カスタムURL",
+        "hideKnownBotsToggleLabel": "既知のBotを非表示"
     },
     "ko": {
         "langName": "한국어",
@@ -582,7 +584,8 @@
         "bgOpacitySuperTransparent": "매우 투명하게",
         "bgOpacityLightGlass": "가벼운 유리",
         "bgOpacityHeavyGlass": "무거운 유리",
-        "hudBgCustom": "사용자 지정 URL"
+        "hudBgCustom": "사용자 지정 URL",
+        "hideKnownBotsToggleLabel": "알려진 봇 숨기기"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -778,7 +781,8 @@
         "bgOpacitySuperTransparent": "透明",
         "bgOpacityLightGlass": "霧面",
         "bgOpacityHeavyGlass": "深黑霧面",
-        "hudBgCustom": "自訂網址"
+        "hudBgCustom": "自訂網址",
+        "hideKnownBotsToggleLabel": "隱藏已知機器人"
     },
     "es-419": {
         "langName": "Español",
@@ -967,7 +971,8 @@
         "bgOpacitySuperTransparent": "Super Transparent",
         "bgOpacityLightGlass": "Light Glass",
         "bgOpacityHeavyGlass": "Heavy Glass",
-        "hudBgCustom": "Custom URL"
+        "hudBgCustom": "Custom URL",
+        "hideKnownBotsToggleLabel": "Ocultar bots conocidos"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -1163,6 +1168,7 @@
         "bgOpacitySuperTransparent": "透明",
         "bgOpacityLightGlass": "雾面",
         "bgOpacityHeavyGlass": "深黑雾面",
-        "hudBgCustom": "背景制定网址"
+        "hudBgCustom": "背景制定网址",
+        "hideKnownBotsToggleLabel": "隐藏已知机器人"
     }
 }
