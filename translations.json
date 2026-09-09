@@ -152,6 +152,8 @@
         "lowHpWarningToggleLabel": "Low HP Critical Warning",
         "sessionGoldToggleLabel": "Session Gold Tracker",
         "expRateUnitToggleLabel": "Show EXP per hour",
+        "expRateIntervalLabel": "EXP measurement interval",
+        "expRateIntervalOption": "{0} min",
         "uiScaleLabel": "UI Scale",
         "bgOpacityLabel": "HUD Opacity",
         "bgOpacitySolid": "Solid",
@@ -350,6 +352,8 @@
         "lowHpWarningToggleLabel": "低体力時、画面端を赤色に",
         "sessionGoldToggleLabel": "ゴールドの獲得量を表示",
         "expRateUnitToggleLabel": "経験値を1時間あたりで表示",
+        "expRateIntervalLabel": "経験値の計測間隔",
+        "expRateIntervalOption": "{0}分",
         "uiScaleLabel": "UIスケール",
         "bgOpacityLabel": "HUD背景の透明度",
         "bgOpacitySolid": "ソリッド",
@@ -549,6 +553,8 @@
         "lowHpWarningToggleLabel": "빈사상태 경고",
         "sessionGoldToggleLabel": "세션 골드 추적기",
         "expRateUnitToggleLabel": "경험치를 시간당으로 표시",
+        "expRateIntervalLabel": "EXP 측정 간격",
+        "expRateIntervalOption": "{0}분",
         "uiScaleLabel": "UI 크기",
         "bgOpacityLabel": "배경 불투명도",
         "bgOpacitySolid": "단색",
@@ -749,6 +755,8 @@
         "lowHpWarningToggleLabel": "低血量嚴重警告",
         "sessionGoldToggleLabel": "本次遊玩金幣追蹤",
         "expRateUnitToggleLabel": "顯示每小時經驗值",
+        "expRateIntervalLabel": "經驗值測量間隔",
+        "expRateIntervalOption": "{0} 分鐘",
         "uiScaleLabel": "介面縮放比例",
         "bgOpacityLabel": "HUD 透明度",
         "bgOpacitySolid": "不透明",
@@ -791,7 +799,19 @@
         "bgOpacityLightGlass": "霧面",
         "bgOpacityHeavyGlass": "深黑霧面",
         "hudBgCustom": "自訂網址",
-        "hideKnownBotsToggleLabel": "隱藏已知機器人"
+        "hideKnownBotsToggleLabel": "隱藏已知機器人",
+        "showAllNametagsBtn": "名稱標籤：全部顯示",
+        "keepPartyNametagsBtn": "名稱標籤：僅顯示隊伍",
+        "hideAllNametagsBtn": "名稱標籤：隱藏",
+        "mapLocations": {
+            "1": "世界樹神殿", "2": "曙光森林", "3": "日蔭深林", "4": "月霧沼澤", "5": "月環沼谷",
+            "6": "灰霧墓園", "7": "灰影墓丘", "8": "霜境雪嶺", "9": "燼落熔岩洞窟", "10": "曙光樹根空洞",
+            "11": "日蔭龍鱗祭壇", "12": "灰燼石棺聖所", "13": "燼火核心祭壇", "101": "暮木邊境", "102": "齒輪原野",
+            "103": "燈火工廠區", "104": "莫納提姆", "105": "古老訊號鐵路", "106": "鐵光煙囪區", "107": "雷霆塔脊",
+            "108": "能量核心深處", "181": "封印機庫祭壇", "182": "封印核心祭壇", "201": "溪木地", "202": "草嶺",
+            "203": "狩獵小徑", "204": "獸人村落", "205": "牧場", "206": "狼隘口", "207": "荊棘叢",
+            "208": "石崖", "209": "大平原", "281": "古老森林封印祭壇", "282": "撼地者封印祭壇", "900": "虛假南瓜閃避賽道", "901": "努魯靈破壞者"
+        }
     },
     "es-419": {
         "langName": "Español",
@@ -945,6 +965,8 @@
         "lowHpWarningToggleLabel": "Advertencia crítica de Vida Baja",
         "sessionGoldToggleLabel": "Rastreador de oro de la sesión",
         "expRateUnitToggleLabel": "Mostrar EXP por hora",
+        "expRateIntervalLabel": "Intervalo de medición de EXP",
+        "expRateIntervalOption": "{0} min",
         "uiScaleLabel": "Escala de la UI",
         "bgOpacityLabel": "Opacidad del HUD",
         "bgOpacitySolid": "Sólido",
@@ -981,7 +1003,10 @@
         "bgOpacityLightGlass": "Light Glass",
         "bgOpacityHeavyGlass": "Heavy Glass",
         "hudBgCustom": "Custom URL",
-        "hideKnownBotsToggleLabel": "Ocultar bots conocidos"
+        "hideKnownBotsToggleLabel": "Ocultar bots conocidos",
+        "showAllNametagsBtn": "Etiquetas: mostrar todas",
+        "keepPartyNametagsBtn": "Etiquetas: solo grupo",
+        "hideAllNametagsBtn": "Etiquetas: ocultas"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -1136,6 +1161,8 @@
         "lowHpWarningToggleLabel": "低血量严重警告",
         "sessionGoldToggleLabel": "本次游玩金币追踪",
         "expRateUnitToggleLabel": "显示每小时经验值",
+        "expRateIntervalLabel": "经验值测量间隔",
+        "expRateIntervalOption": "{0} 分钟",
         "uiScaleLabel": "介面缩放比例",
         "bgOpacityLabel": "HUD 透明度",
         "bgOpacitySolid": "不透明",
@@ -1178,6 +1205,18 @@
         "bgOpacityLightGlass": "雾面",
         "bgOpacityHeavyGlass": "深黑雾面",
         "hudBgCustom": "背景制定网址",
-        "hideKnownBotsToggleLabel": "隐藏已知机器人"
+        "hideKnownBotsToggleLabel": "隐藏已知机器人",
+        "showAllNametagsBtn": "名称标签：全部显示",
+        "keepPartyNametagsBtn": "名称标签：仅显示队伍",
+        "hideAllNametagsBtn": "名称标签：隐藏",
+        "mapLocations": {
+            "1": "世界树神殿", "2": "曙光森林", "3": "日荫深林", "4": "月雾沼泽", "5": "月环沼谷",
+            "6": "灰雾墓园", "7": "灰影墓丘", "8": "霜境雪岭", "9": "烬落熔岩洞窟", "10": "曙光树根空洞",
+            "11": "日荫龙鳞祭坛", "12": "灰烬石棺圣所", "13": "烬火核心祭坛", "101": "暮木边境", "102": "齿轮原野",
+            "103": "灯火工厂区", "104": "莫纳提姆", "105": "古老信号铁路", "106": "铁光烟囱区", "107": "雷霆塔脊",
+            "108": "能量核心深处", "181": "封印机库祭坛", "182": "封印核心祭坛", "201": "溪木地", "202": "草岭",
+            "203": "狩猎小径", "204": "兽人村落", "205": "牧场", "206": "狼隘口", "207": "荆棘丛",
+            "208": "石崖", "209": "大平原", "281": "古老森林封印祭坛", "282": "撼地者封印祭坛", "900": "虚假南瓜闪避赛道", "901": "努鲁灵破坏者"
+        }
     }
 }
