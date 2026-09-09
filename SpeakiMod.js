@@ -3991,9 +3991,10 @@ function tick() {
 	const elapsedSec = oldestSample ? Math.max(0, (lunTickCount - oldestSample.tick) / lunTPS) : 0;
 	const expGained = oldestSample ? Math.max(0, playerExp - oldestSample.exp) : 0;
 	
-	// Prevent crazy spikes in the first few seconds by enforcing a minimum divisor of 60 seconds.
-	// As time passes, it scales perfectly up to the target window.
-	const divisor = Math.max(60, elapsedSec);
+	// The user expects the setting to be a strict fixed window.
+	// If set to 10 mins, divide by 10 mins (windowSec) regardless of elapsed time.
+	// This treats empty buffer history as 0 EXP, avoiding confusing extrapolation.
+	const divisor = windowSec;
 	lunExpTrackerSpeed = divisor > 0 ? expGained / divisor : 0;
 	
 	// Show the actual target interval so the user knows the setting worked immediately
@@ -4112,7 +4113,11 @@ function tick() {
 			const hours = (Date.now() - window._lunSessionStartTime) / 3600000;
 			const gph = hours > 0 ? (diff / hours).toFixed(0) : 0;
 			const prefix = diff >= 0 ? "+" : "";
-			setText(lunHudElements.sessionGoldTracker, t("sessionGoldText", `${prefix}${diff.toLocaleString()}`, `${prefix}${Number(gph).toLocaleString()}`));
+			let gphStr = Number(gph).toLocaleString();
+			if (Math.abs(gph) >= 1000) {
+				gphStr = (gph / 1000).toFixed(1).replace(/\.0$/, '') + "k";
+			}
+			setText(lunHudElements.sessionGoldTracker, t("sessionGoldText", `${prefix}${diff.toLocaleString()}`, `${prefix}${gphStr}`));
 		});
 
 		lunCurrencyTrackerNextTicks = lunTickCount + lunCurrencyTrackerWindow;
