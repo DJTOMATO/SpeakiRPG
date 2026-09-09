@@ -4,7 +4,10 @@
 
 # [ダウンロード](https://github.com/DJTOMATO/SpeakiRPG/releases) | [Discordに参加](https://discord.gg/bruZhcwqRx)
 
-**Speaki RPG デスクトップクライアント**は、ブラウザMMORPG **Speaki RPG**専用のカスタムデスクトップアプリ兼ランチャーです。ゲームをブラウザタブからデスクトップに拡張し、Discordのフレンドと進捗状況を共有するなど、たくさんの機能を追加します。
+【**Speaki RPG デスクトップクライアント**】は、ブラウザMMORPG **Speaki RPG**専用のカスタムデスクトップアプリ兼ランチャーです。  
+ゲームをブラウザタブからデスクトップに拡張し、Discordのフレンドと進捗状況を共有するなど、たくさんの機能を追加します。
+
+![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
 
 <h2 id="table-of-contents">目次</h2>
 
@@ -20,14 +23,9 @@
 - [10. よくある質問](#faq)
 - [11. クレジット](#credits)
 
-![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
----
-
 <h2 id="1-what-makes-it-awesome">1. 素晴らしい要素の数々</h2>
 
 [⬆ トップへ戻る](#table-of-contents)
-
-<img width="564" height="534" alt="image" src="https://github.com/user-attachments/assets/b4bf5c88-017e-49d5-8f75-109961c838c8" />
 
 * **GPUパフォーマンスの向上:** GPU設定を最適化して、3Dレンダリングを向上させます
 * **スムーズな操作性:** 専用のデスクトップラッパーで、快適なゲームプレイを実現します
@@ -39,11 +37,11 @@
 * **正確なクエストロック:**　指定したクエストをピン止めできます
 * **ワールドマップの実装:** マップ毎の位置関係を確認できます
 
+<img width="564" height="534" alt="image" src="https://github.com/user-attachments/assets/b4bf5c88-017e-49d5-8f75-109961c838c8" />
+
 <h2 id="2-additional-features">2. 追加機能</h2>
 
 [⬆ トップへ戻る](#table-of-contents)
-
-<img width="450" height="537" alt="image" src="https://github.com/user-attachments/assets/6b5c5837-d2ca-488e-8d8c-5d0a8e63a0aa" />
 
 - 周囲のｽﾋﾟｷ数
 - 各チャンネル接続ｽﾋﾟｷ数の表示
@@ -88,11 +86,9 @@
 - **[NEW]** 設定の保存/読み込み (JSON形式)
 - **[NEW]** スパムBotを非表示 (スパムBotの姿とエモートを完全に隠す)
 
-<img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
-
----
-
+<img width="450" height="537" alt="image" src="https://github.com/user-attachments/assets/6b5c5837-d2ca-488e-8d8c-5d0a8e63a0aa" />
 <img width="254" height="177" alt="image" src="https://github.com/user-attachments/assets/8971e06c-c687-48ea-b309-8e4eaec74152" />
+<img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
 
 <h2 id="3-speakimod">3. SpeakiMod+の実装！</h2>
 
@@ -110,12 +106,12 @@ SpeakiMod+ は、オリジナルの SpeakiMod を大幅に変更し完全にオ�
 
 [⬆ トップへ戻る](#table-of-contents)
 
-* 【公式開発者からの見解】
-* SpeakiMMODeveloperによる公式見解の日本語訳は以下の通りです。
+<img width="462" height="259" alt="devresponse" src="https://github.com/user-attachments/assets/3e96eae6-845a-43ba-9af2-18e51f038a89" />
 
 ---
 
-<img width="462" height="259" alt="devresponse" src="https://github.com/user-attachments/assets/3e96eae6-845a-43ba-9af2-18e51f038a89" />
+* 【公式開発者からの見解】
+* SpeakiMMODeveloperによる公式見解の日本語訳は以下の通りです。
 
 ---
 
@@ -127,7 +123,7 @@ SpeakiMod+ は、オリジナルの SpeakiMod を大幅に変更し完全にオ�
 
 ---
 
-公式開発者からの見解を要約すると、以下の通りです。
+要約すると、以下の通りです。
 * **許可:** クライアントの変更およびツールの使用/カスタマイズは、**他のユーザーに損害を与えたり、公平なプレイを妨害したりしない限り**可能です。
 * **禁止:** 他のプレイヤーに悪影響を与える行為（例：自動狩り、ボットの使用、チート行為）は禁止です。
 * **適用:** 禁止基準は開発者の主観的な裁量に完全に委ねられています。ユーザーは各自の判断で行動する必要があります。他のユーザーに悪影響を与えないと確信できる場合は、一般的に許可されます。自己責任でご利用ください。
