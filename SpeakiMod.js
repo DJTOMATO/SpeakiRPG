@@ -81,11 +81,7 @@ function getAuthToken() {
 	const socketUrl = gameState?.socket?.socket?.url || gameState?.socket?.url || "";
 	const match = socketUrl.match(/eyJhb.+?(?=&|$)/);
 	if (match) return match[0];
-
 	return "";
-}
-if (!getAuthToken()) {
-	console.warn("[SpeakiMod+] AuthToken could not be retrieved yet. Socket connection might not be initialized.");
 }
 const Emotes = {
 	Cry: 1,
@@ -98,46 +94,13 @@ const Emotes = {
 	Dance: 8
 };
 
-// This map does NOT have quest locations and Monatium!
 const Portals = {
-	1: {
-		2: {
-			portalId: 1, requiredQuestCode: null,
-			pos: {
-				x: 95,
-				z: 50
-			}
-		}
-	},
+	1: { 2: { portalId: 1, requiredQuestCode: null, pos: { x: 95, z: 50 } } },
 	2: {
-		1: {
-			portalId: 2, requiredQuestCode: null,
-			pos: {
-				x: 105,
-				z: 50
-			}
-		},
-		3: {
-			portalId: 7, requiredQuestCode: null,
-			pos: {
-				x: 196,
-				z: 100
-			}
-		},
-		101: {
-			portalId: 19, requiredQuestCode: "MQ_BOSS_WORLDTREE",
-			pos: {
-				x: 150,
-				z: 195
-			}
-		},
-		201: {
-			portalId: 37, requiredQuestCode: "MQ2_CORE3",
-			pos: {
-				x: 150,
-				z: 5
-			}
-		}
+		1: { portalId: 2, requiredQuestCode: null, pos: { x: 105, z: 50 } },
+		3: { portalId: 7, requiredQuestCode: null, pos: { x: 196, z: 100 } },
+		101: { portalId: 19, requiredQuestCode: "MQ_BOSS_WORLDTREE", pos: { x: 150, z: 195 } },
+		201: { portalId: 37, requiredQuestCode: "MQ2_CORE3", pos: { x: 150, z: 5 } }
 	},
 	3: {
 		2: {
@@ -304,7 +267,7 @@ const Portals = {
 			portalId: 25, requiredQuestCode: null,
 			pos: {
 				x: 647.5,
-				z: 250
+				z: 300
 			}
 		}
 	},
@@ -747,6 +710,7 @@ var spkmodTranslations = {
 	en: { langName: "English" } // fallback
 };
 
+
 var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) || "en";
 
 (async function() {
@@ -771,6 +735,13 @@ function t(key, ...args) {
 		|| key;
 	args.forEach((a, i) => { str = str.split(`{${i}}`).join(a); });
 	return str;
+}
+
+function getZoneName(zoneId) {
+	const localName = spkmodTranslations[spkmodLang]?.mapLocations?.[String(zoneId)];
+	if (localName) return localName;
+	const gameName = window.i18n ? window.i18n(`content.zone.${zoneId}.name`) : `Zone ${zoneId}`;
+	return !gameName || gameName.startsWith("content.zone") ? `Zone ${zoneId}` : gameName;
 }
 
 var spkmodI18nRenderers = [];
@@ -849,6 +820,8 @@ var lunPanelElements = {
 	creditsLabel: null,
 	translateEmailInfo: null,
 	expRateUnitLabel: null,
+	expRateIntervalLabel: null,
+	expRateIntervalSelect: null,
 	discordBtn: null,
 	gamepadSettingsBtn: null,
 	hideKnownBotsLabel: null,
@@ -860,10 +833,11 @@ var lunTickCount = 0;
 var lunSleep = 0;
 const lunTPS = 20;
 
-var lunExpTrackerNextTicks = 0;
 var lunExpTrackerStartExp = 0;
 var lunExpTrackerSpeed = 0;
 var lunExpTrackerInitialized = false; 
+var lunExpTrackerSamples = [];
+var lunExpTrackerLastSampleTick = 0;
 
 var lunChannelTrackerWindow = 60000 / lunTPS; // [SpeakiMod+] Reduced from 25s to 60s
 var lunChannelTrackerNextTicks = 0;
@@ -1025,10 +999,26 @@ function setSessionGoldTrackerEnabled(enabled) {
 }
 
 var lunExpRatePerHour = (window.localStorage && localStorage.getItem("spkmod-exp-per-hour")) === "true";
+const LUN_EXP_INTERVAL_OPTIONS = [1, 5, 10, 15, 30, 60];
+var lunExpIntervalMinutes = parseInt((window.localStorage && localStorage.getItem("spkmod-exp-interval-minutes")) || "1", 10);
+if (!LUN_EXP_INTERVAL_OPTIONS.includes(lunExpIntervalMinutes)) lunExpIntervalMinutes = 1;
+function resetExpTracker() {
+	lunExpTrackerInitialized = false;
+	lunExpTrackerSamples = [];
+	lunExpTrackerLastSampleTick = 0;
+}
 function setExpRatePerHour(enabled) {
 	lunExpRatePerHour = !!enabled;
 	if (window.localStorage) localStorage.setItem("spkmod-exp-per-hour", lunExpRatePerHour ? "true" : "false");
-	lunExpTrackerInitialized = false;
+	resetExpTracker();
+}
+
+function setExpIntervalMinutes(minutes) {
+	const parsedMinutes = parseInt(minutes, 10);
+	if (!LUN_EXP_INTERVAL_OPTIONS.includes(parsedMinutes)) return;
+	lunExpIntervalMinutes = parsedMinutes;
+	if (window.localStorage) localStorage.setItem("spkmod-exp-interval-minutes", String(lunExpIntervalMinutes));
+	resetExpTracker();
 }
 
 var lunFpsPingEnabled = (window.localStorage && localStorage.getItem("spkmod-fps-ping")) === "true";
@@ -2263,6 +2253,12 @@ document.body.appendChild(
 			buildElement("input", { type: "checkbox", checked: lunExpRatePerHour, onchange: e => setExpRatePerHour(e.target.checked) })
 		]),
 		buildElement("div", { className: "spkmod-panel-cat" }, [
+			lunPanelElements.expRateIntervalLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("expRateIntervalLabel") }),
+			lunPanelElements.expRateIntervalSelect = buildElement("select", { className: "spkmod-panel-combo", value: String(lunExpIntervalMinutes), onchange: e => setExpIntervalMinutes(e.target.value) },
+				LUN_EXP_INTERVAL_OPTIONS.map(minutes => buildElement("option", { value: String(minutes), innerText: t("expRateIntervalOption", minutes), selected: minutes === lunExpIntervalMinutes }))
+			)
+		]),
+		buildElement("div", { className: "spkmod-panel-cat" }, [
 			lunPanelElements.fpsPingLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("fpsPingToggleLabel") }),
 			lunPanelElements.fpsPingToggleInput = buildElement("input", { type: "checkbox", checked: lunFpsPingEnabled, onchange: e => setFpsPingEnabled(e.target.checked) })
 		]),
@@ -2937,8 +2933,7 @@ function updateMapLoop() {
 		ctx.textAlign = "center";
 		ctx.textBaseline = "middle";
 		
-		let rawName = i18n(`content.zone.${zid}.name`);
-		if (rawName.startsWith("content.zone.")) rawName = "Zone " + zid;
+		let rawName = getZoneName(zid);
 		
 		let words = rawName.split(" ");
 		if (words.length > 1) {
@@ -3708,8 +3703,7 @@ spkmodI18nRenderers.push(() => {
 		const currentVal = lunPanelElements.targetZone.value;
 		lunPanelElements.targetZone.innerHTML = "";
 		Object.keys(Portals).forEach(zoneId => {
-			let n = window.i18n ? window.i18n(`content.zone.${zoneId}.name`) : `Zone ${zoneId}`;
-			if (!n || n.startsWith("content.zone")) n = `Zone ${zoneId}`;
+			let n = getZoneName(zoneId);
 			lunPanelElements.targetZone.appendChild(buildElement("option", {
 				value: zoneId - 0,
 				innerText: n
@@ -3756,6 +3750,15 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.lowHpLabel) setText(lunPanelElements.lowHpLabel, t("lowHpWarningToggleLabel"));
 	if (lunPanelElements.sessionGoldLabel) setText(lunPanelElements.sessionGoldLabel, t("sessionGoldToggleLabel"));
 	if (lunPanelElements.expRateUnitLabel) setText(lunPanelElements.expRateUnitLabel, t("expRateUnitToggleLabel"));
+	if (lunPanelElements.expRateIntervalLabel) setText(lunPanelElements.expRateIntervalLabel, t("expRateIntervalLabel"));
+	if (lunPanelElements.expRateIntervalSelect) {
+		LUN_EXP_INTERVAL_OPTIONS.forEach((minutes, index) => {
+			if (lunPanelElements.expRateIntervalSelect.options[index]) {
+				lunPanelElements.expRateIntervalSelect.options[index].innerText = t("expRateIntervalOption", minutes);
+			}
+		});
+		lunPanelElements.expRateIntervalSelect.value = String(lunExpIntervalMinutes);
+	}
 	if (lunPanelElements.fpsPingLabel) setText(lunPanelElements.fpsPingLabel, t("fpsPingToggleLabel"));
 	if (lunPanelElements.resetTimerLabel) setText(lunPanelElements.resetTimerLabel, t("resetTimerToggleLabel"));
 	if (lunPanelElements.gamepadRumbleLabel) setText(lunPanelElements.gamepadRumbleLabel, t("gamepadRumbleToggleLabel"));
@@ -3956,36 +3959,49 @@ function tick() {
 	}
 	var playerExp = gameState.myStat.exp;
 	var zoneId = gameState.zoneId % 10000;
-	var windowSec = lunExpRatePerHour ? 3600 : 60;
+	var windowSec = lunExpIntervalMinutes * 60;
 	var windowTicks = windowSec * lunTPS;
 
-	var expTrackerTimerSec = Math.max(0, Math.ceil((lunExpTrackerNextTicks - lunTickCount) / lunTPS));
-	var timerDisplay = lunExpRatePerHour ? Math.ceil(expTrackerTimerSec / 60) + "m" : expTrackerTimerSec + "s";
+	var sampleIntervalTicks = lunTPS;
 	
 	var expTrackerL1 = t(lunExpRatePerHour ? "zeroExpPerHour" : "zeroExp");
 	var expTrackerL2 = t("nextLevelNA");
 
 	if (!lunExpTrackerInitialized) {
+		lunExpTrackerSamples = [{ tick: lunTickCount, exp: playerExp }];
 		lunExpTrackerStartExp = playerExp;
-		lunExpTrackerNextTicks = lunTickCount + windowTicks;
+		lunExpTrackerLastSampleTick = lunTickCount;
 		lunExpTrackerInitialized = true;
-	}
-	else if (playerExp < lunExpTrackerStartExp || lunTickCount >= lunExpTrackerNextTicks) {
+	} else if (lunExpTrackerSamples[lunExpTrackerSamples.length - 1].exp > playerExp) {
+		resetExpTracker();
+		lunExpTrackerSamples = [{ tick: lunTickCount, exp: playerExp }];
 		lunExpTrackerStartExp = playerExp;
-		lunExpTrackerNextTicks = lunTickCount + windowTicks;
+		lunExpTrackerLastSampleTick = lunTickCount;
+		lunExpTrackerInitialized = true;
+	} else if (lunTickCount - lunExpTrackerLastSampleTick >= sampleIntervalTicks) {
+		lunExpTrackerSamples.push({ tick: lunTickCount, exp: playerExp });
+		lunExpTrackerLastSampleTick = lunTickCount;
 	}
 
-	var expGained = Math.max(0, playerExp - lunExpTrackerStartExp);
+	const cutoffTick = lunTickCount - windowTicks;
+	while (lunExpTrackerSamples.length > 1 && lunExpTrackerSamples[1].tick <= cutoffTick) {
+		lunExpTrackerSamples.shift();
+	}
+	const oldestSample = lunExpTrackerSamples[0];
+	const elapsedSec = oldestSample ? Math.max(0, (lunTickCount - oldestSample.tick) / lunTPS) : 0;
+	const expGained = oldestSample ? Math.max(0, playerExp - oldestSample.exp) : 0;
 	
-
-	var actualElapsedSec = windowSec - (lunExpTrackerNextTicks - lunTickCount) / lunTPS;
-	var smoothingDivisor = windowSec; 
+	// Prevent crazy spikes in the first few seconds by enforcing a minimum divisor of 60 seconds.
+	// As time passes, it scales perfectly up to the target window.
+	const divisor = Math.max(60, elapsedSec);
+	lunExpTrackerSpeed = divisor > 0 ? expGained / divisor : 0;
 	
-	lunExpTrackerSpeed = expGained / smoothingDivisor; 
+	// Show the actual target interval so the user knows the setting worked immediately
+	const timerDisplay = (windowSec / 60) + "m avg";
 
 	if (lunExpTrackerSpeed > 0) {
 		const expRate = lunExpRatePerHour ? lunExpTrackerSpeed * 3600 : lunExpTrackerSpeed * 60;
-		expTrackerL1 = t(lunExpRatePerHour ? "expPerHour" : "expPerMinute", expRate.toFixed(0), timerDisplay);
+		expTrackerL1 = t(lunExpRatePerHour ? "expPerHour" : "expPerMinute", expRate.toFixed(0), "");
 
 		var minutesRemaining = (gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60;
 		if (minutesRemaining > 60) {
@@ -3994,8 +4010,6 @@ function tick() {
 		} else {
 			expTrackerL2 = t("nextLevel", minutesRemaining.toFixed(0));
 		}
-	} else {
-		expTrackerL1 += ` (${timerDisplay})`;
 	}
 
 	if (gameState.isDead && lunWalkToPortal != -1) {
@@ -4093,13 +4107,12 @@ function tick() {
 			if (lunSessionStartGold === null) {
 				lunSessionStartGold = lunLastGold;
 				window._lunSessionStartTime = Date.now();
-			} else {
-				const diff = lunLastGold - lunSessionStartGold;
-				const hours = (Date.now() - window._lunSessionStartTime) / 3600000;
-				const gph = hours > 0 ? (diff / hours).toFixed(0) : 0;
-				const prefix = diff >= 0 ? "+" : "";
-				setText(lunHudElements.sessionGoldTracker, t("sessionGoldText", `${prefix}${diff.toLocaleString()}`, `${prefix}${Number(gph).toLocaleString()}`));
 			}
+			const diff = lunLastGold - lunSessionStartGold;
+			const hours = (Date.now() - window._lunSessionStartTime) / 3600000;
+			const gph = hours > 0 ? (diff / hours).toFixed(0) : 0;
+			const prefix = diff >= 0 ? "+" : "";
+			setText(lunHudElements.sessionGoldTracker, t("sessionGoldText", `${prefix}${diff.toLocaleString()}`, `${prefix}${Number(gph).toLocaleString()}`));
 		});
 
 		lunCurrencyTrackerNextTicks = lunTickCount + lunCurrencyTrackerWindow;
