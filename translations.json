@@ -1,7 +1,7 @@
 {
     "en": {
         "langName": "English",
-        "header": "SpeakiMod+ v1.4.6",
+        "header": "SpeakiMod+ v1.4.7",
         "langLabel": "Language",
         "playersNearby": "Speaki nearby: {0}",
         "zoneId": "Zone ID: {0}",
@@ -202,7 +202,7 @@
     },
     "ja": {
         "langName": "日本語",
-        "header": "SpeakiMod+ v1.4.6",
+        "header": "SpeakiMod+ v1.4.7",
         "langLabel": "言語",
         "playersNearby": "近くのｽﾋﾟｷ数: {0}",
         "zoneId": "エリアID: {0}",
@@ -403,7 +403,7 @@
     },
     "ko": {
         "langName": "한국어",
-        "header": "SpeakiMod+ v1.4.6",
+        "header": "SpeakiMod+ v1.4.7",
         "langLabel": "언어",
         "playersNearby": "근처 스피키: {0}",
         "zoneId": "존 ID: {0}",
@@ -604,7 +604,7 @@
     },
     "zh-TW": {
         "langName": "繁體中文",
-        "header": "SpeakiMod+ v1.4.6",
+        "header": "SpeakiMod+ v1.4.7",
         "changelog": "[v1.4.5] 修復設定視窗的縮放與對齊問題",
         "langLabel": "語言",
         "playersNearby": "附近的斯皮奇: {0}",
@@ -844,7 +844,7 @@
     },
     "es-419": {
         "langName": "Español",
-        "header": "SpeakiMod+ v1.4.6",
+        "header": "SpeakiMod+ v1.4.7",
         "langLabel": "Idioma",
         "playersNearby": "Speaki cercanos: {0}",
         "zoneId": "ID de zona: {0}",
@@ -1039,7 +1039,7 @@
     },
     "zh-CN": {
         "langName": "简体中文",
-        "header": "SpeakiMod+ v1.4.6",
+        "header": "SpeakiMod+ v1.4.7",
         "changelog": "[v1.4.5] 修复设定视窗的缩放与对齐问题",
         "langLabel": "语言",
         "playersNearby": "附近的斯皮奇: {0}",

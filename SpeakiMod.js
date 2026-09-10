@@ -529,7 +529,7 @@ const WorldZones = [{"zoneId": 1, "minX": 0, "maxX": 100, "minZ": 0, "maxZ": 100
 
 const ZoneSequences = [1, 2, 5, 3, 6, 4, 7, 8, 9, 10];
 const Waypoints = {
-	5: [
+	3: [
 		{
 			x: 272,
 			z: 106,
