@@ -41,10 +41,9 @@
 * **Real-Time Chat Translation**: Instantly translates in-game chat messages using the MyMemory API
 * **Profanity Filter**: Automatically censors explicit or inappropriate language in chat to keep your in-game communication clean and friendly.
 
-* **World Map UI**
-* **Dynamic Autowalk Pathfinding**
-* **Accurate Quest Locks**
-\n<h2 id="2-additional-features">2. Additional Features</h2>
+* **World Map UI**: See exactly where you are and where you want to go
+
+<h2 id="2-additional-features">2. Additional Features</h2>
 
 [⬆ Back to Top](#table-of-contents)
 
@@ -92,6 +91,9 @@
 - **[NEW]** Gamepad Haptic Vibration / Rumble on Damage
 - **[NEW]** Export / Import Settings to JSON
 - **[NEW]** Hide Known Bots (Toggle to completely hide and mute emote spammers automatically)
+- **[NEW]** **Dynamic Autowalk Pathfinding**
+- **[NEW]**  **Accurate Quest Locks**
+- **[NEW]**  **World Map**
 
 <img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
 

@@ -146,7 +146,7 @@ const Portals = {
 			portalId: 5, requiredQuestCode: null,
 			pos: {
 				x: 554,
-				z: 100
+				z: 99
 			}
 		}
 	},
@@ -571,12 +571,21 @@ function buildElement(tag, characteristics, inner, callback) {
 }
 
 function findNametagSprite(container) {
-	for (const group of container.children) {
-		for (const child of group.children) {
-			if (child.isSprite) return child;
-		}
+	if (!container) return null;
+	// Direct O(1) path based on in-game Three.js structure (both on foot and mounted on vehicle)
+	const direct = container.children?.[0]?.children?.[0]?.children?.[1];
+	if (direct && direct.isSprite) return direct;
+
+	// Traversal fallback if the game hierarchy shifts
+	let sprite = null;
+	if (typeof container.traverse === "function") {
+		container.traverse(obj => {
+			if (!sprite && obj && obj.isSprite) {
+				sprite = obj;
+			}
+		});
 	}
-	return null;
+	return sprite;
 }
 
 
@@ -1934,9 +1943,11 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					innerText: t("showAllNametagsBtn"),
 					value: "",
-					onclick: e => {
+					onclick: () => {
 						lunNametagMode = (lunNametagMode + 1) % 3;
-						e.target.innerText = t(NAMETAG_MODES[lunNametagMode] + "Btn");
+						if (lunPanelElements.nametagsBtn) {
+							setText(lunPanelElements.nametagsBtn, t(NAMETAG_MODES[lunNametagMode] + "Btn"));
+						}
 					}
 				}),
 
@@ -4159,9 +4170,10 @@ function tick() {
 				sprite.visible = false;
 			} else if (lunNametagMode === 1) {
 				if (partyNames === null) {
-					partyNames = new Set(Array.from(document.querySelectorAll('.sr-party__name')).map(el => el.innerText.trim()));
+					partyNames = new Set(Array.from(document.querySelectorAll('.sr-party__name')).map(el => el.innerText.trim().toLowerCase()));
 				}
-				sprite.visible = partyNames.has(t.info.name);
+				const pName = (t.info?.name || "").trim().toLowerCase();
+				sprite.visible = partyNames.has(pName);
 			}
 		}
 	});
