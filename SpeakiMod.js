@@ -716,7 +716,21 @@ function filterName(name) {
 loadAllBadWordLists();
 
 var spkmodTranslations = {
-	en: { langName: "English" } // fallback
+	en: {
+		langName: "English",
+		pumpkinTrackerToggleLabel: "Pumpkin Plays Tracker",
+		pumpkinTrackerText: "Pumpkin: {0}/{1}",
+		pumpkinTrackerInactive: "Pumpkin: Ended",
+		eventInfoBtnTooltip: "Event Info",
+		eventInfoHeader: "Event Info",
+		eventPumpkinTitle: "Pumpkin Minigame",
+		eventStatusActive: "Active",
+		eventStatusInactive: "Inactive",
+		eventPeriod: "Period: {0} ~ {1}",
+		eventBestScore: "Best Score: {0}",
+		eventPlaysToday: "Plays Remaining: {0}/{1}",
+		eventLoading: "Loading event info..."
+	}
 };
 
 
@@ -794,6 +808,7 @@ var lunHudElements = {
 };
 var eventModalElements = {
 	headerTitle: null,
+	titleText: null,
 	statusBadge: null,
 	periodText: null,
 	bestScoreText: null,
@@ -1110,20 +1125,24 @@ function updatePumpkinUI() {
 
 function toggleEventModal() {
 	if (!lunHudElements.eventModal) return;
-	const rect = document.querySelector("#spkmod-hud")?.getBoundingClientRect();
-	if (rect) {
-		lunHudElements.eventModal.style.left = (rect.right + 10) + "px";
-		lunHudElements.eventModal.style.top = rect.top + "px";
-	}
-	lunHudElements.eventModal.classList.toggle("hidden");
-	if (!lunHudElements.eventModal.classList.contains("hidden")) {
+	const isClosed = lunHudElements.eventModal.classList.contains("hidden");
+	if (isClosed) {
+		const rect = document.querySelector("#spkmod-hud")?.getBoundingClientRect();
+		if (rect) {
+			lunHudElements.eventModal.style.left = (rect.right + 10) + "px";
+			lunHudElements.eventModal.style.top = rect.top + "px";
+		}
+		lunHudElements.eventModal.classList.remove("hidden");
 		fetchPumpkinStatus();
+	} else {
+		lunHudElements.eventModal.classList.add("hidden");
 	}
 }
 
 function updateEventModalContent() {
 	if (!lunHudElements.eventModal) return;
 	if (eventModalElements.headerTitle) setText(eventModalElements.headerTitle, t("eventInfoHeader"));
+	if (eventModalElements.titleText) setText(eventModalElements.titleText, "🎃 " + t("eventPumpkinTitle"));
 	
 	if (!lunPumpkinStatus) {
 		if (eventModalElements.periodText) setText(eventModalElements.periodText, t("eventLoading"));
@@ -1580,8 +1599,8 @@ document.head.appendChild(buildElement(
 			to { opacity: 1.0; transform: scale(1.02); }
 		}
 		/* honest to god forgot CSS is stupid like that */
-		.hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden {
-			display: none;
+		.hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden {
+			display: none !important;
 		}
 		#spkmod-pq-pbar {
 			margin-top: 2px;
@@ -2216,7 +2235,7 @@ document.body.appendChild(
 					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "🗺️",
 					title: "World Map",
-					onclick: _ => openMapModal()
+					onclick: _ => toggleMapModal()
 				}),
 				lunPanelElements.dragBtn = buildElement("button", {
 					id: "spkmod-drag-btn",
@@ -2956,6 +2975,15 @@ function closeMapModal() {
 	mapUpdateFrame = null;
 }
 
+function toggleMapModal() {
+	if (!mapModalElements.modalWindow) return;
+	if (mapModalElements.modalWindow.style.display === "none") {
+		openMapModal();
+	} else {
+		closeMapModal();
+	}
+}
+
 function updateMapLoop() {
 	if (!mapModalElements.canvas || mapModalElements.modalWindow.style.display === "none") {
 		mapUpdateFrame = null;
@@ -3174,7 +3202,7 @@ document.body.appendChild(
 			style: "background: rgba(255, 140, 0, 0.12); border: 1px solid rgba(255, 140, 0, 0.35); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px;"
 		}, [
 			buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
-				buildElement("span", { style: "font-weight: bold; font-size: 11pt; color: #ffa500;", innerText: "🎃 " + t("eventPumpkinTitle") }),
+				eventModalElements.titleText = buildElement("span", { style: "font-weight: bold; font-size: 11pt; color: #ffa500;", innerText: "🎃 " + t("eventPumpkinTitle") }),
 				eventModalElements.statusBadge = buildElement("span", {
 					style: "font-size: 9pt; font-weight: bold; padding: 1px 6px; border: 1px solid #4ade80; border-radius: 4px; color: #4ade80;",
 					innerText: t("eventStatusActive")
