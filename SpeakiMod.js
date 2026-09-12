@@ -788,7 +788,16 @@ var lunHudElements = {
 		pbar: null
 	},
 	currencyTracker: null,
-	settingsModal: null
+	pumpkinTracker: null,
+	settingsModal: null,
+	eventModal: null
+};
+var eventModalElements = {
+	headerTitle: null,
+	statusBadge: null,
+	periodText: null,
+	bestScoreText: null,
+	playsRemainingText: null
 };
 var lunPanelElements = {
 	targetZone: null,
@@ -833,6 +842,9 @@ var lunPanelElements = {
 	expRateIntervalSelect: null,
 	discordBtn: null,
 	gamepadSettingsBtn: null,
+	eventBtn: null,
+	pumpkinTrackerLabel: null,
+	pumpkinTrackerToggleInput: null,
 	hideKnownBotsLabel: null,
 	hideKnownBotsToggleInput: null,
 };
@@ -1048,6 +1060,100 @@ function setResetTimerEnabled(enabled) {
 	}
 }
 
+var lunPumpkinTrackerEnabled = (window.localStorage && localStorage.getItem("spkmod-pumpkin-tracker")) === "true";
+var lunPumpkinStatus = null;
+var lunPumpkinTrackerWindow = 60000 / lunTPS;
+var lunPumpkinTrackerNextTicks = 0;
+
+function setPumpkinTrackerEnabled(enabled) {
+	lunPumpkinTrackerEnabled = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-pumpkin-tracker", lunPumpkinTrackerEnabled ? "true" : "false");
+	if (lunHudElements.pumpkinTracker) {
+		lunHudElements.pumpkinTracker.style.display = lunPumpkinTrackerEnabled ? "" : "none";
+	}
+	if (lunPumpkinTrackerEnabled && !lunPumpkinStatus) {
+		fetchPumpkinStatus();
+	}
+}
+
+function fetchPumpkinStatus() {
+	const token = getAuthToken();
+	if (!token) return;
+	fetch("https://sr1.overture.io.kr/api/minigame/pumpkin/status", {
+		"method": "GET",
+		"headers": {
+			"authorization": `Bearer ${token}`
+		},
+		"mode": "cors"
+	}).then(async x => {
+		if (!x.ok) return;
+		var resp = (await x.json());
+		lunPumpkinStatus = resp;
+		updatePumpkinUI();
+	}).catch(_ => {});
+}
+
+function updatePumpkinUI() {
+	if (lunHudElements.pumpkinTracker) {
+		if (lunPumpkinStatus) {
+			if (lunPumpkinStatus.isActive) {
+				setText(lunHudElements.pumpkinTracker, t("pumpkinTrackerText", lunPumpkinStatus.remainingPlaysToday ?? 0, lunPumpkinStatus.dailyCapPlays ?? 10));
+			} else {
+				setText(lunHudElements.pumpkinTracker, t("pumpkinTrackerInactive"));
+			}
+		} else {
+			setText(lunHudElements.pumpkinTracker, t("pumpkinTrackerText", "--", "--"));
+		}
+	}
+	updateEventModalContent();
+}
+
+function toggleEventModal() {
+	if (!lunHudElements.eventModal) return;
+	const rect = document.querySelector("#spkmod-hud")?.getBoundingClientRect();
+	if (rect) {
+		lunHudElements.eventModal.style.left = (rect.right + 10) + "px";
+		lunHudElements.eventModal.style.top = rect.top + "px";
+	}
+	lunHudElements.eventModal.classList.toggle("hidden");
+	if (!lunHudElements.eventModal.classList.contains("hidden")) {
+		fetchPumpkinStatus();
+	}
+}
+
+function updateEventModalContent() {
+	if (!lunHudElements.eventModal) return;
+	if (eventModalElements.headerTitle) setText(eventModalElements.headerTitle, t("eventInfoHeader"));
+	
+	if (!lunPumpkinStatus) {
+		if (eventModalElements.periodText) setText(eventModalElements.periodText, t("eventLoading"));
+		return;
+	}
+
+	const active = !!lunPumpkinStatus.isActive;
+	if (eventModalElements.statusBadge) {
+		setText(eventModalElements.statusBadge, active ? t("eventStatusActive") : t("eventStatusInactive"));
+		eventModalElements.statusBadge.style.color = active ? "#4ade80" : "#f87171";
+		eventModalElements.statusBadge.style.borderColor = active ? "#4ade80" : "#f87171";
+	}
+
+	if (eventModalElements.periodText) {
+		const start = lunPumpkinStatus.activeStartDate || "--";
+		const end = lunPumpkinStatus.activeEndDate || "--";
+		setText(eventModalElements.periodText, t("eventPeriod", start, end));
+	}
+
+	if (eventModalElements.bestScoreText) {
+		setText(eventModalElements.bestScoreText, t("eventBestScore", lunPumpkinStatus.myBestScore ?? "--"));
+	}
+
+	if (eventModalElements.playsRemainingText) {
+		const rem = lunPumpkinStatus.remainingPlaysToday ?? 0;
+		const cap = lunPumpkinStatus.dailyCapPlays ?? 10;
+		setText(eventModalElements.playsRemainingText, t("eventPlaysToday", rem, cap));
+	}
+}
+
 var lunGamepadRumbleEnabled = (window.localStorage && localStorage.getItem("spkmod-gamepad-rumble")) !== "false";
 function setGamepadRumbleEnabled(enabled) {
 	lunGamepadRumbleEnabled = !!enabled;
@@ -1133,9 +1239,9 @@ function updateDynamicStyles() {
 			--spkmod-blur: ${blurRule};
 			--spkmod-accent: ${lunAccentColor};
 		}
-		#spkmod-hud, #spkmod-settings-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
+		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
-		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
+		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
 			background: var(--spkmod-bg) !important;
 			backdrop-filter: var(--spkmod-blur) !important;
 			border-color: var(--spkmod-accent) !important;
@@ -1411,7 +1517,7 @@ document.head.appendChild(buildElement(
 			border-radius: 8px;
 			padding: 6px;
 		}
-		#spkmod-gamepad-modal, #spkmod-players-modal {
+		#spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal {
 			display: flex;
 			flex-direction: column;
 			position: fixed;
@@ -1438,6 +1544,10 @@ document.head.appendChild(buildElement(
 			left: 50%;
 			top: 50%;
 			transform: translate(-50%, -50%);
+		}
+		#spkmod-event-modal {
+			width: 290px;
+			max-width: 95vw;
 		}
 		.spkmod-binding-row {
 			display: flex;
@@ -1566,6 +1676,10 @@ document.body.appendChild(
 			lunHudElements.resetTimerTracker = buildElement("span", {
 				innerText: t("resetTimerText", "--", "--", "--"),
 				style: lunResetTimerEnabled ? "" : "display: none;"
+			}),
+			lunHudElements.pumpkinTracker = buildElement("span", {
+				innerText: t("pumpkinTrackerText", "--", "--"),
+				style: lunPumpkinTrackerEnabled ? "" : "display: none;"
 			}),
 			lunHudElements.footerMsg = buildElement("span", {
 				id: "spkmod-footer",
@@ -2088,6 +2202,14 @@ document.body.appendChild(
 						lunHudElements.settingsModal.classList.toggle("hidden");
 					}
 				}),
+				lunPanelElements.eventBtn = buildElement("button", {
+					id: "spkmod-event-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					innerText: "🎉",
+					title: t("eventInfoBtnTooltip"),
+					onclick: _ => toggleEventModal()
+				}),
 				lunPanelElements.mapBtn = buildElement("button", {
 					id: "spkmod-map-btn",
 					className: "spkmod-panel-btn",
@@ -2276,6 +2398,10 @@ document.body.appendChild(
 		buildElement("div", { className: "spkmod-panel-cat" }, [
 			lunPanelElements.resetTimerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("resetTimerToggleLabel") }),
 			lunPanelElements.resetTimerToggleInput = buildElement("input", { type: "checkbox", checked: lunResetTimerEnabled, onchange: e => setResetTimerEnabled(e.target.checked) })
+		]),
+		buildElement("div", { className: "spkmod-panel-cat" }, [
+			lunPanelElements.pumpkinTrackerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("pumpkinTrackerToggleLabel") }),
+			lunPanelElements.pumpkinTrackerToggleInput = buildElement("input", { type: "checkbox", checked: lunPumpkinTrackerEnabled, onchange: e => setPumpkinTrackerEnabled(e.target.checked) })
 		]),
 		buildElement("div", { className: "spkmod-panel-cat" }, [
 			lunPanelElements.gamepadRumbleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("gamepadRumbleToggleLabel") }),
@@ -3026,6 +3152,64 @@ document.body.appendChild(
 		})
 	])
 );
+
+document.body.appendChild(
+	lunHudElements.eventModal = buildElement("div", {
+		id: "spkmod-event-modal",
+		className: "hidden"
+	}, [
+		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
+			eventModalElements.headerTitle = buildElement("span", {
+				innerText: t("eventInfoHeader"),
+				style: "font-weight: bold; font-size: 12px; cursor: move; user-select: none;"
+			}),
+			buildElement("span", {
+				id: "spkmod-event-close",
+				innerText: "✕",
+				style: "cursor: pointer; padding: 0 4px;",
+				onclick: _ => lunHudElements.eventModal.classList.add("hidden")
+			})
+		]),
+		buildElement("div", {
+			style: "background: rgba(255, 140, 0, 0.12); border: 1px solid rgba(255, 140, 0, 0.35); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px;"
+		}, [
+			buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+				buildElement("span", { style: "font-weight: bold; font-size: 11pt; color: #ffa500;", innerText: "🎃 " + t("eventPumpkinTitle") }),
+				eventModalElements.statusBadge = buildElement("span", {
+					style: "font-size: 9pt; font-weight: bold; padding: 1px 6px; border: 1px solid #4ade80; border-radius: 4px; color: #4ade80;",
+					innerText: t("eventStatusActive")
+				})
+			]),
+			eventModalElements.periodText = buildElement("div", {
+				style: "font-size: 9pt; color: #bbb;",
+				innerText: t("eventLoading")
+			}),
+			buildElement("div", { style: "display: flex; justify-content: space-between; font-size: 9.5pt; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px;" }, [
+				eventModalElements.bestScoreText = buildElement("span", {
+					style: "font-weight: bold; color: #ffd54a;",
+					innerText: t("eventBestScore", "--")
+				}),
+				eventModalElements.playsRemainingText = buildElement("span", {
+					style: "font-weight: bold; color: #fff;",
+					innerText: t("eventPlaysToday", "--", "--")
+				})
+			])
+		]),
+		buildElement("div", { style: "display: flex; justify-content: flex-end; gap: 6px; margin-top: 2px;" }, [
+			buildElement("button", {
+				className: "spkmod-panel-btn",
+				style: "padding: 3px 10px; font-size: 9pt; cursor: pointer;",
+				innerText: "🔄 Refresh",
+				onclick: () => fetchPumpkinStatus()
+			})
+		])
+	])
+);
+setTimeout(() => {
+	if (typeof makeDraggable === 'function' && lunHudElements.eventModal && eventModalElements.headerTitle) {
+		makeDraggable(lunHudElements.eventModal, [eventModalElements.headerTitle]);
+	}
+}, 500);
 setTimeout(() => { if (typeof makeDraggable === 'function') makeDraggable(mapModalElements.modalWindow, [mapModalElements.titleLabel]); }, 1000);
 
 
@@ -3772,6 +3956,9 @@ spkmodI18nRenderers.push(() => {
 	}
 	if (lunPanelElements.fpsPingLabel) setText(lunPanelElements.fpsPingLabel, t("fpsPingToggleLabel"));
 	if (lunPanelElements.resetTimerLabel) setText(lunPanelElements.resetTimerLabel, t("resetTimerToggleLabel"));
+	if (lunPanelElements.pumpkinTrackerLabel) setText(lunPanelElements.pumpkinTrackerLabel, t("pumpkinTrackerToggleLabel"));
+	if (lunPanelElements.eventBtn) lunPanelElements.eventBtn.title = t("eventInfoBtnTooltip");
+	updatePumpkinUI();
 	if (lunPanelElements.gamepadRumbleLabel) setText(lunPanelElements.gamepadRumbleLabel, t("gamepadRumbleToggleLabel"));
 	if (lunPanelElements.uiScaleLabel) setText(lunPanelElements.uiScaleLabel, t("uiScaleLabel"));
 	if (lunPanelElements.bgOpacityLabel) setText(lunPanelElements.bgOpacityLabel, t("bgOpacityLabel"));
@@ -4158,6 +4345,11 @@ function tick() {
 		});
 
 		lunPinnedQuestNextQueryTick += lunPinnedQuestInterval;
+	}
+
+	if ((lunPumpkinTrackerEnabled || (lunHudElements.eventModal && !lunHudElements.eventModal.classList.contains("hidden"))) && lunTickCount >= lunPumpkinTrackerNextTicks) {
+		fetchPumpkinStatus();
+		lunPumpkinTrackerNextTicks = lunTickCount + lunPumpkinTrackerWindow;
 	}
 
 	let partyNames = null;

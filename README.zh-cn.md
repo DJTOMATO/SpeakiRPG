@@ -90,6 +90,7 @@
 - **[NEW]** 设定汇出 / 汇入为 JSON 档案
 
 - **[NEW]** 隐藏已知机器人 (一键完全隐藏刷屏机器人的模型与表情)
+- **[NEW]** 小游戏追踪与活动信息 (追踪每日剩余游玩次数与活动详情)
 
 <img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
 
