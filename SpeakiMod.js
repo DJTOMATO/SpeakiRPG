@@ -1602,6 +1602,16 @@ document.head.appendChild(buildElement(
 		.hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden {
 			display: none !important;
 		}
+		body.spkmod-ui-hidden #spkmod-hud,
+		body.spkmod-ui-hidden #spkmod-pq,
+		body.spkmod-ui-hidden #spkmod-settings-modal,
+		body.spkmod-ui-hidden #spkmod-event-modal,
+		body.spkmod-ui-hidden #spkmod-gamepad-modal,
+		body.spkmod-ui-hidden #spkmod-players-modal,
+		body.spkmod-ui-hidden #spkmod-map-modal,
+		body.spkmod-ui-hidden #spkmod-translate-picker {
+			display: none !important;
+		}
 		#spkmod-pq-pbar {
 			margin-top: 2px;
 			background: #0F0;
@@ -4942,3 +4952,20 @@ setTimeout(() => {
 		})
 		.catch(err => console.error("[SpeakiMod+] Failed to load signature:", err));
 }, 15000);
+
+// Hotkey to fully hide / unhide the entire mod UI with 'P' key
+window.addEventListener("keydown", e => {
+	if (e.key !== "p" && e.key !== "P" && e.code !== "KeyP") return;
+	if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+	const active = document.activeElement;
+	if (active) {
+		const tag = active.tagName ? active.tagName.toLowerCase() : "";
+		if (tag === "input" || tag === "textarea" || active.isContentEditable) {
+			return;
+		}
+	}
+
+	e.preventDefault();
+	document.body.classList.toggle("spkmod-ui-hidden");
+});
