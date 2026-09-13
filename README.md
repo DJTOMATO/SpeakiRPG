@@ -95,6 +95,7 @@
 - **[NEW]**  **Accurate Quest Locks**
 - **[NEW]**  **World Map**
 - **[NEW]** Minigame Tracker & Event Info (Tracks daily remaining plays and event details)
+- **[NEW]** Toggle Mod UI Visibility (Press P to hide or show all mod overlays)
 
 <img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
 

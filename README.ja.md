@@ -86,6 +86,7 @@
 - **[NEW]** 設定の保存/読み込み (JSON形式)
 - **[NEW]** スパムBotを非表示 (スパムBotの姿とエモートを完全に隠す)
 - **[NEW]** ミニゲームトラッカー＆イベント情報 (毎日の残りプレイ回数とイベント詳細を表示)
+- **[NEW]** MOD UIの一括非表示/表示 (Pキーで全MODオーバーレイの表示/非表示を切り替え)
 
 <img width="450" height="537" alt="image" src="https://github.com/user-attachments/assets/6b5c5837-d2ca-488e-8d8c-5d0a8e63a0aa" />
 <img width="254" height="177" alt="image" src="https://github.com/user-attachments/assets/8971e06c-c687-48ea-b309-8e4eaec74152" />
