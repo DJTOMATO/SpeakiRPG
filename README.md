@@ -79,7 +79,7 @@
 - Gamemaster talks highlight (Visually highlights and bolds GM/developer messages in chat; toggleable in settings)
 - Chat mention notifications (Optional notification when someone calls your name in chat)
 - Chat command shortcuts (`!dance`, `!hearts`, `!pat`, `!chowayo`, `!follow`, `!players`, `!zoom`, `!fppitch`)
-- **[NEW]** Outgoing Quick-Translate Commands (`.k <msg>`, `.j <msg>`, `.zh <msg>`, `.en <msg>`, `.es <msg>`, etc. - auto-translates and sends your chat message)
+- **[NEW]** Outgoing Quick-Translate Commands (`.j`/`.ja`/`.jp <msg>`, `.k`/`.ko <msg>`, `.zh`/`.cn <msg>`, `.en <msg>`, `.es <msg>`, etc. - auto-translates and sends your chat message)
 - **[NEW]** Chat Timestamps (Toggleable `[HH:MM:SS]` prefix in chat)
 - **[NEW]** Free-Cam / Drone Photo Mode (Requires Gamepad, detaches camera for cinematic shots)
 - **[NEW]** True First-Person POV Mode (Locked horizontal eye-level camera with configurable pitch)
