@@ -689,6 +689,42 @@ function setTranslateEmail(email) {
 	if (window.localStorage) localStorage.setItem("spkmod-translate-email", lunTranslateEmail);
 }
 
+var lunOutgoingSourceLang = (window.localStorage && localStorage.getItem("spkmod-outgoing-source-lang")) || "auto";
+function setOutgoingSourceLang(lang) {
+	lunOutgoingSourceLang = lang;
+	if (window.localStorage) localStorage.setItem("spkmod-outgoing-source-lang", lang);
+	if (lunPanelElements && lunPanelElements.outgoingTranslateSelect) lunPanelElements.outgoingTranslateSelect.value = lang;
+}
+
+const lunOutgoingLangPrefixes = {
+	k: "ko", ko: "ko", kr: "ko", kor: "ko", korean: "ko",
+	j: "ja", ja: "ja", jp: "ja", jpn: "ja", japanese: "ja",
+	zh: "zh-CN", cn: "zh-CN", tw: "zh-TW", z: "zh-CN", "zh-cn": "zh-CN", "zh-tw": "zh-TW", chi: "zh-CN", chinese: "zh-CN",
+	en: "en", e: "en", eng: "en", english: "en",
+	es: "es", s: "es", spa: "es", spanish: "es",
+	fr: "fr", f: "fr", fre: "fr", french: "fr",
+	de: "de", g: "de", ger: "de", german: "de",
+	pt: "pt", p: "pt", por: "pt", portuguese: "pt",
+	ru: "ru", r: "ru", rus: "ru", russian: "ru"
+};
+
+function getEffectiveSourceLang(text) {
+	if (lunOutgoingSourceLang && lunOutgoingSourceLang !== "auto") {
+		return lunOutgoingSourceLang;
+	}
+	if (/[\uAC00-\uD7A3]/.test(text)) return "ko"; // Hangul
+	if (/[\u3040-\u30FF]/.test(text)) return "ja"; // Hiragana/Katakana
+	if (/[\u4E00-\u9FFF]/.test(text)) {
+		return (spkmodLang === "zh-TW") ? "zh-TW" : "zh-CN"; // Hanzi
+	}
+	if (spkmodLang === "ja") return "ja";
+	if (spkmodLang === "ko") return "ko";
+	if (spkmodLang === "zh-TW") return "zh-TW";
+	if (spkmodLang === "zh-CN") return "zh-CN";
+	if (spkmodLang === "es-419") return "es";
+	return "en";
+}
+
 var lunBadWordRegex = null;
 function rebuildBadWordRegex() {
 	var allWords = Object.values(lunBadWords).flat().filter(Boolean);
@@ -849,6 +885,8 @@ var lunPanelElements = {
 	translateToggleLabel: null,
 	translateToggleInput: null,
 	translateTargetSelect: null,
+	outgoingTranslateLabel: null,
+	outgoingTranslateSelect: null,
 	translateEmailInput: null,
 	creditsLabel: null,
 	translateEmailInfo: null,
@@ -2390,6 +2428,33 @@ document.body.appendChild(
 			style: "color: #aaa; font-size: 10px; line-height: 1.4; padding: 2px 4px 6px;",
 			innerText: t("translateEmailTooltip")
 		}),
+		buildElement("div", { className: "spkmod-panel-cat" }, [
+			lunPanelElements.outgoingTranslateLabel = buildElement("span", {
+				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+				innerText: t("outgoingTranslateLabel")
+			}),
+			lunPanelElements.outgoingTranslateSelect = buildElement("select", {
+				className: "spkmod-panel-combo",
+				value: lunOutgoingSourceLang,
+				onchange: e => setOutgoingSourceLang(e.target.value)
+			}, [
+				{ value: "auto", label: t("outgoingTranslateAuto") },
+				{ value: "en", label: "English" },
+				{ value: "ja", label: "日本語" },
+				{ value: "ko", label: "한국어" },
+				{ value: "zh-TW", label: "繁體中文" },
+				{ value: "zh-CN", label: "简体中文" },
+				{ value: "es", label: "Español" },
+				{ value: "fr", label: "Français" },
+				{ value: "de", label: "Deutsch" },
+				{ value: "pt", label: "Português" },
+				{ value: "ru", label: "Русский" }
+			].map(item => buildElement("option", {
+				value: item.value,
+				innerText: item.label,
+				selected: item.value === lunOutgoingSourceLang
+			})))
+		]),
 
 		buildElement("div", { className: "spkmod-panel-cat" }, [
 			lunPanelElements.chatTimestampLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("chatTimestampToggleLabel") }),
@@ -4029,6 +4094,10 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.translateToggleLabel) setText(lunPanelElements.translateToggleLabel, t("translateToggleLabel"));
 	if (lunPanelElements.translateEmailInput) lunPanelElements.translateEmailInput.placeholder = t("translateEmailPlaceholder");
 	if (lunPanelElements.translateEmailInfo) lunPanelElements.translateEmailInfo.innerText = t("translateEmailTooltip");
+	if (lunPanelElements.outgoingTranslateLabel) setText(lunPanelElements.outgoingTranslateLabel, t("outgoingTranslateLabel"));
+	if (lunPanelElements.outgoingTranslateSelect && lunPanelElements.outgoingTranslateSelect.options[0]) {
+		lunPanelElements.outgoingTranslateSelect.options[0].innerText = t("outgoingTranslateAuto");
+	}
 	document.querySelectorAll(".spkmod-clickable-line").forEach(node => {
 		node.title = t("clickToTranslateTooltip");
 	});
@@ -4683,6 +4752,35 @@ gameState.trySendChat = (msg) => {
 				break;
 		}
 		return;
+	}
+
+	if (typeof msg === "string" && msg.startsWith(".")) {
+		const match = msg.match(/^\.([a-zA-Z\-]+)(?::|\s+)(.+)$/s);
+		if (match) {
+			const prefix = match[1].toLowerCase();
+			const targetLang = lunOutgoingLangPrefixes[prefix];
+			if (targetLang) {
+				const sourceText = match[2].trim();
+				if (!sourceText) return;
+				const sourceLang = getEffectiveSourceLang(sourceText);
+				if (sourceLang === targetLang) {
+					return hkTrySendChat(sourceText);
+				}
+				translateChatText(sourceText, sourceLang, targetLang).then(translated => {
+					if (translated && translated.trim()) {
+						hkTrySendChat(translated.trim());
+					} else {
+						chatLog(t("outgoingTranslateFailed", sourceText));
+						hkTrySendChat(sourceText);
+					}
+				}).catch(err => {
+					console.warn("[SpeakiMod+] Outgoing translation error:", err);
+					chatLog(t("outgoingTranslateFailed", sourceText));
+					hkTrySendChat(sourceText);
+				});
+				return;
+			}
+		}
 	}
 
 	return hkTrySendChat(msg);
