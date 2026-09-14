@@ -229,6 +229,9 @@
         "statsGoldGained": "Gold Gained",
         "statsElifGained": "Elif Gained",
         "statsPing": "Network Ping",
+        "statsDailyReset": "Daily Reset",
+        "statsPumpkinPlays": "Pumpkin Plays",
+        "currencyTrackerToggleLabel": "Show Gold & Elif on HUD",
         "statsResetBtn": "Reset Session",
         "statsResetConfirm": "Session stats reset."
     },
@@ -462,6 +465,9 @@
         "statsGoldGained": "獲得ゴールド",
         "statsElifGained": "獲得エリフ",
         "statsPing": "ネットワークPing",
+        "statsDailyReset": "デイリーリセット",
+        "statsPumpkinPlays": "カボチャ挑戦回数",
+        "currencyTrackerToggleLabel": "HUDにゴールドとエリーフを表示",
         "statsResetBtn": "セッションをリセット",
         "statsResetConfirm": "セッション統計をリセットしました。"
     },
@@ -695,6 +701,9 @@
         "statsGoldGained": "획득 골드",
         "statsElifGained": "획득 엘리프",
         "statsPing": "네트워크 핑",
+        "statsDailyReset": "일일 초기화",
+        "statsPumpkinPlays": "호박 미니게임",
+        "currencyTrackerToggleLabel": "HUD에 골드 및 엘리프 표시",
         "statsResetBtn": "세션 초기화",
         "statsResetConfirm": "세션 통계가 초기화되었습니다."
     },
@@ -966,6 +975,9 @@
         "statsGoldGained": "獲得金幣",
         "statsElifGained": "獲得艾莉芙",
         "statsPing": "網路延遲",
+        "statsDailyReset": "每日重置",
+        "statsPumpkinPlays": "南瓜小遊戲次數",
+        "currencyTrackerToggleLabel": "在 HUD 顯示金幣與艾莉芙",
         "statsResetBtn": "重設本次遊玩",
         "statsResetConfirm": "本次遊玩數據已重設。"
     },
@@ -1199,6 +1211,9 @@
         "statsGoldGained": "Oro obtenido",
         "statsElifGained": "Elif obtenido",
         "statsPing": "Ping de red",
+        "statsDailyReset": "Reinicio diario",
+        "statsPumpkinPlays": "Partidas de calabaza",
+        "currencyTrackerToggleLabel": "Mostrar oro y elif en HUD",
         "statsResetBtn": "Reiniciar sesión",
         "statsResetConfirm": "Estadísticas de sesión reiniciadas."
     },
@@ -1470,6 +1485,9 @@
         "statsGoldGained": "获得金币",
         "statsElifGained": "获得艾莉芙",
         "statsPing": "网络延迟",
+        "statsDailyReset": "每日重置",
+        "statsPumpkinPlays": "南瓜小游戏次数",
+        "currencyTrackerToggleLabel": "在 HUD 显示金币与艾莉芙",
         "statsResetBtn": "重置本次游玩",
         "statsResetConfirm": "本次游玩数据已重置。"
     }

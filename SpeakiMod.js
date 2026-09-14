@@ -761,6 +761,23 @@ var spkmodTranslations = {
 		pumpkinTrackerToggleLabel: "Pumpkin Plays Tracker",
 		pumpkinTrackerText: "Pumpkin: {0}/{1}",
 		pumpkinTrackerInactive: "Pumpkin: Ended",
+		currencyTrackerToggleLabel: "Show Gold & Elif on HUD",
+		statsHeader: "Session & Performance Stats",
+		statsBtnTooltip: "Session Stats & Tracker",
+		statsSessionTime: "Session Time",
+		statsDailyReset: "Daily Reset",
+		statsPumpkinPlays: "Pumpkin Plays",
+		statsExpGained: "EXP Gained",
+		statsExpPerHour: "EXP Rate",
+		statsTimeToNextLevel: "Next Level In",
+		statsCurrency: "Currency Balances",
+		statsGoldGained: "Gold Gained",
+		statsElifGained: "Elif Gained",
+		statsPing: "Network Ping",
+		settingsCatGeneral: "Chat & Gameplay",
+		settingsCatHUD: "HUD & Appearance",
+		statsResetBtn: "Reset Session",
+		statsResetConfirm: "Session stats reset.",
 		eventInfoBtnTooltip: "Event Info",
 		eventInfoHeader: "Event Info",
 		eventPumpkinTitle: "Pumpkin Minigame",
@@ -782,7 +799,9 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 		if (res.ok) {
 			const data = await res.json();
 			if (data && data.en) {
-				spkmodTranslations = data;
+				for (const lang of Object.keys(data)) {
+					spkmodTranslations[lang] = Object.assign({}, spkmodTranslations[lang] || {}, data[lang]);
+				}
 				if (!spkmodTranslations[spkmodLang]) spkmodLang = "en";
 				if (typeof refreshI18n === 'function') refreshI18n();
 			}
@@ -862,16 +881,28 @@ var patchNotesModalElements = {
 };
 var statsModalElements = {
 	headerTitle: null,
+	sessionTimeLabel: null,
 	sessionTimeVal: null,
+	pingLabel: null,
 	pingVal: null,
 	fpsVal: null,
+	dailyResetLabel: null,
+	dailyResetVal: null,
+	pumpkinLabel: null,
+	pumpkinVal: null,
 	levelProgressVal: null,
 	levelProgressBar: null,
+	expGainedLabel: null,
 	expGainedVal: null,
+	expRateLabel: null,
 	expRateVal: null,
+	timeToLevelLabel: null,
 	timeToLevelVal: null,
+	currencyLabel: null,
 	currencyBalancesVal: null,
+	goldGainedLabel: null,
 	goldGainedVal: null,
+	elifGainedLabel: null,
 	elifGainedVal: null,
 	resetBtn: null
 };
@@ -915,6 +946,8 @@ var lunPanelElements = {
 	translateEmailInput: null,
 	creditsLabel: null,
 	translateEmailInfo: null,
+	currencyTrackerLabel: null,
+	currencyTrackerToggleInput: null,
 	expRateUnitLabel: null,
 	expRateIntervalLabel: null,
 	expRateIntervalSelect: null,
@@ -927,6 +960,8 @@ var lunPanelElements = {
 	pumpkinTrackerToggleInput: null,
 	hideKnownBotsLabel: null,
 	hideKnownBotsToggleInput: null,
+	settingsCatGeneral: null,
+	settingsCatHUD: null
 };
 var lunMenuFoldingLevel = 0;
 
@@ -1091,6 +1126,15 @@ function setLowHpWarningEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-low-hp-warning", lunLowHpWarningEnabled ? "true" : "false");
 }
 
+var lunCurrencyTrackerEnabled = (window.localStorage && localStorage.getItem("spkmod-currency-tracker")) !== "false";
+function setCurrencyTrackerEnabled(enabled) {
+	lunCurrencyTrackerEnabled = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-currency-tracker", lunCurrencyTrackerEnabled ? "true" : "false");
+	if (lunHudElements.currencyTracker) {
+		lunHudElements.currencyTracker.style.display = lunCurrencyTrackerEnabled ? "" : "none";
+	}
+}
+
 var lunSessionGoldTrackerEnabled = (window.localStorage && localStorage.getItem("spkmod-session-gold")) === "true";
 function setSessionGoldTrackerEnabled(enabled) {
 	lunSessionGoldTrackerEnabled = !!enabled;
@@ -1187,6 +1231,7 @@ function updatePumpkinUI() {
 		}
 	}
 	updateEventModalContent();
+	updateStatsModalLive();
 }
 
 function toggleEventModal() {
@@ -1468,6 +1513,9 @@ function toggleStatsModal() {
 			lunHudElements.statsModal.style.top = rect.top + "px";
 		}
 		lunHudElements.statsModal.classList.remove("hidden");
+		if (!lunPumpkinStatus) {
+			fetchPumpkinStatus();
+		}
 		updateStatsModalLive();
 	} else {
 		lunHudElements.statsModal.classList.add("hidden");
@@ -1492,6 +1540,16 @@ function updateStatsModalLive() {
 	if (!lunHudElements.statsModal || lunHudElements.statsModal.classList.contains("hidden")) return;
 
 	if (statsModalElements.headerTitle) setText(statsModalElements.headerTitle, "⏱️ " + t("statsHeader"));
+	if (statsModalElements.sessionTimeLabel) setText(statsModalElements.sessionTimeLabel, "⏱️ " + t("statsSessionTime"));
+	if (statsModalElements.pingLabel) setText(statsModalElements.pingLabel, "📶 " + t("statsPing"));
+	if (statsModalElements.dailyResetLabel) setText(statsModalElements.dailyResetLabel, "🌅 " + t("statsDailyReset"));
+	if (statsModalElements.pumpkinLabel) setText(statsModalElements.pumpkinLabel, "🎃 " + t("statsPumpkinPlays"));
+	if (statsModalElements.expGainedLabel) setText(statsModalElements.expGainedLabel, "⭐ " + t("statsExpGained"));
+	if (statsModalElements.expRateLabel) setText(statsModalElements.expRateLabel, "📈 " + t("statsExpPerHour"));
+	if (statsModalElements.timeToLevelLabel) setText(statsModalElements.timeToLevelLabel, "⏳ " + t("statsTimeToNextLevel"));
+	if (statsModalElements.currencyLabel) setText(statsModalElements.currencyLabel, "💰 " + t("statsCurrency"));
+	if (statsModalElements.goldGainedLabel) setText(statsModalElements.goldGainedLabel, "🪙 " + t("statsGoldGained"));
+	if (statsModalElements.elifGainedLabel) setText(statsModalElements.elifGainedLabel, "💎 " + t("statsElifGained"));
 	if (statsModalElements.resetBtn) setText(statsModalElements.resetBtn, "🔄 " + t("statsResetBtn"));
 
 	// 1. Session Duration
@@ -1525,6 +1583,39 @@ function updateStatsModalLive() {
 	}
 	if (statsModalElements.fpsVal) {
 		statsModalElements.fpsVal.innerText = `${typeof lunCurrentFps !== 'undefined' ? lunCurrentFps : "--"} FPS`;
+	}
+
+	// 3. Daily Reset Countdown
+	if (statsModalElements.dailyResetVal) {
+		const nowUtc = new Date();
+		const kstOffset = 9 * 60 * 60 * 1000;
+		const kstNow = new Date(nowUtc.getTime() + kstOffset);
+		const kstNextMidnight = new Date(kstNow);
+		kstNextMidnight.setUTCHours(24, 0, 0, 0);
+		const diffMs = Math.max(0, kstNextMidnight.getTime() - kstNow.getTime());
+		const diffTotalSeconds = Math.floor(diffMs / 1000);
+		const hours = Math.floor(diffTotalSeconds / 3600);
+		const minutes = Math.floor((diffTotalSeconds % 3600) / 60);
+		const seconds = diffTotalSeconds % 60;
+		statsModalElements.dailyResetVal.innerText = `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+	}
+
+	// 4. Pumpkin Plays
+	if (statsModalElements.pumpkinVal) {
+		if (lunPumpkinStatus) {
+			if (lunPumpkinStatus.isActive) {
+				const remaining = lunPumpkinStatus.remainingPlaysToday ?? 0;
+				const cap = lunPumpkinStatus.dailyCapPlays ?? 10;
+				statsModalElements.pumpkinVal.innerText = `${remaining} / ${cap}`;
+				statsModalElements.pumpkinVal.style.color = remaining > 0 ? "#4ade80" : "#f87171";
+			} else {
+				statsModalElements.pumpkinVal.innerText = t("pumpkinTrackerInactive");
+				statsModalElements.pumpkinVal.style.color = "#aaa";
+			}
+		} else {
+			statsModalElements.pumpkinVal.innerText = "-- / --";
+			statsModalElements.pumpkinVal.style.color = "#aaa";
+		}
 	}
 
 	// 3. Level & EXP
@@ -1866,15 +1957,46 @@ document.head.appendChild(buildElement(
 			flex-direction: column;
 			position: fixed;
 			z-index: 600000;
-			min-width: 220px;
-			max-height: 90vh;
+			width: 480px;
+			max-width: 95vw;
+			max-height: 85vh;
 			overflow-y: auto;
 			color: #FFF;
 			background: #000C;
 			border: ${spkmodBorderWidth} solid #DDD;
 			border-radius: 8px;
+			padding: 10px;
+			gap: 8px;
+			cursor: move;
+			user-select: none;
+		}
+		.spkmod-settings-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 10px;
+		}
+		@media (max-width: 500px) {
+			.spkmod-settings-grid {
+				grid-template-columns: 1fr;
+			}
+		}
+		.spkmod-settings-col {
+			display: flex;
+			flex-direction: column;
+			gap: 5px;
+			background: rgba(255, 255, 255, 0.03);
+			border: 1px solid rgba(255, 255, 255, 0.08);
+			border-radius: 6px;
 			padding: 8px;
-			gap: 6px;
+		}
+		.spkmod-settings-section-title {
+			color: #ffd54a;
+			font-size: 11px;
+			font-weight: bold;
+			border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+			padding-bottom: 4px;
+			margin-bottom: 2px;
+			user-select: none;
 		}
 		#spkmod-settings-close {
 			cursor: pointer;
@@ -2004,6 +2126,8 @@ document.head.appendChild(buildElement(
 		#spkmod-stats-modal {
 			width: 320px;
 			max-width: 95vw;
+			cursor: move;
+			user-select: none;
 		}
 		.spkmod-binding-row {
 			display: flex;
@@ -2131,7 +2255,8 @@ document.body.appendChild(
 				innerText: t("channelTrackerError", "N/A")
 			}),
 			lunHudElements.currencyTracker = buildElement("span", {
-				innerText: t("currencyTracker", "--", "--")
+				innerText: t("currencyTracker", "--", "--"),
+				style: lunCurrencyTrackerEnabled ? "" : "display: none;"
 			}),
 			lunHudElements.sessionGoldTracker = buildElement("span", {
 				innerText: t("sessionGoldText", "--", "--"),
@@ -2801,219 +2926,236 @@ document.body.appendChild(
 				}
 			})
 		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.filterToggleLabel = buildElement("span", {
-				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
-				innerText: t("filterToggleLabel")
-			}),
-			lunPanelElements.filterToggleInput = buildElement("input", {
-				type: "checkbox",
-				checked: lunFilterEnabled,
-				onchange: e => {
-					setFilterEnabled(e.target.checked);
-				}
-			})
-		]),
+		buildElement("div", { className: "spkmod-settings-grid" }, [
+			// Column 1: Chat & Gameplay
+			buildElement("div", { className: "spkmod-settings-col" }, [
+				lunPanelElements.settingsCatGeneral = buildElement("span", {
+					className: "spkmod-settings-section-title",
+					innerText: "💬 " + t("settingsCatGeneral")
+				}),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.filterToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("filterToggleLabel")
+					}),
+					lunPanelElements.filterToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunFilterEnabled,
+						onchange: e => {
+							setFilterEnabled(e.target.checked);
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.gmChatToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("gmChatToggleLabel")
+					}),
+					lunPanelElements.gmChatToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunGmChatHighlightEnabled,
+						onchange: e => {
+							setGmChatHighlightEnabled(e.target.checked);
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.mentionAlertToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("mentionAlertToggleLabel")
+					}),
+					lunPanelElements.mentionAlertToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunMentionAlertEnabled,
+						onchange: e => {
+							setMentionAlertEnabled(e.target.checked);
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.hideKnownBotsLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("hideKnownBotsToggleLabel")
+					}),
+					lunPanelElements.hideKnownBotsToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunHideKnownBotsEnabled,
+						onchange: e => setHideKnownBotsEnabled(e.target.checked)
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.chatTimestampLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("chatTimestampToggleLabel") }),
+					lunPanelElements.chatTimestampToggleInput = buildElement("input", { type: "checkbox", checked: lunChatTimestampsEnabled, onchange: e => setChatTimestampsEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.translateToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("translateToggleLabel")
+					}),
+					lunPanelElements.translateTargetSelect = buildElement("select", {
+						className: "spkmod-panel-combo",
+						value: lunTranslateTarget,
+						onchange: e => setTranslateTarget(e.target.value)
+					}, ["en", "ja", "ko", "zh-CN", "es", "fr", "de", "pt", "ru"].map(code => buildElement("option", {
+						value: code,
+						innerText: code,
+						selected: code === lunTranslateTarget
+					}))),
+					lunPanelElements.translateToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunTranslateEnabled,
+						onchange: e => setTranslateEnabled(e.target.checked)
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat", style: "gap: 4px;" }, [
+					buildElement("span", {
+						innerText: "ⓘ",
+						style: "color: #aaa; font-size: 11px; cursor: pointer; flex: 0;",
+						onclick: _ => lunPanelElements.translateEmailInfo.classList.toggle("hidden")
+					}),
+					lunPanelElements.translateEmailInput = buildElement("input", {
+						type: "email",
+						placeholder: t("translateEmailPlaceholder"),
+						value: lunTranslateEmail,
+						style: "flex: 1; font-size: 11px; min-width: 0;",
+						onchange: e => setTranslateEmail(e.target.value)
+					})
+				]),
+				lunPanelElements.translateEmailInfo = buildElement("div", {
+					className: "hidden",
+					style: "color: #aaa; font-size: 10px; line-height: 1.4; padding: 2px 4px 6px;",
+					innerText: t("translateEmailTooltip")
+				}),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.outgoingTranslateLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("outgoingTranslateLabel")
+					}),
+					lunPanelElements.outgoingTranslateSelect = buildElement("select", {
+						className: "spkmod-panel-combo",
+						value: lunOutgoingSourceLang,
+						onchange: e => setOutgoingSourceLang(e.target.value)
+					}, [
+						{ value: "auto", label: t("outgoingTranslateAuto") },
+						{ value: "en", label: "English" },
+						{ value: "ja", label: "日本語" },
+						{ value: "ko", label: "한국어" },
+						{ value: "zh-TW", label: "繁體中文" },
+						{ value: "zh-CN", label: "简体中文" },
+						{ value: "es", label: "Español" },
+						{ value: "fr", label: "Français" },
+						{ value: "de", label: "Deutsch" },
+						{ value: "pt", label: "Português" },
+						{ value: "ru", label: "Русский" }
+					].map(item => buildElement("option", {
+						value: item.value,
+						innerText: item.label,
+						selected: item.value === lunOutgoingSourceLang
+					})))
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.fpPitchLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("firstPersonPitchLabel") }),
+					buildElement("input", { type: "range", min: "0.2", max: "0.7", step: "0.01", value: lunFirstPersonPitch, style: "width: 70px;", oninput: e => { 
+						lunFirstPersonPitch = parseFloat(e.target.value); 
+						if (window.localStorage) localStorage.setItem("spkmod-fp-pitch", lunFirstPersonPitch); 
+					}})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.lowHpLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("lowHpWarningToggleLabel") }),
+					lunPanelElements.lowHpToggleInput = buildElement("input", { type: "checkbox", checked: lunLowHpWarningEnabled, onchange: e => setLowHpWarningEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.gamepadRumbleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("gamepadRumbleToggleLabel") }),
+					lunPanelElements.gamepadRumbleToggleInput = buildElement("input", { type: "checkbox", checked: lunGamepadRumbleEnabled, onchange: e => setGamepadRumbleEnabled(e.target.checked) })
+				])
+			]),
 
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.gmChatToggleLabel = buildElement("span", {
-				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
-				innerText: t("gmChatToggleLabel")
-			}),
-			lunPanelElements.gmChatToggleInput = buildElement("input", {
-				type: "checkbox",
-				checked: lunGmChatHighlightEnabled,
-				onchange: e => {
-					setGmChatHighlightEnabled(e.target.checked);
-				}
-			})
-		]),
-
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.mentionAlertToggleLabel = buildElement("span", {
-				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
-				innerText: t("mentionAlertToggleLabel")
-			}),
-			lunPanelElements.mentionAlertToggleInput = buildElement("input", {
-				type: "checkbox",
-				checked: lunMentionAlertEnabled,
-				onchange: e => {
-					setMentionAlertEnabled(e.target.checked);
-				}
-			})
-		]),
-
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.hideKnownBotsLabel = buildElement("span", {
-				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
-				innerText: t("hideKnownBotsToggleLabel")
-			}),
-			lunPanelElements.hideKnownBotsToggleInput = buildElement("input", {
-				type: "checkbox",
-				checked: lunHideKnownBotsEnabled,
-				onchange: e => setHideKnownBotsEnabled(e.target.checked)
-			})
-		]),
-
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.translateToggleLabel = buildElement("span", {
-				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
-				innerText: t("translateToggleLabel")
-			}),
-			lunPanelElements.translateTargetSelect = buildElement("select", {
-				className: "spkmod-panel-combo",
-				value: lunTranslateTarget,
-				onchange: e => setTranslateTarget(e.target.value)
-			}, ["en", "ja", "ko", "zh-CN", "es", "fr", "de", "pt", "ru"].map(code => buildElement("option", {
-				value: code,
-				innerText: code,
-				selected: code === lunTranslateTarget
-			}))),
-			lunPanelElements.translateToggleInput = buildElement("input", {
-				type: "checkbox",
-				checked: lunTranslateEnabled,
-				onchange: e => setTranslateEnabled(e.target.checked)
-			})
-		]),
-		buildElement("div", { className: "spkmod-panel-cat", style: "gap: 4px;" }, [
-			buildElement("span", {
-				innerText: "ⓘ",
-				style: "color: #aaa; font-size: 11px; cursor: pointer; flex: 0;",
-				onclick: _ => lunPanelElements.translateEmailInfo.classList.toggle("hidden")
-			}),
-			lunPanelElements.translateEmailInput = buildElement("input", {
-				type: "email",
-				placeholder: t("translateEmailPlaceholder"),
-				value: lunTranslateEmail,
-				style: "flex: 1; font-size: 11px; min-width: 0;",
-				onchange: e => setTranslateEmail(e.target.value)
-			})
-		]),
-		lunPanelElements.translateEmailInfo = buildElement("div", {
-			className: "hidden",
-			style: "color: #aaa; font-size: 10px; line-height: 1.4; padding: 2px 4px 6px;",
-			innerText: t("translateEmailTooltip")
-		}),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.outgoingTranslateLabel = buildElement("span", {
-				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
-				innerText: t("outgoingTranslateLabel")
-			}),
-			lunPanelElements.outgoingTranslateSelect = buildElement("select", {
-				className: "spkmod-panel-combo",
-				value: lunOutgoingSourceLang,
-				onchange: e => setOutgoingSourceLang(e.target.value)
-			}, [
-				{ value: "auto", label: t("outgoingTranslateAuto") },
-				{ value: "en", label: "English" },
-				{ value: "ja", label: "日本語" },
-				{ value: "ko", label: "한국어" },
-				{ value: "zh-TW", label: "繁體中文" },
-				{ value: "zh-CN", label: "简体中文" },
-				{ value: "es", label: "Español" },
-				{ value: "fr", label: "Français" },
-				{ value: "de", label: "Deutsch" },
-				{ value: "pt", label: "Português" },
-				{ value: "ru", label: "Русский" }
-			].map(item => buildElement("option", {
-				value: item.value,
-				innerText: item.label,
-				selected: item.value === lunOutgoingSourceLang
-			})))
-		]),
-
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.chatTimestampLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("chatTimestampToggleLabel") }),
-			lunPanelElements.chatTimestampToggleInput = buildElement("input", { type: "checkbox", checked: lunChatTimestampsEnabled, onchange: e => setChatTimestampsEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat", style: "border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px; margin-top: 5px;" }, [
-			lunPanelElements.fpPitchLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("firstPersonPitchLabel") }),
-			buildElement("input", { type: "range", min: "0.2", max: "0.7", step: "0.01", value: lunFirstPersonPitch, style: "width: 70px;", oninput: e => { 
-				lunFirstPersonPitch = parseFloat(e.target.value); 
-				if (window.localStorage) localStorage.setItem("spkmod-fp-pitch", lunFirstPersonPitch); 
-			}})
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.lowHpLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("lowHpWarningToggleLabel") }),
-			lunPanelElements.lowHpToggleInput = buildElement("input", { type: "checkbox", checked: lunLowHpWarningEnabled, onchange: e => setLowHpWarningEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.sessionGoldLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("sessionGoldToggleLabel") }),
-			lunPanelElements.sessionGoldToggleInput = buildElement("input", { type: "checkbox", checked: lunSessionGoldTrackerEnabled, onchange: e => setSessionGoldTrackerEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.expRateUnitLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("expRateUnitToggleLabel") }),
-			buildElement("input", { type: "checkbox", checked: lunExpRatePerHour, onchange: e => setExpRatePerHour(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.expRateIntervalLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("expRateIntervalLabel") }),
-			lunPanelElements.expRateIntervalSelect = buildElement("select", { className: "spkmod-panel-combo", value: String(lunExpIntervalMinutes), onchange: e => setExpIntervalMinutes(e.target.value) },
-				LUN_EXP_INTERVAL_OPTIONS.map(minutes => buildElement("option", { value: String(minutes), innerText: t("expRateIntervalOption", minutes), selected: minutes === lunExpIntervalMinutes }))
-			)
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.fpsPingLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("fpsPingToggleLabel") }),
-			lunPanelElements.fpsPingToggleInput = buildElement("input", { type: "checkbox", checked: lunFpsPingEnabled, onchange: e => setFpsPingEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.resetTimerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("resetTimerToggleLabel") }),
-			lunPanelElements.resetTimerToggleInput = buildElement("input", { type: "checkbox", checked: lunResetTimerEnabled, onchange: e => setResetTimerEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.pumpkinTrackerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("pumpkinTrackerToggleLabel") }),
-			lunPanelElements.pumpkinTrackerToggleInput = buildElement("input", { type: "checkbox", checked: lunPumpkinTrackerEnabled, onchange: e => setPumpkinTrackerEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.gamepadRumbleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("gamepadRumbleToggleLabel") }),
-			lunPanelElements.gamepadRumbleToggleInput = buildElement("input", { type: "checkbox", checked: lunGamepadRumbleEnabled, onchange: e => setGamepadRumbleEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px;" }, [
-			lunPanelElements.uiScaleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("uiScaleLabel") }),
-			lunPanelElements.uiScaleSlider = buildElement("input", { type: "range", min: "0.8", max: "1.3", step: "0.05", value: lunUiScale, style: "width: 70px;", onchange: e => { lunUiScale = e.target.value; updateDynamicStyles(); } })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.bgOpacityLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("bgOpacityLabel") }),
-			lunPanelElements.bgOpacitySelect = buildElement("select", { className: "spkmod-panel-combo", value: lunBgOpacity, onchange: e => { lunBgOpacity = e.target.value; updateDynamicStyles(); } }, [
-				buildElement("option", { value: "solid", innerText: t("bgOpacitySolid"), selected: lunBgOpacity === "solid" }),
-				buildElement("option", { value: "transparent", innerText: t("bgOpacityTransparent"), selected: lunBgOpacity === "transparent" }),
-				buildElement("option", { value: "superTransparent", innerText: t("bgOpacitySuperTransparent") || "Super Transparent", selected: lunBgOpacity === "superTransparent" }),
-				buildElement("option", { value: "glass", innerText: t("bgOpacityGlass"), selected: lunBgOpacity === "glass" }),
-				buildElement("option", { value: "lightGlass", innerText: t("bgOpacityLightGlass") || "Light Glass", selected: lunBgOpacity === "lightGlass" }),
-				buildElement("option", { value: "heavyGlass", innerText: t("bgOpacityHeavyGlass") || "Heavy Glass", selected: lunBgOpacity === "heavyGlass" })
+			// Column 2: HUD & Appearance
+			buildElement("div", { className: "spkmod-settings-col" }, [
+				lunPanelElements.settingsCatHUD = buildElement("span", {
+					className: "spkmod-settings-section-title",
+					innerText: "📊 " + t("settingsCatHUD")
+				}),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.currencyTrackerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("currencyTrackerToggleLabel") }),
+					lunPanelElements.currencyTrackerToggleInput = buildElement("input", { type: "checkbox", checked: lunCurrencyTrackerEnabled, onchange: e => setCurrencyTrackerEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.sessionGoldLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("sessionGoldToggleLabel") }),
+					lunPanelElements.sessionGoldToggleInput = buildElement("input", { type: "checkbox", checked: lunSessionGoldTrackerEnabled, onchange: e => setSessionGoldTrackerEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.fpsPingLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("fpsPingToggleLabel") }),
+					lunPanelElements.fpsPingToggleInput = buildElement("input", { type: "checkbox", checked: lunFpsPingEnabled, onchange: e => setFpsPingEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.resetTimerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("resetTimerToggleLabel") }),
+					lunPanelElements.resetTimerToggleInput = buildElement("input", { type: "checkbox", checked: lunResetTimerEnabled, onchange: e => setResetTimerEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.pumpkinTrackerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("pumpkinTrackerToggleLabel") }),
+					lunPanelElements.pumpkinTrackerToggleInput = buildElement("input", { type: "checkbox", checked: lunPumpkinTrackerEnabled, onchange: e => setPumpkinTrackerEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.expRateUnitLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("expRateUnitToggleLabel") }),
+					buildElement("input", { type: "checkbox", checked: lunExpRatePerHour, onchange: e => setExpRatePerHour(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.expRateIntervalLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("expRateIntervalLabel") }),
+					lunPanelElements.expRateIntervalSelect = buildElement("select", { className: "spkmod-panel-combo", value: String(lunExpIntervalMinutes), onchange: e => setExpIntervalMinutes(e.target.value) },
+						LUN_EXP_INTERVAL_OPTIONS.map(minutes => buildElement("option", { value: String(minutes), innerText: t("expRateIntervalOption", minutes), selected: minutes === lunExpIntervalMinutes }))
+					)
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.uiScaleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("uiScaleLabel") }),
+					lunPanelElements.uiScaleSlider = buildElement("input", { type: "range", min: "0.8", max: "1.3", step: "0.05", value: lunUiScale, style: "width: 70px;", onchange: e => { lunUiScale = e.target.value; updateDynamicStyles(); } })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.bgOpacityLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("bgOpacityLabel") }),
+					lunPanelElements.bgOpacitySelect = buildElement("select", { className: "spkmod-panel-combo", value: lunBgOpacity, onchange: e => { lunBgOpacity = e.target.value; updateDynamicStyles(); } }, [
+						buildElement("option", { value: "solid", innerText: t("bgOpacitySolid"), selected: lunBgOpacity === "solid" }),
+						buildElement("option", { value: "transparent", innerText: t("bgOpacityTransparent"), selected: lunBgOpacity === "transparent" }),
+						buildElement("option", { value: "superTransparent", innerText: t("bgOpacitySuperTransparent") || "Super Transparent", selected: lunBgOpacity === "superTransparent" }),
+						buildElement("option", { value: "glass", innerText: t("bgOpacityGlass"), selected: lunBgOpacity === "glass" }),
+						buildElement("option", { value: "lightGlass", innerText: t("bgOpacityLightGlass") || "Light Glass", selected: lunBgOpacity === "lightGlass" }),
+						buildElement("option", { value: "heavyGlass", innerText: t("bgOpacityHeavyGlass") || "Heavy Glass", selected: lunBgOpacity === "heavyGlass" })
+					])
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.hudBgLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("hudBackgroundLabel") }),
+					lunPanelElements.hudBgSelect = buildElement("select", { className: "spkmod-panel-combo", value: lunHudBackground, onchange: e => { 
+						lunHudBackground = e.target.value; 
+						if (lunPanelElements.customBgContainer) {
+							if (lunHudBackground === "custom") lunPanelElements.customBgContainer.classList.remove("hidden");
+							else lunPanelElements.customBgContainer.classList.add("hidden");
+						}
+						updateDynamicStyles(); 
+					} })
+				]),
+				lunPanelElements.customBgContainer = buildElement("div", { 
+					className: "spkmod-panel-cat" + (lunHudBackground === "custom" ? "" : " hidden"),
+					style: "margin-top: 2px;"
+				}, [
+					buildElement("span", { style: "color: #aaa; font-size: 10px; flex: 1;", innerText: "URL:" }),
+					lunPanelElements.customBgInput = buildElement("input", { 
+						type: "text", 
+						value: (window.localStorage && localStorage.getItem("spkmod-custom-hud-bg")) || "",
+						style: "width: 100px; background: #222; color: #fff; border: 1px solid #444; border-radius: 3px; font-size: 10px; padding: 2px;",
+						oninput: e => {
+							if (window.localStorage) localStorage.setItem("spkmod-custom-hud-bg", e.target.value);
+							updateDynamicStyles();
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.accentColorLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("accentColorLabel") }),
+					lunPanelElements.accentColorInput = buildElement("input", { type: "color", value: lunAccentColor, style: "width: 40px; height: 20px; padding: 0; border: none; background: none; cursor: pointer;", onchange: e => { lunAccentColor = e.target.value; updateDynamicStyles(); } }),
+					buildElement("button", { className: "spkmod-panel-btn", style: "padding: 0px 4px; font-size: 10px; margin-left: 4px;", innerText: "OK", onclick: () => { lunAccentColor = lunPanelElements.accentColorInput.value; updateDynamicStyles(); } })
+				])
 			])
 		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.hudBgLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("hudBackgroundLabel") }),
-			lunPanelElements.hudBgSelect = buildElement("select", { className: "spkmod-panel-combo", value: lunHudBackground, onchange: e => { 
-				lunHudBackground = e.target.value; 
-				if (lunPanelElements.customBgContainer) {
-					if (lunHudBackground === "custom") lunPanelElements.customBgContainer.classList.remove("hidden");
-					else lunPanelElements.customBgContainer.classList.add("hidden");
-				}
-				updateDynamicStyles(); 
-			} })
-		]),
-		lunPanelElements.customBgContainer = buildElement("div", { 
-			className: "spkmod-panel-cat" + (lunHudBackground === "custom" ? "" : " hidden"),
-			style: "margin-top: 2px;"
-		}, [
-			buildElement("span", { style: "color: #aaa; font-size: 10px; flex: 1;", innerText: "URL:" }),
-			lunPanelElements.customBgInput = buildElement("input", { 
-				type: "text", 
-				value: (window.localStorage && localStorage.getItem("spkmod-custom-hud-bg")) || "",
-				style: "width: 100px; background: #222; color: #fff; border: 1px solid #444; border-radius: 3px; font-size: 10px; padding: 2px;",
-				oninput: e => {
-					if (window.localStorage) localStorage.setItem("spkmod-custom-hud-bg", e.target.value);
-					updateDynamicStyles();
-				}
-			})
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.accentColorLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("accentColorLabel") }),
-			lunPanelElements.accentColorInput = buildElement("input", { type: "color", value: lunAccentColor, style: "width: 40px; height: 20px; padding: 0; border: none; background: none; cursor: pointer;", onchange: e => { lunAccentColor = e.target.value; updateDynamicStyles(); } }),
-			buildElement("button", { className: "spkmod-panel-btn", style: "padding: 0px 4px; font-size: 10px; margin-left: 4px;", innerText: "OK", onclick: () => { lunAccentColor = lunPanelElements.accentColorInput.value; updateDynamicStyles(); } })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat", style: "gap: 4px; margin-top: 5px;" }, [
+
+		buildElement("div", { className: "spkmod-panel-cat", style: "gap: 4px; margin-top: 4px;" }, [
 			lunPanelElements.exportSettingsBtn = buildElement("button", { className: "spkmod-panel-btn", style: "flex: 1;", innerText: t("exportSettingsBtn"), onclick: () => {
 				const keys = Object.keys(localStorage).filter(k => k.startsWith("spkmod-"));
 				const exportData = {};
@@ -3062,7 +3204,7 @@ document.body.appendChild(
 		]),
 
 		lunPanelElements.creditsLabel = buildElement("div", {
-			style: "color: #aaa; font-size: 10px; margin-top: 6px; white-space: pre-wrap; line-height: 1.4; border-top: 1px solid #555; padding-top: 6px; user-select: none; cursor: pointer;",
+			style: "color: #aaa; font-size: 10px; margin-top: 4px; white-space: pre-wrap; line-height: 1.4; border-top: 1px solid #555; padding-top: 4px; user-select: none; cursor: pointer;",
 			innerText: t("credits"),
 			onclick: _ => {
 				const now = Date.now();
@@ -3090,7 +3232,12 @@ document.body.appendChild(
 		})
 
 	])
-)
+);
+setTimeout(() => {
+	if (typeof makeDraggable === 'function' && lunHudElements.settingsModal) {
+		makeDraggable(lunHudElements.settingsModal, [lunHudElements.settingsModal]);
+	}
+}, 500);
 
 const lunJumpAnimMs = 700; // approx. duration of the Jump emote animation
 
@@ -3838,15 +3985,23 @@ document.body.appendChild(
 		}, [
 			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px;" }, [
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
-					buildElement("span", { style: "color: #aaa;", innerText: "⏱️ " + t("statsSessionTime") }),
+					statsModalElements.sessionTimeLabel = buildElement("span", { style: "color: #aaa;", innerText: "⏱️ " + t("statsSessionTime") }),
 					statsModalElements.sessionTimeVal = buildElement("span", { style: "font-weight: bold; font-family: monospace; font-size: 12px; color: #ffd54a;", innerText: "00:00:00" })
 				]),
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
-					buildElement("span", { style: "color: #aaa;", innerText: "📶 " + t("statsPing") }),
+					statsModalElements.pingLabel = buildElement("span", { style: "color: #aaa;", innerText: "📶 " + t("statsPing") }),
 					buildElement("div", { style: "display: flex; gap: 8px;" }, [
 						statsModalElements.pingVal = buildElement("span", { style: "font-weight: bold;", innerText: "-- ms" }),
 						statsModalElements.fpsVal = buildElement("span", { style: "color: #aaa;", innerText: "-- FPS" })
 					])
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.dailyResetLabel = buildElement("span", { style: "color: #aaa;", innerText: "🌅 " + t("statsDailyReset") }),
+					statsModalElements.dailyResetVal = buildElement("span", { style: "font-weight: bold; font-family: monospace; font-size: 11px; color: #67e8f9;", innerText: "--:--:--" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.pumpkinLabel = buildElement("span", { style: "color: #aaa;", innerText: "🎃 " + t("statsPumpkinPlays") }),
+					statsModalElements.pumpkinVal = buildElement("span", { style: "font-weight: bold; color: #f97316;", innerText: "-- / --" })
 				])
 			]),
 
@@ -3858,30 +4013,30 @@ document.body.appendChild(
 					statsModalElements.levelProgressBar = buildElement("div", { style: "height: 100%; width: 0%; background: linear-gradient(90deg, #06b6d4, #3b82f6); border-radius: 3px; transition: width 0.3s;" })
 				]),
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
-					buildElement("span", { style: "color: #aaa;", innerText: "⭐ " + t("statsExpGained") }),
+					statsModalElements.expGainedLabel = buildElement("span", { style: "color: #aaa;", innerText: "⭐ " + t("statsExpGained") }),
 					statsModalElements.expGainedVal = buildElement("span", { style: "font-weight: bold; color: #4ade80;", innerText: "+0 EXP" })
 				]),
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
-					buildElement("span", { style: "color: #aaa;", innerText: "📈 " + t("statsExpPerHour") }),
+					statsModalElements.expRateLabel = buildElement("span", { style: "color: #aaa;", innerText: "📈 " + t("statsExpPerHour") }),
 					statsModalElements.expRateVal = buildElement("span", { style: "font-weight: bold; color: #ffd54a;", innerText: "0 / hr" })
 				]),
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
-					buildElement("span", { style: "color: #aaa;", innerText: "⏳ " + t("statsTimeToNextLevel") }),
+					statsModalElements.timeToLevelLabel = buildElement("span", { style: "color: #aaa;", innerText: "⏳ " + t("statsTimeToNextLevel") }),
 					statsModalElements.timeToLevelVal = buildElement("span", { style: "font-weight: bold;", innerText: "N/A" })
 				])
 			]),
 
 			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px;" }, [
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
-					buildElement("span", { style: "color: #aaa;", innerText: "💰 " + t("statsCurrency") }),
+					statsModalElements.currencyLabel = buildElement("span", { style: "color: #aaa;", innerText: "💰 " + t("statsCurrency") }),
 					statsModalElements.currencyBalancesVal = buildElement("span", { style: "font-weight: bold;", innerText: "🪙 0  |  💎 0" })
 				]),
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
-					buildElement("span", { style: "color: #aaa;", innerText: "🪙 " + t("statsGoldGained") }),
+					statsModalElements.goldGainedLabel = buildElement("span", { style: "color: #aaa;", innerText: "🪙 " + t("statsGoldGained") }),
 					statsModalElements.goldGainedVal = buildElement("span", { style: "font-weight: bold; color: #ffd54a;", innerText: "+0 (+0 / hr)" })
 				]),
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
-					buildElement("span", { style: "color: #aaa;", innerText: "💎 " + t("statsElifGained") }),
+					statsModalElements.elifGainedLabel = buildElement("span", { style: "color: #aaa;", innerText: "💎 " + t("statsElifGained") }),
 					statsModalElements.elifGainedVal = buildElement("span", { style: "font-weight: bold; color: #67e8f9;", innerText: "+0 (+0 / hr)" })
 				])
 			]),
@@ -3896,8 +4051,8 @@ document.body.appendChild(
 	])
 );
 setTimeout(() => {
-	if (typeof makeDraggable === 'function' && lunHudElements.statsModal && statsModalElements.headerTitle) {
-		makeDraggable(lunHudElements.statsModal, [statsModalElements.headerTitle]);
+	if (typeof makeDraggable === 'function' && lunHudElements.statsModal) {
+		makeDraggable(lunHudElements.statsModal, [lunHudElements.statsModal]);
 	}
 }, 500);
 setTimeout(() => { if (typeof makeDraggable === 'function') makeDraggable(mapModalElements.modalWindow, [mapModalElements.titleLabel]); }, 1000);
@@ -4807,8 +4962,11 @@ spkmodI18nRenderers.push(() => {
 		lunPanelElements.expRateIntervalSelect.value = String(lunExpIntervalMinutes);
 	}
 	if (lunPanelElements.fpsPingLabel) setText(lunPanelElements.fpsPingLabel, t("fpsPingToggleLabel"));
+	if (lunPanelElements.currencyTrackerLabel) setText(lunPanelElements.currencyTrackerLabel, t("currencyTrackerToggleLabel"));
 	if (lunPanelElements.resetTimerLabel) setText(lunPanelElements.resetTimerLabel, t("resetTimerToggleLabel"));
 	if (lunPanelElements.pumpkinTrackerLabel) setText(lunPanelElements.pumpkinTrackerLabel, t("pumpkinTrackerToggleLabel"));
+	if (lunPanelElements.settingsCatGeneral) setText(lunPanelElements.settingsCatGeneral, "💬 " + t("settingsCatGeneral"));
+	if (lunPanelElements.settingsCatHUD) setText(lunPanelElements.settingsCatHUD, "📊 " + t("settingsCatHUD"));
 	if (lunPanelElements.eventBtn) lunPanelElements.eventBtn.title = t("eventInfoBtnTooltip");
 	if (lunPanelElements.patchNotesBtn) lunPanelElements.patchNotesBtn.title = t("patchNotesBtnTooltip");
 	updatePumpkinUI();
@@ -5215,7 +5373,7 @@ function tick() {
 		lunPinnedQuestNextQueryTick += lunPinnedQuestInterval;
 	}
 
-	if ((lunPumpkinTrackerEnabled || (lunHudElements.eventModal && !lunHudElements.eventModal.classList.contains("hidden"))) && lunTickCount >= lunPumpkinTrackerNextTicks) {
+	if ((lunPumpkinTrackerEnabled || (lunHudElements.eventModal && !lunHudElements.eventModal.classList.contains("hidden")) || (lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden"))) && lunTickCount >= lunPumpkinTrackerNextTicks) {
 		fetchPumpkinStatus();
 		lunPumpkinTrackerNextTicks = lunTickCount + lunPumpkinTrackerWindow;
 	}
@@ -5771,6 +5929,18 @@ function makeDraggable(element, handles) {
 
 	function dragMouseDown(e) {
 		e = e || window.event;
+		if (e.target && (
+			e.target.tagName === 'BUTTON' ||
+			e.target.tagName === 'INPUT' ||
+			e.target.tagName === 'SELECT' ||
+			e.target.id?.includes('close') ||
+			e.target.closest('button') ||
+			e.target.closest('input') ||
+			e.target.closest('select') ||
+			e.target.closest('#spkmod-stats-close')
+		)) {
+			return;
+		}
 		e.preventDefault();
 		pos3 = e.clientX;
 		pos4 = e.clientY;
