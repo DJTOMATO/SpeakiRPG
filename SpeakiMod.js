@@ -266,8 +266,8 @@ const Portals = {
 		104: {
 			portalId: 25, requiredQuestCode: null,
 			pos: {
-				x: 647.5,
-				z: 300
+				x: 647,
+				z: 250
 			}
 		}
 	},
@@ -282,7 +282,7 @@ const Portals = {
 		105: {
 			portalId: 27, requiredQuestCode: "MQ_BOSS_WORLDTREE",
 			pos: {
-				x: 783.75,
+				x: 784,
 				z: 250
 			}
 		}
