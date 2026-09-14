@@ -3,7 +3,7 @@ window.injectSpeakiMod = () => {
 		const blob = URL.createObjectURL(
 			new Blob(
 				[
-					await (await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/SpeakiMod.js")).text()
+					await window.electronAPI.getSpeakiModJs()
 				],
 				{
 					type: "text/javascript"
