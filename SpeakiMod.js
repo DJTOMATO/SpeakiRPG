@@ -612,7 +612,7 @@ var lunBadWordSources = {
 	ko: "https://raw.githubusercontent.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/master/ko"
 };
 const lunBadWordCacheKey = "spkmod-badword-cache";
-const lunBadWordCacheMaxAgeMs = 24 * 60 * 60 * 1000; // 24h
+const lunBadWordCacheMaxAgeMs = 14 * 24 * 60 * 60 * 1000; // 14 days (2 weeks)
 
 async function loadBadWordList(lang, url) {
 	try {
@@ -845,7 +845,8 @@ var lunHudElements = {
 	pumpkinTracker: null,
 	settingsModal: null,
 	eventModal: null,
-	patchNotesModal: null
+	patchNotesModal: null,
+	statsModal: null
 };
 var eventModalElements = {
 	headerTitle: null,
@@ -858,6 +859,21 @@ var eventModalElements = {
 var patchNotesModalElements = {
 	headerTitle: null,
 	contentContainer: null
+};
+var statsModalElements = {
+	headerTitle: null,
+	sessionTimeVal: null,
+	pingVal: null,
+	fpsVal: null,
+	levelProgressVal: null,
+	levelProgressBar: null,
+	expGainedVal: null,
+	expRateVal: null,
+	timeToLevelVal: null,
+	currencyBalancesVal: null,
+	goldGainedVal: null,
+	elifGainedVal: null,
+	resetBtn: null
 };
 var lunPanelElements = {
 	targetZone: null,
@@ -906,6 +922,7 @@ var lunPanelElements = {
 	gamepadSettingsBtn: null,
 	patchNotesBtn: null,
 	eventBtn: null,
+	statsBtn: null,
 	pumpkinTrackerLabel: null,
 	pumpkinTrackerToggleInput: null,
 	hideKnownBotsLabel: null,
@@ -931,6 +948,8 @@ var lunCurrencyTrackerWindow = 60000 / lunTPS; // [SpeakiMod+] Reduced from 25s 
 var lunCurrencyTrackerNextTicks = 0;
 var lunLastGold = null;
 var lunLastElif = null;
+var lunSessionStartGold = null;
+var lunSessionStartElif = null;
 var lunWalkToPortal = -1;
 var lunAutoTravelTarget = null;
 var lunCameraLocked = false;
@@ -1439,6 +1458,161 @@ var lunBgOpacity = (window.localStorage && localStorage.getItem("spkmod-bg-opaci
 var lunAccentColor = (window.localStorage && localStorage.getItem("spkmod-accent-color")) || "#ffd54a";
 var lunHudBackground = (window.localStorage && localStorage.getItem("spkmod-hud-bg")) || "none";
 
+function toggleStatsModal() {
+	if (!lunHudElements.statsModal) return;
+	const isClosed = lunHudElements.statsModal.classList.contains("hidden");
+	if (isClosed) {
+		const rect = document.querySelector("#spkmod-hud")?.getBoundingClientRect();
+		if (rect && !lunHudElements.statsModal.style.left) {
+			lunHudElements.statsModal.style.left = (rect.right + 10) + "px";
+			lunHudElements.statsModal.style.top = rect.top + "px";
+		}
+		lunHudElements.statsModal.classList.remove("hidden");
+		updateStatsModalLive();
+	} else {
+		lunHudElements.statsModal.classList.add("hidden");
+	}
+}
+
+function resetSessionStats() {
+	window._lunSessionStartTime = Date.now();
+	if (typeof gameState !== 'undefined' && gameState?.myStat?.exp !== undefined) {
+		window._lunSessionStartExp = gameState.myStat.exp;
+	}
+	lunSessionStartGold = lunLastGold;
+	lunSessionStartElif = lunLastElif;
+	resetExpTracker();
+	if (typeof chatLog === 'function') {
+		chatLog(t("statsResetConfirm"));
+	}
+	updateStatsModalLive();
+}
+
+function updateStatsModalLive() {
+	if (!lunHudElements.statsModal || lunHudElements.statsModal.classList.contains("hidden")) return;
+
+	if (statsModalElements.headerTitle) setText(statsModalElements.headerTitle, "⏱️ " + t("statsHeader"));
+	if (statsModalElements.resetBtn) setText(statsModalElements.resetBtn, "🔄 " + t("statsResetBtn"));
+
+	// 1. Session Duration
+	if (!window._lunSessionStartTime) {
+		window._lunSessionStartTime = Date.now();
+	}
+	const elapsedMs = Math.max(0, Date.now() - window._lunSessionStartTime);
+	const totalSec = Math.floor(elapsedMs / 1000);
+	const sHours = Math.floor(totalSec / 3600);
+	const sMins = Math.floor((totalSec % 3600) / 60);
+	const sSecs = totalSec % 60;
+	const timeStr = `${sHours.toString().padStart(2, '0')}:${sMins.toString().padStart(2, '0')}:${sSecs.toString().padStart(2, '0')}`;
+	if (statsModalElements.sessionTimeVal) {
+		setText(statsModalElements.sessionTimeVal, timeStr);
+	}
+
+	// 2. Ping & FPS
+	if (statsModalElements.pingVal) {
+		const ping = typeof lunCurrentPing !== 'undefined' ? lunCurrentPing : "--";
+		const pingNum = Number(ping);
+		let pingColor = "#4ade80";
+		if (isNaN(pingNum)) {
+			pingColor = "#aaa";
+		} else if (pingNum > 250) {
+			pingColor = "#f87171";
+		} else if (pingNum > 130) {
+			pingColor = "#fbbf24";
+		}
+		statsModalElements.pingVal.innerText = `${ping} ms`;
+		statsModalElements.pingVal.style.color = pingColor;
+	}
+	if (statsModalElements.fpsVal) {
+		statsModalElements.fpsVal.innerText = `${typeof lunCurrentFps !== 'undefined' ? lunCurrentFps : "--"} FPS`;
+	}
+
+	// 3. Level & EXP
+	const myStat = (typeof gameState !== 'undefined' && gameState?.myStat) ? gameState.myStat : null;
+	const currentExp = myStat?.exp ?? 0;
+	const maxExp = myStat?.maxExp ?? 1;
+	const currentLevel = myStat?.level ?? 1;
+
+	if (window._lunSessionStartExp === undefined || window._lunSessionStartExp === null) {
+		if (currentExp > 0) window._lunSessionStartExp = currentExp;
+	}
+
+	const expPct = Math.min(100, Math.max(0, (currentExp / maxExp) * 100));
+	if (statsModalElements.levelProgressVal) {
+		statsModalElements.levelProgressVal.innerText = `Lv. ${currentLevel} (${expPct.toFixed(1)}%) — ${currentExp.toLocaleString()} / ${maxExp.toLocaleString()}`;
+	}
+	if (statsModalElements.levelProgressBar) {
+		statsModalElements.levelProgressBar.style.width = `${expPct.toFixed(1)}%`;
+	}
+
+	// EXP Gained this session
+	const startExp = window._lunSessionStartExp ?? currentExp;
+	const expGained = Math.max(0, currentExp - startExp);
+	if (statsModalElements.expGainedVal) {
+		statsModalElements.expGainedVal.innerText = `+${expGained.toLocaleString()} EXP`;
+	}
+
+	// EXP / Hour Rate
+	const hoursElapsed = elapsedMs / 3600000;
+	const expSpeedPerHour = (typeof lunExpTrackerSpeed !== 'undefined' && lunExpTrackerSpeed > 0)
+		? (lunExpTrackerSpeed * 3600)
+		: (hoursElapsed > 0 ? (expGained / hoursElapsed) : 0);
+	if (statsModalElements.expRateVal) {
+		statsModalElements.expRateVal.innerText = `${Math.round(expSpeedPerHour).toLocaleString()} / hr`;
+	}
+
+	// Time to Next Level
+	if (statsModalElements.timeToLevelVal) {
+		if (expSpeedPerHour > 0) {
+			const expNeeded = Math.max(0, maxExp - currentExp);
+			const hoursNeeded = expNeeded / expSpeedPerHour;
+			if (hoursNeeded < 1) {
+				const mins = Math.max(1, Math.round(hoursNeeded * 60));
+				statsModalElements.timeToLevelVal.innerText = `~${mins} min`;
+			} else {
+				statsModalElements.timeToLevelVal.innerText = `~${hoursNeeded.toFixed(1)} hrs`;
+			}
+		} else {
+			statsModalElements.timeToLevelVal.innerText = t("nextLevelNA");
+		}
+	}
+
+	// 4. Currency: Balances & Gains
+	const curGold = lunLastGold ?? 0;
+	const curElif = lunLastElif ?? 0;
+	if (statsModalElements.currencyBalancesVal) {
+		statsModalElements.currencyBalancesVal.innerText = `🪙 ${curGold.toLocaleString()}  |  💎 ${curElif.toLocaleString()}`;
+	}
+
+	// Gold gained
+	if (lunSessionStartGold === null && lunLastGold !== null) {
+		lunSessionStartGold = lunLastGold;
+	}
+	const goldDiff = lunSessionStartGold !== null ? (curGold - lunSessionStartGold) : 0;
+	const goldPerHour = hoursElapsed > 0 ? (goldDiff / hoursElapsed).toFixed(0) : 0;
+	const goldPrefix = goldDiff >= 0 ? "+" : "";
+	let gphFormatted = Number(goldPerHour).toLocaleString();
+	if (Math.abs(goldPerHour) >= 1000) {
+		gphFormatted = (goldPerHour / 1000).toFixed(1).replace(/\.0$/, '') + "k";
+	}
+	if (statsModalElements.goldGainedVal) {
+		statsModalElements.goldGainedVal.innerText = `${goldPrefix}${goldDiff.toLocaleString()} (${goldPrefix}${gphFormatted} / hr)`;
+		statsModalElements.goldGainedVal.style.color = goldDiff >= 0 ? "#ffd54a" : "#f87171";
+	}
+
+	// Elif gained
+	if (lunSessionStartElif === null && lunLastElif !== null) {
+		lunSessionStartElif = lunLastElif;
+	}
+	const elifDiff = lunSessionStartElif !== null ? (curElif - lunSessionStartElif) : 0;
+	const elifPerHour = hoursElapsed > 0 ? (elifDiff / hoursElapsed).toFixed(1) : "0";
+	const elifPrefix = elifDiff >= 0 ? "+" : "";
+	if (statsModalElements.elifGainedVal) {
+		statsModalElements.elifGainedVal.innerText = `${elifPrefix}${elifDiff.toLocaleString()} (${elifPrefix}${elifPerHour} / hr)`;
+		statsModalElements.elifGainedVal.style.color = elifDiff >= 0 ? "#67e8f9" : "#f87171";
+	}
+}
+
 function updateDynamicStyles() {
 	let bgRule = "rgba(0, 0, 0, 0.75)";
 	let blurRule = "blur(4px)";
@@ -1513,9 +1687,9 @@ function updateDynamicStyles() {
 			--spkmod-blur: ${blurRule};
 			--spkmod-accent: ${lunAccentColor};
 		}
-		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
+		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-stats-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
-		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
+		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-stats-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
 			background: var(--spkmod-bg) !important;
 			backdrop-filter: var(--spkmod-blur) !important;
 			border-color: var(--spkmod-accent) !important;
@@ -1791,7 +1965,7 @@ document.head.appendChild(buildElement(
 			border-radius: 8px;
 			padding: 6px;
 		}
-		#spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal {
+		#spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-stats-modal {
 			display: flex;
 			flex-direction: column;
 			position: fixed;
@@ -1827,6 +2001,10 @@ document.head.appendChild(buildElement(
 			width: 380px;
 			max-width: 95vw;
 		}
+		#spkmod-stats-modal {
+			width: 320px;
+			max-width: 95vw;
+		}
 		.spkmod-binding-row {
 			display: flex;
 			align-items: center;
@@ -1858,7 +2036,7 @@ document.head.appendChild(buildElement(
 			to { opacity: 1.0; transform: scale(1.02); }
 		}
 		/* honest to god forgot CSS is stupid like that */
-		.hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden {
+		.hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden, #spkmod-stats-modal.hidden {
 			display: none !important;
 		}
 		body.spkmod-ui-hidden #spkmod-hud,
@@ -1869,6 +2047,7 @@ document.head.appendChild(buildElement(
 		body.spkmod-ui-hidden #spkmod-gamepad-modal,
 		body.spkmod-ui-hidden #spkmod-players-modal,
 		body.spkmod-ui-hidden #spkmod-map-modal,
+		body.spkmod-ui-hidden #spkmod-stats-modal,
 		body.spkmod-ui-hidden #spkmod-translate-picker {
 			display: none !important;
 		}
@@ -2564,6 +2743,14 @@ document.body.appendChild(
 					title: "World Map",
 					onclick: _ => toggleMapModal()
 				}),
+				lunPanelElements.statsBtn = buildElement("button", {
+					id: "spkmod-stats-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					innerText: "⏱️",
+					title: t("statsBtnTooltip"),
+					onclick: _ => toggleStatsModal()
+				}),
 				lunPanelElements.dragBtn = buildElement("button", {
 					id: "spkmod-drag-btn",
 					className: "spkmod-panel-btn",
@@ -2993,7 +3180,7 @@ function triggerPetSequence() {
 window.RitualState = 0; // 0: off, 1: normal, 2: inverted
 let ritualCenter = null;
 let ritualEmoteTick = 0;
-const RITUAL_RADIUS = 1.1; // Sized closely to one player's perimeter
+const RITUAL_RADIUS = 1.4; // Clearance to prevent colliding/vibrating against center player
 
 function toggleRitual(btn) {
 	window.RitualState = (window.RitualState + 1) % 3;
@@ -3626,6 +3813,91 @@ document.body.appendChild(
 setTimeout(() => {
 	if (typeof makeDraggable === 'function' && lunHudElements.patchNotesModal && patchNotesModalElements.headerTitle) {
 		makeDraggable(lunHudElements.patchNotesModal, [patchNotesModalElements.headerTitle]);
+	}
+}, 500);
+
+document.body.appendChild(
+	lunHudElements.statsModal = buildElement("div", {
+		id: "spkmod-stats-modal",
+		className: "hidden"
+	}, [
+		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
+			statsModalElements.headerTitle = buildElement("span", {
+				innerText: "⏱️ " + t("statsHeader"),
+				style: "font-weight: bold; font-size: 12px; cursor: move; user-select: none;"
+			}),
+			buildElement("span", {
+				id: "spkmod-stats-close",
+				innerText: "✕",
+				style: "cursor: pointer; padding: 0 4px;",
+				onclick: _ => lunHudElements.statsModal.classList.add("hidden")
+			})
+		]),
+		buildElement("div", {
+			style: "display: flex; flex-direction: column; gap: 8px; font-size: 11px; padding: 2px;"
+		}, [
+			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px;" }, [
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					buildElement("span", { style: "color: #aaa;", innerText: "⏱️ " + t("statsSessionTime") }),
+					statsModalElements.sessionTimeVal = buildElement("span", { style: "font-weight: bold; font-family: monospace; font-size: 12px; color: #ffd54a;", innerText: "00:00:00" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					buildElement("span", { style: "color: #aaa;", innerText: "📶 " + t("statsPing") }),
+					buildElement("div", { style: "display: flex; gap: 8px;" }, [
+						statsModalElements.pingVal = buildElement("span", { style: "font-weight: bold;", innerText: "-- ms" }),
+						statsModalElements.fpsVal = buildElement("span", { style: "color: #aaa;", innerText: "-- FPS" })
+					])
+				])
+			]),
+
+			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 5px;" }, [
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.levelProgressVal = buildElement("span", { style: "font-weight: bold; color: #67e8f9;", innerText: "Lv. -- (0%) — 0 / 0" })
+				]),
+				buildElement("div", { style: "width: 100%; height: 6px; background: rgba(0,0,0,0.5); border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);" }, [
+					statsModalElements.levelProgressBar = buildElement("div", { style: "height: 100%; width: 0%; background: linear-gradient(90deg, #06b6d4, #3b82f6); border-radius: 3px; transition: width 0.3s;" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					buildElement("span", { style: "color: #aaa;", innerText: "⭐ " + t("statsExpGained") }),
+					statsModalElements.expGainedVal = buildElement("span", { style: "font-weight: bold; color: #4ade80;", innerText: "+0 EXP" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					buildElement("span", { style: "color: #aaa;", innerText: "📈 " + t("statsExpPerHour") }),
+					statsModalElements.expRateVal = buildElement("span", { style: "font-weight: bold; color: #ffd54a;", innerText: "0 / hr" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					buildElement("span", { style: "color: #aaa;", innerText: "⏳ " + t("statsTimeToNextLevel") }),
+					statsModalElements.timeToLevelVal = buildElement("span", { style: "font-weight: bold;", innerText: "N/A" })
+				])
+			]),
+
+			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px;" }, [
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					buildElement("span", { style: "color: #aaa;", innerText: "💰 " + t("statsCurrency") }),
+					statsModalElements.currencyBalancesVal = buildElement("span", { style: "font-weight: bold;", innerText: "🪙 0  |  💎 0" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					buildElement("span", { style: "color: #aaa;", innerText: "🪙 " + t("statsGoldGained") }),
+					statsModalElements.goldGainedVal = buildElement("span", { style: "font-weight: bold; color: #ffd54a;", innerText: "+0 (+0 / hr)" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					buildElement("span", { style: "color: #aaa;", innerText: "💎 " + t("statsElifGained") }),
+					statsModalElements.elifGainedVal = buildElement("span", { style: "font-weight: bold; color: #67e8f9;", innerText: "+0 (+0 / hr)" })
+				])
+			]),
+
+			statsModalElements.resetBtn = buildElement("button", {
+				innerText: "🔄 " + t("statsResetBtn"),
+				className: "spkmod-panel-btn",
+				style: "margin-top: 4px; padding: 6px; cursor: pointer; font-size: 11px; font-weight: bold; width: 100%; text-align: center; border-radius: 4px; border: 1px solid #555;",
+				onclick: () => resetSessionStats()
+			})
+		])
+	])
+);
+setTimeout(() => {
+	if (typeof makeDraggable === 'function' && lunHudElements.statsModal && statsModalElements.headerTitle) {
+		makeDraggable(lunHudElements.statsModal, [statsModalElements.headerTitle]);
 	}
 }, 500);
 setTimeout(() => { if (typeof makeDraggable === 'function') makeDraggable(mapModalElements.modalWindow, [mapModalElements.titleLabel]); }, 1000);
@@ -4746,6 +5018,9 @@ function tick() {
 		console.log("[SpeakiMod+] Successfully hooked chatBubbles.show!");
 	}
 	var playerExp = gameState.myStat.exp;
+	if (window._lunSessionStartExp === undefined || window._lunSessionStartExp === null) {
+		window._lunSessionStartExp = playerExp;
+	}
 	var zoneId = gameState.zoneId % 10000;
 	var windowSec = lunExpIntervalMinutes * 60;
 	var windowTicks = windowSec * lunTPS;
@@ -4895,7 +5170,10 @@ function tick() {
 
 			if (lunSessionStartGold === null) {
 				lunSessionStartGold = lunLastGold;
-				window._lunSessionStartTime = Date.now();
+				window._lunSessionStartTime = window._lunSessionStartTime || Date.now();
+			}
+			if (lunSessionStartElif === null) {
+				lunSessionStartElif = lunLastElif;
 			}
 			const diff = lunLastGold - lunSessionStartGold;
 			const hours = (Date.now() - window._lunSessionStartTime) / 3600000;
@@ -5582,6 +5860,10 @@ function fpsLoop() {
 			));
 		}
 
+		if (typeof updateStatsModalLive === 'function' && lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden")) {
+			updateStatsModalLive();
+		}
+
 		lunLastFrameTime = now;
 	}
 	
@@ -5681,6 +5963,11 @@ window.addEventListener("keydown", e => {
 		if (lunHudElements.eventModal && !lunHudElements.eventModal.classList.contains("hidden")) {
 			e.preventDefault();
 			lunHudElements.eventModal.classList.add("hidden");
+			return;
+		}
+		if (lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden")) {
+			e.preventDefault();
+			lunHudElements.statsModal.classList.add("hidden");
 			return;
 		}
 	}
