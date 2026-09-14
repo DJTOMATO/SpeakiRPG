@@ -1307,7 +1307,12 @@ function makeDraggable(element, handles) {
 
 	function dragMouseDown(e) {
 		e = e || window.event;
-		if (e.target && (
+
+		// Always allow dragging when clicking the anchor drag button or explicit handle
+		const isDragBtn = e.target && (e.target.id === 'spkmod-drag-btn' || e.target.closest('#spkmod-drag-btn'));
+		const isExplicitHandle = handles.some(h => h && h !== element && (h === e.target || h.contains(e.target)));
+
+		if (!isDragBtn && !isExplicitHandle && e.target && (
 			e.target.tagName === 'BUTTON' ||
 			e.target.tagName === 'INPUT' ||
 			e.target.tagName === 'SELECT' ||
