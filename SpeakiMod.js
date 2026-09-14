@@ -786,27 +786,39 @@ var spkmodTranslations = {
 		eventPeriod: "Period: {0} ~ {1}",
 		eventBestScore: "Best Score: {0}",
 		eventPlaysToday: "Plays Remaining: {0}/{1}",
-		eventLoading: "Loading event info..."
+		eventLoading: "Loading event info...",
+		keepFriendsNametagsBtn: "Nametags: Friends Only",
+		friendChatToggleLabel: "Highlight Friends in Chat"
 	},
 	ja: {
 		settingsCatGeneral: "チャット＆ゲームプレイ",
-		settingsCatHUD: "HUD＆外観"
+		settingsCatHUD: "HUD＆外観",
+		keepFriendsNametagsBtn: "ネームタグ: フレンドのみ",
+		friendChatToggleLabel: "チャットでフレンドを強調表示"
 	},
 	ko: {
 		settingsCatGeneral: "채팅 및 게임플레이",
-		settingsCatHUD: "HUD 및 외형"
+		settingsCatHUD: "HUD 및 외형",
+		keepFriendsNametagsBtn: "닉네임: 친구만",
+		friendChatToggleLabel: "채팅에서 친구 강조 색상"
 	},
 	"zh-TW": {
 		settingsCatGeneral: "聊天與遊戲",
-		settingsCatHUD: "HUD 與外觀"
+		settingsCatHUD: "HUD 與外觀",
+		keepFriendsNametagsBtn: "名稱標籤：僅限好友",
+		friendChatToggleLabel: "聊天室突顯好友顏色"
 	},
 	"es-419": {
 		settingsCatGeneral: "Chat y jugabilidad",
-		settingsCatHUD: "HUD y apariencia"
+		settingsCatHUD: "HUD y apariencia",
+		keepFriendsNametagsBtn: "Etiquetas: solo amigos",
+		friendChatToggleLabel: "Destacar amigos en el chat"
 	},
 	"zh-CN": {
 		settingsCatGeneral: "聊天与游戏",
-		settingsCatHUD: "HUD 与外观"
+		settingsCatHUD: "HUD 与外观",
+		keepFriendsNametagsBtn: "名称标签：仅限好友",
+		friendChatToggleLabel: "聊天室高亮好友颜色"
 	}
 };
 
@@ -1010,7 +1022,53 @@ var lunWalkToPortal = -1;
 var lunAutoTravelTarget = null;
 var lunCameraLocked = false;
 var lunNametagMode = 0; 
-const NAMETAG_MODES = ["showAllNametags", "keepPartyNametags", "hideAllNametags"];
+const NAMETAG_MODES = ["showAllNametags", "keepPartyNametags", "keepFriendsNametags", "hideAllNametags"];
+
+var lunFriendNicknames = new Set();
+var lunFriendChatHighlightEnabled = (window.localStorage && localStorage.getItem("spkmod-friend-highlight-enabled")) === "true";
+
+function setFriendChatHighlightEnabled(enabled) {
+	lunFriendChatHighlightEnabled = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-friend-highlight-enabled", lunFriendChatHighlightEnabled ? "true" : "false");
+}
+
+var lunLastFriendFetchTime = 0;
+var lunFriendFetchInProgress = false;
+
+function fetchFriendsList(force = false) {
+	const now = Date.now();
+	if (!force && now - lunLastFriendFetchTime < 60000) return;
+	if (lunFriendFetchInProgress) return;
+	const token = typeof getAuthToken === "function" ? getAuthToken() : null;
+	if (!token) return;
+	lunFriendFetchInProgress = true;
+	fetch("https://sr1.overture.io.kr/api/friend/list", {
+		method: "GET",
+		headers: {
+			"authorization": `Bearer ${token}`
+		},
+		mode: "cors"
+	}).then(async res => {
+		if (!res.ok) return;
+		const data = await res.json();
+		const friends = data?.friends;
+		if (Array.isArray(friends)) {
+			const newSet = new Set();
+			for (const f of friends) {
+				if (f && typeof f.nickname === "string") {
+					const nick = f.nickname.trim().toLowerCase();
+					if (nick) newSet.add(nick);
+				}
+			}
+			lunFriendNicknames = newSet;
+			lunLastFriendFetchTime = Date.now();
+		}
+	}).catch(e => {
+		console.warn("[SpeakiMod+] Failed to fetch friend list:", e);
+	}).finally(() => {
+		lunFriendFetchInProgress = false;
+	});
+}
 
 const lunKnownBotNames = ["GOODSPIKI", "BADSPIKI","NEXThobagi","QAZWSXEDC", "kqland", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki"];
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
@@ -2077,6 +2135,7 @@ document.head.appendChild(buildElement(
 		}
 		.sr-chatbox__body-text.spkmod-translated-line { color: #ffd54a !important; -webkit-text-fill-color: #ffd54a !important;  }
 		.sr-chatbox__body-text.spkmod-gmdt-line { font-weight: 800 !important; color: #ffa726 !important; -webkit-text-fill-color: #ffa726 !important; text-shadow: 0 0 6px rgba(255, 167, 38, 0.45) !important; }
+		.sr-chatbox__sender.spkmod-friend-sender { color: #4dd0e1 !important; -webkit-text-fill-color: #4dd0e1 !important; font-weight: bold !important; text-shadow: 0 0 6px rgba(77, 208, 225, 0.45) !important; }
 		.sr-chatbox__body-text.spkmod-clickable-line { cursor: pointer !important; pointer-events: auto !important;}
 		#spkmod-footer {
 			border-top: 1px solid #DDD;
@@ -2832,7 +2891,10 @@ document.body.appendChild(
 					innerText: t("showAllNametagsBtn"),
 					value: "",
 					onclick: () => {
-						lunNametagMode = (lunNametagMode + 1) % 3;
+						lunNametagMode = (lunNametagMode + 1) % 4;
+						if (lunNametagMode === 2) {
+							fetchFriendsList(true);
+						}
 						if (lunPanelElements.nametagsBtn) {
 							setText(lunPanelElements.nametagsBtn, t(NAMETAG_MODES[lunNametagMode] + "Btn"));
 						}
@@ -3138,6 +3200,20 @@ document.body.appendChild(
 					})
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.friendChatToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("friendChatToggleLabel")
+					}),
+					lunPanelElements.friendChatToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunFriendChatHighlightEnabled,
+						onchange: e => {
+							setFriendChatHighlightEnabled(e.target.checked);
+							if (e.target.checked) fetchFriendsList(true);
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.mentionAlertToggleLabel = buildElement("span", {
 						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
 						innerText: t("mentionAlertToggleLabel")
@@ -3425,11 +3501,19 @@ function autoJumpLoop() {
 	window.__autoJumpTimeoutId = setTimeout(autoJumpLoop, lunJumpAnimMs);
 }
 
-const lunHeartsAnimMs = 950; // Optimized to match maximum server emote throughput without packet drop
+const lunHeartsAnimMs = 1200; // Debounce window is 1100ms; 1200ms guarantees no dropped packets on server/clients
 
 function triggerHearts() {
-	if (gameState && gameState.bloomEffects && typeof gameState.bloomEffects.spawnHearts === "function" && gameState.playerContainer) {
-		gameState.bloomEffects.spawnHearts(gameState.playerContainer);
+	if (gameState && gameState.bloomEffects && typeof gameState.bloomEffects.spawnHearts === "function") {
+		if (gameState.playerContainer) {
+			gameState.bloomEffects.spawnHearts(gameState.playerContainer);
+		}
+		if (lunFollowTargetName && gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+			const tp = Array.from(gameState.remotePlayers.remotePlayers.values()).find(t => t.info && t.info.name === lunFollowTargetName);
+			if (tp && tp.container && tp.container !== gameState.playerContainer) {
+				gameState.bloomEffects.spawnHearts(tp.container);
+			}
+		}
 	}
 	if (gameState && typeof gameState.sendEmoteNow === "function") {
 		gameState.sendEmoteNow(Emotes.StrokeBloom);
@@ -3466,40 +3550,40 @@ function triggerPetSequence() {
 	clearPetSequence();
 	chatLog(t("petActivatedMsg"));
 
-	// Stage 1: Stroke Start (hand appears, petting begins)
+	// Stage 1 (0ms): Stroke Start (hand appears, petting begins)
 	gameState.sendEmoteNow(Emotes.StrokeStart);
 
-	// Stage 2: Stroke Step 1 (first stroke reaction + mini hearts)
-	petSequenceTimeouts.push(setTimeout(() => {
-		if (gameState && typeof gameState.sendEmoteNow === "function") {
-			gameState.sendEmoteNow(Emotes.StrokeStage2);
-			if (gameState.bloomEffects && typeof gameState.bloomEffects.spawnHearts === "function" && gameState.playerContainer) {
-				gameState.bloomEffects.spawnHearts(gameState.playerContainer);
+	const spawnLocalHearts = () => {
+		if (gameState.bloomEffects && typeof gameState.bloomEffects.spawnHearts === "function") {
+			if (gameState.playerContainer) gameState.bloomEffects.spawnHearts(gameState.playerContainer);
+			if (lunFollowTargetName && gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+				const tp = Array.from(gameState.remotePlayers.remotePlayers.values()).find(t => t.info && t.info.name === lunFollowTargetName);
+				if (tp && tp.container && tp.container !== gameState.playerContainer) {
+					gameState.bloomEffects.spawnHearts(tp.container);
+				}
 			}
 		}
-	}, 450));
+	};
 
-	// Stage 3: Stroke Step 2 (second stroke reaction)
+	// Stage 2 (1150ms): Stroke Stage 2 (stroke reaction + mini hearts)
 	petSequenceTimeouts.push(setTimeout(() => {
 		if (gameState && typeof gameState.sendEmoteNow === "function") {
 			gameState.sendEmoteNow(Emotes.StrokeStage2);
+			spawnLocalHearts();
 		}
-	}, 950));
+	}, 1150));
 
-	// Stage 4: Stroke Step 3 (third stroke reaction + mini hearts)
-	petSequenceTimeouts.push(setTimeout(() => {
-		if (gameState && typeof gameState.sendEmoteNow === "function") {
-			gameState.sendEmoteNow(Emotes.StrokeStage2);
-			if (gameState.bloomEffects && typeof gameState.bloomEffects.spawnHearts === "function" && gameState.playerContainer) {
-				gameState.bloomEffects.spawnHearts(gameState.playerContainer);
-			}
-		}
-	}, 1450));
-
-	// Stage 5: Full Climax Stroke Bloom (maximum heart explosion fireworks!)
+	// Stage 3 (2300ms): Full Climax Stroke Bloom (maximum heart explosion fireworks!)
 	petSequenceTimeouts.push(setTimeout(() => {
 		triggerHearts();
-	}, 2050));
+	}, 2300));
+
+	// Stage 4 (4300ms): Clean up stroke emote state
+	petSequenceTimeouts.push(setTimeout(() => {
+		if (gameState && typeof gameState.sendEmoteNow === "function") {
+			gameState.sendEmoteNow(Emotes.StrokeCancel);
+		}
+	}, 4300));
 }
 
 window.RitualState = 0; // 0: off, 1: normal, 2: inverted
@@ -5117,6 +5201,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.settingsHeader, t("settingsHeader"));
 	if (lunPanelElements.filterToggleLabel) setText(lunPanelElements.filterToggleLabel, t("filterToggleLabel"));
 	if (lunPanelElements.gmChatToggleLabel) setText(lunPanelElements.gmChatToggleLabel, t("gmChatToggleLabel"));
+	if (lunPanelElements.friendChatToggleLabel) setText(lunPanelElements.friendChatToggleLabel, t("friendChatToggleLabel"));
 	if (lunPanelElements.mentionAlertToggleLabel) setText(lunPanelElements.mentionAlertToggleLabel, t("mentionAlertToggleLabel"));
 	if (lunPanelElements.hideKnownBotsLabel) setText(lunPanelElements.hideKnownBotsLabel, t("hideKnownBotsToggleLabel"));
 	if (lunPanelElements.chatTimestampLabel) setText(lunPanelElements.chatTimestampLabel, t("chatTimestampToggleLabel"));
@@ -5552,13 +5637,17 @@ function tick() {
 		lunPumpkinTrackerNextTicks = lunTickCount + lunPumpkinTrackerWindow;
 	}
 
+	if (lunNametagMode === 2 || lunFriendChatHighlightEnabled) {
+		fetchFriendsList();
+	}
+
 	let partyNames = null;
 	gameState.remotePlayers.remotePlayers.forEach(t => {
 		const sprite = findNametagSprite(t.container);
 		if (sprite) {
 			if (lunNametagMode === 0) {
 				sprite.visible = true;
-			} else if (lunNametagMode === 2) {
+			} else if (lunNametagMode === 3) {
 				sprite.visible = false;
 			} else if (lunNametagMode === 1) {
 				if (partyNames === null) {
@@ -5566,6 +5655,9 @@ function tick() {
 				}
 				const pName = (t.info?.name || "").trim().toLowerCase();
 				sprite.visible = partyNames.has(pName);
+			} else if (lunNametagMode === 2) {
+				const pName = (t.info?.name || "").trim().toLowerCase();
+				sprite.visible = lunFriendNicknames.has(pName);
 			}
 		}
 	});
@@ -5816,6 +5908,9 @@ gameState.trySendChat = (msg) => {
 				gameState.sendEmoteNow(Emotes.Dance);
 				break;
 			case "hearts":
+				triggerHearts();
+				break;
+			case "pet":
 			case "pat":
 				triggerPetSequence();
 				break;
@@ -5935,6 +6030,9 @@ gameState.chatBox.append = (id, name, msg) => {
 				
 				const senderEl = rowNode.classList?.contains("sr-chatbox__sender") ? rowNode : rowNode.querySelector?.(".sr-chatbox__sender");
 				if (senderEl) {
+					if (lunFriendChatHighlightEnabled && name && lunFriendNicknames.has(name.trim().toLowerCase())) {
+						senderEl.classList.add("spkmod-friend-sender");
+					}
 					let currentText = senderEl.innerText;
 					
 					if (lunChatTimestampsEnabled) {
