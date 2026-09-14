@@ -911,6 +911,7 @@ var statsModalElements = {
 	pumpkinLabel: null,
 	pumpkinVal: null,
 	levelProgressVal: null,
+	levelExpNumbers: null,
 	levelProgressBar: null,
 	expGainedLabel: null,
 	expGainedVal: null,
@@ -1401,7 +1402,7 @@ function positionModalNicely(modal) {
 			}
 		}
 
-		const approxWidth = modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? 480 : (modal.id === "spkmod-stats-modal" ? 320 : 400));
+		const approxWidth = modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? 480 : (modal.id === "spkmod-stats-modal" ? 240 : 400));
 		let nextLeft = Math.round(rightmostRect.right + 10);
 		let nextTop = Math.round(rightmostRect.top);
 
@@ -1816,7 +1817,10 @@ function updateStatsModalLive() {
 
 	const expPct = Math.min(100, Math.max(0, (currentExp / maxExp) * 100));
 	if (statsModalElements.levelProgressVal) {
-		statsModalElements.levelProgressVal.innerText = `Lv. ${currentLevel} (${expPct.toFixed(1)}%) — ${currentExp.toLocaleString()} / ${maxExp.toLocaleString()}`;
+		statsModalElements.levelProgressVal.innerText = `Lv. ${currentLevel} (${expPct.toFixed(1)}%)`;
+	}
+	if (statsModalElements.levelExpNumbers) {
+		statsModalElements.levelExpNumbers.innerText = `${currentExp.toLocaleString()} / ${maxExp.toLocaleString()}`;
 	}
 	if (statsModalElements.levelProgressBar) {
 		statsModalElements.levelProgressBar.style.width = `${expPct.toFixed(1)}%`;
@@ -2299,8 +2303,10 @@ document.head.appendChild(buildElement(
 			max-width: 95vw;
 		}
 		#spkmod-stats-modal {
-			width: 320px;
+			width: 240px;
 			max-width: 95vw;
+			padding: 8px;
+			gap: 6px;
 			cursor: move;
 			user-select: none;
 		}
@@ -4130,31 +4136,31 @@ document.body.appendChild(
 		id: "spkmod-stats-modal",
 		className: "hidden"
 	}, [
-		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
+		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between; align-items: center;" }, [
 			statsModalElements.headerTitle = buildElement("span", {
 				innerText: "⏱️ " + t("statsHeader"),
-				style: "font-weight: bold; font-size: 12px; cursor: move; user-select: none;"
+				style: "font-weight: bold; font-size: 11px; cursor: move; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
 			}),
 			buildElement("span", {
 				id: "spkmod-stats-close",
 				innerText: "✕",
-				style: "cursor: pointer; padding: 0 4px;",
+				style: "cursor: pointer; padding: 0 4px; font-size: 12px; line-height: 1;",
 				onclick: _ => lunHudElements.statsModal.classList.add("hidden")
 			})
 		]),
 		buildElement("div", {
-			style: "display: flex; flex-direction: column; gap: 8px; font-size: 11px; padding: 2px;"
+			style: "display: flex; flex-direction: column; gap: 6px; font-size: 11px; padding: 1px;"
 		}, [
-			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px;" }, [
+			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 5px 8px; display: flex; flex-direction: column; gap: 4px;" }, [
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
 					statsModalElements.sessionTimeLabel = buildElement("span", { style: "color: #aaa;", innerText: "⏱️ " + t("statsSessionTime") }),
-					statsModalElements.sessionTimeVal = buildElement("span", { style: "font-weight: bold; font-family: monospace; font-size: 12px; color: #ffd54a;", innerText: "00:00:00" })
+					statsModalElements.sessionTimeVal = buildElement("span", { style: "font-weight: bold; font-family: monospace; font-size: 11.5px; color: #ffd54a;", innerText: "00:00:00" })
 				]),
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
 					statsModalElements.pingLabel = buildElement("span", { style: "color: #aaa;", innerText: "📶 " + t("statsPing") }),
-					buildElement("div", { style: "display: flex; gap: 8px;" }, [
-						statsModalElements.pingVal = buildElement("span", { style: "font-weight: bold;", innerText: "-- ms" }),
-						statsModalElements.fpsVal = buildElement("span", { style: "color: #aaa;", innerText: "-- FPS" })
+					buildElement("div", { style: "display: flex; gap: 6px; align-items: baseline;" }, [
+						statsModalElements.pingVal = buildElement("span", { style: "font-weight: bold; font-size: 11px;", innerText: "-- ms" }),
+						statsModalElements.fpsVal = buildElement("span", { style: "color: #888; font-size: 10px;", innerText: "-- FPS" })
 					])
 				]),
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
@@ -4167,11 +4173,12 @@ document.body.appendChild(
 				])
 			]),
 
-			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 5px;" }, [
-				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
-					statsModalElements.levelProgressVal = buildElement("span", { style: "font-weight: bold; color: #67e8f9;", innerText: "Lv. -- (0%) — 0 / 0" })
+			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 5px 8px; display: flex; flex-direction: column; gap: 4px;" }, [
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: baseline; gap: 4px;" }, [
+					statsModalElements.levelProgressVal = buildElement("span", { style: "font-weight: bold; color: #67e8f9; font-size: 11px; white-space: nowrap;", innerText: "Lv. -- (0%)" }),
+					statsModalElements.levelExpNumbers = buildElement("span", { style: "font-size: 9.5px; color: #888; white-space: nowrap; font-family: monospace;", innerText: "0 / 0" })
 				]),
-				buildElement("div", { style: "width: 100%; height: 6px; background: rgba(0,0,0,0.5); border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);" }, [
+				buildElement("div", { style: "width: 100%; height: 5px; background: rgba(0,0,0,0.5); border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); margin: 1px 0;" }, [
 					statsModalElements.levelProgressBar = buildElement("div", { style: "height: 100%; width: 0%; background: linear-gradient(90deg, #06b6d4, #3b82f6); border-radius: 3px; transition: width 0.3s;" })
 				]),
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
@@ -4188,7 +4195,7 @@ document.body.appendChild(
 				])
 			]),
 
-			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px;" }, [
+			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 5px 8px; display: flex; flex-direction: column; gap: 4px;" }, [
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
 					statsModalElements.currencyLabel = buildElement("span", { style: "color: #aaa;", innerText: "💰 " + t("statsCurrency") }),
 					statsModalElements.currencyBalancesVal = buildElement("span", { style: "font-weight: bold;", innerText: "🪙 0  |  💎 0" })
@@ -4206,7 +4213,7 @@ document.body.appendChild(
 			statsModalElements.resetBtn = buildElement("button", {
 				innerText: "🔄 " + t("statsResetBtn"),
 				className: "spkmod-panel-btn",
-				style: "margin-top: 4px; padding: 6px; cursor: pointer; font-size: 11px; font-weight: bold; width: 100%; text-align: center; border-radius: 4px; border: 1px solid #555;",
+				style: "margin-top: 2px; padding: 5px; cursor: pointer; font-size: 11px; font-weight: bold; width: 100%; text-align: center; border-radius: 4px; border: 1px solid #555;",
 				onclick: () => resetSessionStats()
 			})
 		])
@@ -6068,17 +6075,13 @@ let lunCurrentPing = "--";
 
 function fpsLoop() {
 	const now = performance.now();
-	if (lunFpsPingEnabled) {
-		lunFrameCount++;
-	}
+	lunFrameCount++;
 
 	if (now - lunLastFrameTime >= 1000) {
-		if (lunFpsPingEnabled) {
-			lunCurrentFps = lunFrameCount;
-			lunFrameCount = 0;
-			if (lunHudElements.fpsPingTracker) {
-				setText(lunHudElements.fpsPingTracker, t("fpsPingText", lunCurrentFps, lunCurrentPing));
-			}
+		lunCurrentFps = lunFrameCount;
+		lunFrameCount = 0;
+		if (lunFpsPingEnabled && lunHudElements.fpsPingTracker) {
+			setText(lunHudElements.fpsPingTracker, t("fpsPingText", lunCurrentFps, lunCurrentPing));
 		}
 
 		if (lunResetTimerEnabled && lunHudElements.resetTimerTracker) {
