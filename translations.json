@@ -232,6 +232,8 @@
         "statsDailyReset": "Daily Reset",
         "statsPumpkinPlays": "Pumpkin Plays",
         "currencyTrackerToggleLabel": "Show Gold & Elif on HUD",
+        "settingsCatGeneral": "Chat & Gameplay",
+        "settingsCatHUD": "HUD & Appearance",
         "statsResetBtn": "Reset Session",
         "statsResetConfirm": "Session stats reset."
     },
@@ -468,6 +470,8 @@
         "statsDailyReset": "デイリーリセット",
         "statsPumpkinPlays": "カボチャ挑戦回数",
         "currencyTrackerToggleLabel": "HUDにゴールドとエリーフを表示",
+        "settingsCatGeneral": "チャット＆ゲームプレイ",
+        "settingsCatHUD": "HUD＆外観",
         "statsResetBtn": "セッションをリセット",
         "statsResetConfirm": "セッション統計をリセットしました。"
     },
@@ -704,6 +708,8 @@
         "statsDailyReset": "일일 초기화",
         "statsPumpkinPlays": "호박 미니게임",
         "currencyTrackerToggleLabel": "HUD에 골드 및 엘리프 표시",
+        "settingsCatGeneral": "채팅 및 게임플레이",
+        "settingsCatHUD": "HUD 및 외형",
         "statsResetBtn": "세션 초기화",
         "statsResetConfirm": "세션 통계가 초기화되었습니다."
     },
@@ -978,6 +984,8 @@
         "statsDailyReset": "每日重置",
         "statsPumpkinPlays": "南瓜小遊戲次數",
         "currencyTrackerToggleLabel": "在 HUD 顯示金幣與艾莉芙",
+        "settingsCatGeneral": "聊天與遊戲",
+        "settingsCatHUD": "HUD 與外觀",
         "statsResetBtn": "重設本次遊玩",
         "statsResetConfirm": "本次遊玩數據已重設。"
     },
@@ -1214,6 +1222,8 @@
         "statsDailyReset": "Reinicio diario",
         "statsPumpkinPlays": "Partidas de calabaza",
         "currencyTrackerToggleLabel": "Mostrar oro y elif en HUD",
+        "settingsCatGeneral": "Chat y jugabilidad",
+        "settingsCatHUD": "HUD y apariencia",
         "statsResetBtn": "Reiniciar sesión",
         "statsResetConfirm": "Estadísticas de sesión reiniciadas."
     },
@@ -1488,6 +1498,8 @@
         "statsDailyReset": "每日重置",
         "statsPumpkinPlays": "南瓜小游戏次数",
         "currencyTrackerToggleLabel": "在 HUD 显示金币与艾莉芙",
+        "settingsCatGeneral": "聊天与游戏",
+        "settingsCatHUD": "HUD 与外观",
         "statsResetBtn": "重置本次游玩",
         "statsResetConfirm": "本次游玩数据已重置。"
     }

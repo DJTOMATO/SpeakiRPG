@@ -787,6 +787,26 @@ var spkmodTranslations = {
 		eventBestScore: "Best Score: {0}",
 		eventPlaysToday: "Plays Remaining: {0}/{1}",
 		eventLoading: "Loading event info..."
+	},
+	ja: {
+		settingsCatGeneral: "チャット＆ゲームプレイ",
+		settingsCatHUD: "HUD＆外観"
+	},
+	ko: {
+		settingsCatGeneral: "채팅 및 게임플레이",
+		settingsCatHUD: "HUD 및 외형"
+	},
+	"zh-TW": {
+		settingsCatGeneral: "聊天與遊戲",
+		settingsCatHUD: "HUD 與外觀"
+	},
+	"es-419": {
+		settingsCatGeneral: "Chat y jugabilidad",
+		settingsCatHUD: "HUD y apariencia"
+	},
+	"zh-CN": {
+		settingsCatGeneral: "聊天与游戏",
+		settingsCatHUD: "HUD 与外观"
 	}
 };
 
@@ -1234,15 +1254,189 @@ function updatePumpkinUI() {
 	updateStatsModalLive();
 }
 
+var spkmodTopZIndex = 600000;
+
+function bringToFront(element) {
+	if (!element) return;
+	spkmodTopZIndex++;
+	element.style.zIndex = spkmodTopZIndex;
+}
+
+function makeDraggable(element, handles) {
+	if (!element || !handles) return;
+	let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+	const posKey = element.id ? "spkmod-pos-" + element.id : null;
+
+	if (window.localStorage && posKey) {
+		const savedPos = localStorage.getItem(posKey) || (element.id === "spkmod-hud" ? localStorage.getItem("spkmod-window-pos") : null);
+		if (savedPos) {
+			try {
+				const parsedPos = JSON.parse(savedPos);
+				if (parsedPos.top && parsedPos.left) {
+					const topNum = parseFloat(parsedPos.top);
+					const leftNum = parseFloat(parsedPos.left);
+					if (!isNaN(topNum) && !isNaN(leftNum)) {
+						const clampedTop = Math.max(0, Math.min(topNum, window.innerHeight - 45));
+						const clampedLeft = Math.max(0, Math.min(leftNum, window.innerWidth - 60));
+						element.style.top = clampedTop + "px";
+						element.style.left = clampedLeft + "px";
+						element.dataset.userDragged = "true";
+					} else {
+						element.style.top = parsedPos.top;
+						element.style.left = parsedPos.left;
+						element.dataset.userDragged = "true";
+					}
+				}
+			} catch (err) {
+				console.warn("[SpeakiMod+] Failed to load saved position for " + (element.id || "element"));
+			}
+		}
+	}
+
+	element.addEventListener("mousedown", () => {
+		bringToFront(element);
+	}, true);
+
+	handles.forEach(handle => {
+		if (handle) {
+			handle.onmousedown = dragMouseDown;
+		}
+	});
+
+	function dragMouseDown(e) {
+		e = e || window.event;
+		if (e.target && (
+			e.target.tagName === 'BUTTON' ||
+			e.target.tagName === 'INPUT' ||
+			e.target.tagName === 'SELECT' ||
+			e.target.tagName === 'A' ||
+			e.target.id?.includes('close') ||
+			e.target.closest('button') ||
+			e.target.closest('input') ||
+			e.target.closest('select') ||
+			e.target.closest('a') ||
+			e.target.closest('[id*="close"]')
+		)) {
+			return;
+		}
+		e.preventDefault();
+		pos3 = e.clientX;
+		pos4 = e.clientY;
+
+		document.onmouseup = closeDragElement;
+		document.onmousemove = elementDrag;
+	}
+
+	function elementDrag(e) {
+		e = e || window.event;
+		e.preventDefault();
+
+		pos1 = pos3 - e.clientX;
+		pos2 = pos4 - e.clientY;
+		pos3 = e.clientX;
+		pos4 = e.clientY;
+
+		const maxTop = Math.max(0, window.innerHeight - 45);
+		const maxLeft = Math.max(0, window.innerWidth - 60);
+		const newTop = Math.min(Math.max(0, element.offsetTop - pos2), maxTop);
+		const newLeft = Math.min(Math.max(0, element.offsetLeft - pos1), maxLeft);
+
+		element.dataset.userDragged = "true";
+		element.style.top = newTop + "px";
+		element.style.left = newLeft + "px";
+	}
+
+	function closeDragElement() {
+		document.onmouseup = null;
+		document.onmousemove = null;
+
+		element.dataset.userDragged = "true";
+		if (posKey && window.localStorage) {
+			const posData = JSON.stringify({
+				top: element.style.top,
+				left: element.style.left
+			});
+			localStorage.setItem(posKey, posData);
+			if (element.id === "spkmod-hud") {
+				localStorage.setItem("spkmod-window-pos", posData);
+			}
+		}
+	}
+}
+
+function positionModalNicely(modal) {
+	if (!modal) return;
+	bringToFront(modal);
+
+	const posKey = modal.id ? ("spkmod-pos-" + modal.id) : null;
+	const hasSavedPos = !!(posKey && window.localStorage && localStorage.getItem(posKey));
+	const hasBeenDragged = modal.dataset.userDragged === "true";
+
+	if (hasSavedPos || (hasBeenDragged && modal.style.left && modal.style.top)) {
+		return;
+	}
+
+	const hudRect = document.querySelector("#spkmod-hud")?.getBoundingClientRect();
+	const startLeft = hudRect && hudRect.right > 0 ? Math.round(hudRect.right + 10) : 260;
+	const startTop = hudRect && hudRect.top >= 0 ? Math.round(hudRect.top) : 10;
+
+	const allModals = [
+		lunHudElements.settingsModal,
+		lunHudElements.statsModal,
+		lunHudElements.eventModal,
+		lunHudElements.patchNotesModal
+	];
+
+	const visibleModals = allModals.filter(m => m && m !== modal && !m.classList.contains("hidden") && m.offsetParent !== null);
+
+	if (visibleModals.length > 0) {
+		let rightmostModal = visibleModals[0];
+		let rightmostRect = rightmostModal.getBoundingClientRect();
+		for (let i = 1; i < visibleModals.length; i++) {
+			const r = visibleModals[i].getBoundingClientRect();
+			if (r.right > rightmostRect.right) {
+				rightmostModal = visibleModals[i];
+				rightmostRect = r;
+			}
+		}
+
+		const approxWidth = modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? 480 : (modal.id === "spkmod-stats-modal" ? 320 : 400));
+		let nextLeft = Math.round(rightmostRect.right + 10);
+		let nextTop = Math.round(rightmostRect.top);
+
+		if (nextLeft + approxWidth > window.innerWidth - 10) {
+			nextLeft = Math.max(10, Math.min(Math.round(rightmostRect.left + 30), window.innerWidth - approxWidth - 10));
+			nextTop = Math.max(10, Math.min(Math.round(rightmostRect.top + 35), window.innerHeight - 100));
+		}
+
+		modal.style.left = nextLeft + "px";
+		modal.style.top = nextTop + "px";
+	} else {
+		modal.style.left = startLeft + "px";
+		modal.style.top = startTop + "px";
+	}
+}
+
+function toggleSettingsModal() {
+	if (!lunHudElements.settingsModal) return;
+	const isClosed = lunHudElements.settingsModal.classList.contains("hidden");
+	if (isClosed) {
+		positionModalNicely(lunHudElements.settingsModal);
+		if (typeof updateHudBgDropdown === 'function') {
+			updateHudBgDropdown();
+		}
+		lunHudElements.settingsModal.classList.remove("hidden");
+	} else {
+		lunHudElements.settingsModal.classList.add("hidden");
+	}
+}
+
 function toggleEventModal() {
 	if (!lunHudElements.eventModal) return;
 	const isClosed = lunHudElements.eventModal.classList.contains("hidden");
 	if (isClosed) {
-		const rect = document.querySelector("#spkmod-hud")?.getBoundingClientRect();
-		if (rect) {
-			lunHudElements.eventModal.style.left = (rect.right + 10) + "px";
-			lunHudElements.eventModal.style.top = rect.top + "px";
-		}
+		positionModalNicely(lunHudElements.eventModal);
 		lunHudElements.eventModal.classList.remove("hidden");
 		fetchPumpkinStatus();
 	} else {
@@ -1407,11 +1601,7 @@ function togglePatchNotesModal() {
 	if (!lunHudElements.patchNotesModal) return;
 	const isClosed = lunHudElements.patchNotesModal.classList.contains("hidden");
 	if (isClosed) {
-		const rect = document.querySelector("#spkmod-hud")?.getBoundingClientRect();
-		if (rect) {
-			lunHudElements.patchNotesModal.style.left = (rect.right + 10) + "px";
-			lunHudElements.patchNotesModal.style.top = rect.top + "px";
-		}
+		positionModalNicely(lunHudElements.patchNotesModal);
 		lunHudElements.patchNotesModal.classList.remove("hidden");
 		if (!lunPatchNotesFetched) {
 			fetchPatchNotesOnce();
@@ -1507,11 +1697,7 @@ function toggleStatsModal() {
 	if (!lunHudElements.statsModal) return;
 	const isClosed = lunHudElements.statsModal.classList.contains("hidden");
 	if (isClosed) {
-		const rect = document.querySelector("#spkmod-hud")?.getBoundingClientRect();
-		if (rect && !lunHudElements.statsModal.style.left) {
-			lunHudElements.statsModal.style.left = (rect.right + 10) + "px";
-			lunHudElements.statsModal.style.top = rect.top + "px";
-		}
+		positionModalNicely(lunHudElements.statsModal);
 		lunHudElements.statsModal.classList.remove("hidden");
 		if (!lunPumpkinStatus) {
 			fetchPumpkinStatus();
@@ -1797,17 +1983,6 @@ function updateDynamicStyles() {
 	`;
 	if (!document.getElementById("spkmod-dynamic-styles")) {
 		document.head.appendChild(styleTag);
-	}
-	
-	if (typeof lunHudElements !== 'undefined' && lunHudElements.settingsModal && !lunHudElements.settingsModal.classList.contains("hidden")) {
-		setTimeout(() => {
-			let hud = document.querySelector("#spkmod-hud");
-			if (hud) {
-				let rect = hud.getBoundingClientRect();
-				lunHudElements.settingsModal.style.left = (rect.right + 10) + "px";
-				lunHudElements.settingsModal.style.top = rect.top + "px";
-			}
-		}, 10);
 	}
 }
 
@@ -2834,15 +3009,7 @@ document.body.appendChild(
 					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "⚙️",
 					title: "Settings",
-					onclick: _ => {
-						const rect = document.querySelector("#spkmod-hud").getBoundingClientRect();
-						lunHudElements.settingsModal.style.left = (rect.right + 10) + "px";
-						lunHudElements.settingsModal.style.top = rect.top + "px";
-						if (lunHudElements.settingsModal.classList.contains("hidden")) {
-							updateHudBgDropdown();
-						}
-						lunHudElements.settingsModal.classList.toggle("hidden");
-					}
+					onclick: _ => toggleSettingsModal()
 				}),
 				lunPanelElements.patchNotesBtn = buildElement("button", {
 					id: "spkmod-patchnotes-btn",
@@ -3645,12 +3812,7 @@ function executeGamepadAction(actionName) {
 			if (window.AutoJumpActive) { autoJumpLoop(); } else { clearTimeout(window.__autoJumpTimeoutId); }
 			break;
 		case "toggleSettings":
-			if (lunHudElements.settingsModal) {
-				if (lunHudElements.settingsModal.classList.contains("hidden")) {
-					updateHudBgDropdown();
-				}
-				lunHudElements.settingsModal.classList.toggle("hidden");
-			}
+			toggleSettingsModal();
 			break;
 	}
 }
@@ -5891,99 +6053,6 @@ if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && typeof g
 
 setInterval(tick, 50);
 
-function makeDraggable(element, handles) {
-	if (!element || !handles) return;
-	let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-
-	const posKey = element.id ? "spkmod-pos-" + element.id : null;
-
-	if (window.localStorage && posKey) {
-		const savedPos = localStorage.getItem(posKey) || (element.id === "spkmod-hud" ? localStorage.getItem("spkmod-window-pos") : null);
-		if (savedPos) {
-			try {
-				const parsedPos = JSON.parse(savedPos);
-				if (parsedPos.top && parsedPos.left) {
-					const topNum = parseFloat(parsedPos.top);
-					const leftNum = parseFloat(parsedPos.left);
-					if (!isNaN(topNum) && !isNaN(leftNum)) {
-						const clampedTop = Math.max(0, Math.min(topNum, window.innerHeight - 45));
-						const clampedLeft = Math.max(0, Math.min(leftNum, window.innerWidth - 60));
-						element.style.top = clampedTop + "px";
-						element.style.left = clampedLeft + "px";
-					} else {
-						element.style.top = parsedPos.top;
-						element.style.left = parsedPos.left;
-					}
-				}
-			} catch (err) {
-				console.warn("[SpeakiMod+] Failed to load saved position for " + (element.id || "element"));
-			}
-		}
-	}
-
-	handles.forEach(handle => {
-		if (handle) {
-			handle.onmousedown = dragMouseDown;
-		}
-	});
-
-	function dragMouseDown(e) {
-		e = e || window.event;
-		if (e.target && (
-			e.target.tagName === 'BUTTON' ||
-			e.target.tagName === 'INPUT' ||
-			e.target.tagName === 'SELECT' ||
-			e.target.id?.includes('close') ||
-			e.target.closest('button') ||
-			e.target.closest('input') ||
-			e.target.closest('select') ||
-			e.target.closest('#spkmod-stats-close')
-		)) {
-			return;
-		}
-		e.preventDefault();
-		pos3 = e.clientX;
-		pos4 = e.clientY;
-
-		document.onmouseup = closeDragElement;
-		document.onmousemove = elementDrag;
-	}
-
-	function elementDrag(e) {
-		e = e || window.event;
-		e.preventDefault();
-
-		pos1 = pos3 - e.clientX;
-		pos2 = pos4 - e.clientY;
-		pos3 = e.clientX;
-		pos4 = e.clientY;
-
-		const maxTop = Math.max(0, window.innerHeight - 45);
-		const maxLeft = Math.max(0, window.innerWidth - 60);
-		const newTop = Math.min(Math.max(0, element.offsetTop - pos2), maxTop);
-		const newLeft = Math.min(Math.max(0, element.offsetLeft - pos1), maxLeft);
-
-		element.style.top = newTop + "px";
-		element.style.left = newLeft + "px";
-	}
-
-	function closeDragElement() {
-		document.onmouseup = null;
-		document.onmousemove = null;
-
-		if (posKey && window.localStorage) {
-			const posData = JSON.stringify({
-				top: element.style.top,
-				left: element.style.left
-			});
-			localStorage.setItem(posKey, posData);
-			if (element.id === "spkmod-hud") {
-				localStorage.setItem("spkmod-window-pos", posData);
-			}
-		}
-	}
-}
-
 const hudWindow = document.getElementById("spkmod-hud");
 const dragHandle = document.getElementById("spkmod-drag-btn");
 
@@ -6113,31 +6182,24 @@ window.addEventListener("keydown", e => {
 		return;
 	}
 
-	// 3. Modals in lunHudElements
+	// 3. Modals in lunHudElements (close topmost modal first based on zIndex)
 	if (typeof lunHudElements !== "undefined") {
-		if (lunHudElements.settingsModal && !lunHudElements.settingsModal.classList.contains("hidden")) {
+		const candidateModals = [
+			lunHudElements.settingsModal,
+			lunHudElements.gamepadModal,
+			lunHudElements.patchNotesModal,
+			lunHudElements.eventModal,
+			lunHudElements.statsModal
+		].filter(m => m && !m.classList.contains("hidden"));
+
+		if (candidateModals.length > 0) {
 			e.preventDefault();
-			lunHudElements.settingsModal.classList.add("hidden");
-			return;
-		}
-		if (lunHudElements.gamepadModal && !lunHudElements.gamepadModal.classList.contains("hidden")) {
-			e.preventDefault();
-			lunHudElements.gamepadModal.classList.add("hidden");
-			return;
-		}
-		if (lunHudElements.patchNotesModal && !lunHudElements.patchNotesModal.classList.contains("hidden")) {
-			e.preventDefault();
-			lunHudElements.patchNotesModal.classList.add("hidden");
-			return;
-		}
-		if (lunHudElements.eventModal && !lunHudElements.eventModal.classList.contains("hidden")) {
-			e.preventDefault();
-			lunHudElements.eventModal.classList.add("hidden");
-			return;
-		}
-		if (lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden")) {
-			e.preventDefault();
-			lunHudElements.statsModal.classList.add("hidden");
+			candidateModals.sort((a, b) => {
+				const za = parseInt(a.style.zIndex || window.getComputedStyle(a).zIndex, 10) || 0;
+				const zb = parseInt(b.style.zIndex || window.getComputedStyle(b).zIndex, 10) || 0;
+				return zb - za;
+			});
+			candidateModals[0].classList.add("hidden");
 			return;
 		}
 	}
