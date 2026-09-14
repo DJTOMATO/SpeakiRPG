@@ -576,7 +576,6 @@ function findNametagSprite(container) {
 	const direct = container.children?.[0]?.children?.[0]?.children?.[1];
 	if (direct && direct.isSprite) return direct;
 
-	// Traversal fallback if the game hierarchy shifts
 	let sprite = null;
 	if (typeof container.traverse === "function") {
 		container.traverse(obj => {
@@ -754,6 +753,11 @@ loadAllBadWordLists();
 var spkmodTranslations = {
 	en: {
 		langName: "English",
+		patchNotesBtnTooltip: "Game Patch Notes",
+		patchNotesHeader: "Game Patch Notes",
+		patchNotesLoading: "Loading & translating patch notes...",
+		patchNotesEmpty: "No patch notes available.",
+		patchNotesError: "Failed to load patch notes.",
 		pumpkinTrackerToggleLabel: "Pumpkin Plays Tracker",
 		pumpkinTrackerText: "Pumpkin: {0}/{1}",
 		pumpkinTrackerInactive: "Pumpkin: Ended",
@@ -840,7 +844,8 @@ var lunHudElements = {
 	currencyTracker: null,
 	pumpkinTracker: null,
 	settingsModal: null,
-	eventModal: null
+	eventModal: null,
+	patchNotesModal: null
 };
 var eventModalElements = {
 	headerTitle: null,
@@ -849,6 +854,10 @@ var eventModalElements = {
 	periodText: null,
 	bestScoreText: null,
 	playsRemainingText: null
+};
+var patchNotesModalElements = {
+	headerTitle: null,
+	contentContainer: null
 };
 var lunPanelElements = {
 	targetZone: null,
@@ -866,7 +875,6 @@ var lunPanelElements = {
 	turntableBtn: null,
 	speedLabel: null,
 	turnToCameraBtn: null,
-	playersRadarBtn: null,
 	watchBtn: null,
 	followBtn: null,
 	stareBtn: null,
@@ -876,7 +884,6 @@ var lunPanelElements = {
 	hyperShakeBtn: null,
 	pinnedQuestHeader: null,
 	langSelect: null,
-	langLabel: null,
 	settingsHeader: null,
 	filterToggleLabel: null,
 	filterToggleInput: null,
@@ -897,6 +904,7 @@ var lunPanelElements = {
 	expRateIntervalSelect: null,
 	discordBtn: null,
 	gamepadSettingsBtn: null,
+	patchNotesBtn: null,
 	eventBtn: null,
 	pumpkinTrackerLabel: null,
 	pumpkinTrackerToggleInput: null,
@@ -926,10 +934,9 @@ var lunLastElif = null;
 var lunWalkToPortal = -1;
 var lunAutoTravelTarget = null;
 var lunCameraLocked = false;
-var lunNametagMode = 0; // 0: Show All, 1: Party Only, 2: Hide All
+var lunNametagMode = 0; 
 const NAMETAG_MODES = ["showAllNametags", "keepPartyNametags", "hideAllNametags"];
 
-// Add known bot names here. Matching is exact and case-insensitive.
 const lunKnownBotNames = ["GOODSPIKI", "BADSPIKI","NEXThobagi","QAZWSXEDC", "kqland", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki"];
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
@@ -1213,6 +1220,175 @@ function updateEventModalContent() {
 	}
 }
 
+var lunPatchNotesData = null;
+var lunPatchNotesFetched = false;
+var lunPatchNotesLoading = false;
+var lunPatchNotesTranslatedLang = null;
+var lunPatchNotesTranslations = {};
+
+async function translateTextToLang(text, targetLang) {
+	if (!text || !text.trim() || targetLang === "ko") return text;
+	try {
+		const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+		const res = await fetch(url);
+		if (res.ok) {
+			const data = await res.json();
+			if (data && data[0]) {
+				return data[0].map(chunk => chunk[0] || "").join("");
+			}
+		}
+	} catch (e) {
+		try {
+			if (typeof translateChatText === "function") {
+				const translated = await translateChatText(text, "ko", targetLang);
+				if (translated) return translated;
+			}
+		} catch (_) {}
+	}
+	return text;
+}
+
+async function fetchPatchNotesOnce() {
+	if (lunPatchNotesFetched) return;
+	const token = getAuthToken();
+	if (!token) return;
+	lunPatchNotesFetched = true;
+	lunPatchNotesLoading = true;
+	renderPatchNotesUI();
+
+	try {
+		const res = await fetch("https://sr1.overture.io.kr/api/patchnotes", {
+			method: "GET",
+			headers: {
+				"authorization": `Bearer ${token}`
+			},
+			mode: "cors"
+		});
+		if (!res.ok) {
+			lunPatchNotesLoading = false;
+			renderPatchNotesUI();
+			return;
+		}
+		const data = await res.json();
+		lunPatchNotesData = Array.isArray(data) ? data : [];
+		lunPatchNotesLoading = false;
+		await translatePatchNotesToUserLang();
+		renderPatchNotesUI();
+	} catch (e) {
+		console.warn("[SpeakiMod+] Failed to fetch patch notes:", e);
+		lunPatchNotesLoading = false;
+		renderPatchNotesUI();
+	}
+}
+
+async function translatePatchNotesToUserLang() {
+	if (!lunPatchNotesData || lunPatchNotesData.length === 0) return;
+	const targetLang = spkmodLang === "es-419" ? "es" : spkmodLang;
+	lunPatchNotesTranslatedLang = targetLang;
+	if (targetLang === "ko") return;
+
+	for (const note of lunPatchNotesData) {
+		if (!lunPatchNotesTranslations[note.id]) lunPatchNotesTranslations[note.id] = {};
+		if (!lunPatchNotesTranslations[note.id][targetLang]) {
+			const translatedTitle = await translateTextToLang(note.title, targetLang);
+			const translatedContent = await translateTextToLang(note.content, targetLang);
+			lunPatchNotesTranslations[note.id][targetLang] = {
+				title: translatedTitle,
+				content: translatedContent
+			};
+		}
+	}
+}
+
+function togglePatchNotesModal() {
+	if (!lunHudElements.patchNotesModal) return;
+	const isClosed = lunHudElements.patchNotesModal.classList.contains("hidden");
+	if (isClosed) {
+		const rect = document.querySelector("#spkmod-hud")?.getBoundingClientRect();
+		if (rect) {
+			lunHudElements.patchNotesModal.style.left = (rect.right + 10) + "px";
+			lunHudElements.patchNotesModal.style.top = rect.top + "px";
+		}
+		lunHudElements.patchNotesModal.classList.remove("hidden");
+		if (!lunPatchNotesFetched) {
+			fetchPatchNotesOnce();
+		} else {
+			renderPatchNotesUI();
+		}
+	} else {
+		lunHudElements.patchNotesModal.classList.add("hidden");
+	}
+}
+
+function renderPatchNotesUI() {
+	if (!patchNotesModalElements.contentContainer) return;
+	if (patchNotesModalElements.headerTitle) setText(patchNotesModalElements.headerTitle, "📰 " + t("patchNotesHeader"));
+	const container = patchNotesModalElements.contentContainer;
+	container.innerHTML = "";
+
+	if (lunPatchNotesLoading) {
+		container.appendChild(buildElement("div", {
+			style: "text-align: center; padding: 20px 10px; color: #aaa; font-size: 10pt;",
+			innerText: t("patchNotesLoading")
+		}));
+		return;
+	}
+
+	if (!lunPatchNotesData) {
+		container.appendChild(buildElement("div", {
+			style: "text-align: center; padding: 20px 10px; color: #f87171; font-size: 10pt;",
+			innerText: t("patchNotesError")
+		}));
+		return;
+	}
+
+	if (lunPatchNotesData.length === 0) {
+		container.appendChild(buildElement("div", {
+			style: "text-align: center; padding: 20px 10px; color: #aaa; font-size: 10pt;",
+			innerText: t("patchNotesEmpty")
+		}));
+		return;
+	}
+
+	const targetLang = spkmodLang === "es-419" ? "es" : spkmodLang;
+
+	lunPatchNotesData.forEach(item => {
+		const trans = lunPatchNotesTranslations[item.id]?.[targetLang];
+		const displayTitle = trans?.title || item.title || "Patch Note";
+		const displayContent = trans?.content || item.content || "";
+		let displayDate = "";
+		if (item.createdAt) {
+			try {
+				displayDate = new Date(item.createdAt).toLocaleDateString(undefined, {
+					year: 'numeric', month: 'short', day: 'numeric'
+				});
+			} catch (_) {
+				displayDate = String(item.createdAt).slice(0, 10);
+			}
+		}
+
+		const card = buildElement("div", {
+			style: "background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 4px;"
+		}, [
+			buildElement("div", { style: "display: flex; justify-content: space-between; align-items: baseline; gap: 8px;" }, [
+				buildElement("span", {
+					style: "font-weight: bold; font-size: 10.5pt; color: #ffd54a; flex: 1;",
+					innerText: displayTitle
+				}),
+				buildElement("span", {
+					style: "font-size: 8.5pt; color: #888; white-space: nowrap;",
+					innerText: displayDate
+				})
+			]),
+			buildElement("div", {
+				style: "white-space: pre-wrap; font-size: 9.5pt; line-height: 1.5; color: #ddd; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;",
+				innerText: displayContent
+			})
+		]);
+		container.appendChild(card);
+	});
+}
+
 var lunGamepadRumbleEnabled = (window.localStorage && localStorage.getItem("spkmod-gamepad-rumble")) !== "false";
 function setGamepadRumbleEnabled(enabled) {
 	lunGamepadRumbleEnabled = !!enabled;
@@ -1298,9 +1474,9 @@ function updateDynamicStyles() {
 			--spkmod-blur: ${blurRule};
 			--spkmod-accent: ${lunAccentColor};
 		}
-		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
+		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
-		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
+		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
 			background: var(--spkmod-bg) !important;
 			backdrop-filter: var(--spkmod-blur) !important;
 			border-color: var(--spkmod-accent) !important;
@@ -1576,7 +1752,7 @@ document.head.appendChild(buildElement(
 			border-radius: 8px;
 			padding: 6px;
 		}
-		#spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal {
+		#spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal {
 			display: flex;
 			flex-direction: column;
 			position: fixed;
@@ -1606,6 +1782,10 @@ document.head.appendChild(buildElement(
 		}
 		#spkmod-event-modal {
 			width: 290px;
+			max-width: 95vw;
+		}
+		#spkmod-patchnotes-modal {
+			width: 380px;
 			max-width: 95vw;
 		}
 		.spkmod-binding-row {
@@ -1646,6 +1826,7 @@ document.head.appendChild(buildElement(
 		body.spkmod-ui-hidden #spkmod-pq,
 		body.spkmod-ui-hidden #spkmod-settings-modal,
 		body.spkmod-ui-hidden #spkmod-event-modal,
+		body.spkmod-ui-hidden #spkmod-patchnotes-modal,
 		body.spkmod-ui-hidden #spkmod-gamepad-modal,
 		body.spkmod-ui-hidden #spkmod-players-modal,
 		body.spkmod-ui-hidden #spkmod-map-modal,
@@ -2320,6 +2501,14 @@ document.body.appendChild(
 						}
 						lunHudElements.settingsModal.classList.toggle("hidden");
 					}
+				}),
+				lunPanelElements.patchNotesBtn = buildElement("button", {
+					id: "spkmod-patchnotes-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					innerText: "📰",
+					title: t("patchNotesBtnTooltip"),
+					onclick: _ => togglePatchNotesModal()
 				}),
 				lunPanelElements.eventBtn = buildElement("button", {
 					id: "spkmod-event-btn",
@@ -3372,6 +3561,34 @@ setTimeout(() => {
 		makeDraggable(lunHudElements.eventModal, [eventModalElements.headerTitle]);
 	}
 }, 500);
+
+document.body.appendChild(
+	lunHudElements.patchNotesModal = buildElement("div", {
+		id: "spkmod-patchnotes-modal",
+		className: "hidden"
+	}, [
+		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
+			patchNotesModalElements.headerTitle = buildElement("span", {
+				innerText: "📰 " + t("patchNotesHeader"),
+				style: "font-weight: bold; font-size: 12px; cursor: move; user-select: none;"
+			}),
+			buildElement("span", {
+				id: "spkmod-patchnotes-close",
+				innerText: "✕",
+				style: "cursor: pointer; padding: 0 4px;",
+				onclick: _ => lunHudElements.patchNotesModal.classList.add("hidden")
+			})
+		]),
+		patchNotesModalElements.contentContainer = buildElement("div", {
+			style: "display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; padding-right: 2px;"
+		})
+	])
+);
+setTimeout(() => {
+	if (typeof makeDraggable === 'function' && lunHudElements.patchNotesModal && patchNotesModalElements.headerTitle) {
+		makeDraggable(lunHudElements.patchNotesModal, [patchNotesModalElements.headerTitle]);
+	}
+}, 500);
 setTimeout(() => { if (typeof makeDraggable === 'function') makeDraggable(mapModalElements.modalWindow, [mapModalElements.titleLabel]); }, 1000);
 
 
@@ -4224,7 +4441,13 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.resetTimerLabel) setText(lunPanelElements.resetTimerLabel, t("resetTimerToggleLabel"));
 	if (lunPanelElements.pumpkinTrackerLabel) setText(lunPanelElements.pumpkinTrackerLabel, t("pumpkinTrackerToggleLabel"));
 	if (lunPanelElements.eventBtn) lunPanelElements.eventBtn.title = t("eventInfoBtnTooltip");
+	if (lunPanelElements.patchNotesBtn) lunPanelElements.patchNotesBtn.title = t("patchNotesBtnTooltip");
 	updatePumpkinUI();
+	if (lunPatchNotesData && lunPatchNotesTranslatedLang !== (spkmodLang === "es-419" ? "es" : spkmodLang)) {
+		translatePatchNotesToUserLang().then(() => renderPatchNotesUI());
+	} else {
+		renderPatchNotesUI();
+	}
 	if (lunPanelElements.gamepadRumbleLabel) setText(lunPanelElements.gamepadRumbleLabel, t("gamepadRumbleToggleLabel"));
 	if (lunPanelElements.uiScaleLabel) setText(lunPanelElements.uiScaleLabel, t("uiScaleLabel"));
 	if (lunPanelElements.bgOpacityLabel) setText(lunPanelElements.bgOpacityLabel, t("bgOpacityLabel"));
@@ -5206,6 +5429,10 @@ window.fetch = async function(...args) {
 		throw e;
 	}
 };
+
+setTimeout(() => {
+	fetchPatchNotesOnce();
+}, 2500);
 
 setTimeout(() => {
 	fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/erpin.html")
