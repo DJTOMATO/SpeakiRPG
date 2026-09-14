@@ -1137,7 +1137,10 @@
         "patchNotesHeader": "Notas del parche del juego",
         "patchNotesLoading": "Cargando y traduciendo notas del parche...",
         "patchNotesEmpty": "No hay notas de parche disponibles.",
-        "patchNotesError": "Error al cargar las notas del parche."
+        "patchNotesError": "Error al cargar las notas del parche.",
+        "autoChowayoOn": "A-Chowayo: ⏸️",
+        "ritualInverted": "Ritual Invertido",
+        "ritualInvertedMsg": "¡Ritual de baile invertido activado!"
     },
     "zh-CN": {
         "langName": "简体中文",

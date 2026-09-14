@@ -3526,6 +3526,7 @@ function updateMapLoop() {
 
 document.body.appendChild(
 	mapModalElements.modalWindow = buildElement("div", {
+		id: "spkmod-map-modal",
 		style: "display: none; position: absolute; top: 20px; left: calc(100vw - 1060px); background: rgba(20, 20, 25, 0.95); border: 1px solid #444; border-radius: 8px; padding: 20px; color: white; flex-direction: column; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 10001;"
 	}, [
 		mapModalElements.titleLabel = buildElement("div", { style: "font-size: 18px; font-weight: bold; margin-bottom: 15px; cursor: move; width: 100%; text-align: center; user-select: none;", innerText: "World Map" }),
@@ -4214,30 +4215,76 @@ function maybeTranslateChatMessage(id, name, msg) {
 	});
 }	
 
-function observeNextChatNode(matchText, callback) {
-	if (!matchText || !matchText.trim()) return;
-	const chatLogEl = document.querySelector(".sr-chatbox__log");
-	if (!chatLogEl) return;
+let lunChatObserver = null;
+let lunChatObserverTarget = null;
+const lunPendingChatCallbacks = [];
 
-	let timeoutId;
-	const observer = new MutationObserver(mutations => {
+function ensureChatObserver() {
+	const chatLogEl = document.querySelector(".sr-chatbox__log");
+	if (!chatLogEl) return null;
+
+	if (lunChatObserver && lunChatObserverTarget === chatLogEl) {
+		return chatLogEl;
+	}
+
+	if (lunChatObserver) {
+		lunChatObserver.disconnect();
+	}
+
+	lunChatObserverTarget = chatLogEl;
+	lunChatObserver = new MutationObserver(mutations => {
+		if (lunPendingChatCallbacks.length === 0) return;
+		const now = Date.now();
+
 		for (const mutation of mutations) {
 			for (const node of mutation.addedNodes) {
 				if (node.nodeType !== 1) continue;
 				const bodyText = node.classList?.contains("sr-chatbox__body-text")
 					? node
 					: node.querySelector?.(".sr-chatbox__body-text");
-				if (bodyText && bodyText.textContent && bodyText.textContent.includes(matchText)) {
-					clearTimeout(timeoutId);
-					callback(bodyText, node);
-					observer.disconnect();
-					return;
+				if (!bodyText || !bodyText.textContent) continue;
+
+				const text = bodyText.textContent;
+				for (let i = 0; i < lunPendingChatCallbacks.length; i++) {
+					const item = lunPendingChatCallbacks[i];
+					if (text.includes(item.matchText)) {
+						item.callback(bodyText, node);
+						lunPendingChatCallbacks.splice(i, 1);
+						i--;
+						break;
+					}
 				}
 			}
 		}
+
+		for (let i = lunPendingChatCallbacks.length - 1; i >= 0; i--) {
+			if (lunPendingChatCallbacks[i].expire < now) {
+				lunPendingChatCallbacks.splice(i, 1);
+			}
+		}
 	});
-	observer.observe(chatLogEl, { childList: true, subtree: true });
-	timeoutId = setTimeout(() => observer.disconnect(), 500);
+
+	lunChatObserver.observe(chatLogEl, { childList: true, subtree: true });
+	return chatLogEl;
+}
+
+function observeNextChatNode(matchText, callback) {
+	if (!matchText || !matchText.trim()) return;
+	const chatLogEl = ensureChatObserver();
+	if (!chatLogEl) return;
+
+	const now = Date.now();
+	for (let i = lunPendingChatCallbacks.length - 1; i >= 0; i--) {
+		if (lunPendingChatCallbacks[i].expire < now) {
+			lunPendingChatCallbacks.splice(i, 1);
+		}
+	}
+
+	lunPendingChatCallbacks.push({
+		matchText,
+		callback,
+		expire: now + 2000
+	});
 }
 
 function chatLog(msg) {
@@ -4271,15 +4318,27 @@ function stareAtPlayer(targetName) {
 		stopStare();
 		return;
 	}
-	if (window._stareAnim) cancelAnimationFrame(window._stareAnim);
-	if (window._stareNetSync) clearInterval(window._stareNetSync);
+	if (window._stareAnim) {
+		cancelAnimationFrame(window._stareAnim);
+		window._stareAnim = null;
+	}
+	if (window._stareNetSync) {
+		clearInterval(window._stareNetSync);
+		window._stareNetSync = null;
+	}
 	
 	window._stareActive = true;
 	window._stareTargetName = targetName;
 	let currentAngle = gameState?.playerContainer?.rotation?.y || 0;
 	
 	function updateStare() {
-		if (!window._stareActive) return;
+		if (!window._stareActive) {
+			if (window._stareAnim) {
+				cancelAnimationFrame(window._stareAnim);
+				window._stareAnim = null;
+			}
+			return;
+		}
 
 		if (gameState?.remotePlayers?.remotePlayers && gameState?.playerContainer) {
 			const players = Array.from(gameState.remotePlayers.remotePlayers.values());
@@ -4326,8 +4385,6 @@ function stareAtPlayer(targetName) {
 }
 
 function stopStare() {
-	if (!window._stareActive) return;
-	window._stareActive = false;
 	if (window._stareAnim) {
 		cancelAnimationFrame(window._stareAnim);
 		window._stareAnim = null;
@@ -4336,6 +4393,8 @@ function stopStare() {
 		clearInterval(window._stareNetSync);
 		window._stareNetSync = null;
 	}
+	if (!window._stareActive) return;
+	window._stareActive = false;
 	window._stareTargetName = null;
 	if (gameState && gameState.playerContainer && gameState.cameraController) {
 		gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
@@ -5397,7 +5456,34 @@ if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && typeof g
 setInterval(tick, 50);
 
 function makeDraggable(element, handles) {
+	if (!element || !handles) return;
 	let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+	const posKey = element.id ? "spkmod-pos-" + element.id : null;
+
+	if (window.localStorage && posKey) {
+		const savedPos = localStorage.getItem(posKey) || (element.id === "spkmod-hud" ? localStorage.getItem("spkmod-window-pos") : null);
+		if (savedPos) {
+			try {
+				const parsedPos = JSON.parse(savedPos);
+				if (parsedPos.top && parsedPos.left) {
+					const topNum = parseFloat(parsedPos.top);
+					const leftNum = parseFloat(parsedPos.left);
+					if (!isNaN(topNum) && !isNaN(leftNum)) {
+						const clampedTop = Math.max(0, Math.min(topNum, window.innerHeight - 45));
+						const clampedLeft = Math.max(0, Math.min(leftNum, window.innerWidth - 60));
+						element.style.top = clampedTop + "px";
+						element.style.left = clampedLeft + "px";
+					} else {
+						element.style.top = parsedPos.top;
+						element.style.left = parsedPos.left;
+					}
+				}
+			} catch (err) {
+				console.warn("[SpeakiMod+] Failed to load saved position for " + (element.id || "element"));
+			}
+		}
+	}
 
 	handles.forEach(handle => {
 		if (handle) {
@@ -5424,19 +5510,28 @@ function makeDraggable(element, handles) {
 		pos3 = e.clientX;
 		pos4 = e.clientY;
 
-		element.style.top = (element.offsetTop - pos2) + "px";
-		element.style.left = (element.offsetLeft - pos1) + "px";
+		const maxTop = Math.max(0, window.innerHeight - 45);
+		const maxLeft = Math.max(0, window.innerWidth - 60);
+		const newTop = Math.min(Math.max(0, element.offsetTop - pos2), maxTop);
+		const newLeft = Math.min(Math.max(0, element.offsetLeft - pos1), maxLeft);
+
+		element.style.top = newTop + "px";
+		element.style.left = newLeft + "px";
 	}
 
 	function closeDragElement() {
 		document.onmouseup = null;
 		document.onmousemove = null;
 
-		if (window.localStorage) {
-			localStorage.setItem("spkmod-window-pos", JSON.stringify({
+		if (posKey && window.localStorage) {
+			const posData = JSON.stringify({
 				top: element.style.top,
 				left: element.style.left
-			}));
+			});
+			localStorage.setItem(posKey, posData);
+			if (element.id === "spkmod-hud") {
+				localStorage.setItem("spkmod-window-pos", posData);
+			}
 		}
 	}
 }
@@ -5445,19 +5540,6 @@ const hudWindow = document.getElementById("spkmod-hud");
 const dragHandle = document.getElementById("spkmod-drag-btn");
 
 if (hudWindow && dragHandle) {
-	if (window.localStorage) {
-		const savedPos = localStorage.getItem("spkmod-window-pos");
-		if (savedPos) {
-			try {
-				const parsedPos = JSON.parse(savedPos);
-				hudWindow.style.top = parsedPos.top;
-				hudWindow.style.left = parsedPos.left;
-			} catch (err) {
-				console.warn("[SpeakiMod+] Failed to load saved window position.");
-			}
-		}
-	}
-
 	const footerHandle = document.getElementById("spkmod-footer");
 	makeDraggable(hudWindow, [dragHandle, footerHandle]);
 }
@@ -5554,4 +5636,52 @@ window.addEventListener("keydown", e => {
 
 	e.preventDefault();
 	document.body.classList.toggle("spkmod-ui-hidden");
+});
+
+// Close topmost open modal with 'Escape' key
+window.addEventListener("keydown", e => {
+	if (e.key !== "Escape" && e.code !== "Escape") return;
+
+	// 1. Language translation picker
+	const picker = document.getElementById("spkmod-translate-picker");
+	if (picker) {
+		e.preventDefault();
+		picker.remove();
+		return;
+	}
+
+	// 2. World Map Modal
+	if (typeof mapModalElements !== "undefined" && mapModalElements.modalWindow && mapModalElements.modalWindow.style.display !== "none") {
+		e.preventDefault();
+		if (typeof closeMapModal === "function") {
+			closeMapModal();
+		} else {
+			mapModalElements.modalWindow.style.display = "none";
+		}
+		return;
+	}
+
+	// 3. Modals in lunHudElements
+	if (typeof lunHudElements !== "undefined") {
+		if (lunHudElements.settingsModal && !lunHudElements.settingsModal.classList.contains("hidden")) {
+			e.preventDefault();
+			lunHudElements.settingsModal.classList.add("hidden");
+			return;
+		}
+		if (lunHudElements.gamepadModal && !lunHudElements.gamepadModal.classList.contains("hidden")) {
+			e.preventDefault();
+			lunHudElements.gamepadModal.classList.add("hidden");
+			return;
+		}
+		if (lunHudElements.patchNotesModal && !lunHudElements.patchNotesModal.classList.contains("hidden")) {
+			e.preventDefault();
+			lunHudElements.patchNotesModal.classList.add("hidden");
+			return;
+		}
+		if (lunHudElements.eventModal && !lunHudElements.eventModal.classList.contains("hidden")) {
+			e.preventDefault();
+			lunHudElements.eventModal.classList.add("hidden");
+			return;
+		}
+	}
 });
