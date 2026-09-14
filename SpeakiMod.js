@@ -869,9 +869,11 @@ var lunPanelElements = {
 	playersRadarBtn: null,
 	watchBtn: null,
 	followBtn: null,
+	stareBtn: null,
 	panelFollowBtn: null,
 	shakeBtn: null,
 	superShakeBtn: null,
+	hyperShakeBtn: null,
 	pinnedQuestHeader: null,
 	langSelect: null,
 	langLabel: null,
@@ -1873,6 +1875,8 @@ document.body.appendChild(
 						
 						if (window.ShakeActive) {
 							window.SuperShakeActive = false;
+							window.HyperShakeActive = false;
+							if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 							window.BeyBladeActive = false;
 							window.MoonwalkActive = false;
 							window.ReverseBeyBladeActive = false;
@@ -1898,6 +1902,8 @@ document.body.appendChild(
 
 						if (window.SuperShakeActive) {
 							window.ShakeActive = false;
+							window.HyperShakeActive = false;
+							if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 							window.BeyBladeActive = false;
 							window.MoonwalkActive = false;
 							window.ReverseBeyBladeActive = false;
@@ -1910,6 +1916,43 @@ document.body.appendChild(
 								gameState.moveSendAccumulator = 1;
 							}
 							chatLog(t("superShakeDeactivatedMsg"));
+						}
+					}
+				}),
+				lunPanelElements.hyperShakeBtn = buildElement("button", {
+					id: "spkmod-hypershake-main-btn",
+					className: "spkmod-panel-btn",
+					innerText: window.HyperShakeActive ? t("hyperShakeOn") : t("hyperShakeOff"),
+					value: "",
+					onclick: e => {
+						window.HyperShakeActive = !window.HyperShakeActive;
+
+						if (window.HyperShakeActive) {
+							window.ShakeActive = false;
+							window.SuperShakeActive = false;
+							window.BeyBladeActive = false;
+							window.MoonwalkActive = false;
+							window.ReverseBeyBladeActive = false;
+							if (window.vibrateTimer) clearInterval(window.vibrateTimer);
+							window.vibrateTimer = setInterval(() => {
+								if (!gameState || !gameState.playerContainer) return;
+								const base = gameState.cameraController?.cameraYaw || 0;
+								gameState.playerContainer.rotation.y = base + (Math.random() - 0.5) * 1.5;
+								gameState.moveSendAccumulator = 1;
+							}, 25);
+							updateMovementButtonsUI();
+							chatLog(t("hyperShakeActivatedMsg"));
+						} else {
+							if (window.vibrateTimer) {
+								clearInterval(window.vibrateTimer);
+								window.vibrateTimer = null;
+							}
+							updateMovementButtonsUI();
+							if (gameState.playerContainer && gameState.cameraController) {
+								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
+								gameState.moveSendAccumulator = 1;
+							}
+							chatLog(t("hyperShakeDeactivatedMsg"));
 						}
 					}
 				})
@@ -1928,6 +1971,8 @@ document.body.appendChild(
 							window.BeyBladeActive = false;
 							window.ShakeActive = false;
 							window.SuperShakeActive = false;
+							window.HyperShakeActive = false;
+							if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 							window.ReverseBeyBladeActive = false;
 							if (gameState.playerContainer) {
 								window.moonwalkLockedYaw = gameState.playerContainer.rotation.y;
@@ -1987,6 +2032,9 @@ document.body.appendChild(
 						updateBeyBladeButtonText();
 						if (window.BeyBladeActive) {
 							window.ShakeActive = false;
+							window.SuperShakeActive = false;
+							window.HyperShakeActive = false;
+							if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 							window.MoonwalkActive = false;
 							window.ReverseBeyBladeActive = false;
 							if (typeof updateReverseBeyBladeButtonText === "function") updateReverseBeyBladeButtonText(); 
@@ -2021,6 +2069,9 @@ document.body.appendChild(
 						if (window.ReverseBeyBladeActive) {
 							window.BeyBladeActive = false;
 							window.ShakeActive = false;
+							window.SuperShakeActive = false;
+							window.HyperShakeActive = false;
+							if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 							window.MoonwalkActive = false;
 							updateBeyBladeButtonText();
 							chatLog(t("reversebeybladeActivatedMsg", window.BeyBladeSpeed || 1));
@@ -2140,6 +2191,7 @@ document.body.appendChild(
 				value: "",
 				onclick: _ => {
 					watchPlayer();
+					stopStare();
 				}
 			}),
 			buildElement("div", { className: "spkmod-panel-cat", id: "spkmod-camera-modes-cat" }, [
@@ -2933,6 +2985,8 @@ function executeGamepadAction(actionName) {
 			if (window.BeyBladeActive) {
 				window.ShakeActive = false;
 				window.SuperShakeActive = false;
+				window.HyperShakeActive = false;
+				if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 				window.MoonwalkActive = false;
 				window.ReverseBeyBladeActive = false;
 				chatLog(t("beybladeActivatedMsg", window.BeyBladeSpeed || 1));
@@ -2946,6 +3000,8 @@ function executeGamepadAction(actionName) {
 			if (window.ReverseBeyBladeActive) {
 				window.ShakeActive = false;
 				window.SuperShakeActive = false;
+				window.HyperShakeActive = false;
+				if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 				window.MoonwalkActive = false;
 				window.BeyBladeActive = false;
 				chatLog(t("reversebeybladeActivatedMsg", window.BeyBladeSpeed || 1));
@@ -2969,6 +3025,8 @@ function executeGamepadAction(actionName) {
 				window.BeyBladeActive = false;
 				window.ShakeActive = false;
 				window.SuperShakeActive = false;
+				window.HyperShakeActive = false;
+				if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 				window.ReverseBeyBladeActive = false;
 				if (gameState.playerContainer) {
 					window.moonwalkLockedYaw = gameState.playerContainer.rotation.y;
@@ -3008,6 +3066,7 @@ function executeGamepadAction(actionName) {
 			break;
 		case "resetCamera":
 			watchPlayer();
+			stopStare();
 			break;
 		case "zoomIn":
 			if (gameState.cameraController) {
@@ -3945,8 +4004,95 @@ function watchPlayer(name) {
 		chatLog(t("watchFollowingSelfMsg"));
 	}
 
-	lunPanelElements.resetCameraBtn.classList.add("hidden");
+	if (!window._stareActive) {
+		lunPanelElements.resetCameraBtn.classList.add("hidden");
+	}
 	gameState.cameraController.target = gameState.playerContainer;
+}
+
+// === Smooth Stare Lock ===
+function stareAtPlayer(targetName) {
+	if (!targetName) {
+		stopStare();
+		return;
+	}
+	if (window._stareAnim) cancelAnimationFrame(window._stareAnim);
+	if (window._stareNetSync) clearInterval(window._stareNetSync);
+	
+	window._stareActive = true;
+	window._stareTargetName = targetName;
+	let currentAngle = gameState?.playerContainer?.rotation?.y || 0;
+	
+	function updateStare() {
+		if (!window._stareActive) return;
+
+		if (gameState?.remotePlayers?.remotePlayers && gameState?.playerContainer) {
+			const players = Array.from(gameState.remotePlayers.remotePlayers.values());
+			const target = players.find(p => p.info?.name?.toLowerCase() === targetName.toLowerCase());
+
+			if (target && target.container) {
+				const pp = gameState.playerContainer.position;
+				const tp = target.container.position;
+				
+				// Calculate target angle
+				const targetAngle = Math.atan2(tp.x - pp.x, tp.z - pp.z);
+				
+				// Shortest angular distance to prevent 360-degree spin flips
+				let diff = (targetAngle - currentAngle) % (2 * Math.PI);
+				if (diff < -Math.PI) diff += 2 * Math.PI;
+				if (diff > Math.PI) diff -= 2 * Math.PI;
+
+				// Smooth interpolation (0.35 = snappy & responsive)
+				currentAngle += diff * 0.35;
+
+				// Force player container rotation every render frame
+				gameState.playerContainer.rotation.y = currentAngle;
+			}
+		}
+		window._stareAnim = requestAnimationFrame(updateStare);
+	}
+
+	// Start render loop
+	window._stareAnim = requestAnimationFrame(updateStare);
+
+	// Sync to network at a clean ~20 packets/sec (every 50ms)
+	window._stareNetSync = setInterval(() => {
+		if (window._stareActive && gameState) {
+			gameState.moveSendAccumulator = 1;
+		}
+	}, 50);
+
+	if (lunPanelElements.resetCameraBtn) {
+		lunPanelElements.resetCameraBtn.classList.remove("hidden");
+	}
+
+	console.log(`%c[SpeakiMod] Smooth Stare Lock active on: "${targetName}"`, "color: #4CAF50; font-weight: bold;");
+	chatLog(t("stareActivatedMsg", targetName));
+}
+
+function stopStare() {
+	if (!window._stareActive) return;
+	window._stareActive = false;
+	if (window._stareAnim) {
+		cancelAnimationFrame(window._stareAnim);
+		window._stareAnim = null;
+	}
+	if (window._stareNetSync) {
+		clearInterval(window._stareNetSync);
+		window._stareNetSync = null;
+	}
+	window._stareTargetName = null;
+	if (gameState && gameState.playerContainer && gameState.cameraController) {
+		gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
+		gameState.moveSendAccumulator = 1;
+	}
+	if (!gameState?.cameraController?.target || gameState.cameraController.target === gameState.playerContainer) {
+		if (lunPanelElements.resetCameraBtn) {
+			lunPanelElements.resetCameraBtn.classList.add("hidden");
+		}
+	}
+	console.log("%c[SpeakiMod] Stare Lock stopped.", "color: #f44336; font-weight: bold;");
+	chatLog(t("stareDeactivatedMsg"));
 }
 
 var hPartyTarget = document.querySelector(".sr-party-target");
@@ -3967,6 +4113,7 @@ if (hPartyTarget) {
 	hPartyTarget.insertBefore(
 		lunPanelElements.watchBtn = buildElement("button", {
 			className: "sr-btn sr-party-target__btn spkmod-watch-player-btn",
+			style: "margin-right: 4px;",
 			innerText: t("watchBtn"),
 			value: "",
 			onclick: e => {
@@ -3975,8 +4122,20 @@ if (hPartyTarget) {
 		}),
 		hPartyTarget.querySelector(".sr-party-target__close")
 	);
+	hPartyTarget.insertBefore(
+		lunPanelElements.stareBtn = buildElement("button", {
+			className: "sr-btn sr-party-target__btn spkmod-watch-player-btn",
+			innerText: t("stareBtn"),
+			value: "",
+			onclick: e => {
+				const name = e.target.parentElement.querySelector(".sr-party-target__name")?.innerText;
+				stareAtPlayer(name);
+			}
+		}),
+		hPartyTarget.querySelector(".sr-party-target__close")
+	);
 } else {
-	console.warn("[SpeakiMod+] Couldn't find party target element. Watch/Follow will be available through chat commands.");
+	console.warn("[SpeakiMod+] Couldn't find party target element. Watch/Follow/Stare will be available through chat commands.");
 }
 
 function updateMovementButtonsUI() {
@@ -3985,6 +4144,9 @@ function updateMovementButtonsUI() {
 
 	const superShakeBtn = document.querySelector("#spkmod-supershake-main-btn");
 	if (superShakeBtn) setText(superShakeBtn, window.SuperShakeActive ? t("superShakeOn") : t("superShakeOff"));
+
+	const hyperShakeBtn = document.querySelector("#spkmod-hypershake-main-btn");
+	if (hyperShakeBtn) setText(hyperShakeBtn, window.HyperShakeActive ? t("hyperShakeOn") : t("hyperShakeOff"));
 
 	const moonwalkBtn = document.querySelector("#spkmod-moonwalk-main-btn");
 	if (moonwalkBtn) setText(moonwalkBtn, window.MoonwalkActive ? t("moonwalkOn") : t("moonwalkOff"));
@@ -4032,6 +4194,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.walkToPortalBtn, lunWalkToPortal == -1 ? t("goTo") : t("stopWalking"));
 	setText(lunPanelElements.watchBtn, t("watchBtn"));
 	setText(lunPanelElements.followBtn, t("followBtn"));
+	setText(lunPanelElements.stareBtn, t("stareBtn"));
 	if (lunPanelElements.panelFollowBtn) setText(lunPanelElements.panelFollowBtn, lunFollowTargetName ? t("stopFollowing") : t("follow"));
 	setText(lunPanelElements.gamepadSettingsBtn, t("gamepadBtn"));
 	setText(lunPanelElements.pinnedQuestHeader, t("pinnedQuestHeader"));
@@ -4702,6 +4865,9 @@ gameState.trySendChat = (msg) => {
 				break;
 			case "follow":
 				followPlayer(cmd[1]);
+				break;
+			case "stare":
+				stareAtPlayer(cmd[1]);
 				break;
 			case "players":
 			case "who":
