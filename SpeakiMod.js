@@ -1220,11 +1220,25 @@ function updateEventModalContent() {
 	}
 }
 
-var lunPatchNotesData = null;
+var lunPatchNotesData = (() => {
+	try {
+		const raw = localStorage.getItem("spkmod-patchnotes-data");
+		return raw ? JSON.parse(raw) : null;
+	} catch (_) {
+		return null;
+	}
+})();
 var lunPatchNotesFetched = false;
 var lunPatchNotesLoading = false;
 var lunPatchNotesTranslatedLang = null;
-var lunPatchNotesTranslations = {};
+var lunPatchNotesTranslations = (() => {
+	try {
+		const raw = localStorage.getItem("spkmod-patchnotes-translations");
+		return raw ? JSON.parse(raw) : {};
+	} catch (_) {
+		return {};
+	}
+})();
 
 async function translateTextToLang(text, targetLang) {
 	if (!text || !text.trim() || targetLang === "ko") return text;
@@ -1253,8 +1267,10 @@ async function fetchPatchNotesOnce() {
 	const token = getAuthToken();
 	if (!token) return;
 	lunPatchNotesFetched = true;
-	lunPatchNotesLoading = true;
-	renderPatchNotesUI();
+	if (!lunPatchNotesData) {
+		lunPatchNotesLoading = true;
+		renderPatchNotesUI();
+	}
 
 	try {
 		const res = await fetch("https://sr1.overture.io.kr/api/patchnotes", {
@@ -1270,8 +1286,17 @@ async function fetchPatchNotesOnce() {
 			return;
 		}
 		const data = await res.json();
-		lunPatchNotesData = Array.isArray(data) ? data : [];
+		const freshNotes = Array.isArray(data) ? data : [];
+		const hasChanged = JSON.stringify(freshNotes) !== JSON.stringify(lunPatchNotesData);
+		lunPatchNotesData = freshNotes;
 		lunPatchNotesLoading = false;
+
+		if (hasChanged) {
+			try {
+				localStorage.setItem("spkmod-patchnotes-data", JSON.stringify(lunPatchNotesData));
+			} catch (_) {}
+		}
+
 		await translatePatchNotesToUserLang();
 		renderPatchNotesUI();
 	} catch (e) {
@@ -1287,16 +1312,30 @@ async function translatePatchNotesToUserLang() {
 	lunPatchNotesTranslatedLang = targetLang;
 	if (targetLang === "ko") return;
 
+	let updatedAny = false;
 	for (const note of lunPatchNotesData) {
 		if (!lunPatchNotesTranslations[note.id]) lunPatchNotesTranslations[note.id] = {};
-		if (!lunPatchNotesTranslations[note.id][targetLang]) {
-			const translatedTitle = await translateTextToLang(note.title, targetLang);
-			const translatedContent = await translateTextToLang(note.content, targetLang);
-			lunPatchNotesTranslations[note.id][targetLang] = {
-				title: translatedTitle,
-				content: translatedContent
-			};
+		const noteHash = note.updatedAt || `${note.title || ""}:::${note.content || ""}`;
+		const cached = lunPatchNotesTranslations[note.id][targetLang];
+
+		if (cached && cached.hash === noteHash && cached.title && cached.content) {
+			continue;
 		}
+
+		const translatedTitle = await translateTextToLang(note.title, targetLang);
+		const translatedContent = await translateTextToLang(note.content, targetLang);
+		lunPatchNotesTranslations[note.id][targetLang] = {
+			hash: noteHash,
+			title: translatedTitle,
+			content: translatedContent
+		};
+		updatedAny = true;
+	}
+
+	if (updatedAny) {
+		try {
+			localStorage.setItem("spkmod-patchnotes-translations", JSON.stringify(lunPatchNotesTranslations));
+		} catch (_) {}
 	}
 }
 
@@ -1982,23 +2021,6 @@ document.body.appendChild(
 				})
 			]),
 			buildElement("div", { className: "spkmod-panel-cat" }, [
-				lunPanelElements.chowayoBtn = buildElement("button", {
-					id: "spkmod-autochowayo-btn",
-					className: "spkmod-panel-btn",
-					innerText: t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"),
-					value: "",
-					onclick: e => {
-						window.AutoChowayoActive = !window.AutoChowayoActive;
-						if (window.AutoChowayoActive) {
-							chatLog(t("autoChowayoActivatedMsg") || "Auto Chowayo activated!");
-							autoChowayoLoop();
-						} else {
-							chatLog(t("autoChowayoDeactivatedMsg") || "Auto Chowayo deactivated.");
-							clearTimeout(window.__autoChowayoTimeoutId);
-						}
-						setText(e.target, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
-					}
-				}),
 				lunPanelElements.heartsBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
 					innerText: t("hearts"),
@@ -2097,43 +2119,6 @@ document.body.appendChild(
 								gameState.moveSendAccumulator = 1;
 							}
 							chatLog(t("superShakeDeactivatedMsg"));
-						}
-					}
-				}),
-				lunPanelElements.hyperShakeBtn = buildElement("button", {
-					id: "spkmod-hypershake-main-btn",
-					className: "spkmod-panel-btn",
-					innerText: window.HyperShakeActive ? t("hyperShakeOn") : t("hyperShakeOff"),
-					value: "",
-					onclick: e => {
-						window.HyperShakeActive = !window.HyperShakeActive;
-
-						if (window.HyperShakeActive) {
-							window.ShakeActive = false;
-							window.SuperShakeActive = false;
-							window.BeyBladeActive = false;
-							window.MoonwalkActive = false;
-							window.ReverseBeyBladeActive = false;
-							if (window.vibrateTimer) clearInterval(window.vibrateTimer);
-							window.vibrateTimer = setInterval(() => {
-								if (!gameState || !gameState.playerContainer) return;
-								const base = gameState.cameraController?.cameraYaw || 0;
-								gameState.playerContainer.rotation.y = base + (Math.random() - 0.5) * 1.5;
-								gameState.moveSendAccumulator = 1;
-							}, 25);
-							updateMovementButtonsUI();
-							chatLog(t("hyperShakeActivatedMsg"));
-						} else {
-							if (window.vibrateTimer) {
-								clearInterval(window.vibrateTimer);
-								window.vibrateTimer = null;
-							}
-							updateMovementButtonsUI();
-							if (gameState.playerContainer && gameState.cameraController) {
-								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
-								gameState.moveSendAccumulator = 1;
-							}
-							chatLog(t("hyperShakeDeactivatedMsg"));
 						}
 					}
 				})
@@ -2363,7 +2348,23 @@ document.body.appendChild(
 						}
 					}
 				}),
-
+				lunPanelElements.chowayoBtn = buildElement("button", {
+					id: "spkmod-autochowayo-btn",
+					className: "spkmod-panel-btn",
+					innerText: t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"),
+					value: "",
+					onclick: e => {
+						window.AutoChowayoActive = !window.AutoChowayoActive;
+						if (window.AutoChowayoActive) {
+							chatLog(t("autoChowayoActivatedMsg") || "Auto Chowayo activated!");
+							autoChowayoLoop();
+						} else {
+							chatLog(t("autoChowayoDeactivatedMsg") || "Auto Chowayo deactivated.");
+							clearTimeout(window.__autoChowayoTimeoutId);
+						}
+						setText(e.target, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
+					}
+				})
 			]),
 
 			lunPanelElements.resetCameraBtn = buildElement("button", {
@@ -2411,6 +2412,43 @@ document.body.appendChild(
 								lunViewClip = false;
 								if (lunPanelElements.viewClipBtn) setText(lunPanelElements.viewClipBtn, t("viewClipOff"));
 							}
+						}
+					}
+				}),
+				lunPanelElements.hyperShakeBtn = buildElement("button", {
+					id: "spkmod-hypershake-main-btn",
+					className: "spkmod-panel-btn",
+					innerText: window.HyperShakeActive ? t("hyperShakeOn") : t("hyperShakeOff"),
+					value: "",
+					onclick: e => {
+						window.HyperShakeActive = !window.HyperShakeActive;
+
+						if (window.HyperShakeActive) {
+							window.ShakeActive = false;
+							window.SuperShakeActive = false;
+							window.BeyBladeActive = false;
+							window.MoonwalkActive = false;
+							window.ReverseBeyBladeActive = false;
+							if (window.vibrateTimer) clearInterval(window.vibrateTimer);
+							window.vibrateTimer = setInterval(() => {
+								if (!gameState || !gameState.playerContainer) return;
+								const base = gameState.cameraController?.cameraYaw || 0;
+								gameState.playerContainer.rotation.y = base + (Math.random() - 0.5) * 1.5;
+								gameState.moveSendAccumulator = 1;
+							}, 25);
+							updateMovementButtonsUI();
+							chatLog(t("hyperShakeActivatedMsg"));
+						} else {
+							if (window.vibrateTimer) {
+								clearInterval(window.vibrateTimer);
+								window.vibrateTimer = null;
+							}
+							updateMovementButtonsUI();
+							if (gameState.playerContainer && gameState.cameraController) {
+								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
+								gameState.moveSendAccumulator = 1;
+							}
+							chatLog(t("hyperShakeDeactivatedMsg"));
 						}
 					}
 				}),
@@ -5232,7 +5270,7 @@ gameState.chatBox.append = (id, name, msg) => {
 					
 					if (lunChatTimestampsEnabled) {
 						const d = new Date();
-						const ts = `[${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}] `;
+						const ts = `[${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}] `;
 						currentText = ts + currentText;
 					}
 
