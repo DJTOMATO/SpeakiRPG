@@ -5178,8 +5178,36 @@ gameState.trySendChat = (msg) => {
 window.filterName = filterName;
 window.lunBadWords = lunBadWords;
 
+let lunChatScrollEl = null;
+let lunChatUserScrolledUp = false;
+
+function getChatScrollContainer() {
+	const log = document.querySelector(".sr-chatbox__log");
+	if (!log) return null;
+	if (log.scrollHeight > log.clientHeight || log.scrollTop > 0) return log;
+	if (log.parentElement && (log.parentElement.scrollHeight > log.parentElement.clientHeight || log.parentElement.scrollTop > 0)) {
+		return log.parentElement;
+	}
+	return log;
+}
+
+function updateChatScrollTracking() {
+	const el = getChatScrollContainer();
+	if (el && el !== lunChatScrollEl) {
+		lunChatScrollEl = el;
+		lunChatScrollEl.addEventListener("scroll", () => {
+			const distFromBottom = lunChatScrollEl.scrollHeight - lunChatScrollEl.scrollTop - lunChatScrollEl.clientHeight;
+			lunChatUserScrolledUp = distFromBottom > 45;
+		}, { passive: true });
+	}
+	return el;
+}
+
 var hkChatBoxAppend = gameState.chatBox.append.bind(gameState.chatBox);
 gameState.chatBox.append = (id, name, msg) => {
+	const scrollEl = updateChatScrollTracking();
+	const wasAtBottom = !lunChatUserScrolledUp && (!scrollEl || (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight <= 45));
+
 	let filteredName = filterName(name);
 	const filteredMsg = filterName(msg);
 
@@ -5211,17 +5239,46 @@ gameState.chatBox.append = (id, name, msg) => {
 					senderEl.innerText = currentText;
 				}
 			}
+			if (wasAtBottom && !lunChatUserScrolledUp && scrollEl) {
+				scrollEl.scrollTop = scrollEl.scrollHeight;
+			}
 		});
 	}
 
 	const result = hkChatBoxAppend(id, filteredName, filteredMsg);
+
+	if (wasAtBottom && scrollEl) {
+		requestAnimationFrame(() => {
+			if (!lunChatUserScrolledUp && scrollEl) {
+				scrollEl.scrollTop = scrollEl.scrollHeight;
+			}
+		});
+	}
+
 	maybeTranslateChatMessage(id, name, filteredMsg); // pass original name for translate cache
 	return result;
 };
 
 function appendColoredChatLine(id, name, text) {
-	observeNextChatNode(text, (bodyText) => bodyText.classList.add("spkmod-translated-line"));
+	const scrollEl = updateChatScrollTracking();
+	const wasAtBottom = !lunChatUserScrolledUp && (!scrollEl || (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight <= 45));
+
+	observeNextChatNode(text, (bodyText) => {
+		bodyText.classList.add("spkmod-translated-line");
+		if (wasAtBottom && !lunChatUserScrolledUp && scrollEl) {
+			scrollEl.scrollTop = scrollEl.scrollHeight;
+		}
+	});
+
 	hkChatBoxAppend(id, name, text);
+
+	if (wasAtBottom && scrollEl) {
+		requestAnimationFrame(() => {
+			if (!lunChatUserScrolledUp && scrollEl) {
+				scrollEl.scrollTop = scrollEl.scrollHeight;
+			}
+		});
+	}
 }
 
 const lunTranslateSourceOptions = ["en", "ja", "ko", "zh-CN", "es", "fr", "de", "pt", "ru"];
