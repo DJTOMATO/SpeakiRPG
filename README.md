@@ -79,6 +79,7 @@
 - Gamemaster talks highlight (Visually highlights and bolds GM/developer messages in chat; toggleable in settings)
 - Chat mention notifications (Optional notification when someone calls your name in chat)
 - Chat command shortcuts (`!dance`, `!hearts`, `!pat`, `!chowayo`, `!follow`, `!players`, `!zoom`, `!fppitch`)
+- **[NEW]** Outgoing Quick-Translate Commands (`.j`/`.ja`/`.jp <msg>`, `.k`/`.ko <msg>`, `.zh`/`.cn <msg>`, `.en <msg>`, `.es <msg>`, etc. - auto-translates and sends your chat message)
 - **[NEW]** Chat Timestamps (Toggleable `[HH:MM:SS]` prefix in chat)
 - **[NEW]** Free-Cam / Drone Photo Mode (Requires Gamepad, detaches camera for cinematic shots)
 - **[NEW]** True First-Person POV Mode (Locked horizontal eye-level camera with configurable pitch)
@@ -96,6 +97,8 @@
 - **[NEW]**  **World Map**
 - **[NEW]** Minigame Tracker & Event Info (Tracks daily remaining plays and event details)
 - **[NEW]** Toggle Mod UI Visibility (Press P to hide or show all mod overlays)
+- **[NEW]** Official Patch Notes Newsletter (View translated game update notes in-game via 📰 button)
+- **[NEW]** Session & Performance Stats Window (Real-time session clock, EXP/hr, time to level, Gold & Elif gains, and network ping via ⏱️ button)
 
 <img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
 

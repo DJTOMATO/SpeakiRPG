@@ -576,7 +576,6 @@ function findNametagSprite(container) {
 	const direct = container.children?.[0]?.children?.[0]?.children?.[1];
 	if (direct && direct.isSprite) return direct;
 
-	// Traversal fallback if the game hierarchy shifts
 	let sprite = null;
 	if (typeof container.traverse === "function") {
 		container.traverse(obj => {
@@ -613,7 +612,7 @@ var lunBadWordSources = {
 	ko: "https://raw.githubusercontent.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/master/ko"
 };
 const lunBadWordCacheKey = "spkmod-badword-cache";
-const lunBadWordCacheMaxAgeMs = 24 * 60 * 60 * 1000; // 24h
+const lunBadWordCacheMaxAgeMs = 14 * 24 * 60 * 60 * 1000; // 14 days (2 weeks)
 
 async function loadBadWordList(lang, url) {
 	try {
@@ -689,6 +688,42 @@ function setTranslateEmail(email) {
 	if (window.localStorage) localStorage.setItem("spkmod-translate-email", lunTranslateEmail);
 }
 
+var lunOutgoingSourceLang = (window.localStorage && localStorage.getItem("spkmod-outgoing-source-lang")) || "auto";
+function setOutgoingSourceLang(lang) {
+	lunOutgoingSourceLang = lang;
+	if (window.localStorage) localStorage.setItem("spkmod-outgoing-source-lang", lang);
+	if (lunPanelElements && lunPanelElements.outgoingTranslateSelect) lunPanelElements.outgoingTranslateSelect.value = lang;
+}
+
+const lunOutgoingLangPrefixes = {
+	k: "ko", ko: "ko", kr: "ko", kor: "ko", korean: "ko",
+	j: "ja", ja: "ja", jp: "ja", jpn: "ja", japanese: "ja",
+	zh: "zh-CN", cn: "zh-CN", tw: "zh-TW", z: "zh-CN", "zh-cn": "zh-CN", "zh-tw": "zh-TW", chi: "zh-CN", chinese: "zh-CN",
+	en: "en", e: "en", eng: "en", english: "en",
+	es: "es", s: "es", spa: "es", spanish: "es",
+	fr: "fr", f: "fr", fre: "fr", french: "fr",
+	de: "de", g: "de", ger: "de", german: "de",
+	pt: "pt", p: "pt", por: "pt", portuguese: "pt",
+	ru: "ru", r: "ru", rus: "ru", russian: "ru"
+};
+
+function getEffectiveSourceLang(text) {
+	if (lunOutgoingSourceLang && lunOutgoingSourceLang !== "auto") {
+		return lunOutgoingSourceLang;
+	}
+	if (/[\uAC00-\uD7A3]/.test(text)) return "ko"; // Hangul
+	if (/[\u3040-\u30FF]/.test(text)) return "ja"; // Hiragana/Katakana
+	if (/[\u4E00-\u9FFF]/.test(text)) {
+		return (spkmodLang === "zh-TW") ? "zh-TW" : "zh-CN"; // Hanzi
+	}
+	if (spkmodLang === "ja") return "ja";
+	if (spkmodLang === "ko") return "ko";
+	if (spkmodLang === "zh-TW") return "zh-TW";
+	if (spkmodLang === "zh-CN") return "zh-CN";
+	if (spkmodLang === "es-419") return "es";
+	return "en";
+}
+
 var lunBadWordRegex = null;
 function rebuildBadWordRegex() {
 	var allWords = Object.values(lunBadWords).flat().filter(Boolean);
@@ -718,9 +753,31 @@ loadAllBadWordLists();
 var spkmodTranslations = {
 	en: {
 		langName: "English",
+		patchNotesBtnTooltip: "Game Patch Notes",
+		patchNotesHeader: "Game Patch Notes",
+		patchNotesLoading: "Loading & translating patch notes...",
+		patchNotesEmpty: "No patch notes available.",
+		patchNotesError: "Failed to load patch notes.",
 		pumpkinTrackerToggleLabel: "Pumpkin Plays Tracker",
 		pumpkinTrackerText: "Pumpkin: {0}/{1}",
 		pumpkinTrackerInactive: "Pumpkin: Ended",
+		currencyTrackerToggleLabel: "Show Gold & Elif on HUD",
+		statsHeader: "Session & Performance Stats",
+		statsBtnTooltip: "Session Stats & Tracker",
+		statsSessionTime: "Session Time",
+		statsDailyReset: "Daily Reset",
+		statsPumpkinPlays: "Pumpkin Plays",
+		statsExpGained: "EXP Gained",
+		statsExpPerHour: "EXP Rate",
+		statsTimeToNextLevel: "Next Level In",
+		statsCurrency: "Currency Balances",
+		statsGoldGained: "Gold Gained",
+		statsElifGained: "Elif Gained",
+		statsPing: "Network Ping",
+		settingsCatGeneral: "Chat & Gameplay",
+		settingsCatHUD: "HUD & Appearance",
+		statsResetBtn: "Reset Session",
+		statsResetConfirm: "Session stats reset.",
 		eventInfoBtnTooltip: "Event Info",
 		eventInfoHeader: "Event Info",
 		eventPumpkinTitle: "Pumpkin Minigame",
@@ -730,6 +787,26 @@ var spkmodTranslations = {
 		eventBestScore: "Best Score: {0}",
 		eventPlaysToday: "Plays Remaining: {0}/{1}",
 		eventLoading: "Loading event info..."
+	},
+	ja: {
+		settingsCatGeneral: "チャット＆ゲームプレイ",
+		settingsCatHUD: "HUD＆外観"
+	},
+	ko: {
+		settingsCatGeneral: "채팅 및 게임플레이",
+		settingsCatHUD: "HUD 및 외형"
+	},
+	"zh-TW": {
+		settingsCatGeneral: "聊天與遊戲",
+		settingsCatHUD: "HUD 與外觀"
+	},
+	"es-419": {
+		settingsCatGeneral: "Chat y jugabilidad",
+		settingsCatHUD: "HUD y apariencia"
+	},
+	"zh-CN": {
+		settingsCatGeneral: "聊天与游戏",
+		settingsCatHUD: "HUD 与外观"
 	}
 };
 
@@ -742,7 +819,9 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 		if (res.ok) {
 			const data = await res.json();
 			if (data && data.en) {
-				spkmodTranslations = data;
+				for (const lang of Object.keys(data)) {
+					spkmodTranslations[lang] = Object.assign({}, spkmodTranslations[lang] || {}, data[lang]);
+				}
 				if (!spkmodTranslations[spkmodLang]) spkmodLang = "en";
 				if (typeof refreshI18n === 'function') refreshI18n();
 			}
@@ -804,7 +883,9 @@ var lunHudElements = {
 	currencyTracker: null,
 	pumpkinTracker: null,
 	settingsModal: null,
-	eventModal: null
+	eventModal: null,
+	patchNotesModal: null,
+	statsModal: null
 };
 var eventModalElements = {
 	headerTitle: null,
@@ -813,6 +894,38 @@ var eventModalElements = {
 	periodText: null,
 	bestScoreText: null,
 	playsRemainingText: null
+};
+var patchNotesModalElements = {
+	headerTitle: null,
+	contentContainer: null
+};
+var statsModalElements = {
+	headerTitle: null,
+	sessionTimeLabel: null,
+	sessionTimeVal: null,
+	pingLabel: null,
+	pingVal: null,
+	fpsVal: null,
+	dailyResetLabel: null,
+	dailyResetVal: null,
+	pumpkinLabel: null,
+	pumpkinVal: null,
+	levelProgressVal: null,
+	levelExpNumbers: null,
+	levelProgressBar: null,
+	expGainedLabel: null,
+	expGainedVal: null,
+	expRateLabel: null,
+	expRateVal: null,
+	timeToLevelLabel: null,
+	timeToLevelVal: null,
+	currencyLabel: null,
+	currencyBalancesVal: null,
+	goldGainedLabel: null,
+	goldGainedVal: null,
+	elifGainedLabel: null,
+	elifGainedVal: null,
+	resetBtn: null
 };
 var lunPanelElements = {
 	targetZone: null,
@@ -830,15 +943,15 @@ var lunPanelElements = {
 	turntableBtn: null,
 	speedLabel: null,
 	turnToCameraBtn: null,
-	playersRadarBtn: null,
 	watchBtn: null,
 	followBtn: null,
+	stareBtn: null,
 	panelFollowBtn: null,
 	shakeBtn: null,
 	superShakeBtn: null,
+	hyperShakeBtn: null,
 	pinnedQuestHeader: null,
 	langSelect: null,
-	langLabel: null,
 	settingsHeader: null,
 	filterToggleLabel: null,
 	filterToggleInput: null,
@@ -849,19 +962,27 @@ var lunPanelElements = {
 	translateToggleLabel: null,
 	translateToggleInput: null,
 	translateTargetSelect: null,
+	outgoingTranslateLabel: null,
+	outgoingTranslateSelect: null,
 	translateEmailInput: null,
 	creditsLabel: null,
 	translateEmailInfo: null,
+	currencyTrackerLabel: null,
+	currencyTrackerToggleInput: null,
 	expRateUnitLabel: null,
 	expRateIntervalLabel: null,
 	expRateIntervalSelect: null,
 	discordBtn: null,
 	gamepadSettingsBtn: null,
+	patchNotesBtn: null,
 	eventBtn: null,
+	statsBtn: null,
 	pumpkinTrackerLabel: null,
 	pumpkinTrackerToggleInput: null,
 	hideKnownBotsLabel: null,
 	hideKnownBotsToggleInput: null,
+	settingsCatGeneral: null,
+	settingsCatHUD: null
 };
 var lunMenuFoldingLevel = 0;
 
@@ -883,13 +1004,14 @@ var lunCurrencyTrackerWindow = 60000 / lunTPS; // [SpeakiMod+] Reduced from 25s 
 var lunCurrencyTrackerNextTicks = 0;
 var lunLastGold = null;
 var lunLastElif = null;
+var lunSessionStartGold = null;
+var lunSessionStartElif = null;
 var lunWalkToPortal = -1;
 var lunAutoTravelTarget = null;
 var lunCameraLocked = false;
-var lunNametagMode = 0; // 0: Show All, 1: Party Only, 2: Hide All
+var lunNametagMode = 0; 
 const NAMETAG_MODES = ["showAllNametags", "keepPartyNametags", "hideAllNametags"];
 
-// Add known bot names here. Matching is exact and case-insensitive.
 const lunKnownBotNames = ["GOODSPIKI", "BADSPIKI","NEXThobagi","QAZWSXEDC", "kqland", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki"];
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
@@ -1025,6 +1147,15 @@ function setLowHpWarningEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-low-hp-warning", lunLowHpWarningEnabled ? "true" : "false");
 }
 
+var lunCurrencyTrackerEnabled = (window.localStorage && localStorage.getItem("spkmod-currency-tracker")) !== "false";
+function setCurrencyTrackerEnabled(enabled) {
+	lunCurrencyTrackerEnabled = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-currency-tracker", lunCurrencyTrackerEnabled ? "true" : "false");
+	if (lunHudElements.currencyTracker) {
+		lunHudElements.currencyTracker.style.display = lunCurrencyTrackerEnabled ? "" : "none";
+	}
+}
+
 var lunSessionGoldTrackerEnabled = (window.localStorage && localStorage.getItem("spkmod-session-gold")) === "true";
 function setSessionGoldTrackerEnabled(enabled) {
 	lunSessionGoldTrackerEnabled = !!enabled;
@@ -1121,17 +1252,192 @@ function updatePumpkinUI() {
 		}
 	}
 	updateEventModalContent();
+	updateStatsModalLive();
+}
+
+var spkmodTopZIndex = 600000;
+
+function bringToFront(element) {
+	if (!element) return;
+	spkmodTopZIndex++;
+	element.style.zIndex = spkmodTopZIndex;
+}
+
+function makeDraggable(element, handles) {
+	if (!element || !handles) return;
+	let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+	const posKey = element.id ? "spkmod-pos-" + element.id : null;
+
+	if (window.localStorage && posKey) {
+		const savedPos = localStorage.getItem(posKey) || (element.id === "spkmod-hud" ? localStorage.getItem("spkmod-window-pos") : null);
+		if (savedPos) {
+			try {
+				const parsedPos = JSON.parse(savedPos);
+				if (parsedPos.top && parsedPos.left) {
+					const topNum = parseFloat(parsedPos.top);
+					const leftNum = parseFloat(parsedPos.left);
+					if (!isNaN(topNum) && !isNaN(leftNum)) {
+						const clampedTop = Math.max(0, Math.min(topNum, window.innerHeight - 45));
+						const clampedLeft = Math.max(0, Math.min(leftNum, window.innerWidth - 60));
+						element.style.top = clampedTop + "px";
+						element.style.left = clampedLeft + "px";
+						element.dataset.userDragged = "true";
+					} else {
+						element.style.top = parsedPos.top;
+						element.style.left = parsedPos.left;
+						element.dataset.userDragged = "true";
+					}
+				}
+			} catch (err) {
+				console.warn("[SpeakiMod+] Failed to load saved position for " + (element.id || "element"));
+			}
+		}
+	}
+
+	element.addEventListener("mousedown", () => {
+		bringToFront(element);
+	}, true);
+
+	handles.forEach(handle => {
+		if (handle) {
+			handle.onmousedown = dragMouseDown;
+		}
+	});
+
+	function dragMouseDown(e) {
+		e = e || window.event;
+		if (e.target && (
+			e.target.tagName === 'BUTTON' ||
+			e.target.tagName === 'INPUT' ||
+			e.target.tagName === 'SELECT' ||
+			e.target.tagName === 'A' ||
+			e.target.id?.includes('close') ||
+			e.target.closest('button') ||
+			e.target.closest('input') ||
+			e.target.closest('select') ||
+			e.target.closest('a') ||
+			e.target.closest('[id*="close"]')
+		)) {
+			return;
+		}
+		e.preventDefault();
+		pos3 = e.clientX;
+		pos4 = e.clientY;
+
+		document.onmouseup = closeDragElement;
+		document.onmousemove = elementDrag;
+	}
+
+	function elementDrag(e) {
+		e = e || window.event;
+		e.preventDefault();
+
+		pos1 = pos3 - e.clientX;
+		pos2 = pos4 - e.clientY;
+		pos3 = e.clientX;
+		pos4 = e.clientY;
+
+		const maxTop = Math.max(0, window.innerHeight - 45);
+		const maxLeft = Math.max(0, window.innerWidth - 60);
+		const newTop = Math.min(Math.max(0, element.offsetTop - pos2), maxTop);
+		const newLeft = Math.min(Math.max(0, element.offsetLeft - pos1), maxLeft);
+
+		element.dataset.userDragged = "true";
+		element.style.top = newTop + "px";
+		element.style.left = newLeft + "px";
+	}
+
+	function closeDragElement() {
+		document.onmouseup = null;
+		document.onmousemove = null;
+
+		element.dataset.userDragged = "true";
+		if (posKey && window.localStorage) {
+			const posData = JSON.stringify({
+				top: element.style.top,
+				left: element.style.left
+			});
+			localStorage.setItem(posKey, posData);
+			if (element.id === "spkmod-hud") {
+				localStorage.setItem("spkmod-window-pos", posData);
+			}
+		}
+	}
+}
+
+function positionModalNicely(modal) {
+	if (!modal) return;
+	bringToFront(modal);
+
+	const posKey = modal.id ? ("spkmod-pos-" + modal.id) : null;
+	const hasSavedPos = !!(posKey && window.localStorage && localStorage.getItem(posKey));
+	const hasBeenDragged = modal.dataset.userDragged === "true";
+
+	if (hasSavedPos || (hasBeenDragged && modal.style.left && modal.style.top)) {
+		return;
+	}
+
+	const hudRect = document.querySelector("#spkmod-hud")?.getBoundingClientRect();
+	const startLeft = hudRect && hudRect.right > 0 ? Math.round(hudRect.right + 10) : 260;
+	const startTop = hudRect && hudRect.top >= 0 ? Math.round(hudRect.top) : 10;
+
+	const allModals = [
+		lunHudElements.settingsModal,
+		lunHudElements.statsModal,
+		lunHudElements.eventModal,
+		lunHudElements.patchNotesModal
+	];
+
+	const visibleModals = allModals.filter(m => m && m !== modal && !m.classList.contains("hidden") && m.offsetParent !== null);
+
+	if (visibleModals.length > 0) {
+		let rightmostModal = visibleModals[0];
+		let rightmostRect = rightmostModal.getBoundingClientRect();
+		for (let i = 1; i < visibleModals.length; i++) {
+			const r = visibleModals[i].getBoundingClientRect();
+			if (r.right > rightmostRect.right) {
+				rightmostModal = visibleModals[i];
+				rightmostRect = r;
+			}
+		}
+
+		const approxWidth = modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? 480 : (modal.id === "spkmod-stats-modal" ? 240 : 400));
+		let nextLeft = Math.round(rightmostRect.right + 10);
+		let nextTop = Math.round(rightmostRect.top);
+
+		if (nextLeft + approxWidth > window.innerWidth - 10) {
+			nextLeft = Math.max(10, Math.min(Math.round(rightmostRect.left + 30), window.innerWidth - approxWidth - 10));
+			nextTop = Math.max(10, Math.min(Math.round(rightmostRect.top + 35), window.innerHeight - 100));
+		}
+
+		modal.style.left = nextLeft + "px";
+		modal.style.top = nextTop + "px";
+	} else {
+		modal.style.left = startLeft + "px";
+		modal.style.top = startTop + "px";
+	}
+}
+
+function toggleSettingsModal() {
+	if (!lunHudElements.settingsModal) return;
+	const isClosed = lunHudElements.settingsModal.classList.contains("hidden");
+	if (isClosed) {
+		positionModalNicely(lunHudElements.settingsModal);
+		if (typeof updateHudBgDropdown === 'function') {
+			updateHudBgDropdown();
+		}
+		lunHudElements.settingsModal.classList.remove("hidden");
+	} else {
+		lunHudElements.settingsModal.classList.add("hidden");
+	}
 }
 
 function toggleEventModal() {
 	if (!lunHudElements.eventModal) return;
 	const isClosed = lunHudElements.eventModal.classList.contains("hidden");
 	if (isClosed) {
-		const rect = document.querySelector("#spkmod-hud")?.getBoundingClientRect();
-		if (rect) {
-			lunHudElements.eventModal.style.left = (rect.right + 10) + "px";
-			lunHudElements.eventModal.style.top = rect.top + "px";
-		}
+		positionModalNicely(lunHudElements.eventModal);
 		lunHudElements.eventModal.classList.remove("hidden");
 		fetchPumpkinStatus();
 	} else {
@@ -1173,6 +1479,210 @@ function updateEventModalContent() {
 	}
 }
 
+var lunPatchNotesData = (() => {
+	try {
+		const raw = localStorage.getItem("spkmod-patchnotes-data");
+		return raw ? JSON.parse(raw) : null;
+	} catch (_) {
+		return null;
+	}
+})();
+var lunPatchNotesFetched = false;
+var lunPatchNotesLoading = false;
+var lunPatchNotesTranslatedLang = null;
+var lunPatchNotesTranslations = (() => {
+	try {
+		const raw = localStorage.getItem("spkmod-patchnotes-translations");
+		return raw ? JSON.parse(raw) : {};
+	} catch (_) {
+		return {};
+	}
+})();
+
+async function translateTextToLang(text, targetLang) {
+	if (!text || !text.trim() || targetLang === "ko") return text;
+	try {
+		const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+		const res = await fetch(url);
+		if (res.ok) {
+			const data = await res.json();
+			if (data && data[0]) {
+				return data[0].map(chunk => chunk[0] || "").join("");
+			}
+		}
+	} catch (e) {
+		try {
+			if (typeof translateChatText === "function") {
+				const translated = await translateChatText(text, "ko", targetLang);
+				if (translated) return translated;
+			}
+		} catch (_) {}
+	}
+	return text;
+}
+
+async function fetchPatchNotesOnce() {
+	if (lunPatchNotesFetched) return;
+	const token = getAuthToken();
+	if (!token) return;
+	lunPatchNotesFetched = true;
+	if (!lunPatchNotesData) {
+		lunPatchNotesLoading = true;
+		renderPatchNotesUI();
+	}
+
+	try {
+		const res = await fetch("https://sr1.overture.io.kr/api/patchnotes", {
+			method: "GET",
+			headers: {
+				"authorization": `Bearer ${token}`
+			},
+			mode: "cors"
+		});
+		if (!res.ok) {
+			lunPatchNotesLoading = false;
+			renderPatchNotesUI();
+			return;
+		}
+		const data = await res.json();
+		const freshNotes = Array.isArray(data) ? data : [];
+		const hasChanged = JSON.stringify(freshNotes) !== JSON.stringify(lunPatchNotesData);
+		lunPatchNotesData = freshNotes;
+		lunPatchNotesLoading = false;
+
+		if (hasChanged) {
+			try {
+				localStorage.setItem("spkmod-patchnotes-data", JSON.stringify(lunPatchNotesData));
+			} catch (_) {}
+		}
+
+		await translatePatchNotesToUserLang();
+		renderPatchNotesUI();
+	} catch (e) {
+		console.warn("[SpeakiMod+] Failed to fetch patch notes:", e);
+		lunPatchNotesLoading = false;
+		renderPatchNotesUI();
+	}
+}
+
+async function translatePatchNotesToUserLang() {
+	if (!lunPatchNotesData || lunPatchNotesData.length === 0) return;
+	const targetLang = spkmodLang === "es-419" ? "es" : spkmodLang;
+	lunPatchNotesTranslatedLang = targetLang;
+	if (targetLang === "ko") return;
+
+	let updatedAny = false;
+	for (const note of lunPatchNotesData) {
+		if (!lunPatchNotesTranslations[note.id]) lunPatchNotesTranslations[note.id] = {};
+		const noteHash = note.updatedAt || `${note.title || ""}:::${note.content || ""}`;
+		const cached = lunPatchNotesTranslations[note.id][targetLang];
+
+		if (cached && cached.hash === noteHash && cached.title && cached.content) {
+			continue;
+		}
+
+		const translatedTitle = await translateTextToLang(note.title, targetLang);
+		const translatedContent = await translateTextToLang(note.content, targetLang);
+		lunPatchNotesTranslations[note.id][targetLang] = {
+			hash: noteHash,
+			title: translatedTitle,
+			content: translatedContent
+		};
+		updatedAny = true;
+	}
+
+	if (updatedAny) {
+		try {
+			localStorage.setItem("spkmod-patchnotes-translations", JSON.stringify(lunPatchNotesTranslations));
+		} catch (_) {}
+	}
+}
+
+function togglePatchNotesModal() {
+	if (!lunHudElements.patchNotesModal) return;
+	const isClosed = lunHudElements.patchNotesModal.classList.contains("hidden");
+	if (isClosed) {
+		positionModalNicely(lunHudElements.patchNotesModal);
+		lunHudElements.patchNotesModal.classList.remove("hidden");
+		if (!lunPatchNotesFetched) {
+			fetchPatchNotesOnce();
+		} else {
+			renderPatchNotesUI();
+		}
+	} else {
+		lunHudElements.patchNotesModal.classList.add("hidden");
+	}
+}
+
+function renderPatchNotesUI() {
+	if (!patchNotesModalElements.contentContainer) return;
+	if (patchNotesModalElements.headerTitle) setText(patchNotesModalElements.headerTitle, "📰 " + t("patchNotesHeader"));
+	const container = patchNotesModalElements.contentContainer;
+	container.innerHTML = "";
+
+	if (lunPatchNotesLoading) {
+		container.appendChild(buildElement("div", {
+			style: "text-align: center; padding: 20px 10px; color: #aaa; font-size: 10pt;",
+			innerText: t("patchNotesLoading")
+		}));
+		return;
+	}
+
+	if (!lunPatchNotesData) {
+		container.appendChild(buildElement("div", {
+			style: "text-align: center; padding: 20px 10px; color: #f87171; font-size: 10pt;",
+			innerText: t("patchNotesError")
+		}));
+		return;
+	}
+
+	if (lunPatchNotesData.length === 0) {
+		container.appendChild(buildElement("div", {
+			style: "text-align: center; padding: 20px 10px; color: #aaa; font-size: 10pt;",
+			innerText: t("patchNotesEmpty")
+		}));
+		return;
+	}
+
+	const targetLang = spkmodLang === "es-419" ? "es" : spkmodLang;
+
+	lunPatchNotesData.forEach(item => {
+		const trans = lunPatchNotesTranslations[item.id]?.[targetLang];
+		const displayTitle = trans?.title || item.title || "Patch Note";
+		const displayContent = trans?.content || item.content || "";
+		let displayDate = "";
+		if (item.createdAt) {
+			try {
+				displayDate = new Date(item.createdAt).toLocaleDateString(undefined, {
+					year: 'numeric', month: 'short', day: 'numeric'
+				});
+			} catch (_) {
+				displayDate = String(item.createdAt).slice(0, 10);
+			}
+		}
+
+		const card = buildElement("div", {
+			style: "background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 4px;"
+		}, [
+			buildElement("div", { style: "display: flex; justify-content: space-between; align-items: baseline; gap: 8px;" }, [
+				buildElement("span", {
+					style: "font-weight: bold; font-size: 10.5pt; color: #ffd54a; flex: 1;",
+					innerText: displayTitle
+				}),
+				buildElement("span", {
+					style: "font-size: 8.5pt; color: #888; white-space: nowrap;",
+					innerText: displayDate
+				})
+			]),
+			buildElement("div", {
+				style: "white-space: pre-wrap; font-size: 9.5pt; line-height: 1.5; color: #ddd; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;",
+				innerText: displayContent
+			})
+		]);
+		container.appendChild(card);
+	});
+}
+
 var lunGamepadRumbleEnabled = (window.localStorage && localStorage.getItem("spkmod-gamepad-rumble")) !== "false";
 function setGamepadRumbleEnabled(enabled) {
 	lunGamepadRumbleEnabled = !!enabled;
@@ -1183,6 +1693,206 @@ var lunUiScale = (window.localStorage && localStorage.getItem("spkmod-ui-scale")
 var lunBgOpacity = (window.localStorage && localStorage.getItem("spkmod-bg-opacity")) || "glass";
 var lunAccentColor = (window.localStorage && localStorage.getItem("spkmod-accent-color")) || "#ffd54a";
 var lunHudBackground = (window.localStorage && localStorage.getItem("spkmod-hud-bg")) || "none";
+
+function toggleStatsModal() {
+	if (!lunHudElements.statsModal) return;
+	const isClosed = lunHudElements.statsModal.classList.contains("hidden");
+	if (isClosed) {
+		positionModalNicely(lunHudElements.statsModal);
+		lunHudElements.statsModal.classList.remove("hidden");
+		if (!lunPumpkinStatus) {
+			fetchPumpkinStatus();
+		}
+		updateStatsModalLive();
+	} else {
+		lunHudElements.statsModal.classList.add("hidden");
+	}
+}
+
+function resetSessionStats() {
+	window._lunSessionStartTime = Date.now();
+	if (typeof gameState !== 'undefined' && gameState?.myStat?.exp !== undefined) {
+		window._lunSessionStartExp = gameState.myStat.exp;
+	}
+	lunSessionStartGold = lunLastGold;
+	lunSessionStartElif = lunLastElif;
+	resetExpTracker();
+	if (typeof chatLog === 'function') {
+		chatLog(t("statsResetConfirm"));
+	}
+	updateStatsModalLive();
+}
+
+function updateStatsModalLive() {
+	if (!lunHudElements.statsModal || lunHudElements.statsModal.classList.contains("hidden")) return;
+
+	if (statsModalElements.headerTitle) setText(statsModalElements.headerTitle, "⏱️ " + t("statsHeader"));
+	if (statsModalElements.sessionTimeLabel) setText(statsModalElements.sessionTimeLabel, "⏱️ " + t("statsSessionTime"));
+	if (statsModalElements.pingLabel) setText(statsModalElements.pingLabel, "📶 " + t("statsPing"));
+	if (statsModalElements.dailyResetLabel) setText(statsModalElements.dailyResetLabel, "🌅 " + t("statsDailyReset"));
+	if (statsModalElements.pumpkinLabel) setText(statsModalElements.pumpkinLabel, "🎃 " + t("statsPumpkinPlays"));
+	if (statsModalElements.expGainedLabel) setText(statsModalElements.expGainedLabel, "⭐ " + t("statsExpGained"));
+	if (statsModalElements.expRateLabel) setText(statsModalElements.expRateLabel, "📈 " + t("statsExpPerHour"));
+	if (statsModalElements.timeToLevelLabel) setText(statsModalElements.timeToLevelLabel, "⏳ " + t("statsTimeToNextLevel"));
+	if (statsModalElements.currencyLabel) setText(statsModalElements.currencyLabel, "💰 " + t("statsCurrency"));
+	if (statsModalElements.goldGainedLabel) setText(statsModalElements.goldGainedLabel, "🪙 " + t("statsGoldGained"));
+	if (statsModalElements.elifGainedLabel) setText(statsModalElements.elifGainedLabel, "💎 " + t("statsElifGained"));
+	if (statsModalElements.resetBtn) setText(statsModalElements.resetBtn, "🔄 " + t("statsResetBtn"));
+
+	// 1. Session Duration
+	if (!window._lunSessionStartTime) {
+		window._lunSessionStartTime = Date.now();
+	}
+	const elapsedMs = Math.max(0, Date.now() - window._lunSessionStartTime);
+	const totalSec = Math.floor(elapsedMs / 1000);
+	const sHours = Math.floor(totalSec / 3600);
+	const sMins = Math.floor((totalSec % 3600) / 60);
+	const sSecs = totalSec % 60;
+	const timeStr = `${sHours.toString().padStart(2, '0')}:${sMins.toString().padStart(2, '0')}:${sSecs.toString().padStart(2, '0')}`;
+	if (statsModalElements.sessionTimeVal) {
+		setText(statsModalElements.sessionTimeVal, timeStr);
+	}
+
+	// 2. Ping & FPS
+	if (statsModalElements.pingVal) {
+		const ping = typeof lunCurrentPing !== 'undefined' ? lunCurrentPing : "--";
+		const pingNum = Number(ping);
+		let pingColor = "#4ade80";
+		if (isNaN(pingNum)) {
+			pingColor = "#aaa";
+		} else if (pingNum > 250) {
+			pingColor = "#f87171";
+		} else if (pingNum > 130) {
+			pingColor = "#fbbf24";
+		}
+		statsModalElements.pingVal.innerText = `${ping} ms`;
+		statsModalElements.pingVal.style.color = pingColor;
+	}
+	if (statsModalElements.fpsVal) {
+		statsModalElements.fpsVal.innerText = `${typeof lunCurrentFps !== 'undefined' ? lunCurrentFps : "--"} FPS`;
+	}
+
+	// 3. Daily Reset Countdown
+	if (statsModalElements.dailyResetVal) {
+		const nowUtc = new Date();
+		const kstOffset = 9 * 60 * 60 * 1000;
+		const kstNow = new Date(nowUtc.getTime() + kstOffset);
+		const kstNextMidnight = new Date(kstNow);
+		kstNextMidnight.setUTCHours(24, 0, 0, 0);
+		const diffMs = Math.max(0, kstNextMidnight.getTime() - kstNow.getTime());
+		const diffTotalSeconds = Math.floor(diffMs / 1000);
+		const hours = Math.floor(diffTotalSeconds / 3600);
+		const minutes = Math.floor((diffTotalSeconds % 3600) / 60);
+		const seconds = diffTotalSeconds % 60;
+		statsModalElements.dailyResetVal.innerText = `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+	}
+
+	// 4. Pumpkin Plays
+	if (statsModalElements.pumpkinVal) {
+		if (lunPumpkinStatus) {
+			if (lunPumpkinStatus.isActive) {
+				const remaining = lunPumpkinStatus.remainingPlaysToday ?? 0;
+				const cap = lunPumpkinStatus.dailyCapPlays ?? 10;
+				statsModalElements.pumpkinVal.innerText = `${remaining} / ${cap}`;
+				statsModalElements.pumpkinVal.style.color = remaining > 0 ? "#4ade80" : "#f87171";
+			} else {
+				statsModalElements.pumpkinVal.innerText = t("pumpkinTrackerInactive");
+				statsModalElements.pumpkinVal.style.color = "#aaa";
+			}
+		} else {
+			statsModalElements.pumpkinVal.innerText = "-- / --";
+			statsModalElements.pumpkinVal.style.color = "#aaa";
+		}
+	}
+
+	// 3. Level & EXP
+	const myStat = (typeof gameState !== 'undefined' && gameState?.myStat) ? gameState.myStat : null;
+	const currentExp = myStat?.exp ?? 0;
+	const maxExp = myStat?.maxExp ?? 1;
+	const currentLevel = myStat?.level ?? 1;
+
+	if (window._lunSessionStartExp === undefined || window._lunSessionStartExp === null) {
+		if (currentExp > 0) window._lunSessionStartExp = currentExp;
+	}
+
+	const expPct = Math.min(100, Math.max(0, (currentExp / maxExp) * 100));
+	if (statsModalElements.levelProgressVal) {
+		statsModalElements.levelProgressVal.innerText = `Lv. ${currentLevel} (${expPct.toFixed(1)}%)`;
+	}
+	if (statsModalElements.levelExpNumbers) {
+		statsModalElements.levelExpNumbers.innerText = `${currentExp.toLocaleString()} / ${maxExp.toLocaleString()}`;
+	}
+	if (statsModalElements.levelProgressBar) {
+		statsModalElements.levelProgressBar.style.width = `${expPct.toFixed(1)}%`;
+	}
+
+	// EXP Gained this session
+	const startExp = window._lunSessionStartExp ?? currentExp;
+	const expGained = Math.max(0, currentExp - startExp);
+	if (statsModalElements.expGainedVal) {
+		statsModalElements.expGainedVal.innerText = `+${expGained.toLocaleString()} EXP`;
+	}
+
+	// EXP / Hour Rate
+	const hoursElapsed = elapsedMs / 3600000;
+	const expSpeedPerHour = (typeof lunExpTrackerSpeed !== 'undefined' && lunExpTrackerSpeed > 0)
+		? (lunExpTrackerSpeed * 3600)
+		: (hoursElapsed > 0 ? (expGained / hoursElapsed) : 0);
+	if (statsModalElements.expRateVal) {
+		statsModalElements.expRateVal.innerText = `${Math.round(expSpeedPerHour).toLocaleString()} / hr`;
+	}
+
+	// Time to Next Level
+	if (statsModalElements.timeToLevelVal) {
+		if (expSpeedPerHour > 0) {
+			const expNeeded = Math.max(0, maxExp - currentExp);
+			const hoursNeeded = expNeeded / expSpeedPerHour;
+			if (hoursNeeded < 1) {
+				const mins = Math.max(1, Math.round(hoursNeeded * 60));
+				statsModalElements.timeToLevelVal.innerText = `~${mins} min`;
+			} else {
+				statsModalElements.timeToLevelVal.innerText = `~${hoursNeeded.toFixed(1)} hrs`;
+			}
+		} else {
+			statsModalElements.timeToLevelVal.innerText = t("nextLevelNA");
+		}
+	}
+
+	// 4. Currency: Balances & Gains
+	const curGold = lunLastGold ?? 0;
+	const curElif = lunLastElif ?? 0;
+	if (statsModalElements.currencyBalancesVal) {
+		statsModalElements.currencyBalancesVal.innerText = `🪙 ${curGold.toLocaleString()}  |  💎 ${curElif.toLocaleString()}`;
+	}
+
+	// Gold gained
+	if (lunSessionStartGold === null && lunLastGold !== null) {
+		lunSessionStartGold = lunLastGold;
+	}
+	const goldDiff = lunSessionStartGold !== null ? (curGold - lunSessionStartGold) : 0;
+	const goldPerHour = hoursElapsed > 0 ? (goldDiff / hoursElapsed).toFixed(0) : 0;
+	const goldPrefix = goldDiff >= 0 ? "+" : "";
+	let gphFormatted = Number(goldPerHour).toLocaleString();
+	if (Math.abs(goldPerHour) >= 1000) {
+		gphFormatted = (goldPerHour / 1000).toFixed(1).replace(/\.0$/, '') + "k";
+	}
+	if (statsModalElements.goldGainedVal) {
+		statsModalElements.goldGainedVal.innerText = `${goldPrefix}${goldDiff.toLocaleString()} (${goldPrefix}${gphFormatted} / hr)`;
+		statsModalElements.goldGainedVal.style.color = goldDiff >= 0 ? "#ffd54a" : "#f87171";
+	}
+
+	// Elif gained
+	if (lunSessionStartElif === null && lunLastElif !== null) {
+		lunSessionStartElif = lunLastElif;
+	}
+	const elifDiff = lunSessionStartElif !== null ? (curElif - lunSessionStartElif) : 0;
+	const elifPerHour = hoursElapsed > 0 ? (elifDiff / hoursElapsed).toFixed(1) : "0";
+	const elifPrefix = elifDiff >= 0 ? "+" : "";
+	if (statsModalElements.elifGainedVal) {
+		statsModalElements.elifGainedVal.innerText = `${elifPrefix}${elifDiff.toLocaleString()} (${elifPrefix}${elifPerHour} / hr)`;
+		statsModalElements.elifGainedVal.style.color = elifDiff >= 0 ? "#67e8f9" : "#f87171";
+	}
+}
 
 function updateDynamicStyles() {
 	let bgRule = "rgba(0, 0, 0, 0.75)";
@@ -1258,9 +1968,9 @@ function updateDynamicStyles() {
 			--spkmod-blur: ${blurRule};
 			--spkmod-accent: ${lunAccentColor};
 		}
-		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
+		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-stats-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
-		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
+		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-stats-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
 			background: var(--spkmod-bg) !important;
 			backdrop-filter: var(--spkmod-blur) !important;
 			border-color: var(--spkmod-accent) !important;
@@ -1277,17 +1987,6 @@ function updateDynamicStyles() {
 	`;
 	if (!document.getElementById("spkmod-dynamic-styles")) {
 		document.head.appendChild(styleTag);
-	}
-	
-	if (typeof lunHudElements !== 'undefined' && lunHudElements.settingsModal && !lunHudElements.settingsModal.classList.contains("hidden")) {
-		setTimeout(() => {
-			let hud = document.querySelector("#spkmod-hud");
-			if (hud) {
-				let rect = hud.getBoundingClientRect();
-				lunHudElements.settingsModal.style.left = (rect.right + 10) + "px";
-				lunHudElements.settingsModal.style.top = rect.top + "px";
-			}
-		}, 10);
 	}
 }
 
@@ -1437,15 +2136,46 @@ document.head.appendChild(buildElement(
 			flex-direction: column;
 			position: fixed;
 			z-index: 600000;
-			min-width: 220px;
-			max-height: 90vh;
+			width: 480px;
+			max-width: 95vw;
+			max-height: 85vh;
 			overflow-y: auto;
 			color: #FFF;
 			background: #000C;
 			border: ${spkmodBorderWidth} solid #DDD;
 			border-radius: 8px;
+			padding: 10px;
+			gap: 8px;
+			cursor: move;
+			user-select: none;
+		}
+		.spkmod-settings-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 10px;
+		}
+		@media (max-width: 500px) {
+			.spkmod-settings-grid {
+				grid-template-columns: 1fr;
+			}
+		}
+		.spkmod-settings-col {
+			display: flex;
+			flex-direction: column;
+			gap: 5px;
+			background: rgba(255, 255, 255, 0.03);
+			border: 1px solid rgba(255, 255, 255, 0.08);
+			border-radius: 6px;
 			padding: 8px;
-			gap: 6px;
+		}
+		.spkmod-settings-section-title {
+			color: #ffd54a;
+			font-size: 11px;
+			font-weight: bold;
+			border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+			padding-bottom: 4px;
+			margin-bottom: 2px;
+			user-select: none;
 		}
 		#spkmod-settings-close {
 			cursor: pointer;
@@ -1536,7 +2266,7 @@ document.head.appendChild(buildElement(
 			border-radius: 8px;
 			padding: 6px;
 		}
-		#spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal {
+		#spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-stats-modal {
 			display: flex;
 			flex-direction: column;
 			position: fixed;
@@ -1567,6 +2297,18 @@ document.head.appendChild(buildElement(
 		#spkmod-event-modal {
 			width: 290px;
 			max-width: 95vw;
+		}
+		#spkmod-patchnotes-modal {
+			width: 380px;
+			max-width: 95vw;
+		}
+		#spkmod-stats-modal {
+			width: 240px;
+			max-width: 95vw;
+			padding: 8px;
+			gap: 6px;
+			cursor: move;
+			user-select: none;
 		}
 		.spkmod-binding-row {
 			display: flex;
@@ -1599,16 +2341,18 @@ document.head.appendChild(buildElement(
 			to { opacity: 1.0; transform: scale(1.02); }
 		}
 		/* honest to god forgot CSS is stupid like that */
-		.hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden {
+		.hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden, #spkmod-stats-modal.hidden {
 			display: none !important;
 		}
 		body.spkmod-ui-hidden #spkmod-hud,
 		body.spkmod-ui-hidden #spkmod-pq,
 		body.spkmod-ui-hidden #spkmod-settings-modal,
 		body.spkmod-ui-hidden #spkmod-event-modal,
+		body.spkmod-ui-hidden #spkmod-patchnotes-modal,
 		body.spkmod-ui-hidden #spkmod-gamepad-modal,
 		body.spkmod-ui-hidden #spkmod-players-modal,
 		body.spkmod-ui-hidden #spkmod-map-modal,
+		body.spkmod-ui-hidden #spkmod-stats-modal,
 		body.spkmod-ui-hidden #spkmod-translate-picker {
 			display: none !important;
 		}
@@ -1692,7 +2436,8 @@ document.body.appendChild(
 				innerText: t("channelTrackerError", "N/A")
 			}),
 			lunHudElements.currencyTracker = buildElement("span", {
-				innerText: t("currencyTracker", "--", "--")
+				innerText: t("currencyTracker", "--", "--"),
+				style: lunCurrencyTrackerEnabled ? "" : "display: none;"
 			}),
 			lunHudElements.sessionGoldTracker = buildElement("span", {
 				innerText: t("sessionGoldText", "--", "--"),
@@ -1761,23 +2506,6 @@ document.body.appendChild(
 				})
 			]),
 			buildElement("div", { className: "spkmod-panel-cat" }, [
-				lunPanelElements.chowayoBtn = buildElement("button", {
-					id: "spkmod-autochowayo-btn",
-					className: "spkmod-panel-btn",
-					innerText: t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"),
-					value: "",
-					onclick: e => {
-						window.AutoChowayoActive = !window.AutoChowayoActive;
-						if (window.AutoChowayoActive) {
-							chatLog(t("autoChowayoActivatedMsg") || "Auto Chowayo activated!");
-							autoChowayoLoop();
-						} else {
-							chatLog(t("autoChowayoDeactivatedMsg") || "Auto Chowayo deactivated.");
-							clearTimeout(window.__autoChowayoTimeoutId);
-						}
-						setText(e.target, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
-					}
-				}),
 				lunPanelElements.heartsBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
 					innerText: t("hearts"),
@@ -1835,6 +2563,8 @@ document.body.appendChild(
 						
 						if (window.ShakeActive) {
 							window.SuperShakeActive = false;
+							window.HyperShakeActive = false;
+							if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 							window.BeyBladeActive = false;
 							window.MoonwalkActive = false;
 							window.ReverseBeyBladeActive = false;
@@ -1860,6 +2590,8 @@ document.body.appendChild(
 
 						if (window.SuperShakeActive) {
 							window.ShakeActive = false;
+							window.HyperShakeActive = false;
+							if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 							window.BeyBladeActive = false;
 							window.MoonwalkActive = false;
 							window.ReverseBeyBladeActive = false;
@@ -1890,6 +2622,8 @@ document.body.appendChild(
 							window.BeyBladeActive = false;
 							window.ShakeActive = false;
 							window.SuperShakeActive = false;
+							window.HyperShakeActive = false;
+							if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 							window.ReverseBeyBladeActive = false;
 							if (gameState.playerContainer) {
 								window.moonwalkLockedYaw = gameState.playerContainer.rotation.y;
@@ -1949,6 +2683,9 @@ document.body.appendChild(
 						updateBeyBladeButtonText();
 						if (window.BeyBladeActive) {
 							window.ShakeActive = false;
+							window.SuperShakeActive = false;
+							window.HyperShakeActive = false;
+							if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 							window.MoonwalkActive = false;
 							window.ReverseBeyBladeActive = false;
 							if (typeof updateReverseBeyBladeButtonText === "function") updateReverseBeyBladeButtonText(); 
@@ -1983,6 +2720,9 @@ document.body.appendChild(
 						if (window.ReverseBeyBladeActive) {
 							window.BeyBladeActive = false;
 							window.ShakeActive = false;
+							window.SuperShakeActive = false;
+							window.HyperShakeActive = false;
+							if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 							window.MoonwalkActive = false;
 							updateBeyBladeButtonText();
 							chatLog(t("reversebeybladeActivatedMsg", window.BeyBladeSpeed || 1));
@@ -2093,7 +2833,23 @@ document.body.appendChild(
 						}
 					}
 				}),
-
+				lunPanelElements.chowayoBtn = buildElement("button", {
+					id: "spkmod-autochowayo-btn",
+					className: "spkmod-panel-btn",
+					innerText: t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"),
+					value: "",
+					onclick: e => {
+						window.AutoChowayoActive = !window.AutoChowayoActive;
+						if (window.AutoChowayoActive) {
+							chatLog(t("autoChowayoActivatedMsg") || "Auto Chowayo activated!");
+							autoChowayoLoop();
+						} else {
+							chatLog(t("autoChowayoDeactivatedMsg") || "Auto Chowayo deactivated.");
+							clearTimeout(window.__autoChowayoTimeoutId);
+						}
+						setText(e.target, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
+					}
+				})
 			]),
 
 			lunPanelElements.resetCameraBtn = buildElement("button", {
@@ -2102,6 +2858,7 @@ document.body.appendChild(
 				value: "",
 				onclick: _ => {
 					watchPlayer();
+					stopStare();
 				}
 			}),
 			buildElement("div", { className: "spkmod-panel-cat", id: "spkmod-camera-modes-cat" }, [
@@ -2140,6 +2897,43 @@ document.body.appendChild(
 								lunViewClip = false;
 								if (lunPanelElements.viewClipBtn) setText(lunPanelElements.viewClipBtn, t("viewClipOff"));
 							}
+						}
+					}
+				}),
+				lunPanelElements.hyperShakeBtn = buildElement("button", {
+					id: "spkmod-hypershake-main-btn",
+					className: "spkmod-panel-btn",
+					innerText: window.HyperShakeActive ? t("hyperShakeOn") : t("hyperShakeOff"),
+					value: "",
+					onclick: e => {
+						window.HyperShakeActive = !window.HyperShakeActive;
+
+						if (window.HyperShakeActive) {
+							window.ShakeActive = false;
+							window.SuperShakeActive = false;
+							window.BeyBladeActive = false;
+							window.MoonwalkActive = false;
+							window.ReverseBeyBladeActive = false;
+							if (window.vibrateTimer) clearInterval(window.vibrateTimer);
+							window.vibrateTimer = setInterval(() => {
+								if (!gameState || !gameState.playerContainer) return;
+								const base = gameState.cameraController?.cameraYaw || 0;
+								gameState.playerContainer.rotation.y = base + (Math.random() - 0.5) * 1.5;
+								gameState.moveSendAccumulator = 1;
+							}, 25);
+							updateMovementButtonsUI();
+							chatLog(t("hyperShakeActivatedMsg"));
+						} else {
+							if (window.vibrateTimer) {
+								clearInterval(window.vibrateTimer);
+								window.vibrateTimer = null;
+							}
+							updateMovementButtonsUI();
+							if (gameState.playerContainer && gameState.cameraController) {
+								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
+								gameState.moveSendAccumulator = 1;
+							}
+							chatLog(t("hyperShakeDeactivatedMsg"));
 						}
 					}
 				}),
@@ -2221,15 +3015,15 @@ document.body.appendChild(
 					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "⚙️",
 					title: "Settings",
-					onclick: _ => {
-						const rect = document.querySelector("#spkmod-hud").getBoundingClientRect();
-						lunHudElements.settingsModal.style.left = (rect.right + 10) + "px";
-						lunHudElements.settingsModal.style.top = rect.top + "px";
-						if (lunHudElements.settingsModal.classList.contains("hidden")) {
-							updateHudBgDropdown();
-						}
-						lunHudElements.settingsModal.classList.toggle("hidden");
-					}
+					onclick: _ => toggleSettingsModal()
+				}),
+				lunPanelElements.patchNotesBtn = buildElement("button", {
+					id: "spkmod-patchnotes-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					innerText: "📰",
+					title: t("patchNotesBtnTooltip"),
+					onclick: _ => togglePatchNotesModal()
 				}),
 				lunPanelElements.eventBtn = buildElement("button", {
 					id: "spkmod-event-btn",
@@ -2246,6 +3040,14 @@ document.body.appendChild(
 					innerText: "🗺️",
 					title: "World Map",
 					onclick: _ => toggleMapModal()
+				}),
+				lunPanelElements.statsBtn = buildElement("button", {
+					id: "spkmod-stats-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					innerText: "⏱️",
+					title: t("statsBtnTooltip"),
+					onclick: _ => toggleStatsModal()
 				}),
 				lunPanelElements.dragBtn = buildElement("button", {
 					id: "spkmod-drag-btn",
@@ -2297,192 +3099,236 @@ document.body.appendChild(
 				}
 			})
 		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.filterToggleLabel = buildElement("span", {
-				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
-				innerText: t("filterToggleLabel")
-			}),
-			lunPanelElements.filterToggleInput = buildElement("input", {
-				type: "checkbox",
-				checked: lunFilterEnabled,
-				onchange: e => {
-					setFilterEnabled(e.target.checked);
-				}
-			})
-		]),
+		buildElement("div", { className: "spkmod-settings-grid" }, [
+			// Column 1: Chat & Gameplay
+			buildElement("div", { className: "spkmod-settings-col" }, [
+				lunPanelElements.settingsCatGeneral = buildElement("span", {
+					className: "spkmod-settings-section-title",
+					innerText: "💬 " + t("settingsCatGeneral")
+				}),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.filterToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("filterToggleLabel")
+					}),
+					lunPanelElements.filterToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunFilterEnabled,
+						onchange: e => {
+							setFilterEnabled(e.target.checked);
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.gmChatToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("gmChatToggleLabel")
+					}),
+					lunPanelElements.gmChatToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunGmChatHighlightEnabled,
+						onchange: e => {
+							setGmChatHighlightEnabled(e.target.checked);
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.mentionAlertToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("mentionAlertToggleLabel")
+					}),
+					lunPanelElements.mentionAlertToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunMentionAlertEnabled,
+						onchange: e => {
+							setMentionAlertEnabled(e.target.checked);
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.hideKnownBotsLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("hideKnownBotsToggleLabel")
+					}),
+					lunPanelElements.hideKnownBotsToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunHideKnownBotsEnabled,
+						onchange: e => setHideKnownBotsEnabled(e.target.checked)
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.chatTimestampLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("chatTimestampToggleLabel") }),
+					lunPanelElements.chatTimestampToggleInput = buildElement("input", { type: "checkbox", checked: lunChatTimestampsEnabled, onchange: e => setChatTimestampsEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.translateToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("translateToggleLabel")
+					}),
+					lunPanelElements.translateTargetSelect = buildElement("select", {
+						className: "spkmod-panel-combo",
+						value: lunTranslateTarget,
+						onchange: e => setTranslateTarget(e.target.value)
+					}, ["en", "ja", "ko", "zh-CN", "es", "fr", "de", "pt", "ru"].map(code => buildElement("option", {
+						value: code,
+						innerText: code,
+						selected: code === lunTranslateTarget
+					}))),
+					lunPanelElements.translateToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunTranslateEnabled,
+						onchange: e => setTranslateEnabled(e.target.checked)
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat", style: "gap: 4px;" }, [
+					buildElement("span", {
+						innerText: "ⓘ",
+						style: "color: #aaa; font-size: 11px; cursor: pointer; flex: 0;",
+						onclick: _ => lunPanelElements.translateEmailInfo.classList.toggle("hidden")
+					}),
+					lunPanelElements.translateEmailInput = buildElement("input", {
+						type: "email",
+						placeholder: t("translateEmailPlaceholder"),
+						value: lunTranslateEmail,
+						style: "flex: 1; font-size: 11px; min-width: 0;",
+						onchange: e => setTranslateEmail(e.target.value)
+					})
+				]),
+				lunPanelElements.translateEmailInfo = buildElement("div", {
+					className: "hidden",
+					style: "color: #aaa; font-size: 10px; line-height: 1.4; padding: 2px 4px 6px;",
+					innerText: t("translateEmailTooltip")
+				}),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.outgoingTranslateLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("outgoingTranslateLabel")
+					}),
+					lunPanelElements.outgoingTranslateSelect = buildElement("select", {
+						className: "spkmod-panel-combo",
+						value: lunOutgoingSourceLang,
+						onchange: e => setOutgoingSourceLang(e.target.value)
+					}, [
+						{ value: "auto", label: t("outgoingTranslateAuto") },
+						{ value: "en", label: "English" },
+						{ value: "ja", label: "日本語" },
+						{ value: "ko", label: "한국어" },
+						{ value: "zh-TW", label: "繁體中文" },
+						{ value: "zh-CN", label: "简体中文" },
+						{ value: "es", label: "Español" },
+						{ value: "fr", label: "Français" },
+						{ value: "de", label: "Deutsch" },
+						{ value: "pt", label: "Português" },
+						{ value: "ru", label: "Русский" }
+					].map(item => buildElement("option", {
+						value: item.value,
+						innerText: item.label,
+						selected: item.value === lunOutgoingSourceLang
+					})))
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.fpPitchLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("firstPersonPitchLabel") }),
+					buildElement("input", { type: "range", min: "0.2", max: "0.7", step: "0.01", value: lunFirstPersonPitch, style: "width: 70px;", oninput: e => { 
+						lunFirstPersonPitch = parseFloat(e.target.value); 
+						if (window.localStorage) localStorage.setItem("spkmod-fp-pitch", lunFirstPersonPitch); 
+					}})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.lowHpLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("lowHpWarningToggleLabel") }),
+					lunPanelElements.lowHpToggleInput = buildElement("input", { type: "checkbox", checked: lunLowHpWarningEnabled, onchange: e => setLowHpWarningEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.gamepadRumbleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("gamepadRumbleToggleLabel") }),
+					lunPanelElements.gamepadRumbleToggleInput = buildElement("input", { type: "checkbox", checked: lunGamepadRumbleEnabled, onchange: e => setGamepadRumbleEnabled(e.target.checked) })
+				])
+			]),
 
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.gmChatToggleLabel = buildElement("span", {
-				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
-				innerText: t("gmChatToggleLabel")
-			}),
-			lunPanelElements.gmChatToggleInput = buildElement("input", {
-				type: "checkbox",
-				checked: lunGmChatHighlightEnabled,
-				onchange: e => {
-					setGmChatHighlightEnabled(e.target.checked);
-				}
-			})
-		]),
-
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.mentionAlertToggleLabel = buildElement("span", {
-				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
-				innerText: t("mentionAlertToggleLabel")
-			}),
-			lunPanelElements.mentionAlertToggleInput = buildElement("input", {
-				type: "checkbox",
-				checked: lunMentionAlertEnabled,
-				onchange: e => {
-					setMentionAlertEnabled(e.target.checked);
-				}
-			})
-		]),
-
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.hideKnownBotsLabel = buildElement("span", {
-				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
-				innerText: t("hideKnownBotsToggleLabel")
-			}),
-			lunPanelElements.hideKnownBotsToggleInput = buildElement("input", {
-				type: "checkbox",
-				checked: lunHideKnownBotsEnabled,
-				onchange: e => setHideKnownBotsEnabled(e.target.checked)
-			})
-		]),
-
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.translateToggleLabel = buildElement("span", {
-				style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
-				innerText: t("translateToggleLabel")
-			}),
-			lunPanelElements.translateTargetSelect = buildElement("select", {
-				className: "spkmod-panel-combo",
-				value: lunTranslateTarget,
-				onchange: e => setTranslateTarget(e.target.value)
-			}, ["en", "ja", "ko", "zh-CN", "es", "fr", "de", "pt", "ru"].map(code => buildElement("option", {
-				value: code,
-				innerText: code,
-				selected: code === lunTranslateTarget
-			}))),
-			lunPanelElements.translateToggleInput = buildElement("input", {
-				type: "checkbox",
-				checked: lunTranslateEnabled,
-				onchange: e => setTranslateEnabled(e.target.checked)
-			})
-		]),
-		buildElement("div", { className: "spkmod-panel-cat", style: "gap: 4px;" }, [
-			buildElement("span", {
-				innerText: "ⓘ",
-				style: "color: #aaa; font-size: 11px; cursor: pointer; flex: 0;",
-				onclick: _ => lunPanelElements.translateEmailInfo.classList.toggle("hidden")
-			}),
-			lunPanelElements.translateEmailInput = buildElement("input", {
-				type: "email",
-				placeholder: t("translateEmailPlaceholder"),
-				value: lunTranslateEmail,
-				style: "flex: 1; font-size: 11px; min-width: 0;",
-				onchange: e => setTranslateEmail(e.target.value)
-			})
-		]),
-		lunPanelElements.translateEmailInfo = buildElement("div", {
-			className: "hidden",
-			style: "color: #aaa; font-size: 10px; line-height: 1.4; padding: 2px 4px 6px;",
-			innerText: t("translateEmailTooltip")
-		}),
-
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.chatTimestampLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("chatTimestampToggleLabel") }),
-			lunPanelElements.chatTimestampToggleInput = buildElement("input", { type: "checkbox", checked: lunChatTimestampsEnabled, onchange: e => setChatTimestampsEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat", style: "border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px; margin-top: 5px;" }, [
-			lunPanelElements.fpPitchLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("firstPersonPitchLabel") }),
-			buildElement("input", { type: "range", min: "0.2", max: "0.7", step: "0.01", value: lunFirstPersonPitch, style: "width: 70px;", oninput: e => { 
-				lunFirstPersonPitch = parseFloat(e.target.value); 
-				if (window.localStorage) localStorage.setItem("spkmod-fp-pitch", lunFirstPersonPitch); 
-			}})
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.lowHpLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("lowHpWarningToggleLabel") }),
-			lunPanelElements.lowHpToggleInput = buildElement("input", { type: "checkbox", checked: lunLowHpWarningEnabled, onchange: e => setLowHpWarningEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.sessionGoldLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("sessionGoldToggleLabel") }),
-			lunPanelElements.sessionGoldToggleInput = buildElement("input", { type: "checkbox", checked: lunSessionGoldTrackerEnabled, onchange: e => setSessionGoldTrackerEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.expRateUnitLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("expRateUnitToggleLabel") }),
-			buildElement("input", { type: "checkbox", checked: lunExpRatePerHour, onchange: e => setExpRatePerHour(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.expRateIntervalLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("expRateIntervalLabel") }),
-			lunPanelElements.expRateIntervalSelect = buildElement("select", { className: "spkmod-panel-combo", value: String(lunExpIntervalMinutes), onchange: e => setExpIntervalMinutes(e.target.value) },
-				LUN_EXP_INTERVAL_OPTIONS.map(minutes => buildElement("option", { value: String(minutes), innerText: t("expRateIntervalOption", minutes), selected: minutes === lunExpIntervalMinutes }))
-			)
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.fpsPingLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("fpsPingToggleLabel") }),
-			lunPanelElements.fpsPingToggleInput = buildElement("input", { type: "checkbox", checked: lunFpsPingEnabled, onchange: e => setFpsPingEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.resetTimerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("resetTimerToggleLabel") }),
-			lunPanelElements.resetTimerToggleInput = buildElement("input", { type: "checkbox", checked: lunResetTimerEnabled, onchange: e => setResetTimerEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.pumpkinTrackerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("pumpkinTrackerToggleLabel") }),
-			lunPanelElements.pumpkinTrackerToggleInput = buildElement("input", { type: "checkbox", checked: lunPumpkinTrackerEnabled, onchange: e => setPumpkinTrackerEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.gamepadRumbleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("gamepadRumbleToggleLabel") }),
-			lunPanelElements.gamepadRumbleToggleInput = buildElement("input", { type: "checkbox", checked: lunGamepadRumbleEnabled, onchange: e => setGamepadRumbleEnabled(e.target.checked) })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px;" }, [
-			lunPanelElements.uiScaleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("uiScaleLabel") }),
-			lunPanelElements.uiScaleSlider = buildElement("input", { type: "range", min: "0.8", max: "1.3", step: "0.05", value: lunUiScale, style: "width: 70px;", onchange: e => { lunUiScale = e.target.value; updateDynamicStyles(); } })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.bgOpacityLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("bgOpacityLabel") }),
-			lunPanelElements.bgOpacitySelect = buildElement("select", { className: "spkmod-panel-combo", value: lunBgOpacity, onchange: e => { lunBgOpacity = e.target.value; updateDynamicStyles(); } }, [
-				buildElement("option", { value: "solid", innerText: t("bgOpacitySolid"), selected: lunBgOpacity === "solid" }),
-				buildElement("option", { value: "transparent", innerText: t("bgOpacityTransparent"), selected: lunBgOpacity === "transparent" }),
-				buildElement("option", { value: "superTransparent", innerText: t("bgOpacitySuperTransparent") || "Super Transparent", selected: lunBgOpacity === "superTransparent" }),
-				buildElement("option", { value: "glass", innerText: t("bgOpacityGlass"), selected: lunBgOpacity === "glass" }),
-				buildElement("option", { value: "lightGlass", innerText: t("bgOpacityLightGlass") || "Light Glass", selected: lunBgOpacity === "lightGlass" }),
-				buildElement("option", { value: "heavyGlass", innerText: t("bgOpacityHeavyGlass") || "Heavy Glass", selected: lunBgOpacity === "heavyGlass" })
+			// Column 2: HUD & Appearance
+			buildElement("div", { className: "spkmod-settings-col" }, [
+				lunPanelElements.settingsCatHUD = buildElement("span", {
+					className: "spkmod-settings-section-title",
+					innerText: "📊 " + t("settingsCatHUD")
+				}),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.currencyTrackerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("currencyTrackerToggleLabel") }),
+					lunPanelElements.currencyTrackerToggleInput = buildElement("input", { type: "checkbox", checked: lunCurrencyTrackerEnabled, onchange: e => setCurrencyTrackerEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.sessionGoldLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("sessionGoldToggleLabel") }),
+					lunPanelElements.sessionGoldToggleInput = buildElement("input", { type: "checkbox", checked: lunSessionGoldTrackerEnabled, onchange: e => setSessionGoldTrackerEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.fpsPingLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("fpsPingToggleLabel") }),
+					lunPanelElements.fpsPingToggleInput = buildElement("input", { type: "checkbox", checked: lunFpsPingEnabled, onchange: e => setFpsPingEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.resetTimerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("resetTimerToggleLabel") }),
+					lunPanelElements.resetTimerToggleInput = buildElement("input", { type: "checkbox", checked: lunResetTimerEnabled, onchange: e => setResetTimerEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.pumpkinTrackerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("pumpkinTrackerToggleLabel") }),
+					lunPanelElements.pumpkinTrackerToggleInput = buildElement("input", { type: "checkbox", checked: lunPumpkinTrackerEnabled, onchange: e => setPumpkinTrackerEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.expRateUnitLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("expRateUnitToggleLabel") }),
+					buildElement("input", { type: "checkbox", checked: lunExpRatePerHour, onchange: e => setExpRatePerHour(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.expRateIntervalLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("expRateIntervalLabel") }),
+					lunPanelElements.expRateIntervalSelect = buildElement("select", { className: "spkmod-panel-combo", value: String(lunExpIntervalMinutes), onchange: e => setExpIntervalMinutes(e.target.value) },
+						LUN_EXP_INTERVAL_OPTIONS.map(minutes => buildElement("option", { value: String(minutes), innerText: t("expRateIntervalOption", minutes), selected: minutes === lunExpIntervalMinutes }))
+					)
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.uiScaleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("uiScaleLabel") }),
+					lunPanelElements.uiScaleSlider = buildElement("input", { type: "range", min: "0.8", max: "1.3", step: "0.05", value: lunUiScale, style: "width: 70px;", onchange: e => { lunUiScale = e.target.value; updateDynamicStyles(); } })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.bgOpacityLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("bgOpacityLabel") }),
+					lunPanelElements.bgOpacitySelect = buildElement("select", { className: "spkmod-panel-combo", value: lunBgOpacity, onchange: e => { lunBgOpacity = e.target.value; updateDynamicStyles(); } }, [
+						buildElement("option", { value: "solid", innerText: t("bgOpacitySolid"), selected: lunBgOpacity === "solid" }),
+						buildElement("option", { value: "transparent", innerText: t("bgOpacityTransparent"), selected: lunBgOpacity === "transparent" }),
+						buildElement("option", { value: "superTransparent", innerText: t("bgOpacitySuperTransparent") || "Super Transparent", selected: lunBgOpacity === "superTransparent" }),
+						buildElement("option", { value: "glass", innerText: t("bgOpacityGlass"), selected: lunBgOpacity === "glass" }),
+						buildElement("option", { value: "lightGlass", innerText: t("bgOpacityLightGlass") || "Light Glass", selected: lunBgOpacity === "lightGlass" }),
+						buildElement("option", { value: "heavyGlass", innerText: t("bgOpacityHeavyGlass") || "Heavy Glass", selected: lunBgOpacity === "heavyGlass" })
+					])
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.hudBgLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("hudBackgroundLabel") }),
+					lunPanelElements.hudBgSelect = buildElement("select", { className: "spkmod-panel-combo", value: lunHudBackground, onchange: e => { 
+						lunHudBackground = e.target.value; 
+						if (lunPanelElements.customBgContainer) {
+							if (lunHudBackground === "custom") lunPanelElements.customBgContainer.classList.remove("hidden");
+							else lunPanelElements.customBgContainer.classList.add("hidden");
+						}
+						updateDynamicStyles(); 
+					} })
+				]),
+				lunPanelElements.customBgContainer = buildElement("div", { 
+					className: "spkmod-panel-cat" + (lunHudBackground === "custom" ? "" : " hidden"),
+					style: "margin-top: 2px;"
+				}, [
+					buildElement("span", { style: "color: #aaa; font-size: 10px; flex: 1;", innerText: "URL:" }),
+					lunPanelElements.customBgInput = buildElement("input", { 
+						type: "text", 
+						value: (window.localStorage && localStorage.getItem("spkmod-custom-hud-bg")) || "",
+						style: "width: 100px; background: #222; color: #fff; border: 1px solid #444; border-radius: 3px; font-size: 10px; padding: 2px;",
+						oninput: e => {
+							if (window.localStorage) localStorage.setItem("spkmod-custom-hud-bg", e.target.value);
+							updateDynamicStyles();
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.accentColorLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("accentColorLabel") }),
+					lunPanelElements.accentColorInput = buildElement("input", { type: "color", value: lunAccentColor, style: "width: 40px; height: 20px; padding: 0; border: none; background: none; cursor: pointer;", onchange: e => { lunAccentColor = e.target.value; updateDynamicStyles(); } }),
+					buildElement("button", { className: "spkmod-panel-btn", style: "padding: 0px 4px; font-size: 10px; margin-left: 4px;", innerText: "OK", onclick: () => { lunAccentColor = lunPanelElements.accentColorInput.value; updateDynamicStyles(); } })
+				])
 			])
 		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.hudBgLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("hudBackgroundLabel") }),
-			lunPanelElements.hudBgSelect = buildElement("select", { className: "spkmod-panel-combo", value: lunHudBackground, onchange: e => { 
-				lunHudBackground = e.target.value; 
-				if (lunPanelElements.customBgContainer) {
-					if (lunHudBackground === "custom") lunPanelElements.customBgContainer.classList.remove("hidden");
-					else lunPanelElements.customBgContainer.classList.add("hidden");
-				}
-				updateDynamicStyles(); 
-			} })
-		]),
-		lunPanelElements.customBgContainer = buildElement("div", { 
-			className: "spkmod-panel-cat" + (lunHudBackground === "custom" ? "" : " hidden"),
-			style: "margin-top: 2px;"
-		}, [
-			buildElement("span", { style: "color: #aaa; font-size: 10px; flex: 1;", innerText: "URL:" }),
-			lunPanelElements.customBgInput = buildElement("input", { 
-				type: "text", 
-				value: (window.localStorage && localStorage.getItem("spkmod-custom-hud-bg")) || "",
-				style: "width: 100px; background: #222; color: #fff; border: 1px solid #444; border-radius: 3px; font-size: 10px; padding: 2px;",
-				oninput: e => {
-					if (window.localStorage) localStorage.setItem("spkmod-custom-hud-bg", e.target.value);
-					updateDynamicStyles();
-				}
-			})
-		]),
-		buildElement("div", { className: "spkmod-panel-cat" }, [
-			lunPanelElements.accentColorLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("accentColorLabel") }),
-			lunPanelElements.accentColorInput = buildElement("input", { type: "color", value: lunAccentColor, style: "width: 40px; height: 20px; padding: 0; border: none; background: none; cursor: pointer;", onchange: e => { lunAccentColor = e.target.value; updateDynamicStyles(); } }),
-			buildElement("button", { className: "spkmod-panel-btn", style: "padding: 0px 4px; font-size: 10px; margin-left: 4px;", innerText: "OK", onclick: () => { lunAccentColor = lunPanelElements.accentColorInput.value; updateDynamicStyles(); } })
-		]),
-		buildElement("div", { className: "spkmod-panel-cat", style: "gap: 4px; margin-top: 5px;" }, [
+
+		buildElement("div", { className: "spkmod-panel-cat", style: "gap: 4px; margin-top: 4px;" }, [
 			lunPanelElements.exportSettingsBtn = buildElement("button", { className: "spkmod-panel-btn", style: "flex: 1;", innerText: t("exportSettingsBtn"), onclick: () => {
 				const keys = Object.keys(localStorage).filter(k => k.startsWith("spkmod-"));
 				const exportData = {};
@@ -2531,7 +3377,7 @@ document.body.appendChild(
 		]),
 
 		lunPanelElements.creditsLabel = buildElement("div", {
-			style: "color: #aaa; font-size: 10px; margin-top: 6px; white-space: pre-wrap; line-height: 1.4; border-top: 1px solid #555; padding-top: 6px; user-select: none; cursor: pointer;",
+			style: "color: #aaa; font-size: 10px; margin-top: 4px; white-space: pre-wrap; line-height: 1.4; border-top: 1px solid #555; padding-top: 4px; user-select: none; cursor: pointer;",
 			innerText: t("credits"),
 			onclick: _ => {
 				const now = Date.now();
@@ -2559,7 +3405,12 @@ document.body.appendChild(
 		})
 
 	])
-)
+);
+setTimeout(() => {
+	if (typeof makeDraggable === 'function' && lunHudElements.settingsModal) {
+		makeDraggable(lunHudElements.settingsModal, [lunHudElements.settingsModal]);
+	}
+}, 500);
 
 const lunJumpAnimMs = 700; // approx. duration of the Jump emote animation
 
@@ -2649,7 +3500,7 @@ function triggerPetSequence() {
 window.RitualState = 0; // 0: off, 1: normal, 2: inverted
 let ritualCenter = null;
 let ritualEmoteTick = 0;
-const RITUAL_RADIUS = 1.1; // Sized closely to one player's perimeter
+const RITUAL_RADIUS = 1.4; // Clearance to prevent colliding/vibrating against center player
 
 function toggleRitual(btn) {
 	window.RitualState = (window.RitualState + 1) % 3;
@@ -2868,6 +3719,8 @@ function executeGamepadAction(actionName) {
 			if (window.BeyBladeActive) {
 				window.ShakeActive = false;
 				window.SuperShakeActive = false;
+				window.HyperShakeActive = false;
+				if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 				window.MoonwalkActive = false;
 				window.ReverseBeyBladeActive = false;
 				chatLog(t("beybladeActivatedMsg", window.BeyBladeSpeed || 1));
@@ -2881,6 +3734,8 @@ function executeGamepadAction(actionName) {
 			if (window.ReverseBeyBladeActive) {
 				window.ShakeActive = false;
 				window.SuperShakeActive = false;
+				window.HyperShakeActive = false;
+				if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 				window.MoonwalkActive = false;
 				window.BeyBladeActive = false;
 				chatLog(t("reversebeybladeActivatedMsg", window.BeyBladeSpeed || 1));
@@ -2904,6 +3759,8 @@ function executeGamepadAction(actionName) {
 				window.BeyBladeActive = false;
 				window.ShakeActive = false;
 				window.SuperShakeActive = false;
+				window.HyperShakeActive = false;
+				if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 				window.ReverseBeyBladeActive = false;
 				if (gameState.playerContainer) {
 					window.moonwalkLockedYaw = gameState.playerContainer.rotation.y;
@@ -2943,6 +3800,7 @@ function executeGamepadAction(actionName) {
 			break;
 		case "resetCamera":
 			watchPlayer();
+			stopStare();
 			break;
 		case "zoomIn":
 			if (gameState.cameraController) {
@@ -2960,12 +3818,7 @@ function executeGamepadAction(actionName) {
 			if (window.AutoJumpActive) { autoJumpLoop(); } else { clearTimeout(window.__autoJumpTimeoutId); }
 			break;
 		case "toggleSettings":
-			if (lunHudElements.settingsModal) {
-				if (lunHudElements.settingsModal.classList.contains("hidden")) {
-					updateHudBgDropdown();
-				}
-				lunHudElements.settingsModal.classList.toggle("hidden");
-			}
+			toggleSettingsModal();
 			break;
 	}
 }
@@ -3175,6 +4028,7 @@ function updateMapLoop() {
 
 document.body.appendChild(
 	mapModalElements.modalWindow = buildElement("div", {
+		id: "spkmod-map-modal",
 		style: "display: none; position: absolute; top: 20px; left: calc(100vw - 1060px); background: rgba(20, 20, 25, 0.95); border: 1px solid #444; border-radius: 8px; padding: 20px; color: white; flex-direction: column; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 10001;"
 	}, [
 		mapModalElements.titleLabel = buildElement("div", { style: "font-size: 18px; font-weight: bold; margin-bottom: 15px; cursor: move; width: 100%; text-align: center; user-select: none;", innerText: "World Map" }),
@@ -3246,6 +4100,128 @@ document.body.appendChild(
 setTimeout(() => {
 	if (typeof makeDraggable === 'function' && lunHudElements.eventModal && eventModalElements.headerTitle) {
 		makeDraggable(lunHudElements.eventModal, [eventModalElements.headerTitle]);
+	}
+}, 500);
+
+document.body.appendChild(
+	lunHudElements.patchNotesModal = buildElement("div", {
+		id: "spkmod-patchnotes-modal",
+		className: "hidden"
+	}, [
+		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
+			patchNotesModalElements.headerTitle = buildElement("span", {
+				innerText: "📰 " + t("patchNotesHeader"),
+				style: "font-weight: bold; font-size: 12px; cursor: move; user-select: none;"
+			}),
+			buildElement("span", {
+				id: "spkmod-patchnotes-close",
+				innerText: "✕",
+				style: "cursor: pointer; padding: 0 4px;",
+				onclick: _ => lunHudElements.patchNotesModal.classList.add("hidden")
+			})
+		]),
+		patchNotesModalElements.contentContainer = buildElement("div", {
+			style: "display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; padding-right: 2px;"
+		})
+	])
+);
+setTimeout(() => {
+	if (typeof makeDraggable === 'function' && lunHudElements.patchNotesModal && patchNotesModalElements.headerTitle) {
+		makeDraggable(lunHudElements.patchNotesModal, [patchNotesModalElements.headerTitle]);
+	}
+}, 500);
+
+document.body.appendChild(
+	lunHudElements.statsModal = buildElement("div", {
+		id: "spkmod-stats-modal",
+		className: "hidden"
+	}, [
+		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between; align-items: center;" }, [
+			statsModalElements.headerTitle = buildElement("span", {
+				innerText: "⏱️ " + t("statsHeader"),
+				style: "font-weight: bold; font-size: 11px; cursor: move; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+			}),
+			buildElement("span", {
+				id: "spkmod-stats-close",
+				innerText: "✕",
+				style: "cursor: pointer; padding: 0 4px; font-size: 12px; line-height: 1;",
+				onclick: _ => lunHudElements.statsModal.classList.add("hidden")
+			})
+		]),
+		buildElement("div", {
+			style: "display: flex; flex-direction: column; gap: 6px; font-size: 11px; padding: 1px;"
+		}, [
+			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 5px 8px; display: flex; flex-direction: column; gap: 4px;" }, [
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.sessionTimeLabel = buildElement("span", { style: "color: #aaa;", innerText: "⏱️ " + t("statsSessionTime") }),
+					statsModalElements.sessionTimeVal = buildElement("span", { style: "font-weight: bold; font-family: monospace; font-size: 11.5px; color: #ffd54a;", innerText: "00:00:00" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.pingLabel = buildElement("span", { style: "color: #aaa;", innerText: "📶 " + t("statsPing") }),
+					buildElement("div", { style: "display: flex; gap: 6px; align-items: baseline;" }, [
+						statsModalElements.pingVal = buildElement("span", { style: "font-weight: bold; font-size: 11px;", innerText: "-- ms" }),
+						statsModalElements.fpsVal = buildElement("span", { style: "color: #888; font-size: 10px;", innerText: "-- FPS" })
+					])
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.dailyResetLabel = buildElement("span", { style: "color: #aaa;", innerText: "🌅 " + t("statsDailyReset") }),
+					statsModalElements.dailyResetVal = buildElement("span", { style: "font-weight: bold; font-family: monospace; font-size: 11px; color: #67e8f9;", innerText: "--:--:--" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.pumpkinLabel = buildElement("span", { style: "color: #aaa;", innerText: "🎃 " + t("statsPumpkinPlays") }),
+					statsModalElements.pumpkinVal = buildElement("span", { style: "font-weight: bold; color: #f97316;", innerText: "-- / --" })
+				])
+			]),
+
+			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 5px 8px; display: flex; flex-direction: column; gap: 4px;" }, [
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: baseline; gap: 4px;" }, [
+					statsModalElements.levelProgressVal = buildElement("span", { style: "font-weight: bold; color: #67e8f9; font-size: 11px; white-space: nowrap;", innerText: "Lv. -- (0%)" }),
+					statsModalElements.levelExpNumbers = buildElement("span", { style: "font-size: 9.5px; color: #888; white-space: nowrap; font-family: monospace;", innerText: "0 / 0" })
+				]),
+				buildElement("div", { style: "width: 100%; height: 5px; background: rgba(0,0,0,0.5); border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); margin: 1px 0;" }, [
+					statsModalElements.levelProgressBar = buildElement("div", { style: "height: 100%; width: 0%; background: linear-gradient(90deg, #06b6d4, #3b82f6); border-radius: 3px; transition: width 0.3s;" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.expGainedLabel = buildElement("span", { style: "color: #aaa;", innerText: "⭐ " + t("statsExpGained") }),
+					statsModalElements.expGainedVal = buildElement("span", { style: "font-weight: bold; color: #4ade80;", innerText: "+0 EXP" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.expRateLabel = buildElement("span", { style: "color: #aaa;", innerText: "📈 " + t("statsExpPerHour") }),
+					statsModalElements.expRateVal = buildElement("span", { style: "font-weight: bold; color: #ffd54a;", innerText: "0 / hr" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.timeToLevelLabel = buildElement("span", { style: "color: #aaa;", innerText: "⏳ " + t("statsTimeToNextLevel") }),
+					statsModalElements.timeToLevelVal = buildElement("span", { style: "font-weight: bold;", innerText: "N/A" })
+				])
+			]),
+
+			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 5px 8px; display: flex; flex-direction: column; gap: 4px;" }, [
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.currencyLabel = buildElement("span", { style: "color: #aaa;", innerText: "💰 " + t("statsCurrency") }),
+					statsModalElements.currencyBalancesVal = buildElement("span", { style: "font-weight: bold;", innerText: "🪙 0  |  💎 0" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.goldGainedLabel = buildElement("span", { style: "color: #aaa;", innerText: "🪙 " + t("statsGoldGained") }),
+					statsModalElements.goldGainedVal = buildElement("span", { style: "font-weight: bold; color: #ffd54a;", innerText: "+0 (+0 / hr)" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.elifGainedLabel = buildElement("span", { style: "color: #aaa;", innerText: "💎 " + t("statsElifGained") }),
+					statsModalElements.elifGainedVal = buildElement("span", { style: "font-weight: bold; color: #67e8f9;", innerText: "+0 (+0 / hr)" })
+				])
+			]),
+
+			statsModalElements.resetBtn = buildElement("button", {
+				innerText: "🔄 " + t("statsResetBtn"),
+				className: "spkmod-panel-btn",
+				style: "margin-top: 2px; padding: 5px; cursor: pointer; font-size: 11px; font-weight: bold; width: 100%; text-align: center; border-radius: 4px; border: 1px solid #555;",
+				onclick: () => resetSessionStats()
+			})
+		])
+	])
+);
+setTimeout(() => {
+	if (typeof makeDraggable === 'function' && lunHudElements.statsModal) {
+		makeDraggable(lunHudElements.statsModal, [lunHudElements.statsModal]);
 	}
 }, 500);
 setTimeout(() => { if (typeof makeDraggable === 'function') makeDraggable(mapModalElements.modalWindow, [mapModalElements.titleLabel]); }, 1000);
@@ -3835,30 +4811,76 @@ function maybeTranslateChatMessage(id, name, msg) {
 	});
 }	
 
-function observeNextChatNode(matchText, callback) {
-	if (!matchText || !matchText.trim()) return;
-	const chatLogEl = document.querySelector(".sr-chatbox__log");
-	if (!chatLogEl) return;
+let lunChatObserver = null;
+let lunChatObserverTarget = null;
+const lunPendingChatCallbacks = [];
 
-	let timeoutId;
-	const observer = new MutationObserver(mutations => {
+function ensureChatObserver() {
+	const chatLogEl = document.querySelector(".sr-chatbox__log");
+	if (!chatLogEl) return null;
+
+	if (lunChatObserver && lunChatObserverTarget === chatLogEl) {
+		return chatLogEl;
+	}
+
+	if (lunChatObserver) {
+		lunChatObserver.disconnect();
+	}
+
+	lunChatObserverTarget = chatLogEl;
+	lunChatObserver = new MutationObserver(mutations => {
+		if (lunPendingChatCallbacks.length === 0) return;
+		const now = Date.now();
+
 		for (const mutation of mutations) {
 			for (const node of mutation.addedNodes) {
 				if (node.nodeType !== 1) continue;
 				const bodyText = node.classList?.contains("sr-chatbox__body-text")
 					? node
 					: node.querySelector?.(".sr-chatbox__body-text");
-				if (bodyText && bodyText.textContent && bodyText.textContent.includes(matchText)) {
-					clearTimeout(timeoutId);
-					callback(bodyText, node);
-					observer.disconnect();
-					return;
+				if (!bodyText || !bodyText.textContent) continue;
+
+				const text = bodyText.textContent;
+				for (let i = 0; i < lunPendingChatCallbacks.length; i++) {
+					const item = lunPendingChatCallbacks[i];
+					if (text.includes(item.matchText)) {
+						item.callback(bodyText, node);
+						lunPendingChatCallbacks.splice(i, 1);
+						i--;
+						break;
+					}
 				}
 			}
 		}
+
+		for (let i = lunPendingChatCallbacks.length - 1; i >= 0; i--) {
+			if (lunPendingChatCallbacks[i].expire < now) {
+				lunPendingChatCallbacks.splice(i, 1);
+			}
+		}
 	});
-	observer.observe(chatLogEl, { childList: true, subtree: true });
-	timeoutId = setTimeout(() => observer.disconnect(), 500);
+
+	lunChatObserver.observe(chatLogEl, { childList: true, subtree: true });
+	return chatLogEl;
+}
+
+function observeNextChatNode(matchText, callback) {
+	if (!matchText || !matchText.trim()) return;
+	const chatLogEl = ensureChatObserver();
+	if (!chatLogEl) return;
+
+	const now = Date.now();
+	for (let i = lunPendingChatCallbacks.length - 1; i >= 0; i--) {
+		if (lunPendingChatCallbacks[i].expire < now) {
+			lunPendingChatCallbacks.splice(i, 1);
+		}
+	}
+
+	lunPendingChatCallbacks.push({
+		matchText,
+		callback,
+		expire: now + 2000
+	});
 }
 
 function chatLog(msg) {
@@ -3880,8 +4902,107 @@ function watchPlayer(name) {
 		chatLog(t("watchFollowingSelfMsg"));
 	}
 
-	lunPanelElements.resetCameraBtn.classList.add("hidden");
+	if (!window._stareActive) {
+		lunPanelElements.resetCameraBtn.classList.add("hidden");
+	}
 	gameState.cameraController.target = gameState.playerContainer;
+}
+
+// === Smooth Stare Lock ===
+function stareAtPlayer(targetName) {
+	if (!targetName) {
+		stopStare();
+		return;
+	}
+	if (window._stareAnim) {
+		cancelAnimationFrame(window._stareAnim);
+		window._stareAnim = null;
+	}
+	if (window._stareNetSync) {
+		clearInterval(window._stareNetSync);
+		window._stareNetSync = null;
+	}
+	
+	window._stareActive = true;
+	window._stareTargetName = targetName;
+	let currentAngle = gameState?.playerContainer?.rotation?.y || 0;
+	
+	function updateStare() {
+		if (!window._stareActive) {
+			if (window._stareAnim) {
+				cancelAnimationFrame(window._stareAnim);
+				window._stareAnim = null;
+			}
+			return;
+		}
+
+		if (gameState?.remotePlayers?.remotePlayers && gameState?.playerContainer) {
+			const players = Array.from(gameState.remotePlayers.remotePlayers.values());
+			const target = players.find(p => p.info?.name?.toLowerCase() === targetName.toLowerCase());
+
+			if (target && target.container) {
+				const pp = gameState.playerContainer.position;
+				const tp = target.container.position;
+				
+				// Calculate target angle
+				const targetAngle = Math.atan2(tp.x - pp.x, tp.z - pp.z);
+				
+				// Shortest angular distance to prevent 360-degree spin flips
+				let diff = (targetAngle - currentAngle) % (2 * Math.PI);
+				if (diff < -Math.PI) diff += 2 * Math.PI;
+				if (diff > Math.PI) diff -= 2 * Math.PI;
+
+				// Smooth interpolation (0.35 = snappy & responsive)
+				currentAngle += diff * 0.35;
+
+				// Force player container rotation every render frame
+				gameState.playerContainer.rotation.y = currentAngle;
+			}
+		}
+		window._stareAnim = requestAnimationFrame(updateStare);
+	}
+
+	// Start render loop
+	window._stareAnim = requestAnimationFrame(updateStare);
+
+	// Sync to network at a clean ~20 packets/sec (every 50ms)
+	window._stareNetSync = setInterval(() => {
+		if (window._stareActive && gameState) {
+			gameState.moveSendAccumulator = 1;
+		}
+	}, 50);
+
+	if (lunPanelElements.resetCameraBtn) {
+		lunPanelElements.resetCameraBtn.classList.remove("hidden");
+	}
+
+	console.log(`%c[SpeakiMod] Smooth Stare Lock active on: "${targetName}"`, "color: #4CAF50; font-weight: bold;");
+	chatLog(t("stareActivatedMsg", targetName));
+}
+
+function stopStare() {
+	if (window._stareAnim) {
+		cancelAnimationFrame(window._stareAnim);
+		window._stareAnim = null;
+	}
+	if (window._stareNetSync) {
+		clearInterval(window._stareNetSync);
+		window._stareNetSync = null;
+	}
+	if (!window._stareActive) return;
+	window._stareActive = false;
+	window._stareTargetName = null;
+	if (gameState && gameState.playerContainer && gameState.cameraController) {
+		gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
+		gameState.moveSendAccumulator = 1;
+	}
+	if (!gameState?.cameraController?.target || gameState.cameraController.target === gameState.playerContainer) {
+		if (lunPanelElements.resetCameraBtn) {
+			lunPanelElements.resetCameraBtn.classList.add("hidden");
+		}
+	}
+	console.log("%c[SpeakiMod] Stare Lock stopped.", "color: #f44336; font-weight: bold;");
+	chatLog(t("stareDeactivatedMsg"));
 }
 
 var hPartyTarget = document.querySelector(".sr-party-target");
@@ -3902,6 +5023,7 @@ if (hPartyTarget) {
 	hPartyTarget.insertBefore(
 		lunPanelElements.watchBtn = buildElement("button", {
 			className: "sr-btn sr-party-target__btn spkmod-watch-player-btn",
+			style: "margin-right: 4px;",
 			innerText: t("watchBtn"),
 			value: "",
 			onclick: e => {
@@ -3910,8 +5032,20 @@ if (hPartyTarget) {
 		}),
 		hPartyTarget.querySelector(".sr-party-target__close")
 	);
+	hPartyTarget.insertBefore(
+		lunPanelElements.stareBtn = buildElement("button", {
+			className: "sr-btn sr-party-target__btn spkmod-watch-player-btn",
+			innerText: t("stareBtn"),
+			value: "",
+			onclick: e => {
+				const name = e.target.parentElement.querySelector(".sr-party-target__name")?.innerText;
+				stareAtPlayer(name);
+			}
+		}),
+		hPartyTarget.querySelector(".sr-party-target__close")
+	);
 } else {
-	console.warn("[SpeakiMod+] Couldn't find party target element. Watch/Follow will be available through chat commands.");
+	console.warn("[SpeakiMod+] Couldn't find party target element. Watch/Follow/Stare will be available through chat commands.");
 }
 
 function updateMovementButtonsUI() {
@@ -3920,6 +5054,9 @@ function updateMovementButtonsUI() {
 
 	const superShakeBtn = document.querySelector("#spkmod-supershake-main-btn");
 	if (superShakeBtn) setText(superShakeBtn, window.SuperShakeActive ? t("superShakeOn") : t("superShakeOff"));
+
+	const hyperShakeBtn = document.querySelector("#spkmod-hypershake-main-btn");
+	if (hyperShakeBtn) setText(hyperShakeBtn, window.HyperShakeActive ? t("hyperShakeOn") : t("hyperShakeOff"));
 
 	const moonwalkBtn = document.querySelector("#spkmod-moonwalk-main-btn");
 	if (moonwalkBtn) setText(moonwalkBtn, window.MoonwalkActive ? t("moonwalkOn") : t("moonwalkOff"));
@@ -3967,6 +5104,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.walkToPortalBtn, lunWalkToPortal == -1 ? t("goTo") : t("stopWalking"));
 	setText(lunPanelElements.watchBtn, t("watchBtn"));
 	setText(lunPanelElements.followBtn, t("followBtn"));
+	setText(lunPanelElements.stareBtn, t("stareBtn"));
 	if (lunPanelElements.panelFollowBtn) setText(lunPanelElements.panelFollowBtn, lunFollowTargetName ? t("stopFollowing") : t("follow"));
 	setText(lunPanelElements.gamepadSettingsBtn, t("gamepadBtn"));
 	setText(lunPanelElements.pinnedQuestHeader, t("pinnedQuestHeader"));
@@ -3993,10 +5131,19 @@ spkmodI18nRenderers.push(() => {
 		lunPanelElements.expRateIntervalSelect.value = String(lunExpIntervalMinutes);
 	}
 	if (lunPanelElements.fpsPingLabel) setText(lunPanelElements.fpsPingLabel, t("fpsPingToggleLabel"));
+	if (lunPanelElements.currencyTrackerLabel) setText(lunPanelElements.currencyTrackerLabel, t("currencyTrackerToggleLabel"));
 	if (lunPanelElements.resetTimerLabel) setText(lunPanelElements.resetTimerLabel, t("resetTimerToggleLabel"));
 	if (lunPanelElements.pumpkinTrackerLabel) setText(lunPanelElements.pumpkinTrackerLabel, t("pumpkinTrackerToggleLabel"));
+	if (lunPanelElements.settingsCatGeneral) setText(lunPanelElements.settingsCatGeneral, "💬 " + t("settingsCatGeneral"));
+	if (lunPanelElements.settingsCatHUD) setText(lunPanelElements.settingsCatHUD, "📊 " + t("settingsCatHUD"));
 	if (lunPanelElements.eventBtn) lunPanelElements.eventBtn.title = t("eventInfoBtnTooltip");
+	if (lunPanelElements.patchNotesBtn) lunPanelElements.patchNotesBtn.title = t("patchNotesBtnTooltip");
 	updatePumpkinUI();
+	if (lunPatchNotesData && lunPatchNotesTranslatedLang !== (spkmodLang === "es-419" ? "es" : spkmodLang)) {
+		translatePatchNotesToUserLang().then(() => renderPatchNotesUI());
+	} else {
+		renderPatchNotesUI();
+	}
 	if (lunPanelElements.gamepadRumbleLabel) setText(lunPanelElements.gamepadRumbleLabel, t("gamepadRumbleToggleLabel"));
 	if (lunPanelElements.uiScaleLabel) setText(lunPanelElements.uiScaleLabel, t("uiScaleLabel"));
 	if (lunPanelElements.bgOpacityLabel) setText(lunPanelElements.bgOpacityLabel, t("bgOpacityLabel"));
@@ -4029,6 +5176,10 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.translateToggleLabel) setText(lunPanelElements.translateToggleLabel, t("translateToggleLabel"));
 	if (lunPanelElements.translateEmailInput) lunPanelElements.translateEmailInput.placeholder = t("translateEmailPlaceholder");
 	if (lunPanelElements.translateEmailInfo) lunPanelElements.translateEmailInfo.innerText = t("translateEmailTooltip");
+	if (lunPanelElements.outgoingTranslateLabel) setText(lunPanelElements.outgoingTranslateLabel, t("outgoingTranslateLabel"));
+	if (lunPanelElements.outgoingTranslateSelect && lunPanelElements.outgoingTranslateSelect.options[0]) {
+		lunPanelElements.outgoingTranslateSelect.options[0].innerText = t("outgoingTranslateAuto");
+	}
 	document.querySelectorAll(".spkmod-clickable-line").forEach(node => {
 		node.title = t("clickToTranslateTooltip");
 	});
@@ -4194,6 +5345,9 @@ function tick() {
 		console.log("[SpeakiMod+] Successfully hooked chatBubbles.show!");
 	}
 	var playerExp = gameState.myStat.exp;
+	if (window._lunSessionStartExp === undefined || window._lunSessionStartExp === null) {
+		window._lunSessionStartExp = playerExp;
+	}
 	var zoneId = gameState.zoneId % 10000;
 	var windowSec = lunExpIntervalMinutes * 60;
 	var windowTicks = windowSec * lunTPS;
@@ -4343,7 +5497,10 @@ function tick() {
 
 			if (lunSessionStartGold === null) {
 				lunSessionStartGold = lunLastGold;
-				window._lunSessionStartTime = Date.now();
+				window._lunSessionStartTime = window._lunSessionStartTime || Date.now();
+			}
+			if (lunSessionStartElif === null) {
+				lunSessionStartElif = lunLastElif;
 			}
 			const diff = lunLastGold - lunSessionStartGold;
 			const hours = (Date.now() - window._lunSessionStartTime) / 3600000;
@@ -4385,7 +5542,7 @@ function tick() {
 		lunPinnedQuestNextQueryTick += lunPinnedQuestInterval;
 	}
 
-	if ((lunPumpkinTrackerEnabled || (lunHudElements.eventModal && !lunHudElements.eventModal.classList.contains("hidden"))) && lunTickCount >= lunPumpkinTrackerNextTicks) {
+	if ((lunPumpkinTrackerEnabled || (lunHudElements.eventModal && !lunHudElements.eventModal.classList.contains("hidden")) || (lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden"))) && lunTickCount >= lunPumpkinTrackerNextTicks) {
 		fetchPumpkinStatus();
 		lunPumpkinTrackerNextTicks = lunTickCount + lunPumpkinTrackerWindow;
 	}
@@ -4634,6 +5791,9 @@ gameState.trySendChat = (msg) => {
 			case "follow":
 				followPlayer(cmd[1]);
 				break;
+			case "stare":
+				stareAtPlayer(cmd[1]);
+				break;
 			case "players":
 			case "who":
 				showPlayersRadar();
@@ -4685,14 +5845,71 @@ gameState.trySendChat = (msg) => {
 		return;
 	}
 
+	if (typeof msg === "string" && msg.startsWith(".")) {
+		const match = msg.match(/^\.([a-zA-Z\-]+)(?::|\s+)(.+)$/s);
+		if (match) {
+			const prefix = match[1].toLowerCase();
+			const targetLang = lunOutgoingLangPrefixes[prefix];
+			if (targetLang) {
+				const sourceText = match[2].trim();
+				if (!sourceText) return;
+				const sourceLang = getEffectiveSourceLang(sourceText);
+				if (sourceLang === targetLang) {
+					return hkTrySendChat(sourceText);
+				}
+				translateChatText(sourceText, sourceLang, targetLang).then(translated => {
+					if (translated && translated.trim()) {
+						hkTrySendChat(translated.trim());
+					} else {
+						chatLog(t("outgoingTranslateFailed", sourceText));
+						hkTrySendChat(sourceText);
+					}
+				}).catch(err => {
+					console.warn("[SpeakiMod+] Outgoing translation error:", err);
+					chatLog(t("outgoingTranslateFailed", sourceText));
+					hkTrySendChat(sourceText);
+				});
+				return;
+			}
+		}
+	}
+
 	return hkTrySendChat(msg);
 }
 
 window.filterName = filterName;
 window.lunBadWords = lunBadWords;
 
+let lunChatScrollEl = null;
+let lunChatUserScrolledUp = false;
+
+function getChatScrollContainer() {
+	const log = document.querySelector(".sr-chatbox__log");
+	if (!log) return null;
+	if (log.scrollHeight > log.clientHeight || log.scrollTop > 0) return log;
+	if (log.parentElement && (log.parentElement.scrollHeight > log.parentElement.clientHeight || log.parentElement.scrollTop > 0)) {
+		return log.parentElement;
+	}
+	return log;
+}
+
+function updateChatScrollTracking() {
+	const el = getChatScrollContainer();
+	if (el && el !== lunChatScrollEl) {
+		lunChatScrollEl = el;
+		lunChatScrollEl.addEventListener("scroll", () => {
+			const distFromBottom = lunChatScrollEl.scrollHeight - lunChatScrollEl.scrollTop - lunChatScrollEl.clientHeight;
+			lunChatUserScrolledUp = distFromBottom > 45;
+		}, { passive: true });
+	}
+	return el;
+}
+
 var hkChatBoxAppend = gameState.chatBox.append.bind(gameState.chatBox);
 gameState.chatBox.append = (id, name, msg) => {
+	const scrollEl = updateChatScrollTracking();
+	const wasAtBottom = !lunChatUserScrolledUp && (!scrollEl || (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight <= 45));
+
 	let filteredName = filterName(name);
 	const filteredMsg = filterName(msg);
 
@@ -4717,24 +5934,53 @@ gameState.chatBox.append = (id, name, msg) => {
 					
 					if (lunChatTimestampsEnabled) {
 						const d = new Date();
-						const ts = `[${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}] `;
+						const ts = `[${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}] `;
 						currentText = ts + currentText;
 					}
 
 					senderEl.innerText = currentText;
 				}
 			}
+			if (wasAtBottom && !lunChatUserScrolledUp && scrollEl) {
+				scrollEl.scrollTop = scrollEl.scrollHeight;
+			}
 		});
 	}
 
 	const result = hkChatBoxAppend(id, filteredName, filteredMsg);
+
+	if (wasAtBottom && scrollEl) {
+		requestAnimationFrame(() => {
+			if (!lunChatUserScrolledUp && scrollEl) {
+				scrollEl.scrollTop = scrollEl.scrollHeight;
+			}
+		});
+	}
+
 	maybeTranslateChatMessage(id, name, filteredMsg); // pass original name for translate cache
 	return result;
 };
 
 function appendColoredChatLine(id, name, text) {
-	observeNextChatNode(text, (bodyText) => bodyText.classList.add("spkmod-translated-line"));
+	const scrollEl = updateChatScrollTracking();
+	const wasAtBottom = !lunChatUserScrolledUp && (!scrollEl || (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight <= 45));
+
+	observeNextChatNode(text, (bodyText) => {
+		bodyText.classList.add("spkmod-translated-line");
+		if (wasAtBottom && !lunChatUserScrolledUp && scrollEl) {
+			scrollEl.scrollTop = scrollEl.scrollHeight;
+		}
+	});
+
 	hkChatBoxAppend(id, name, text);
+
+	if (wasAtBottom && scrollEl) {
+		requestAnimationFrame(() => {
+			if (!lunChatUserScrolledUp && scrollEl) {
+				scrollEl.scrollTop = scrollEl.scrollHeight;
+			}
+		});
+	}
 }
 
 const lunTranslateSourceOptions = ["en", "ja", "ko", "zh-CN", "es", "fr", "de", "pt", "ru"];
@@ -4814,68 +6060,10 @@ if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && typeof g
 
 setInterval(tick, 50);
 
-function makeDraggable(element, handles) {
-	let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-
-	handles.forEach(handle => {
-		if (handle) {
-			handle.onmousedown = dragMouseDown;
-		}
-	});
-
-	function dragMouseDown(e) {
-		e = e || window.event;
-		e.preventDefault();
-		pos3 = e.clientX;
-		pos4 = e.clientY;
-
-		document.onmouseup = closeDragElement;
-		document.onmousemove = elementDrag;
-	}
-
-	function elementDrag(e) {
-		e = e || window.event;
-		e.preventDefault();
-
-		pos1 = pos3 - e.clientX;
-		pos2 = pos4 - e.clientY;
-		pos3 = e.clientX;
-		pos4 = e.clientY;
-
-		element.style.top = (element.offsetTop - pos2) + "px";
-		element.style.left = (element.offsetLeft - pos1) + "px";
-	}
-
-	function closeDragElement() {
-		document.onmouseup = null;
-		document.onmousemove = null;
-
-		if (window.localStorage) {
-			localStorage.setItem("spkmod-window-pos", JSON.stringify({
-				top: element.style.top,
-				left: element.style.left
-			}));
-		}
-	}
-}
-
 const hudWindow = document.getElementById("spkmod-hud");
 const dragHandle = document.getElementById("spkmod-drag-btn");
 
 if (hudWindow && dragHandle) {
-	if (window.localStorage) {
-		const savedPos = localStorage.getItem("spkmod-window-pos");
-		if (savedPos) {
-			try {
-				const parsedPos = JSON.parse(savedPos);
-				hudWindow.style.top = parsedPos.top;
-				hudWindow.style.left = parsedPos.left;
-			} catch (err) {
-				console.warn("[SpeakiMod+] Failed to load saved window position.");
-			}
-		}
-	}
-
 	const footerHandle = document.getElementById("spkmod-footer");
 	makeDraggable(hudWindow, [dragHandle, footerHandle]);
 }
@@ -4887,17 +6075,13 @@ let lunCurrentPing = "--";
 
 function fpsLoop() {
 	const now = performance.now();
-	if (lunFpsPingEnabled) {
-		lunFrameCount++;
-	}
+	lunFrameCount++;
 
 	if (now - lunLastFrameTime >= 1000) {
-		if (lunFpsPingEnabled) {
-			lunCurrentFps = lunFrameCount;
-			lunFrameCount = 0;
-			if (lunHudElements.fpsPingTracker) {
-				setText(lunHudElements.fpsPingTracker, t("fpsPingText", lunCurrentFps, lunCurrentPing));
-			}
+		lunCurrentFps = lunFrameCount;
+		lunFrameCount = 0;
+		if (lunFpsPingEnabled && lunHudElements.fpsPingTracker) {
+			setText(lunHudElements.fpsPingTracker, t("fpsPingText", lunCurrentFps, lunCurrentPing));
 		}
 
 		if (lunResetTimerEnabled && lunHudElements.resetTimerTracker) {
@@ -4916,6 +6100,10 @@ function fpsLoop() {
 				String(minutes).padStart(2, '0'),
 				String(seconds).padStart(2, '0')
 			));
+		}
+
+		if (typeof updateStatsModalLive === 'function' && lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden")) {
+			updateStatsModalLive();
 		}
 
 		lunLastFrameTime = now;
@@ -4944,6 +6132,10 @@ window.fetch = async function(...args) {
 };
 
 setTimeout(() => {
+	fetchPatchNotesOnce();
+}, 2500);
+
+setTimeout(() => {
 	fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/erpin.html")
 		.then(res => res.text())
 		.then(signature => {
@@ -4968,4 +6160,50 @@ window.addEventListener("keydown", e => {
 
 	e.preventDefault();
 	document.body.classList.toggle("spkmod-ui-hidden");
+});
+
+// Close topmost open modal with 'Escape' key
+window.addEventListener("keydown", e => {
+	if (e.key !== "Escape" && e.code !== "Escape") return;
+
+	// 1. Language translation picker
+	const picker = document.getElementById("spkmod-translate-picker");
+	if (picker) {
+		e.preventDefault();
+		picker.remove();
+		return;
+	}
+
+	// 2. World Map Modal
+	if (typeof mapModalElements !== "undefined" && mapModalElements.modalWindow && mapModalElements.modalWindow.style.display !== "none") {
+		e.preventDefault();
+		if (typeof closeMapModal === "function") {
+			closeMapModal();
+		} else {
+			mapModalElements.modalWindow.style.display = "none";
+		}
+		return;
+	}
+
+	// 3. Modals in lunHudElements (close topmost modal first based on zIndex)
+	if (typeof lunHudElements !== "undefined") {
+		const candidateModals = [
+			lunHudElements.settingsModal,
+			lunHudElements.gamepadModal,
+			lunHudElements.patchNotesModal,
+			lunHudElements.eventModal,
+			lunHudElements.statsModal
+		].filter(m => m && !m.classList.contains("hidden"));
+
+		if (candidateModals.length > 0) {
+			e.preventDefault();
+			candidateModals.sort((a, b) => {
+				const za = parseInt(a.style.zIndex || window.getComputedStyle(a).zIndex, 10) || 0;
+				const zb = parseInt(b.style.zIndex || window.getComputedStyle(b).zIndex, 10) || 0;
+				return zb - za;
+			});
+			candidateModals[0].classList.add("hidden");
+			return;
+		}
+	}
 });
