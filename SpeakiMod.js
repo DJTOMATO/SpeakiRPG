@@ -788,37 +788,49 @@ var spkmodTranslations = {
 		eventPlaysToday: "Plays Remaining: {0}/{1}",
 		eventLoading: "Loading event info...",
 		keepFriendsNametagsBtn: "Nametags: Friends Only",
-		friendChatToggleLabel: "Highlight Friends in Chat"
+		friendChatToggleLabel: "Highlight Friends in Chat",
+		uiHiddenMsg: "Mod UI hidden. Press 'P' to show.",
+		uiShownMsg: "Mod UI restored."
 	},
 	ja: {
 		settingsCatGeneral: "チャット＆ゲームプレイ",
 		settingsCatHUD: "HUD＆外観",
 		keepFriendsNametagsBtn: "ネームタグ: フレンドのみ",
-		friendChatToggleLabel: "チャットでフレンドを強調表示"
+		friendChatToggleLabel: "チャットでフレンドを強調表示",
+		uiHiddenMsg: "MODのUIを非表示にしました。「P」キーで再表示できます。",
+		uiShownMsg: "MODのUIを再表示しました。"
 	},
 	ko: {
 		settingsCatGeneral: "채팅 및 게임플레이",
 		settingsCatHUD: "HUD 및 외형",
 		keepFriendsNametagsBtn: "닉네임: 친구만",
-		friendChatToggleLabel: "채팅에서 친구 강조 색상"
+		friendChatToggleLabel: "채팅에서 친구 강조 색상",
+		uiHiddenMsg: "모드 UI 숨김. 'P' 키를 누르면 다시 표시됩니다.",
+		uiShownMsg: "모드 UI가 복원되었습니다。"
 	},
 	"zh-TW": {
 		settingsCatGeneral: "聊天與遊戲",
 		settingsCatHUD: "HUD 與外觀",
 		keepFriendsNametagsBtn: "名稱標籤：僅限好友",
-		friendChatToggleLabel: "聊天室突顯好友顏色"
+		friendChatToggleLabel: "聊天室突顯好友顏色",
+		uiHiddenMsg: "已隱藏模組介面。按「P」鍵即可重新顯示。",
+		uiShownMsg: "已恢復顯示模組介面。"
 	},
 	"es-419": {
 		settingsCatGeneral: "Chat y jugabilidad",
 		settingsCatHUD: "HUD y apariencia",
 		keepFriendsNametagsBtn: "Etiquetas: solo amigos",
-		friendChatToggleLabel: "Destacar amigos en el chat"
+		friendChatToggleLabel: "Destacar amigos en el chat",
+		uiHiddenMsg: "Interfaz del mod oculta. Presiona 'P' para mostrarla.",
+		uiShownMsg: "Interfaz del mod restaurada."
 	},
 	"zh-CN": {
 		settingsCatGeneral: "聊天与游戏",
 		settingsCatHUD: "HUD 与外观",
 		keepFriendsNametagsBtn: "名称标签：仅限好友",
-		friendChatToggleLabel: "聊天室高亮好友颜色"
+		friendChatToggleLabel: "聊天室高亮好友颜色",
+		uiHiddenMsg: "已隐藏模组界面。按「P」键即可重新显示。",
+		uiShownMsg: "已恢复显示模组界面。"
 	}
 };
 
@@ -1252,6 +1264,9 @@ function setFpsPingEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-fps-ping", lunFpsPingEnabled ? "true" : "false");
 	if (lunHudElements.fpsPingTracker) {
 		lunHudElements.fpsPingTracker.style.display = lunFpsPingEnabled ? "" : "none";
+	}
+	if (lunFpsPingEnabled && typeof performActivePing === 'function') {
+		performActivePing();
 	}
 }
 
@@ -2447,6 +2462,7 @@ document.head.appendChild(buildElement(
 	}
 ));
 
+document.body.classList.remove("spkmod-ui-hidden");
 lunHudElements.lowHpOverlay = buildElement("div", { id: "spkmod-low-hp-overlay" });
 document.body.appendChild(lunHudElements.lowHpOverlay);
 
@@ -6175,6 +6191,80 @@ let lunLastFrameTime = performance.now();
 let lunFrameCount = 0;
 let lunCurrentFps = 0;
 let lunCurrentPing = "--";
+let lunLastPingTime = 0;
+let lunPingInFlight = false;
+let lunPingBackoffUntil = 0;
+
+function updatePingMeasurement(sampleMs) {
+	if (typeof sampleMs !== 'number' || isNaN(sampleMs) || sampleMs <= 0) return;
+	const rounded = Math.round(sampleMs);
+	if (lunCurrentPing === "--") {
+		lunCurrentPing = rounded;
+	} else {
+		// Smooth ping with exponential moving average (alpha = 0.6) to avoid jitter
+		lunCurrentPing = Math.round(rounded * 0.6 + Number(lunCurrentPing) * 0.4);
+	}
+	lunLastPingTime = performance.now();
+	if (lunFpsPingEnabled && lunHudElements.fpsPingTracker) {
+		setText(lunHudElements.fpsPingTracker, t("fpsPingText", lunCurrentFps, lunCurrentPing));
+	}
+}
+
+// Hook fetch to estimate API latency for the Ping counter
+const originalFetch = window.fetch;
+window.fetch = async function(...args) {
+	const start = performance.now();
+	try {
+		const response = await originalFetch.apply(this, args);
+		if (args[0] && typeof args[0] === "string" && args[0].includes("api/")) {
+			updatePingMeasurement(performance.now() - start);
+		}
+		return response;
+	} catch (e) {
+		throw e;
+	}
+};
+
+async function performActivePing() {
+	const now = performance.now();
+	if (lunPingInFlight || now < lunPingBackoffUntil) return;
+	if (typeof document !== 'undefined' && document.hidden) return;
+
+	// Only ping if HUD tracker is enabled or Stats modal is visible
+	const isHudActive = !!(lunFpsPingEnabled && lunHudElements.fpsPingTracker && lunHudElements.fpsPingTracker.style.display !== "none");
+	const isStatsModalActive = !!(typeof lunHudElements !== 'undefined' && lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden"));
+	if (!isHudActive && !isStatsModalActive) return;
+
+	// Maintain a minimum interval of 2500ms between pings (active or natural)
+	if (now - lunLastPingTime < 2500) return;
+
+	lunPingInFlight = true;
+	const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+	const timeoutId = controller ? setTimeout(() => controller.abort(), 3000) : null;
+	const start = performance.now();
+
+	try {
+		// /api/notices/latest returns 204 No Content (0 body bytes), no auth needed, reaches sr1 game server directly
+		const res = await originalFetch("https://sr1.overture.io.kr/api/notices/latest", {
+			method: "GET",
+			cache: "no-store",
+			signal: controller ? controller.signal : undefined
+		});
+		if (timeoutId) clearTimeout(timeoutId);
+		if (res.ok || res.status === 204 || res.status === 401) {
+			updatePingMeasurement(performance.now() - start);
+		} else if (res.status >= 500) {
+			// Server error: back off for 10 seconds to avoid stressing a struggling server
+			lunPingBackoffUntil = performance.now() + 10000;
+		}
+	} catch (e) {
+		if (timeoutId) clearTimeout(timeoutId);
+		// Network error or timeout: back off for 5 seconds
+		lunPingBackoffUntil = performance.now() + 5000;
+	} finally {
+		lunPingInFlight = false;
+	}
+}
 
 function fpsLoop() {
 	const now = performance.now();
@@ -6209,30 +6299,14 @@ function fpsLoop() {
 			updateStatsModalLive();
 		}
 
+		performActivePing();
+
 		lunLastFrameTime = now;
 	}
 	
 	requestAnimationFrame(fpsLoop);
 }
 requestAnimationFrame(fpsLoop);
-
-// Hook fetch to estimate API latency for the Ping counter
-const originalFetch = window.fetch;
-window.fetch = async function(...args) {
-	const start = performance.now();
-	try {
-		const response = await originalFetch.apply(this, args);
-		if (args[0] && typeof args[0] === "string" && args[0].includes("api/")) {
-			lunCurrentPing = Math.round(performance.now() - start);
-			if (lunFpsPingEnabled && lunHudElements.fpsPingTracker) {
-				setText(lunHudElements.fpsPingTracker, t("fpsPingText", lunCurrentFps, lunCurrentPing));
-			}
-		}
-		return response;
-	} catch (e) {
-		throw e;
-	}
-};
 
 setTimeout(() => {
 	fetchPatchNotesOnce();
@@ -6262,7 +6336,8 @@ window.addEventListener("keydown", e => {
 	}
 
 	e.preventDefault();
-	document.body.classList.toggle("spkmod-ui-hidden");
+	const isHidden = document.body.classList.toggle("spkmod-ui-hidden");
+	chatLog(t(isHidden ? "uiHiddenMsg" : "uiShownMsg"));
 });
 
 // Close topmost open modal with 'Escape' key
