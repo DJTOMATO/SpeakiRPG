@@ -6191,9 +6191,10 @@ let lunLastFrameTime = performance.now();
 let lunFrameCount = 0;
 let lunCurrentFps = 0;
 let lunCurrentPing = "--";
-let lunLastPingTime = 0;
+let lunLastPingTime = performance.now() + 3000; // 3s initial delay on boot
 let lunPingInFlight = false;
 let lunPingBackoffUntil = 0;
+const LUN_PING_INTERVAL_MS = 5000; // Sample every 5 seconds
 
 function updatePingMeasurement(sampleMs) {
 	if (typeof sampleMs !== 'number' || isNaN(sampleMs) || sampleMs <= 0) return;
@@ -6235,8 +6236,8 @@ async function performActivePing() {
 	const isStatsModalActive = !!(typeof lunHudElements !== 'undefined' && lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden"));
 	if (!isHudActive && !isStatsModalActive) return;
 
-	// Maintain a minimum interval of 2500ms between pings (active or natural)
-	if (now - lunLastPingTime < 2500) return;
+	// Maintain a minimum interval of 5000ms between pings (active or natural)
+	if (now - lunLastPingTime < LUN_PING_INTERVAL_MS) return;
 
 	lunPingInFlight = true;
 	const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
