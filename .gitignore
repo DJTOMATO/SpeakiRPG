@@ -1,3 +1,25 @@
-.github/workflows/build.yml
+# Dependencies
+node_modules/
+
+# Electron & electron-builder output
+dist/
+build/
+out/
+release/
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.blockmap
+*.zip
+
+# Environment and OS
+.env
+.DS_Store
+Thumbs.db
+cors.py
+
+
+# Project-specific
 .github/tools
 /tools

@@ -107,34 +107,61 @@ async function createWindow() {
     icon: icon
   });
 
-  mainWindow.loadFile('index.html');
-  mainWindow.webContents.on('did-finish-load', () => {
-    app.on('browser-window-focus', () => {
-      globalShortcut.register('F5', () => {
-        mainWindow.reload();
-      });
-      globalShortcut.register('CommandOrControl+R', () => {
-        mainWindow.reload();
-      });
-      globalShortcut.register('CommandOrControl+Shift+D', async () => {
-        try {
-          const stats = await capturePageStats();
-          console.log('Captured page stats shortcut:', stats);
-          if (stats.playerName || stats.level || stats.exp || stats.location) {
-            await updateDiscordActivity(stats.level, stats.playerName, stats.exp, stats.location);
-          } else {
-            console.log('No player stats were found in the DOM for the manual refresh.');
-          }
-        } catch (err) {
-          console.error('Error updating RPC from page stats:', err);
+  const registerShortcuts = () => {
+    globalShortcut.register('F5', () => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.reload();
+    });
+    globalShortcut.register('CommandOrControl+R', () => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.reload();
+    });
+    globalShortcut.register('F2', () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.executeJavaScript(`
+          (function() {
+            const active = document.activeElement;
+            if (active) {
+              const tag = active.tagName ? active.tagName.toLowerCase() : "";
+              if (tag === "input" || tag === "textarea" || active.isContentEditable) {
+                return;
+              }
+            }
+            if (typeof toggleSettingsModal === "function") {
+              toggleSettingsModal();
+            }
+          })();
+        `).catch(() => {});
+      }
+    });
+    globalShortcut.register('CommandOrControl+Shift+D', async () => {
+      try {
+        const stats = await capturePageStats();
+        console.log('Captured page stats shortcut:', stats);
+        if (stats.playerName || stats.level || stats.exp || stats.location) {
+          await updateDiscordActivity(stats.level, stats.playerName, stats.exp, stats.location);
+        } else {
+          console.log('No player stats were found in the DOM for the manual refresh.');
         }
-      });
-    })
+      } catch (err) {
+        console.error('Error updating RPC from page stats:', err);
+      }
+    });
+  };
 
-    app.on('browser-window-blur', () => {
-      globalShortcut.unregisterAll()
-    })
+  mainWindow.on('focus', () => {
+    registerShortcuts();
   });
+
+  mainWindow.on('blur', () => {
+    globalShortcut.unregisterAll();
+  });
+
+  mainWindow.on('closed', () => {
+    globalShortcut.unregisterAll();
+    mainWindow = null;
+  });
+
+  registerShortcuts();
+  mainWindow.loadFile('index.html');
 }
 
 app.whenReady().then(createWindow);
