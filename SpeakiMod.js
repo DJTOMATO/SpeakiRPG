@@ -6071,19 +6071,30 @@ function hookGameStateOnce() {
 				const speed = 0.035 * stateDir;
 				const phase = partnerDanceIsClockwise ? 0 : Math.PI;
 				
+				const scale = DANCE_RADIUS * 1.5;
+				
 				// Pure parametric math for infinite smoothness. No physical position feedback (zero jitter).
 				const t_now = partnerDanceTick * speed + phase;
 				const t_next = (partnerDanceTick + 1) * speed + phase;
 				
-				const rawX_now = Math.cos(t_now) / (1 + Math.pow(Math.sin(t_now), 2));
-				const rawZ_now = (Math.sin(t_now) * Math.cos(t_now)) / (1 + Math.pow(Math.sin(t_now), 2));
+				const rawX_now = (scale * Math.cos(t_now)) / (1 + Math.pow(Math.sin(t_now), 2));
+				const rawZ_now = (scale * Math.sin(t_now) * Math.cos(t_now)) / (1 + Math.pow(Math.sin(t_now), 2));
 				
-				const rawX_next = Math.cos(t_next) / (1 + Math.pow(Math.sin(t_next), 2));
-				const rawZ_next = (Math.sin(t_next) * Math.cos(t_next)) / (1 + Math.pow(Math.sin(t_next), 2));
+				const rawX_next = (scale * Math.cos(t_next)) / (1 + Math.pow(Math.sin(t_next), 2));
+				const rawZ_next = (scale * Math.sin(t_next) * Math.cos(t_next)) / (1 + Math.pow(Math.sin(t_next), 2));
 				
-				// The normalized tangent is the exact direction they need to walk to trace the 8.
-				const tangentX = rawX_next - rawX_now;
-				const tangentZ = rawZ_next - rawZ_now;
+				// Calculate mathematical target position on the curve
+				const targetX = partnerDanceCenter.x + rawX_now;
+				const targetZ = partnerDanceCenter.z + rawZ_now;
+				
+				// The tangent is the exact direction they need to walk to trace the 8.
+				// We MUST normalize it first so it has a strong magnitude of 1.0.
+				const pureTangent = normalizeVector(rawX_next - rawX_now, rawZ_next - rawZ_now);
+				
+				// Calculate a gentle corrective vector to prevent long-term drifting
+				// Multiplied by a small factor (0.1) so it never overpowers the smooth tangent and causes jitter!
+				const correctiveX = (targetX - pp.x) * 0.1;
+				const correctiveZ = (targetZ - pp.z) * 0.1;
 				
 				if (partnerDanceTick % 40 === 0) {
 					if (partnerDanceTick % 80 === 0) {
@@ -6096,7 +6107,7 @@ function hookGameStateOnce() {
 				}
 
 				return {
-					moveDir: normalizeVector(tangentX, tangentZ),
+					moveDir: normalizeVector(pureTangent.x + correctiveX, pureTangent.z + correctiveZ),
 					castSkillId: null
 				};
 			}
