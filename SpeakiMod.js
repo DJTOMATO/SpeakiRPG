@@ -6063,7 +6063,8 @@ function hookGameStateOnce() {
 				};
 			}
 
-			if (window.PartnerDanceState > 0) {
+			if (window.PartnerDanceState > 0 && partnerDanceCenter) {
+				const pp = getPlayerPos();
 				partnerDanceTick++;
 				
 				// State 1 = Forward, State 2 = Reverse
