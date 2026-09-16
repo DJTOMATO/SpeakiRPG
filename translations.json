@@ -260,7 +260,10 @@
         "newsModalTitle": "Update & News",
         "newsCopyLinkBtn": "Copy Download Link",
         "newsCopied": "Copied!",
-        "newsDismissBtn": "Don't show again for this update"
+        "newsDismissBtn": "Don't show again for this update",
+        "speedSetMsg": "Spin speed set to {0}x",
+        "speedInvalidMsg": "Invalid speed! Choose a value between 0.1 and 2.0",
+        "speedUsageMsg": "Usage: /speed <0.1 - 2.0>"
     },
     "ja": {
         "langName": "日本語",
@@ -523,7 +526,10 @@
         "newsModalTitle": "アップデート＆お知らせ",
         "newsCopyLinkBtn": "ダウンロードリンクをコピー",
         "newsCopied": "コピー完了！",
-        "newsDismissBtn": "このアップデートについては今後表示しない"
+        "newsDismissBtn": "このアップデートについては今後表示しない",
+        "speedSetMsg": "回転速度を {0}x に設定しました",
+        "speedInvalidMsg": "無効な速度です！0.1から2.0の間の値を選択してください",
+        "speedUsageMsg": "使用方法: /speed <0.1 - 2.0>"
     },
     "ko": {
         "langName": "한국어",
@@ -786,7 +792,10 @@
         "newsModalTitle": "업데이트 및 공지",
         "newsCopyLinkBtn": "다운로드 링크 복사",
         "newsCopied": "복사됨!",
-        "newsDismissBtn": "이 업데이트에 대해 다시 표시하지 않음"
+        "newsDismissBtn": "이 업데이트에 대해 다시 표시하지 않음",
+        "speedSetMsg": "회전 속도가 {0}x로 설정되었습니다",
+        "speedInvalidMsg": "유효하지 않은 속도입니다! 0.1에서 2.0 사이의 값을 선택하세요",
+        "speedUsageMsg": "사용법: /speed <0.1 - 2.0>"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -1087,7 +1096,10 @@
         "newsModalTitle": "更新與公告",
         "newsCopyLinkBtn": "複製下載連結",
         "newsCopied": "已複製！",
-        "newsDismissBtn": "不再顯示此版本的更新提示"
+        "newsDismissBtn": "不再顯示此版本的更新提示",
+        "speedSetMsg": "旋轉速度設定為 {0}x",
+        "speedInvalidMsg": "無效的速度！請選擇介於 0.1 到 2.0 之間的值",
+        "speedUsageMsg": "用法：/speed <0.1 - 2.0>"
     },
     "es-419": {
         "langName": "Español",
@@ -1350,7 +1362,10 @@
         "newsModalTitle": "Actualización y noticias",
         "newsCopyLinkBtn": "Copiar enlace de descarga",
         "newsCopied": "¡Copiado!",
-        "newsDismissBtn": "No volver a mostrar para esta actualización"
+        "newsDismissBtn": "No volver a mostrar para esta actualización",
+        "speedSetMsg": "Velocidad de giro establecida en {0}x",
+        "speedInvalidMsg": "¡Velocidad no válida! Elija un valor entre 0.1 y 2.0",
+        "speedUsageMsg": "Uso: /speed <0.1 - 2.0>"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -1651,6 +1666,9 @@
         "newsModalTitle": "更新与公告",
         "newsCopyLinkBtn": "复制下载链接",
         "newsCopied": "已复制！",
-        "newsDismissBtn": "不再显示此版本的更新提示"
+        "newsDismissBtn": "不再显示此版本的更新提示",
+        "speedSetMsg": "旋转速度设置为 {0}x",
+        "speedInvalidMsg": "无效的速度！请选择介于 0.1 到 2.0 之间的值",
+        "speedUsageMsg": "用法：/speed <0.1 - 2.0>"
     }
 }
