@@ -3670,10 +3670,10 @@ function triggerPetSequence() {
 	}, 4300));
 }
 
-window.RitualState = 0; // 0: off, 1: normal, 2: inverted
+window.RitualState = 0;
 let ritualCenter = null;
 let ritualEmoteTick = 0;
-const RITUAL_RADIUS = 1.4; // Clearance to prevent colliding/vibrating against center player
+const RITUAL_RADIUS = 1.4;
 
 function toggleRitual(btn) {
 	window.RitualState = (window.RitualState + 1) % 3;
@@ -3702,7 +3702,7 @@ function toggleRitual(btn) {
 	}
 }
 
-window.PartnerDanceState = 0; // 0: Off, 1: 8 Dance, 2: Reverse 8
+window.PartnerDanceState = 0;
 let partnerDanceCenter = null;
 let partnerDanceTick = 0;
 let partnerDanceIsClockwise = true;
@@ -3733,8 +3733,10 @@ function togglePartnerDance(btn) {
 				partnerDanceIsClockwise = true;
 			}
 			partnerDanceTick = 0;
+			window.pd_reset = true;
 			chatLog(t("partnerDanceActivatedMsg") || "8 Dance activated!");
 		} else {
+			window.pd_reset = true;
 			chatLog(t("partnerDanceInvertedMsg") || "Reverse 8 Dance activated!");
 		}
 	} else {
@@ -6067,35 +6069,31 @@ function hookGameStateOnce() {
 				const pp = getPlayerPos();
 				partnerDanceTick++;
 				
-				// State 1 = Forward, State 2 = Reverse
 				const stateDir = window.PartnerDanceState === 1 ? 1 : -1;
-				const speed = 0.035 * stateDir;
 				const phase = partnerDanceIsClockwise ? 0 : Math.PI;
-				
 				const scale = DANCE_RADIUS * 1.5;
 				
-				// Pure parametric math for infinite smoothness. No physical position feedback (zero jitter).
-				const t_now = partnerDanceTick * speed + phase;
-				const t_next = (partnerDanceTick + 1) * speed + phase;
+				if (typeof window.pd_t === "undefined" || window.pd_reset) {
+					window.pd_t = phase;
+					window.pd_lastPos = { x: pp.x, z: pp.z };
+					window.pd_reset = false;
+				}
 				
-				const rawX_now = (scale * Math.cos(t_now)) / (1 + Math.pow(Math.sin(t_now), 2));
-				const rawZ_now = (scale * Math.sin(t_now) * Math.cos(t_now)) / (1 + Math.pow(Math.sin(t_now), 2));
+				const distMoved = Math.hypot(pp.x - window.pd_lastPos.x, pp.z - window.pd_lastPos.z);
+				window.pd_lastPos = { x: pp.x, z: pp.z };
 				
-				const rawX_next = (scale * Math.cos(t_next)) / (1 + Math.pow(Math.sin(t_next), 2));
-				const rawZ_next = (scale * Math.sin(t_next) * Math.cos(t_next)) / (1 + Math.pow(Math.sin(t_next), 2));
+				let t_advance = distMoved * 0.4;
+				if (t_advance < 0.01) t_advance = 0.01;
 				
-				// Calculate mathematical target position on the curve
-				const targetX = partnerDanceCenter.x + rawX_now;
-				const targetZ = partnerDanceCenter.z + rawZ_now;
+				window.pd_t += t_advance * stateDir;
 				
-				// The tangent is the exact direction they need to walk to trace the 8.
-				// We MUST normalize it first so it has a strong magnitude of 1.0.
-				const pureTangent = normalizeVector(rawX_next - rawX_now, rawZ_next - rawZ_now);
+				const t_target = window.pd_t + (0.8 * stateDir);
 				
-				// Calculate a gentle corrective vector to prevent long-term drifting
-				// Multiplied by a small factor (0.1) so it never overpowers the smooth tangent and causes jitter!
-				const correctiveX = (targetX - pp.x) * 0.1;
-				const correctiveZ = (targetZ - pp.z) * 0.1;
+				const rawX_target = (scale * Math.cos(t_target)) / (1 + Math.pow(Math.sin(t_target), 2));
+				const rawZ_target = (scale * Math.sin(t_target) * Math.cos(t_target)) / (1 + Math.pow(Math.sin(t_target), 2));
+				
+				const targetX = partnerDanceCenter.x + rawX_target;
+				const targetZ = partnerDanceCenter.z + rawZ_target;
 				
 				if (partnerDanceTick % 40 === 0) {
 					if (partnerDanceTick % 80 === 0) {
@@ -6108,7 +6106,7 @@ function hookGameStateOnce() {
 				}
 
 				return {
-					moveDir: normalizeVector(pureTangent.x + correctiveX, pureTangent.z + correctiveZ),
+					moveDir: normalizeVector(targetX - pp.x, targetZ - pp.z),
 					castSkillId: null
 				};
 			}
