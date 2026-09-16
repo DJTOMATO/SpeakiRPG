@@ -6059,11 +6059,15 @@ function hookGameStateOnce() {
 				const dir = partnerDanceIsClockwise ? 1 : -1;
 				
 				const scale = DANCE_RADIUS * 1.5;
-				const rawX = (scale * Math.cos(t * dir)) / (1 + Math.pow(Math.sin(t * dir), 2));
-				const rawZ = (scale * Math.sin(t * dir) * Math.cos(t * dir)) / (1 + Math.pow(Math.sin(t * dir), 2));
 				
-				const targetX = partnerDanceCenter.x + rawX;
-				const targetZ = partnerDanceCenter.z + rawZ;
+				// Calculate look-ahead point to prevent rotation jitter
+				const lookAheadTicks = 15;
+				const future_t = (partnerDanceTick + lookAheadTicks) * speed;
+				const futureRawX = (scale * Math.cos(future_t * dir)) / (1 + Math.pow(Math.sin(future_t * dir), 2));
+				const futureRawZ = (scale * Math.sin(future_t * dir) * Math.cos(future_t * dir)) / (1 + Math.pow(Math.sin(future_t * dir), 2));
+				
+				const targetX = partnerDanceCenter.x + futureRawX;
+				const targetZ = partnerDanceCenter.z + futureRawZ;
 				
 				if (partnerDanceTick % 40 === 0) {
 					if (partnerDanceTick % 80 === 0) {
