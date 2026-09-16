@@ -28,6 +28,46 @@
 if (window.speakiMod)
 	throw "Duplicate injection";
 
+const isElectronEnv = typeof window.electronAPI !== "undefined" || (typeof navigator !== "undefined" && /electron/i.test(navigator.userAgent || ""));
+if (!isElectronEnv) {
+	if (document.body) {
+		const acTranslations = {
+			en: { title: "⚠️ Unauthorized Client Detected", body: "SpeakiMod+ is designed exclusively for the SpeakiRPG Client.<br><br>To prevent cheating and server abuse, running this mod via third-party browser extensions (like Tampermonkey) is strictly prohibited.", btn: "Download SpeakiRPG Client" },
+			ko: { title: "⚠️ 비정상적인 클라이언트 감지됨", body: "SpeakiMod+는 SpeakiRPG 클라이언트 전용입니다.<br><br>부정행위 및 서버 남용을 방지하기 위해 타사 브라우저 확장 프로그램(예: Tampermonkey)을 통해 이 모드를 실행하는 것은 엄격히 금지됩니다.", btn: "SpeakiRPG 클라이언트 다운로드" },
+			ja: { title: "⚠️ 不正なクライアントを検出しました", body: "SpeakiMod+はSpeakiRPGクライアント専用です。<br><br>チート行為やサーバーの乱用を防ぐため、サードパーティのブラウザ拡張機能(Tampermonkeyなど)を使用してこのModを実行することは固く禁じられています。", btn: "SpeakiRPGクライアントをダウンロード" },
+			zh: { title: "⚠️ 偵測到未授權的客戶端", body: "SpeakiMod+ 僅限於 SpeakiRPG 客戶端使用。<br><br>為防止作弊與伺服器濫用，嚴禁透過第三方瀏覽器擴充功能（如 Tampermonkey）執行此模組。", btn: "下載 SpeakiRPG 客戶端" }
+		};
+
+		window._antiCheatSetLang = function(lang) {
+			const t = acTranslations[lang];
+			document.getElementById('ac-title').innerHTML = t.title;
+			document.getElementById('ac-body').innerHTML = t.body;
+			document.getElementById('ac-btn').innerText = t.btn;
+		};
+
+		document.body.innerHTML = `
+			<div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.98); z-index: 2147483647; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: sans-serif; text-align: center; padding: 20px;">
+				<div style="display: flex; gap: 10px; margin-bottom: 30px;">
+					<button onclick="window._antiCheatSetLang('en')" style="padding: 8px 12px; background: #334155; color: white; border: 1px solid #475569; border-radius: 6px; cursor: pointer; font-weight: bold;">English</button>
+					<button onclick="window._antiCheatSetLang('ko')" style="padding: 8px 12px; background: #334155; color: white; border: 1px solid #475569; border-radius: 6px; cursor: pointer; font-weight: bold;">한국어</button>
+					<button onclick="window._antiCheatSetLang('ja')" style="padding: 8px 12px; background: #334155; color: white; border: 1px solid #475569; border-radius: 6px; cursor: pointer; font-weight: bold;">日本語</button>
+					<button onclick="window._antiCheatSetLang('zh')" style="padding: 8px 12px; background: #334155; color: white; border: 1px solid #475569; border-radius: 6px; cursor: pointer; font-weight: bold;">中文</button>
+				</div>
+				<h1 id="ac-title" style="color: #ef4444; margin-bottom: 20px; font-size: 28px;">${acTranslations.en.title}</h1>
+				<p id="ac-body" style="font-size: 18px; max-width: 600px; line-height: 1.6; margin-bottom: 30px; color: #cbd5e1;">${acTranslations.en.body}</p>
+				
+				<a id="ac-btn" href="https://github.com/DJTOMATO/SpeakiRPG/releases" style="background: #3b82f6; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: bold; font-size: 16px; margin-bottom: 25px; transition: background 0.2s;">${acTranslations.en.btn}</a>
+				
+				<div style="background: #0f172a; padding: 12px 16px; border-radius: 8px; border: 1px solid #334155; display: flex; align-items: center; gap: 12px;">
+					<input type="text" readonly value="https://github.com/DJTOMATO/SpeakiRPG/releases" onfocus="this.select()" style="background: transparent; color: #94a3b8; border: none; width: 320px; font-size: 15px; outline: none; user-select: all;">
+					<button onclick="navigator.clipboard.writeText('https://github.com/DJTOMATO/SpeakiRPG/releases'); this.innerText='Copied!'; this.style.background='#22c55e'; setTimeout(()=> { this.innerText='Copy'; this.style.background='#475569'; }, 2000);" style="background: #475569; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: background 0.2s; width: 80px;">Copy</button>
+				</div>
+			</div>
+		`;
+	}
+	throw new Error("SpeakiMod: Blocked unauthorized third-party extension usage.");
+}
+
 window.speakiAuthToken = window.speakiAuthToken || "";
 
 window.gameState = window.gameState || undefined;
