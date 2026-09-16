@@ -3678,6 +3678,14 @@ function togglePetDance(btn) {
 			clearInterval(petDanceInterval);
 			petDanceInterval = null;
 		}
+		// Disable auto hearts when pet dance is turned off
+		if (window.AutoHeartsActive) {
+			window.AutoHeartsActive = false;
+			clearTimeout(window.__autoHeartsTimeoutId);
+			const heartsBtn = typeof lunPanelElements !== "undefined" ? lunPanelElements.autoHeartsBtn : null;
+			if (heartsBtn) setText(heartsBtn, t("autoHeartsOff") || "Auto Hearts: OFF");
+		}
+		
 		chatLog(t("petDanceDeactivatedMsg") || "Pet Dance deactivated.");
 	}
 	
@@ -5332,7 +5340,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.chowayoBtn, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
 	setText(lunPanelElements.heartsBtn, t("hearts"));
 	setText(lunPanelElements.autoHeartsBtn, t(window.AutoHeartsActive ? "autoHeartsOn" : "autoHeartsOff"));
-	// setText(lunPanelElements.petBtn, t("pet"));
+	if (lunPanelElements.petDanceBtn) setText(lunPanelElements.petDanceBtn, t(window.PetDanceActive ? "petDanceOn" : "petDanceOff") || (window.PetDanceActive ? "Pet Dance: ⏸️" : "Pet Dance: ▶️"));
 	setText(lunPanelElements.ritualBtn, t(window.RitualState === 0 ? "ritualOff" : (window.RitualState === 1 ? "ritualOn" : "ritualInverted")));
 	if (lunPanelElements.partnerDanceBtn) setText(lunPanelElements.partnerDanceBtn, t(window.PartnerDanceState === 1 ? "partnerDanceOn" : (window.PartnerDanceState === 2 ? "partnerDanceInverted" : "partnerDanceOff")) || (window.PartnerDanceState === 0 ? "8 Dance: ▶️" : (window.PartnerDanceState === 1 ? "8 Dance: ⏸️" : "Rev 8: ⏸️")));
 	setText(lunPanelElements.turntableBtn, t(window.TurntableActive ? "turntableOn" : "turntableOff"));
