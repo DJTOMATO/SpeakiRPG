@@ -54,6 +54,7 @@ if (!isElectronEnv) {
 					<button onclick="window._antiCheatSetLang('zh')" style="padding: 8px 12px; background: #334155; color: white; border: 1px solid #475569; border-radius: 6px; cursor: pointer; font-weight: bold;">中文</button>
 				</div>
 				<h1 id="ac-title" style="color: #ef4444; margin-bottom: 20px; font-size: 28px;">${acTranslations.en.title}</h1>
+				<img src="https://i.imgur.com/4Qe6qiR.png" alt="Caught!" style="width: 50%; max-width: 350px; margin-bottom: 25px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.5);">
 				<p id="ac-body" style="font-size: 18px; max-width: 600px; line-height: 1.6; margin-bottom: 30px; color: #cbd5e1;">${acTranslations.en.body}</p>
 				
 				<a id="ac-btn" href="https://github.com/DJTOMATO/SpeakiRPG/releases" style="background: #3b82f6; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: bold; font-size: 16px; margin-bottom: 25px; transition: background 0.2s;">${acTranslations.en.btn}</a>
