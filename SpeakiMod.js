@@ -3714,7 +3714,12 @@ function togglePartnerDance(btn) {
 		if (lunFollowTargetName && typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers) {
 			const tp = Array.from(gameState.remotePlayers.remotePlayers.values()).find(t => t.info && t.info.name === lunFollowTargetName);
 			if (tp && tp.container) {
-				partnerDanceCenter = tp.container.position;
+				const myPos = getPlayerPos();
+				partnerDanceCenter = {
+					x: (myPos.x + tp.container.position.x) / 2,
+					y: myPos.y,
+					z: (myPos.z + tp.container.position.z) / 2
+				};
 				
 				const myName = String(window._lunActiveCharacter || window.myPlayerName || "").toLowerCase();
 				const targetName = String(tp.info.name).toLowerCase();
@@ -3722,7 +3727,8 @@ function togglePartnerDance(btn) {
 			}
 		}
 		if (!partnerDanceCenter) {
-			partnerDanceCenter = Object.assign({}, getPlayerPos());
+			const myPos = getPlayerPos();
+			partnerDanceCenter = { x: myPos.x, y: myPos.y, z: myPos.z };
 			partnerDanceIsClockwise = true;
 		}
 		partnerDanceTick = 0;
@@ -6055,19 +6061,30 @@ function hookGameStateOnce() {
 				partnerDanceTick++;
 				
 				const speed = 0.035;
-				const t = partnerDanceTick * speed;
-				const dir = partnerDanceIsClockwise ? 1 : -1;
+				// Instead of flipping time, we shift phase by PI so they are perfectly opposite each other on the 8
+				const phase = partnerDanceIsClockwise ? 0 : Math.PI;
 				
 				const scale = DANCE_RADIUS * 1.5;
 				
-				// Calculate look-ahead point to prevent rotation jitter
-				const lookAheadTicks = 15;
-				const future_t = (partnerDanceTick + lookAheadTicks) * speed;
-				const futureRawX = (scale * Math.cos(future_t * dir)) / (1 + Math.pow(Math.sin(future_t * dir), 2));
-				const futureRawZ = (scale * Math.sin(future_t * dir) * Math.cos(future_t * dir)) / (1 + Math.pow(Math.sin(future_t * dir), 2));
+				// Calculate EXACT tangent direction using a small time step
+				const t_now = partnerDanceTick * speed + phase;
+				const t_next = (partnerDanceTick + 3) * speed + phase;
 				
-				const targetX = partnerDanceCenter.x + futureRawX;
-				const targetZ = partnerDanceCenter.z + futureRawZ;
+				const rawX_now = (scale * Math.cos(t_now)) / (1 + Math.pow(Math.sin(t_now), 2));
+				const rawZ_now = (scale * Math.sin(t_now) * Math.cos(t_now)) / (1 + Math.pow(Math.sin(t_now), 2));
+				
+				const rawX_next = (scale * Math.cos(t_next)) / (1 + Math.pow(Math.sin(t_next), 2));
+				const rawZ_next = (scale * Math.sin(t_next) * Math.cos(t_next)) / (1 + Math.pow(Math.sin(t_next), 2));
+				
+				const targetX = partnerDanceCenter.x + rawX_now;
+				const targetZ = partnerDanceCenter.z + rawZ_now;
+				
+				// Tangent direction is where the curve is pointing
+				const tangent = normalizeVector(rawX_next - rawX_now, rawZ_next - rawZ_now);
+				
+				// Corrective vector pulls the player back if they drift off the curve
+				const correctiveX = targetX - pp.x;
+				const correctiveZ = targetZ - pp.z;
 				
 				if (partnerDanceTick % 40 === 0) {
 					if (partnerDanceTick % 80 === 0) {
@@ -6080,7 +6097,7 @@ function hookGameStateOnce() {
 				}
 
 				return {
-					moveDir: normalizeVector(targetX - pp.x, targetZ - pp.z),
+					moveDir: normalizeVector(tangent.x + correctiveX * 0.8, tangent.z + correctiveZ * 0.8),
 					castSkillId: null
 				};
 			}
