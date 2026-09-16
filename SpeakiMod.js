@@ -889,6 +889,7 @@ var lunPanelElements = {
 	autoHeartsBtn: null,
 	petBtn: null,
 	ritualBtn: null,
+	partnerDanceBtn: null,
 	turntableBtn: null,
 	speedLabel: null,
 	turnToCameraBtn: null,
@@ -2602,14 +2603,14 @@ document.body.appendChild(
 				})
 			]),
 			buildElement("div", { className: "spkmod-panel-cat" }, [
-				lunPanelElements.petBtn = buildElement("button", {
+				/*lunPanelElements.petBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
 					innerText: t("pet"),
 					value: "",
 					onclick: _ => {
 						triggerPetSequence();
 					}
-				}),
+				}),*/
 				lunPanelElements.ritualBtn = buildElement("button", {
 					id: "spkmod-ritual-btn",
 					className: "spkmod-panel-btn",
@@ -2617,6 +2618,15 @@ document.body.appendChild(
 					value: "",
 					onclick: e => {
 						toggleRitual(e.target);
+					}
+				}),
+				lunPanelElements.partnerDanceBtn = buildElement("button", {
+					id: "spkmod-partner-dance-btn",
+					className: "spkmod-panel-btn",
+					innerText: t(window.PartnerDanceActive ? "partnerDanceOn" : "partnerDanceOff") || (window.PartnerDanceActive ? "8 Dance: ⏸️" : "8 Dance: ▶️"),
+					value: "",
+					onclick: e => {
+						togglePartnerDance(e.target);
 					}
 				})
 			]),
@@ -3538,7 +3548,7 @@ function autoJumpLoop() {
 	window.__autoJumpTimeoutId = setTimeout(autoJumpLoop, lunJumpAnimMs);
 }
 
-const lunHeartsAnimMs = 1200; // Debounce window is 1100ms; 1200ms guarantees no dropped packets on server/clients
+const lunHeartsAnimMs = 1100; // Debounce window is 1100ms; 1100ms pushes the limit of no dropped packets on server/clients
 
 function triggerHearts() {
 	if (gameState && gameState.bloomEffects && typeof gameState.bloomEffects.spawnHearts === "function") {
@@ -3648,6 +3658,41 @@ function toggleRitual(btn) {
 		if (window.RitualState === 1) textKey = "ritualOn";
 		if (window.RitualState === 2) textKey = "ritualInverted";
 		setText(targetBtn, t(textKey));
+	}
+}
+
+window.PartnerDanceActive = false;
+let partnerDanceCenter = null;
+let partnerDanceTick = 0;
+let partnerDanceIsClockwise = true;
+const DANCE_RADIUS = 2.0;
+
+function togglePartnerDance(btn) {
+	window.PartnerDanceActive = !window.PartnerDanceActive;
+	if (window.PartnerDanceActive) {
+		if (lunFollowTargetName && typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers) {
+			const tp = Array.from(gameState.remotePlayers.remotePlayers.values()).find(t => t.info && t.info.name === lunFollowTargetName);
+			if (tp && tp.container) {
+				partnerDanceCenter = tp.container.position;
+				
+				const myName = String(window._lunActiveCharacter || window.myPlayerName || "").toLowerCase();
+				const targetName = String(tp.info.name).toLowerCase();
+				partnerDanceIsClockwise = (myName >= targetName);
+			}
+		}
+		if (!partnerDanceCenter) {
+			partnerDanceCenter = Object.assign({}, getPlayerPos());
+			partnerDanceIsClockwise = true;
+		}
+		partnerDanceTick = 0;
+		chatLog(t("partnerDanceActivatedMsg") || "8 Dance activated!");
+	} else {
+		partnerDanceCenter = null;
+		chatLog(t("partnerDanceDeactivatedMsg") || "8 Dance deactivated.");
+	}
+	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.partnerDanceBtn);
+	if (targetBtn) {
+		setText(targetBtn, t(window.PartnerDanceActive ? "partnerDanceOn" : "partnerDanceOff") || (window.PartnerDanceActive ? "8 Dance: ⏸️" : "8 Dance: ▶️"));
 	}
 }
 
@@ -5212,8 +5257,9 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.chowayoBtn, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
 	setText(lunPanelElements.heartsBtn, t("hearts"));
 	setText(lunPanelElements.autoHeartsBtn, t(window.AutoHeartsActive ? "autoHeartsOn" : "autoHeartsOff"));
-	setText(lunPanelElements.petBtn, t("pet"));
+	// setText(lunPanelElements.petBtn, t("pet"));
 	setText(lunPanelElements.ritualBtn, t(window.RitualState === 0 ? "ritualOff" : (window.RitualState === 1 ? "ritualOn" : "ritualInverted")));
+	if (lunPanelElements.partnerDanceBtn) setText(lunPanelElements.partnerDanceBtn, t(window.PartnerDanceActive ? "partnerDanceOn" : "partnerDanceOff") || (window.PartnerDanceActive ? "8 Dance: ⏸️" : "8 Dance: ▶️"));
 	setText(lunPanelElements.turntableBtn, t(window.TurntableActive ? "turntableOn" : "turntableOff"));
 	setText(lunHudElements.discordBtn, t("discordBtn"));
 	setText(lunPanelElements.autoJumpBtn, t(window.AutoJumpActive ? "autoJumpOn" : "autoJumpOff"));
@@ -5949,6 +5995,37 @@ function hookGameStateOnce() {
 				ritualEmoteTick++;
 				if (ritualEmoteTick % 30 === 0) {
 					if (ritualEmoteTick % 60 === 0) {
+						if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
+							gameState.sendEmoteNow(Emotes.Jump);
+						}
+					} else {
+						triggerHearts();
+					}
+				}
+
+				return {
+					moveDir: normalizeVector(targetX - pp.x, targetZ - pp.z),
+					castSkillId: null
+				};
+			}
+
+			if (window.PartnerDanceActive && partnerDanceCenter) {
+				const pp = getPlayerPos();
+				partnerDanceTick++;
+				
+				const speed = 0.035;
+				const t = partnerDanceTick * speed;
+				const dir = partnerDanceIsClockwise ? 1 : -1;
+				
+				const scale = DANCE_RADIUS * 1.5;
+				const rawX = (scale * Math.cos(t * dir)) / (1 + Math.pow(Math.sin(t * dir), 2));
+				const rawZ = (scale * Math.sin(t * dir) * Math.cos(t * dir)) / (1 + Math.pow(Math.sin(t * dir), 2));
+				
+				const targetX = partnerDanceCenter.x + rawX;
+				const targetZ = partnerDanceCenter.z + rawZ;
+				
+				if (partnerDanceTick % 40 === 0) {
+					if (partnerDanceTick % 80 === 0) {
 						if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
 							gameState.sendEmoteNow(Emotes.Jump);
 						}

@@ -314,7 +314,11 @@
         "fpPitchSetMsg": "[SpeakiMod+] 1st Person Pitch set to {0}",
         "fpPitchUsageMsg": "[SpeakiMod+] 1st Person Pitch is currently {0}. Usage: !fppitch 0.45",
         "confirmBtn": "OK",
-        "quickLoginCodePlaceholder": "XXXX-XXXX-XXXX-XXXX"
+        "quickLoginCodePlaceholder": "XXXX-XXXX-XXXX-XXXX",
+        "partnerDanceOn": "8 Dance: ⏸️",
+        "partnerDanceOff": "8 Dance: ▶️",
+        "partnerDanceActivatedMsg": "8 Dance activated!",
+        "partnerDanceDeactivatedMsg": "8 Dance deactivated."
     },
     "ja": {
         "langName": "日本語",
@@ -631,7 +635,11 @@
         "fpPitchSetMsg": "[SpeakiMod+] 視点ピッチを {0} に設定しました",
         "fpPitchUsageMsg": "[SpeakiMod+] 現在の視点ピッチは {0} です。使い方: !fppitch 0.45",
         "confirmBtn": "OK",
-        "quickLoginCodePlaceholder": "XXXX-XXXX-XXXX-XXXX"
+        "quickLoginCodePlaceholder": "XXXX-XXXX-XXXX-XXXX",
+        "partnerDanceOn": "8 舞う: ⏸️",
+        "partnerDanceOff": "8 舞う: ▶️",
+        "partnerDanceActivatedMsg": "8 舞う が有効になりました！",
+        "partnerDanceDeactivatedMsg": "8 舞う が無効になりました。"
     },
     "ko": {
         "langName": "한국어",
@@ -948,7 +956,11 @@
         "fpPitchSetMsg": "[SpeakiMod+] 1인칭 시점 피치를 {0}(으)로 설정했습니다",
         "fpPitchUsageMsg": "[SpeakiMod+] 현재 1인칭 피치는 {0}입니다. 사용법: !fppitch 0.45",
         "confirmBtn": "확인",
-        "quickLoginCodePlaceholder": "XXXX-XXXX-XXXX-XXXX"
+        "quickLoginCodePlaceholder": "XXXX-XXXX-XXXX-XXXX",
+        "partnerDanceOn": "8 춤: ⏸️",
+        "partnerDanceOff": "8 춤: ▶️",
+        "partnerDanceActivatedMsg": "8 춤이 활성화되었습니다!",
+        "partnerDanceDeactivatedMsg": "8 춤이 비활성화되었습니다."
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -1265,7 +1277,11 @@
         "fpPitchSetMsg": "[SpeakiMod+] 第一人稱俯仰角設為 {0}",
         "fpPitchUsageMsg": "[SpeakiMod+] 目前第一人稱俯仰角為 {0}。用法：!fppitch 0.45",
         "confirmBtn": "確定",
-        "quickLoginCodePlaceholder": "XXXX-XXXX-XXXX-XXXX"
+        "quickLoginCodePlaceholder": "XXXX-XXXX-XXXX-XXXX",
+        "partnerDanceOn": "8 舞蹈: ⏸️",
+        "partnerDanceOff": "8 舞蹈: ▶️",
+        "partnerDanceActivatedMsg": "已啟用 8 舞蹈！",
+        "partnerDanceDeactivatedMsg": "已停用 8 舞蹈。"
     },
     "es-419": {
         "langName": "Español",
@@ -1582,7 +1598,11 @@
         "fpPitchSetMsg": "[SpeakiMod+] Inclinación de 1.ª persona establecida en {0}",
         "fpPitchUsageMsg": "[SpeakiMod+] Inclinación actual: {0}. Uso: !fppitch 0.45",
         "confirmBtn": "Aceptar",
-        "quickLoginCodePlaceholder": "XXXX-XXXX-XXXX-XXXX"
+        "quickLoginCodePlaceholder": "XXXX-XXXX-XXXX-XXXX",
+        "partnerDanceOn": "8 Baile: ⏸️",
+        "partnerDanceOff": "8 Baile: ▶️",
+        "partnerDanceActivatedMsg": "¡8 Baile activado!",
+        "partnerDanceDeactivatedMsg": "8 Baile desactivado."
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -1899,6 +1919,10 @@
         "fpPitchSetMsg": "[SpeakiMod+] 第一人称俯仰角设为 {0}",
         "fpPitchUsageMsg": "[SpeakiMod+] 当前第一人称俯仰角为 {0}。用法：!fppitch 0.45",
         "confirmBtn": "确定",
-        "quickLoginCodePlaceholder": "XXXX-XXXX-XXXX-XXXX"
+        "quickLoginCodePlaceholder": "XXXX-XXXX-XXXX-XXXX",
+        "partnerDanceOn": "8 舞蹈: ⏸️",
+        "partnerDanceOff": "8 舞蹈: ▶️",
+        "partnerDanceActivatedMsg": "已啟用 8 舞蹈！",
+        "partnerDanceDeactivatedMsg": "已停用 8 舞蹈。"
     }
 }
