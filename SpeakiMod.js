@@ -6063,8 +6063,7 @@ function hookGameStateOnce() {
 				};
 			}
 
-			if (window.PartnerDanceState > 0 && partnerDanceCenter) {
-				const pp = getPlayerPos();
+			if (window.PartnerDanceState > 0) {
 				partnerDanceTick++;
 				
 				// State 1 = Forward, State 2 = Reverse
@@ -6072,17 +6071,19 @@ function hookGameStateOnce() {
 				const speed = 0.035 * stateDir;
 				const phase = partnerDanceIsClockwise ? 0 : Math.PI;
 				
-				const scale = DANCE_RADIUS * 1.5;
+				// Pure parametric math for infinite smoothness. No physical position feedback (zero jitter).
+				const t_now = partnerDanceTick * speed + phase;
+				const t_next = (partnerDanceTick + 1) * speed + phase;
 				
-				// Push the target point far ahead to completely prevent overshoot jitter
-				const lookAheadTicks = 20;
-				const t = (partnerDanceTick + lookAheadTicks) * speed + phase;
+				const rawX_now = Math.cos(t_now) / (1 + Math.pow(Math.sin(t_now), 2));
+				const rawZ_now = (Math.sin(t_now) * Math.cos(t_now)) / (1 + Math.pow(Math.sin(t_now), 2));
 				
-				const rawX = (scale * Math.cos(t)) / (1 + Math.pow(Math.sin(t), 2));
-				const rawZ = (scale * Math.sin(t) * Math.cos(t)) / (1 + Math.pow(Math.sin(t), 2));
+				const rawX_next = Math.cos(t_next) / (1 + Math.pow(Math.sin(t_next), 2));
+				const rawZ_next = (Math.sin(t_next) * Math.cos(t_next)) / (1 + Math.pow(Math.sin(t_next), 2));
 				
-				const targetX = partnerDanceCenter.x + rawX;
-				const targetZ = partnerDanceCenter.z + rawZ;
+				// The normalized tangent is the exact direction they need to walk to trace the 8.
+				const tangentX = rawX_next - rawX_now;
+				const tangentZ = rawZ_next - rawZ_now;
 				
 				if (partnerDanceTick % 40 === 0) {
 					if (partnerDanceTick % 80 === 0) {
@@ -6095,7 +6096,7 @@ function hookGameStateOnce() {
 				}
 
 				return {
-					moveDir: normalizeVector(targetX - pp.x, targetZ - pp.z),
+					moveDir: normalizeVector(tangentX, tangentZ),
 					castSkillId: null
 				};
 			}
