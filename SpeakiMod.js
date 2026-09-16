@@ -2644,14 +2644,15 @@ document.body.appendChild(
 				})
 			]),
 			buildElement("div", { className: "spkmod-panel-cat" }, [
-				/*lunPanelElements.petBtn = buildElement("button", {
+				lunPanelElements.petDanceBtn = buildElement("button", {
+					id: "spkmod-petdance-btn",
 					className: "spkmod-panel-btn",
-					innerText: t("pet"),
+					innerText: t(window.PetDanceActive ? "petDanceOn" : "petDanceOff") || (window.PetDanceActive ? "Pet Dance: ⏸️" : "Pet Dance: ▶️"),
 					value: "",
-					onclick: _ => {
-						triggerPetSequence();
+					onclick: e => {
+						togglePetDance(e.target);
 					}
-				}),*/
+				}),
 				lunPanelElements.ritualBtn = buildElement("button", {
 					id: "spkmod-ritual-btn",
 					className: "spkmod-panel-btn",
@@ -3604,7 +3605,10 @@ function triggerHearts() {
 		}
 	}
 	if (gameState && typeof gameState.sendEmoteNow === "function") {
-		gameState.sendEmoteNow(Emotes.StrokeBloom);
+		// If Pet Dance is active, don't interrupt the dance emote with StrokeBloom!
+		if (!window.PetDanceActive) {
+			gameState.sendEmoteNow(Emotes.StrokeBloom);
+		}
 	}
 }
 
@@ -3626,49 +3630,64 @@ function autoChowayoLoop() {
 	window.__autoChowayoTimeoutId = setTimeout(autoChowayoLoop, lunChowayoAnimMs);
 }
 
-let petSequenceTimeouts = [];
+window.PetDanceActive = false;
+let petDanceInterval = null;
+let petDanceTick = 0;
 
-function clearPetSequence() {
-	petSequenceTimeouts.forEach(id => clearTimeout(id));
-	petSequenceTimeouts = [];
+function petDanceLoop() {
+	if (!window.PetDanceActive) return;
+	
+	petDanceTick++;
+	
+	if (petDanceTick % 7 === 0) {
+		if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) {
+			gameState.sendEmoteNow(Emotes.StrokeBloom);
+		}
+	}
+	
+	if (petDanceTick % 90 === 0) {
+		if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) {
+			gameState.sendEmoteNow(Emotes.Dance);
+		}
+	}
 }
 
-function triggerPetSequence() {
-	if (!gameState || typeof gameState.sendEmoteNow !== "function") return;
-	clearPetSequence();
-	chatLog(t("petActivatedMsg"));
-
-	gameState.sendEmoteNow(Emotes.StrokeStart);
-
-	const spawnLocalHearts = () => {
-		if (gameState.bloomEffects && typeof gameState.bloomEffects.spawnHearts === "function") {
-			if (gameState.playerContainer) gameState.bloomEffects.spawnHearts(gameState.playerContainer);
-			if (lunFollowTargetName && gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
-				const tp = Array.from(gameState.remotePlayers.remotePlayers.values()).find(t => t.info && t.info.name === lunFollowTargetName);
-				if (tp && tp.container && tp.container !== gameState.playerContainer) {
-					gameState.bloomEffects.spawnHearts(tp.container);
-				}
-			}
+function togglePetDance(btn) {
+	window.PetDanceActive = !window.PetDanceActive;
+	if (window.PetDanceActive) {
+		petDanceTick = 0;
+		if (petDanceInterval) clearInterval(petDanceInterval);
+		petDanceInterval = setInterval(petDanceLoop, 100);
+		
+		if (!window.AutoHeartsActive) {
+			window.AutoHeartsActive = true;
+			chatLog(t("autoHeartsActivatedMsg") || "Auto Hearts activated!");
+			if (typeof autoHeartsLoop === "function") autoHeartsLoop();
+			const heartsBtn = typeof lunPanelElements !== "undefined" ? lunPanelElements.autoHeartsBtn : null;
+			if (heartsBtn) setText(heartsBtn, t("autoHeartsOn") || "Auto Hearts: ON");
 		}
-	};
-
-	petSequenceTimeouts.push(setTimeout(() => {
-		if (gameState && typeof gameState.sendEmoteNow === "function") {
-			gameState.sendEmoteNow(Emotes.StrokeStage2);
-			spawnLocalHearts();
+		
+		if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) {
+			gameState.sendEmoteNow(Emotes.Dance);
 		}
-	}, 1150));
-
-	petSequenceTimeouts.push(setTimeout(() => {
-		triggerHearts();
-	}, 2300));
-
-	petSequenceTimeouts.push(setTimeout(() => {
-		if (gameState && typeof gameState.sendEmoteNow === "function") {
-			gameState.sendEmoteNow(Emotes.StrokeCancel);
+		
+		chatLog(t("petDanceActivatedMsg") || "Pet Dance combo activated!");
+		chatLog(t("petDanceReminderMsg") || "Note: The petting combo is only fully visible to other players!");
+	} else {
+		if (petDanceInterval) {
+			clearInterval(petDanceInterval);
+			petDanceInterval = null;
 		}
-	}, 4300));
+		chatLog(t("petDanceDeactivatedMsg") || "Pet Dance deactivated.");
+	}
+	
+	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.petDanceBtn);
+	if (targetBtn) {
+		setText(targetBtn, t(window.PetDanceActive ? "petDanceOn" : "petDanceOff") || (window.PetDanceActive ? "Pet Dance: ⏸️" : "Pet Dance: ▶️"));
+	}
 }
+
+
 
 window.RitualState = 0;
 let ritualCenter = null;

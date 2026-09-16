@@ -1,7 +1,7 @@
 {
     "en": {
         "langName": "English",
-        "header": "SpeakiMod+ v1.6.5",
+        "header": "SpeakiMod+ v1.6.6",
         "playersNearby": "Speaki nearby: {0}",
         "zoneId": "Zone ID: {0}",
         "expPerMinute": "{0} EXP/min",
@@ -79,7 +79,6 @@
         "autoJumpDeactivatedMsg": "Autojump deactivated.",
         "autoHeartsActivatedMsg": "Hearts loop activated!",
         "autoHeartsDeactivatedMsg": "Hearts loop deactivated.",
-        "petActivatedMsg": "Affection maxxing... (Petting combo!)",
         "ritualActivatedMsg": "Dance ritual activated!",
         "ritualDeactivatedMsg": "Dance ritual deactivated.",
         "turntableActivatedMsg": "Camera turntable activated!",
@@ -320,11 +319,16 @@
         "partnerDanceActivatedMsg": "8 Dance activated!",
         "partnerDanceDeactivatedMsg": "8 Dance deactivated.",
         "partnerDanceInverted": "Rev 8: ⏸️",
-        "partnerDanceInvertedMsg": "Reverse 8 Dance activated!"
+        "partnerDanceInvertedMsg": "Reverse 8 Dance activated!",
+        "petDanceOn": "Pet Dance: ⏸️",
+        "petDanceOff": "Pet Dance: ▶️",
+        "petDanceActivatedMsg": "Pet Dance combo activated!",
+        "petDanceDeactivatedMsg": "Pet Dance deactivated.",
+        "petDanceReminderMsg": "Note: The petting combo is only fully visible to other players!"
     },
     "ja": {
         "langName": "日本語",
-        "header": "SpeakiMod+ v1.6.5",
+        "header": "SpeakiMod+ v1.6.6",
         "playersNearby": "近くのｽﾋﾟｷ数: {0}",
         "zoneId": "エリアID: {0}",
         "expPerMinute": "{0} 経験値/分",
@@ -402,7 +406,6 @@
         "autoJumpDeactivatedMsg": "ｽﾋﾟｷは「ぴょんぴょん」を終えました。",
         "autoHeartsActivatedMsg": "ｽﾋﾟｷが「継続ハート」を始めました！",
         "autoHeartsDeactivatedMsg": "ｽﾋﾟｷは「継続ハート」を終えました。",
-        "petActivatedMsg": "ｽﾋﾟｷをなでなで…",
         "ritualActivatedMsg": "ｽﾋﾟｷが💃🏻舞い始めました！",
         "ritualDeactivatedMsg": "ｽﾋﾟｷは💃🏻舞い終わりました。",
         "turntableActivatedMsg": "カメラの自動回転を開始しました！",
@@ -643,11 +646,16 @@
         "partnerDanceActivatedMsg": "8 舞う が有効になりました！",
         "partnerDanceDeactivatedMsg": "8 舞う が無効になりました。",
         "partnerDanceInverted": "逆8舞う: ⏸️",
-        "partnerDanceInvertedMsg": "逆8舞う が有効になりました！"
+        "partnerDanceInvertedMsg": "逆8舞う が有効になりました！",
+        "petDanceOn": "ペットダンス: ⏸️",
+        "petDanceOff": "ペットダンス: ▶️",
+        "petDanceActivatedMsg": "ペットダンスコンボ有効!",
+        "petDanceDeactivatedMsg": "ペットダンス無効.",
+        "petDanceReminderMsg": "注意: ペットコンボは他のプレイヤーにのみ完全に表示されます!"
     },
     "ko": {
         "langName": "한국어",
-        "header": "SpeakiMod+ v1.6.5",
+        "header": "SpeakiMod+ v1.6.6",
         "playersNearby": "근처 스피키: {0}",
         "zoneId": "존 ID: {0}",
         "expPerMinute": "{0} EXP/분",
@@ -725,7 +733,6 @@
         "autoJumpDeactivatedMsg": "자동 점프가 비활성화되었습니다.",
         "autoHeartsActivatedMsg": "자동 하뚜❤가 활성화되었습니다!",
         "autoHeartsDeactivatedMsg": "자동 하뚜❤가 비활성화되었습니다.",
-        "petActivatedMsg": "스피키 쓰다듬는 중... (하뚜❤)",
         "ritualActivatedMsg": "구애의 춤이 활성화되었습니다!",
         "ritualDeactivatedMsg": "구애의 춤이 비활성화되었습니다.",
         "turntableActivatedMsg": "카메라 돌리기가 활성화되었습니다!",
@@ -966,11 +973,16 @@
         "partnerDanceActivatedMsg": "8 춤이 활성화되었습니다!",
         "partnerDanceDeactivatedMsg": "8 춤이 비활성화되었습니다.",
         "partnerDanceInverted": "역 8 춤: ⏸️",
-        "partnerDanceInvertedMsg": "역 8 춤이 활성화되었습니다!"
+        "partnerDanceInvertedMsg": "역 8 춤이 활성화되었습니다!",
+        "petDanceOn": "펫 댄스: ⏸️",
+        "petDanceOff": "펫 댄스: ▶️",
+        "petDanceActivatedMsg": "펫 댄스 콤보 활성화!",
+        "petDanceDeactivatedMsg": "펫 댄스 비활성화.",
+        "petDanceReminderMsg": "참고: 펫 댄스 콤보는 다른 플레이어에게만 완전히 보입니다!"
     },
     "zh-TW": {
         "langName": "繁體中文",
-        "header": "SpeakiMod+ v1.6.5",
+        "header": "SpeakiMod+ v1.6.6",
         "playersNearby": "附近的斯皮奇: {0}",
         "zoneId": "區域 ID: {0}",
         "expPerMinute": "{0} 經驗值/每分鐘",
@@ -1048,7 +1060,6 @@
         "autoJumpDeactivatedMsg": "已停用自動跳躍。",
         "autoHeartsActivatedMsg": "已啟用自動摸頭！",
         "autoHeartsDeactivatedMsg": "已停用自動摸頭。",
-        "petActivatedMsg": "狂嚕斯皮奇... (瘋狂摸頭！)",
         "ritualActivatedMsg": "已啟用神秘舞蹈！",
         "ritualDeactivatedMsg": "已停用神秘舞蹈。",
         "turntableActivatedMsg": "已啟用鏡頭旋轉！",
@@ -1289,11 +1300,16 @@
         "partnerDanceActivatedMsg": "已啟用 8 舞蹈！",
         "partnerDanceDeactivatedMsg": "已停用 8 舞蹈。",
         "partnerDanceInverted": "反向8舞蹈: ⏸️",
-        "partnerDanceInvertedMsg": "已啟用 反向8舞蹈！"
+        "partnerDanceInvertedMsg": "已啟用 反向8舞蹈！",
+        "petDanceOn": "宠物舞: ⏸️",
+        "petDanceOff": "宠物舞: ▶️",
+        "petDanceActivatedMsg": "宠物舞已激活!",
+        "petDanceDeactivatedMsg": "宠物舞已停用.",
+        "petDanceReminderMsg": "注意：宠物连击仅对其他玩家完全可见！"
     },
     "es-419": {
         "langName": "Español",
-        "header": "SpeakiMod+ v1.6.5",
+        "header": "SpeakiMod+ v1.6.6",
         "playersNearby": "Speaki cercanos: {0}",
         "zoneId": "ID de zona: {0}",
         "expPerMinute": "{0} EXP/min",
@@ -1373,7 +1389,6 @@
         "autoHeartsDeactivatedMsg": "Bucle de corazones desactivado.",
         "autoChowayoActivatedMsg": "¡Bucle Chowayo activado!",
         "autoChowayoDeactivatedMsg": "Bucle Chowayo desactivado.",
-        "petActivatedMsg": "Aumentando afecto al máximo... (¡Combo de caricias!)",
         "ritualActivatedMsg": "¡Ritual de baile activado!",
         "ritualDeactivatedMsg": "Ritual de baile desactivado.",
         "turntableActivatedMsg": "¡Cámara giratoria activada!",
@@ -1612,11 +1627,16 @@
         "partnerDanceActivatedMsg": "¡8 Baile activado!",
         "partnerDanceDeactivatedMsg": "8 Baile desactivado.",
         "partnerDanceInverted": "8 Inverso: ⏸️",
-        "partnerDanceInvertedMsg": "¡8 Baile Inverso activado!"
+        "partnerDanceInvertedMsg": "¡8 Baile Inverso activado!",
+        "petDanceOn": "Pet Dance: ⏸️",
+        "petDanceOff": "Pet Dance: ▶️",
+        "petDanceActivatedMsg": "Pet Dance combo activated!",
+        "petDanceDeactivatedMsg": "Pet Dance deactivated.",
+        "petDanceReminderMsg": "Note: The petting combo is only fully visible to other players!"
     },
     "zh-CN": {
         "langName": "简体中文",
-        "header": "SpeakiMod+ v1.6.5",
+        "header": "SpeakiMod+ v1.6.6",
         "playersNearby": "附近的斯皮奇: {0}",
         "zoneId": "区域 ID: {0}",
         "expPerMinute": "{0} 经验值/每分钟",
@@ -1694,7 +1714,6 @@
         "autoJumpDeactivatedMsg": "已停用自动跳跃。",
         "autoHeartsActivatedMsg": "已启用自动摸头！",
         "autoHeartsDeactivatedMsg": "已停用自动摸头。",
-        "petActivatedMsg": "狂噜斯皮奇... (疯狂摸头！)",
         "ritualActivatedMsg": "已启用跳舞仪式！",
         "ritualDeactivatedMsg": "已停用跳舞仪式。",
         "turntableActivatedMsg": "已启用镜头旋转！",
@@ -1935,6 +1954,11 @@
         "partnerDanceActivatedMsg": "已啟用 8 舞蹈！",
         "partnerDanceDeactivatedMsg": "已停用 8 舞蹈。",
         "partnerDanceInverted": "反向8舞蹈: ⏸️",
-        "partnerDanceInvertedMsg": "已啟用 反向8舞蹈！"
+        "partnerDanceInvertedMsg": "已啟用 反向8舞蹈！",
+        "petDanceOn": "宠物舞: ⏸️",
+        "petDanceOff": "宠物舞: ▶️",
+        "petDanceActivatedMsg": "宠物舞已激活!",
+        "petDanceDeactivatedMsg": "宠物舞已停用.",
+        "petDanceReminderMsg": "注意：宠物连击仅对其他玩家完全可见！"
     }
 }
