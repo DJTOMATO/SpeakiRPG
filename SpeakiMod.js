@@ -2664,7 +2664,7 @@ document.body.appendChild(
 				lunPanelElements.partnerDanceBtn = buildElement("button", {
 					id: "spkmod-partner-dance-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.PartnerDanceActive ? "partnerDanceOn" : "partnerDanceOff") || (window.PartnerDanceActive ? "8 Dance: ⏸️" : "8 Dance: ▶️"),
+					innerText: t(window.PartnerDanceState === 1 ? "partnerDanceOn" : (window.PartnerDanceState === 2 ? "partnerDanceInverted" : "partnerDanceOff")) || (window.PartnerDanceState === 0 ? "8 Dance: ▶️" : (window.PartnerDanceState === 1 ? "8 Dance: ⏸️" : "Rev 8: ⏸️")),
 					value: "",
 					onclick: e => {
 						togglePartnerDance(e.target);
@@ -3702,44 +3702,51 @@ function toggleRitual(btn) {
 	}
 }
 
-window.PartnerDanceActive = false;
+window.PartnerDanceState = 0; // 0: Off, 1: 8 Dance, 2: Reverse 8
 let partnerDanceCenter = null;
 let partnerDanceTick = 0;
 let partnerDanceIsClockwise = true;
 const DANCE_RADIUS = 2.0;
 
 function togglePartnerDance(btn) {
-	window.PartnerDanceActive = !window.PartnerDanceActive;
-	if (window.PartnerDanceActive) {
-		if (lunFollowTargetName && typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers) {
-			const tp = Array.from(gameState.remotePlayers.remotePlayers.values()).find(t => t.info && t.info.name === lunFollowTargetName);
-			if (tp && tp.container) {
-				const myPos = getPlayerPos();
-				partnerDanceCenter = {
-					x: (myPos.x + tp.container.position.x) / 2,
-					y: myPos.y,
-					z: (myPos.z + tp.container.position.z) / 2
-				};
-				
-				const myName = String(window._lunActiveCharacter || window.myPlayerName || "").toLowerCase();
-				const targetName = String(tp.info.name).toLowerCase();
-				partnerDanceIsClockwise = (myName >= targetName);
+	window.PartnerDanceState = (window.PartnerDanceState + 1) % 3;
+	if (window.PartnerDanceState > 0) {
+		if (window.PartnerDanceState === 1) {
+			if (lunFollowTargetName && typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers) {
+				const tp = Array.from(gameState.remotePlayers.remotePlayers.values()).find(t => t.info && t.info.name === lunFollowTargetName);
+				if (tp && tp.container) {
+					const myPos = getPlayerPos();
+					partnerDanceCenter = {
+						x: (myPos.x + tp.container.position.x) / 2,
+						y: myPos.y,
+						z: (myPos.z + tp.container.position.z) / 2
+					};
+					
+					const myName = String(window._lunActiveCharacter || window.myPlayerName || "").toLowerCase();
+					const targetName = String(tp.info.name).toLowerCase();
+					partnerDanceIsClockwise = (myName >= targetName);
+				}
 			}
+			if (!partnerDanceCenter) {
+				const myPos = getPlayerPos();
+				partnerDanceCenter = { x: myPos.x, y: myPos.y, z: myPos.z };
+				partnerDanceIsClockwise = true;
+			}
+			partnerDanceTick = 0;
+			chatLog(t("partnerDanceActivatedMsg") || "8 Dance activated!");
+		} else {
+			chatLog(t("partnerDanceInvertedMsg") || "Reverse 8 Dance activated!");
 		}
-		if (!partnerDanceCenter) {
-			const myPos = getPlayerPos();
-			partnerDanceCenter = { x: myPos.x, y: myPos.y, z: myPos.z };
-			partnerDanceIsClockwise = true;
-		}
-		partnerDanceTick = 0;
-		chatLog(t("partnerDanceActivatedMsg") || "8 Dance activated!");
 	} else {
 		partnerDanceCenter = null;
 		chatLog(t("partnerDanceDeactivatedMsg") || "8 Dance deactivated.");
 	}
 	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.partnerDanceBtn);
 	if (targetBtn) {
-		setText(targetBtn, t(window.PartnerDanceActive ? "partnerDanceOn" : "partnerDanceOff") || (window.PartnerDanceActive ? "8 Dance: ⏸️" : "8 Dance: ▶️"));
+		let textKey = "partnerDanceOff";
+		if (window.PartnerDanceState === 1) textKey = "partnerDanceOn";
+		if (window.PartnerDanceState === 2) textKey = "partnerDanceInverted";
+		setText(targetBtn, t(textKey) || (window.PartnerDanceState === 0 ? "8 Dance: ▶️" : (window.PartnerDanceState === 1 ? "8 Dance: ⏸️" : "Rev 8: ⏸️")));
 	}
 }
 
@@ -5306,7 +5313,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.autoHeartsBtn, t(window.AutoHeartsActive ? "autoHeartsOn" : "autoHeartsOff"));
 	// setText(lunPanelElements.petBtn, t("pet"));
 	setText(lunPanelElements.ritualBtn, t(window.RitualState === 0 ? "ritualOff" : (window.RitualState === 1 ? "ritualOn" : "ritualInverted")));
-	if (lunPanelElements.partnerDanceBtn) setText(lunPanelElements.partnerDanceBtn, t(window.PartnerDanceActive ? "partnerDanceOn" : "partnerDanceOff") || (window.PartnerDanceActive ? "8 Dance: ⏸️" : "8 Dance: ▶️"));
+	if (lunPanelElements.partnerDanceBtn) setText(lunPanelElements.partnerDanceBtn, t(window.PartnerDanceState === 1 ? "partnerDanceOn" : (window.PartnerDanceState === 2 ? "partnerDanceInverted" : "partnerDanceOff")) || (window.PartnerDanceState === 0 ? "8 Dance: ▶️" : (window.PartnerDanceState === 1 ? "8 Dance: ⏸️" : "Rev 8: ⏸️")));
 	setText(lunPanelElements.turntableBtn, t(window.TurntableActive ? "turntableOn" : "turntableOff"));
 	setText(lunHudElements.discordBtn, t("discordBtn"));
 	setText(lunPanelElements.autoJumpBtn, t(window.AutoJumpActive ? "autoJumpOn" : "autoJumpOff"));
@@ -6056,35 +6063,26 @@ function hookGameStateOnce() {
 				};
 			}
 
-			if (window.PartnerDanceActive && partnerDanceCenter) {
+			if (window.PartnerDanceState > 0 && partnerDanceCenter) {
 				const pp = getPlayerPos();
 				partnerDanceTick++;
 				
-				const speed = 0.035;
-				// Instead of flipping time, we shift phase by PI so they are perfectly opposite each other on the 8
+				// State 1 = Forward, State 2 = Reverse
+				const stateDir = window.PartnerDanceState === 1 ? 1 : -1;
+				const speed = 0.035 * stateDir;
 				const phase = partnerDanceIsClockwise ? 0 : Math.PI;
 				
 				const scale = DANCE_RADIUS * 1.5;
 				
-				// Calculate EXACT tangent direction using a small time step
-				const t_now = partnerDanceTick * speed + phase;
-				const t_next = (partnerDanceTick + 3) * speed + phase;
+				// Push the target point far ahead to completely prevent overshoot jitter
+				const lookAheadTicks = 20;
+				const t = (partnerDanceTick + lookAheadTicks) * speed + phase;
 				
-				const rawX_now = (scale * Math.cos(t_now)) / (1 + Math.pow(Math.sin(t_now), 2));
-				const rawZ_now = (scale * Math.sin(t_now) * Math.cos(t_now)) / (1 + Math.pow(Math.sin(t_now), 2));
+				const rawX = (scale * Math.cos(t)) / (1 + Math.pow(Math.sin(t), 2));
+				const rawZ = (scale * Math.sin(t) * Math.cos(t)) / (1 + Math.pow(Math.sin(t), 2));
 				
-				const rawX_next = (scale * Math.cos(t_next)) / (1 + Math.pow(Math.sin(t_next), 2));
-				const rawZ_next = (scale * Math.sin(t_next) * Math.cos(t_next)) / (1 + Math.pow(Math.sin(t_next), 2));
-				
-				const targetX = partnerDanceCenter.x + rawX_now;
-				const targetZ = partnerDanceCenter.z + rawZ_now;
-				
-				// Tangent direction is where the curve is pointing
-				const tangent = normalizeVector(rawX_next - rawX_now, rawZ_next - rawZ_now);
-				
-				// Corrective vector pulls the player back if they drift off the curve
-				const correctiveX = targetX - pp.x;
-				const correctiveZ = targetZ - pp.z;
+				const targetX = partnerDanceCenter.x + rawX;
+				const targetZ = partnerDanceCenter.z + rawZ;
 				
 				if (partnerDanceTick % 40 === 0) {
 					if (partnerDanceTick % 80 === 0) {
@@ -6097,7 +6095,7 @@ function hookGameStateOnce() {
 				}
 
 				return {
-					moveDir: normalizeVector(tangent.x + correctiveX * 0.8, tangent.z + correctiveZ * 0.8),
+					moveDir: normalizeVector(targetX - pp.x, targetZ - pp.z),
 					castSkillId: null
 				};
 			}

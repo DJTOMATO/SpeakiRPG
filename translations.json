@@ -1,7 +1,7 @@
 {
     "en": {
         "langName": "English",
-        "header": "SpeakiMod+ v1.6.1",
+        "header": "SpeakiMod+ v1.6.2",
         "playersNearby": "Speaki nearby: {0}",
         "zoneId": "Zone ID: {0}",
         "expPerMinute": "{0} EXP/min",
@@ -318,11 +318,13 @@
         "partnerDanceOn": "8 Dance: ⏸️",
         "partnerDanceOff": "8 Dance: ▶️",
         "partnerDanceActivatedMsg": "8 Dance activated!",
-        "partnerDanceDeactivatedMsg": "8 Dance deactivated."
+        "partnerDanceDeactivatedMsg": "8 Dance deactivated.",
+        "partnerDanceInverted": "Rev 8: ⏸️",
+        "partnerDanceInvertedMsg": "Reverse 8 Dance activated!"
     },
     "ja": {
         "langName": "日本語",
-        "header": "SpeakiMod+ v1.6.1",
+        "header": "SpeakiMod+ v1.6.2",
         "playersNearby": "近くのｽﾋﾟｷ数: {0}",
         "zoneId": "エリアID: {0}",
         "expPerMinute": "{0} 経験値/分",
@@ -639,11 +641,13 @@
         "partnerDanceOn": "8 舞う: ⏸️",
         "partnerDanceOff": "8 舞う: ▶️",
         "partnerDanceActivatedMsg": "8 舞う が有効になりました！",
-        "partnerDanceDeactivatedMsg": "8 舞う が無効になりました。"
+        "partnerDanceDeactivatedMsg": "8 舞う が無効になりました。",
+        "partnerDanceInverted": "逆8舞う: ⏸️",
+        "partnerDanceInvertedMsg": "逆8舞う が有効になりました！"
     },
     "ko": {
         "langName": "한국어",
-        "header": "SpeakiMod+ v1.6.1",
+        "header": "SpeakiMod+ v1.6.2",
         "playersNearby": "근처 스피키: {0}",
         "zoneId": "존 ID: {0}",
         "expPerMinute": "{0} EXP/분",
@@ -960,11 +964,13 @@
         "partnerDanceOn": "8 춤: ⏸️",
         "partnerDanceOff": "8 춤: ▶️",
         "partnerDanceActivatedMsg": "8 춤이 활성화되었습니다!",
-        "partnerDanceDeactivatedMsg": "8 춤이 비활성화되었습니다."
+        "partnerDanceDeactivatedMsg": "8 춤이 비활성화되었습니다.",
+        "partnerDanceInverted": "역 8 춤: ⏸️",
+        "partnerDanceInvertedMsg": "역 8 춤이 활성화되었습니다!"
     },
     "zh-TW": {
         "langName": "繁體中文",
-        "header": "SpeakiMod+ v1.6.1",
+        "header": "SpeakiMod+ v1.6.2",
         "playersNearby": "附近的斯皮奇: {0}",
         "zoneId": "區域 ID: {0}",
         "expPerMinute": "{0} 經驗值/每分鐘",
@@ -1281,11 +1287,13 @@
         "partnerDanceOn": "8 舞蹈: ⏸️",
         "partnerDanceOff": "8 舞蹈: ▶️",
         "partnerDanceActivatedMsg": "已啟用 8 舞蹈！",
-        "partnerDanceDeactivatedMsg": "已停用 8 舞蹈。"
+        "partnerDanceDeactivatedMsg": "已停用 8 舞蹈。",
+        "partnerDanceInverted": "反向8舞蹈: ⏸️",
+        "partnerDanceInvertedMsg": "已啟用 反向8舞蹈！"
     },
     "es-419": {
         "langName": "Español",
-        "header": "SpeakiMod+ v1.6.1",
+        "header": "SpeakiMod+ v1.6.2",
         "playersNearby": "Speaki cercanos: {0}",
         "zoneId": "ID de zona: {0}",
         "expPerMinute": "{0} EXP/min",
@@ -1602,11 +1610,13 @@
         "partnerDanceOn": "8 Baile: ⏸️",
         "partnerDanceOff": "8 Baile: ▶️",
         "partnerDanceActivatedMsg": "¡8 Baile activado!",
-        "partnerDanceDeactivatedMsg": "8 Baile desactivado."
+        "partnerDanceDeactivatedMsg": "8 Baile desactivado.",
+        "partnerDanceInverted": "8 Inverso: ⏸️",
+        "partnerDanceInvertedMsg": "¡8 Baile Inverso activado!"
     },
     "zh-CN": {
         "langName": "简体中文",
-        "header": "SpeakiMod+ v1.6.1",
+        "header": "SpeakiMod+ v1.6.2",
         "playersNearby": "附近的斯皮奇: {0}",
         "zoneId": "区域 ID: {0}",
         "expPerMinute": "{0} 经验值/每分钟",
@@ -1923,6 +1933,8 @@
         "partnerDanceOn": "8 舞蹈: ⏸️",
         "partnerDanceOff": "8 舞蹈: ▶️",
         "partnerDanceActivatedMsg": "已啟用 8 舞蹈！",
-        "partnerDanceDeactivatedMsg": "已停用 8 舞蹈。"
+        "partnerDanceDeactivatedMsg": "已停用 8 舞蹈。",
+        "partnerDanceInverted": "反向8舞蹈: ⏸️",
+        "partnerDanceInvertedMsg": "已啟用 反向8舞蹈！"
     }
 }
