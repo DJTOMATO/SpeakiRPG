@@ -841,7 +841,8 @@ var eventModalElements = {
 	statusBadge: null,
 	periodText: null,
 	bestScoreText: null,
-	playsRemainingText: null
+	playsRemainingText: null,
+	refreshBtn: null
 };
 var patchNotesModalElements = {
 	headerTitle: null,
@@ -1545,6 +1546,8 @@ function updateEventModalContent() {
 		const cap = lunPumpkinStatus.dailyCapPlays ?? 10;
 		setText(eventModalElements.playsRemainingText, t("eventPlaysToday", rem, cap));
 	}
+
+	if (eventModalElements.refreshBtn) setText(eventModalElements.refreshBtn, "🔄 " + t("refreshBtn"));
 }
 
 var lunPatchNotesData = (() => {
@@ -3436,7 +3439,7 @@ document.body.appendChild(
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.accentColorLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("accentColorLabel") }),
 					lunPanelElements.accentColorInput = buildElement("input", { type: "color", value: lunAccentColor, style: "width: 40px; height: 20px; padding: 0; border: none; background: none; cursor: pointer;", onchange: e => { lunAccentColor = e.target.value; updateDynamicStyles(); } }),
-					buildElement("button", { className: "spkmod-panel-btn", style: "padding: 0px 4px; font-size: 10px; margin-left: 4px;", innerText: t("confirmBtn") || "OK", onclick: () => { lunAccentColor = lunPanelElements.accentColorInput.value; updateDynamicStyles(); } })
+					lunPanelElements.accentColorConfirmBtn = buildElement("button", { className: "spkmod-panel-btn", style: "padding: 0px 4px; font-size: 10px; margin-left: 4px;", innerText: t("confirmBtn") || "OK", onclick: () => { lunAccentColor = lunPanelElements.accentColorInput.value; updateDynamicStyles(); } })
 				])
 			])
 		]),
@@ -3525,7 +3528,7 @@ setTimeout(() => {
 	}
 }, 500);
 
-const lunJumpAnimMs = 700; // approx. duration of the Jump emote animation
+const lunJumpAnimMs = 500;
 
 function autoJumpLoop() {
 	if (!window.AutoJumpActive) return;
@@ -4209,12 +4212,12 @@ document.body.appendChild(
 			])
 		]),
 		buildElement("div", { style: "display: flex; justify-content: flex-end; gap: 6px; margin-top: 2px;" }, [
-			buildElement("button", {
-				className: "spkmod-panel-btn",
-				style: "padding: 3px 10px; font-size: 9pt; cursor: pointer;",
-				innerText: "🔄 " + t("refreshBtn"),
-				onclick: () => fetchPumpkinStatus()
-			})
+			eventModalElements.refreshBtn = buildElement("button", {
+			className: "spkmod-panel-btn",
+			style: "padding: 3px 10px; font-size: 9pt; cursor: pointer;",
+			innerText: "🔄 " + t("refreshBtn"),
+			onclick: () => fetchPumpkinStatus()
+		})
 		])
 	])
 );
@@ -5259,6 +5262,14 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.settingsCatHUD) setText(lunPanelElements.settingsCatHUD, "📊 " + t("settingsCatHUD"));
 	if (lunPanelElements.eventBtn) lunPanelElements.eventBtn.title = t("eventInfoBtnTooltip");
 	if (lunPanelElements.patchNotesBtn) lunPanelElements.patchNotesBtn.title = t("patchNotesBtnTooltip");
+	if (lunPanelElements.mapBtn) lunPanelElements.mapBtn.title = t("mapModalTitle");
+	if (typeof mapModalElements !== "undefined" && mapModalElements.titleLabel) mapModalElements.titleLabel.innerText = t("mapModalTitle");
+	const qlBtn = document.getElementById("spkmod-settings-accounts-btn");
+	if (qlBtn) {
+		qlBtn.innerText = "🔑 " + t("quickLoginTitle");
+		qlBtn.title = t("accountMgrBtnTooltip");
+	}
+	if (lunPanelElements.accentColorConfirmBtn) setText(lunPanelElements.accentColorConfirmBtn, t("confirmBtn") || "OK");
 	updatePumpkinUI();
 	if (lunPatchNotesData && lunPatchNotesTranslatedLang !== (spkmodLang === "es-419" ? "es" : spkmodLang)) {
 		translatePatchNotesToUserLang().then(() => renderPatchNotesUI());
@@ -5341,27 +5352,32 @@ function pinQuest(quest) {
 	lunHudElements.pinnedQuest.panel.className = "";
 }
 
-if (window.questManager) {
-	const hkRenderRow = questManager.prototype.renderRow;
-	questManager.prototype.renderRow = function (quest) {
-		var questElm = hkRenderRow.apply(this, [quest]);
+let questManagerHooked = false;
+function hookQuestManagerOnce() {
+	if (questManagerHooked) return;
+	if (window.questManager) {
+		questManagerHooked = true;
+		const hkRenderRow = questManager.prototype.renderRow;
+		questManager.prototype.renderRow = function (quest) {
+			var questElm = hkRenderRow.apply(this, [quest]);
 
-		if (!quest.isCompleted) {
-			questElm.querySelector(".sr-list-item__subtitle")
-				.replaceWith(
-					buildElement("button", {
-						value: "",
-						className: "spkmod-pq-button",
-						innerText: t("pinQuestBtn"),
-						onclick: _ => {
-							pinQuest(quest, questElm);
-						}
-					})
-				);
-		}
+			if (!quest.isCompleted) {
+				questElm.querySelector(".sr-list-item__subtitle")
+					.replaceWith(
+						buildElement("button", {
+							value: "",
+							className: "spkmod-pq-button",
+							innerText: t("pinQuestBtn"),
+							onclick: _ => {
+								pinQuest(quest, questElm);
+							}
+						})
+					);
+			}
 
-		return questElm;
-	};
+			return questElm;
+		};
+	}
 }
 
 function onGameDataUpdate() {
@@ -7267,6 +7283,13 @@ function initPreLoginGateObserver() {
 			checkExisting();
 		});
 	}
+
+	spkmodI18nRenderers.push(() => {
+		const gate = document.querySelector(".sr-nickname-gate, .sr-boot-gate");
+		if (gate && document.getElementById("spkmod-quick-login-box")) {
+			renderQuickLoginBox(gate);
+		}
+	});
 }
 
 function injectQuickLoginIntoSettingsModal() {
@@ -7394,6 +7417,14 @@ function injectQuickLoginIntoSettingsModal() {
 	col.appendChild(section);
 
 	refreshSettingsAccounts();
+
+	spkmodI18nRenderers.push(() => {
+		if (!section.isConnected) return;
+		title.innerText = "🔑 " + t("quickLoginSectionSettings") + " (F2)";
+		desc.innerText = t("quickLoginSectionDesc");
+		if (!saveBtn.disabled) saveBtn.innerText = "💾 " + t("quickLoginSaveCurrentBtn");
+		privacyNote.innerText = "🔒 " + t("quickLoginPrivacyNotice");
+	});
 }
 
 function toggleQuickLoginSettings(forceState) {
@@ -7448,6 +7479,9 @@ function onInGameReady() {
 	}
 	if (typeof hookRemotePlayersOnce === "function") {
 		hookRemotePlayersOnce();
+	}
+	if (typeof hookQuestManagerOnce === "function") {
+		hookQuestManagerOnce();
 	}
 	const hudEl = document.getElementById("spkmod-hud");
 	if (hudEl) hudEl.classList.remove("hidden");
