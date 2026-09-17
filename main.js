@@ -252,7 +252,7 @@ ipcMain.handle('get-speaki-mod-js', async () => {
     case 'online':
     case undefined: {
       const modCode = await (await fetch('https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/SpeakiMod.js')).text();
-      return { modSource: 'online', modCode };
+      return { modSourceLocation: 'online', modCode };
     }
 
     case 'package': {
@@ -266,7 +266,7 @@ ipcMain.handle('get-speaki-mod-js', async () => {
           }
         });
       });
-      return { modSource: 'package', modCode };
+      return { modSourceLocation: 'package', modCode };
     }
 
     default:
