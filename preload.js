@@ -4,7 +4,8 @@ const path = require('path');
 
 // Maintain your existing IPC bridge
 contextBridge.exposeInMainWorld('electronAPI', {
-    loadSite: (url) => ipcRenderer.send('load-site', url)
+    loadSite: (url) => ipcRenderer.send('load-site', url),
+    getSpeakiModJs: async () => ipcRenderer.invoke('get-speaki-mod-js')
 });
 
 // Expose client build version from package.json

@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, nativeImage, globalShortcut } = require('electron');
 const axios = require('axios');
+const fs = require('fs');
 const path = require('path');
 const RPC = require('discord-rpc');
 const clientId = '861430403955949569';
@@ -242,6 +243,35 @@ ipcMain.on('load-site', async (event, url) => {
   mainWindow.webContents.session.webRequest.onCompleted(async (details) => {
  //pass
   });
+});
+
+ipcMain.handle('get-speaki-mod-js', async () => {
+  const envScriptSource = process.env.SPKMOD_SCRIPT_SOURCE?.toLowerCase();
+
+  switch (envScriptSource) {
+    case 'online':
+    case undefined: {
+      const modCode = await (await fetch('https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/SpeakiMod.js')).text();
+      return { modSourceLocation: 'online', modCode };
+    }
+
+    case 'package': {
+      const modCode = await new Promise((resolve, reject) => {
+        fs.readFile(path.join(__dirname, 'SpeakiMod.js'), 'utf8', (err, data) => {
+          if (err != null) {
+            console.log(err);
+            reject(err);
+          } else {
+            resolve(data);
+          }
+        });
+      });
+      return { modSourceLocation: 'package', modCode };
+    }
+
+    default:
+      throw new TypeError(`Unexpected value of environment variable "SPKMOD_SCRIPT_SOURCE": "${envScriptSource}", expected: "online", "package"`);
+  }
 });
 
 app.on('window-all-closed', () => {
