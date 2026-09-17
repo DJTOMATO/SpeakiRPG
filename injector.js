@@ -8,7 +8,8 @@ window.injectSpeakiMod = () => {
 	window.__speakiModInjected = true;
 	setTimeout(async () => {
 		try {
-			const modCode = await window.electronAPI.getSpeakiModJs();
+			const { modSource, modCode } = await window.electronAPI.getSpeakiModJs();
+			console.log(`[SpeakiMod+] Loaded SpeakiMod.js from '${modSource}'`);
 
 			const blob = URL.createObjectURL(
 				new Blob([modCode], { type: "text/javascript" })
