@@ -1,23 +1,29 @@
 window.injectSpeakiMod = () => {
+	if (window.__speakiModInjected) {
+		if (typeof window.__speakiInitInGame === "function") {
+			window.__speakiInitInGame();
+		}
+		return;
+	}
+	window.__speakiModInjected = true;
 	setTimeout(async () => {
-		const blob = URL.createObjectURL(
-			new Blob(
-				[
-					await window.electronAPI.getSpeakiModJs()
-				],
-				{
-					type: "text/javascript"
-				}
-			)
-		);
+		try {
+			const modCode = await window.electronAPI.getSpeakiModJs();
 
-		const inj = document.createElement("script");
-		inj.type = "module";
-		inj.crossOrigin = "";
-		inj.src = blob;
+			const blob = URL.createObjectURL(
+				new Blob([modCode], { type: "text/javascript" })
+			);
 
-		document.head.appendChild(inj);
-	}, 1000);
+			const inj = document.createElement("script");
+			inj.type = "module";
+			inj.crossOrigin = "";
+			inj.src = blob;
+
+			document.head.appendChild(inj);
+		} catch (e) {
+			console.error("[SpeakiMod] Failed to inject SpeakiMod.js:", e);
+		}
+	}, 100);
 };
 
 async function patchScript(og, src) {
@@ -25,23 +31,36 @@ async function patchScript(og, src) {
 	og.removeAttribute('src');
 	og.remove();
 
-	const code = await (await fetch(src)).text();
+	let code = await (await fetch(src)).text();
 
-	// the king of hardcoding
+	// Identify minified i18n and questManager functions
 	const m_i18n = (code.match(/function (\w+?)\(e\)\s*\{\s*let \w+\s*=\s*\w+\[\w+\(\)\];\s*return Object\.prototype\.hasOwnProperty.call\(\w+,\s*e\)\s*\?\s*\w+\[e\]\s*:/) || [])[1] || "null";
 	const m_questManager = (code.match(/new\s*(\w+)\({\s*container:\s*e,\s*showToast:\s*e\s*=>\s*\w+\.setStatus\(e\),\s*onClaimSuccess:\s*\(\)\s*=>\s*{\s*\w+\.markStale\(\),\s*\w+\.markStale\(\),\s*\w+\(\)\s*}/) || [])[1] || "null";
 
+	// 1. Rewrite relative asset imports to absolute URLs
+	code = code.replaceAll(/from\s*"\.\//g, 'from "https://speakirpg.overture.io.kr/assets/');
+
+	// 2. Multi-layered GameState & Injector Hooking:
+	// Layer A: Internal GameState method hook on connect(e)
+	const reqChannelPattern = /connect\(([^)]*)\)\s*\{\s*this\.requestedChannel\s*=/;
+	if (reqChannelPattern.test(code)) {
+		code = code.replace(reqChannelPattern, `connect($1){window.speakiInjectorVer = 2; window.gameState = this; window.i18n = ${m_i18n}; window.questManager = ${m_questManager}; this.requestedChannel=`);
+	}
+
+	// Layer B: Internal GameState method hook on handleLogin(e)
+	const handleLoginPattern = /handleLogin\(([^)]*)\)\s*\{/;
+	if (handleLoginPattern.test(code)) {
+		code = code.replace(handleLoginPattern, `handleLogin($1){window.gameState = this; if (typeof window.injectSpeakiMod === "function") window.injectSpeakiMod();`);
+	}
+
+	// Layer C: External connect invocation hook (supports ;, :, ,, or ) before .connect)
+	const callerPattern = /([;:,]|\)\s*)\s*((\w+)\.connect\(\w+\)),/;
+	if (callerPattern.test(code)) {
+		code = code.replace(callerPattern, `$1((window.speakiInjectorVer = 2), (window.gameState = $3), (window.i18n = ${m_i18n}), (window.questManager = ${m_questManager}), $2),`);
+	}
+
 	const blob = URL.createObjectURL(
-		new Blob(
-			[
-				code
-					.replaceAll(/from\s*"\.\//g, 'from "https://speakirpg.overture.io.kr/assets/')
-					.replace(/;\s*((\w+)\.connect\(\w+\)),/, `;((window.speakiInjectorVer = 2), (window.gameState = $2), (window.i18n = ${m_i18n}), (window.questManager = ${m_questManager}), (gameState.handleLogin = window.injectSpeakiMod), $1),`)
-			],
-			{
-				type: "text/javascript"
-			}
-		)
+		new Blob([code], { type: "text/javascript" })
 	);
 
 	const inj = document.createElement("script");
@@ -50,6 +69,9 @@ async function patchScript(og, src) {
 	inj.src = blob;
 
 	document.head.appendChild(inj);
+
+	// Early injection: allows SpeakiMod to mount pre-login features (like Quick Login) on .sr-nickname-gate
+	window.injectSpeakiMod();
 }
 
 const observer = new MutationObserver(muts => {

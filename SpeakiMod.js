@@ -28,10 +28,54 @@
 if (window.speakiMod)
 	throw "Duplicate injection";
 
-// Global token store
+const isElectronEnv = typeof window.electronAPI !== "undefined" || (typeof navigator !== "undefined" && /electron/i.test(navigator.userAgent || ""));
+if (!isElectronEnv) {
+	if (document.body) {
+		const acTranslations = {
+			en: { title: "⚠️ Unauthorized Client Detected", body: "SpeakiMod+ is designed exclusively for the SpeakiRPG Client.<br><br>To prevent cheating and server abuse, running this mod via third-party browser extensions (like Tampermonkey) is strictly prohibited.", btn: "Download SpeakiRPG Client" },
+			ko: { title: "⚠️ 비정상적인 클라이언트 감지됨", body: "SpeakiMod+는 SpeakiRPG 클라이언트 전용입니다.<br><br>부정행위 및 서버 남용을 방지하기 위해 타사 브라우저 확장 프로그램(예: Tampermonkey)을 통해 이 모드를 실행하는 것은 엄격히 금지됩니다.", btn: "SpeakiRPG 클라이언트 다운로드" },
+			ja: { title: "⚠️ 不正なクライアントを検出しました", body: "SpeakiMod+はSpeakiRPGクライアント専用です。<br><br>チート行為やサーバーの乱用を防ぐため、サードパーティのブラウザ拡張機能(Tampermonkeyなど)を使用してこのModを実行することは固く禁じられています。", btn: "SpeakiRPGクライアントをダウンロード" },
+			zh: { title: "⚠️ 偵測到未授權的客戶端", body: "SpeakiMod+ 僅限於 SpeakiRPG 客戶端使用。<br><br>為防止作弊與伺服器濫用，嚴禁透過第三方瀏覽器擴充功能（如 Tampermonkey）執行此模組。", btn: "下載 SpeakiRPG 客戶端" }
+		};
+
+		window._antiCheatSetLang = function(lang) {
+			const t = acTranslations[lang];
+			document.getElementById('ac-title').innerHTML = t.title;
+			document.getElementById('ac-body').innerHTML = t.body;
+			document.getElementById('ac-btn').innerText = t.btn;
+		};
+
+		document.body.innerHTML = `
+			<div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.98); z-index: 2147483647; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: sans-serif; text-align: center; padding: 20px;">
+				<div style="display: flex; gap: 10px; margin-bottom: 30px;">
+					<button onclick="window._antiCheatSetLang('en')" style="padding: 8px 12px; background: #334155; color: white; border: 1px solid #475569; border-radius: 6px; cursor: pointer; font-weight: bold;">English</button>
+					<button onclick="window._antiCheatSetLang('ko')" style="padding: 8px 12px; background: #334155; color: white; border: 1px solid #475569; border-radius: 6px; cursor: pointer; font-weight: bold;">한국어</button>
+					<button onclick="window._antiCheatSetLang('ja')" style="padding: 8px 12px; background: #334155; color: white; border: 1px solid #475569; border-radius: 6px; cursor: pointer; font-weight: bold;">日本語</button>
+					<button onclick="window._antiCheatSetLang('zh')" style="padding: 8px 12px; background: #334155; color: white; border: 1px solid #475569; border-radius: 6px; cursor: pointer; font-weight: bold;">中文</button>
+				</div>
+				<h1 id="ac-title" style="color: #ef4444; margin-bottom: 20px; font-size: 28px;">${acTranslations.en.title}</h1>
+				<img src="https://i.imgur.com/4Qe6qiR.png" alt="Caught!" style="width: 50%; max-width: 350px; margin-bottom: 25px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.5);">
+				<p id="ac-body" style="font-size: 18px; max-width: 600px; line-height: 1.6; margin-bottom: 30px; color: #cbd5e1;">${acTranslations.en.body}</p>
+				
+				<a id="ac-btn" href="https://github.com/DJTOMATO/SpeakiRPG/releases" style="background: #3b82f6; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: bold; font-size: 16px; margin-bottom: 25px; transition: background 0.2s;">${acTranslations.en.btn}</a>
+				
+				<div style="background: #0f172a; padding: 12px 16px; border-radius: 8px; border: 1px solid #334155; display: flex; align-items: center; gap: 12px;">
+					<input type="text" readonly value="https://github.com/DJTOMATO/SpeakiRPG/releases" onfocus="this.select()" style="background: transparent; color: #94a3b8; border: none; width: 320px; font-size: 15px; outline: none; user-select: all;">
+					<button onclick="navigator.clipboard.writeText('https://github.com/DJTOMATO/SpeakiRPG/releases'); this.innerText='Copied!'; this.style.background='#22c55e'; setTimeout(()=> { this.innerText='Copy'; this.style.background='#475569'; }, 2000);" style="background: #475569; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: background 0.2s; width: 80px;">Copy</button>
+				</div>
+			</div>
+		`;
+	}
+	throw new Error("SpeakiMod: Blocked unauthorized third-party extension usage.");
+}
+
 window.speakiAuthToken = window.speakiAuthToken || "";
 
-// Intercept fetch requests to continuously update the Auth Token
+window.gameState = window.gameState || undefined;
+
+var lunCurrentPing = "--";
+var lunCurrentFps = "--";
+
 if (!window.__speakiFetchHooked) {
 	window.__speakiFetchHooked = true;
 	const origFetch = window.fetch;
@@ -39,9 +83,16 @@ if (!window.__speakiFetchHooked) {
 		const [resource, config] = args;
 		const headers = config?.headers;
 		if (headers) {
-			const authHeader = headers.Authorization || headers.authorization || headers.Bearer;
-			if (authHeader && authHeader.includes("eyJhb")) {
-				window.speakiAuthToken = authHeader.replace("Bearer ", "").trim();
+			let authHeader = "";
+			if (typeof headers.get === "function") {
+				authHeader = headers.get("Authorization") || headers.get("authorization") || "";
+			} else if (typeof headers === "object") {
+				authHeader = headers.Authorization || headers.authorization || headers.Bearer || "";
+			}
+			if (authHeader && authHeader.includes("Bearer ")) {
+				window.speakiAuthToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+			} else if (authHeader && authHeader.includes("eyJhb")) {
+				window.speakiAuthToken = authHeader.trim();
 			}
 		}
 		return origFetch.apply(this, args);
@@ -50,37 +101,44 @@ if (!window.__speakiFetchHooked) {
 
 const usingDevToolsOrOldSpeakiInjector = !window.speakiInjectorVer;
 
-if (!window.gameState) {
-	alert("SpeakiMod is not installed correctly or the game updated! Can't proceed.");
-	throw "Injection error...";
-}
 window.speakiMod = true;
 
+if (!window.gameState) {
+	console.log("[SpeakiMod+] Loaded before gameState. Pre-login gate assistant active.");
+}
+
 if (!window.i18n) {
-	if (usingDevToolsOrOldSpeakiInjector)
-		alert("Warning: SpeakiMod failed to discover 'i18n'. The mod will work, but you will see internal names instead of properly translated ones.\n\nPotential causes:\n- You are using the DevTools injection method\n- Game code changed");
-	else
-		alert("Warning: SpeakiMod failed to discover 'i18n'. The mod will work, but you will see internal names instead of properly translated ones.\n\nPotential causes:\n- Game code changed");
 	window.i18n = e => e;
 }
 
-if (!window.questManager) {
-	if (usingDevToolsOrOldSpeakiInjector)
-		alert("Warning: SpeakiMod failed to discover 'questManager'. The Quest Pinning functionality will be disabled.\n\nPotential causes:\n- You are using the DevTools injection method\n- You are using an outdated version of the SpeakiMod Injector extension");
-	else
-		alert("Warning: SpeakiMod failed to discover 'questManager'. The Quest Pinning functionality will be disabled.\n\nPotential causes:\n- Game code changed");
-}
-const socketUrl = gameState.socket?.socket?.url || gameState.socket?.url || "";
-// This is needed to make requests to 'gameData', 'channels' and other API endpoints
-// NEW (SAFE):
 function getAuthToken() {
-	// 1. Check if captured via fetch interceptor
 	if (window.speakiAuthToken) return window.speakiAuthToken;
 
-	// 2. Safe check on legacy gameState structure (with optional chaining)
-	const socketUrl = gameState?.socket?.socket?.url || gameState?.socket?.url || "";
-	const match = socketUrl.match(/eyJhb.+?(?=&|$)/);
-	if (match) return match[0];
+	const socketUrl = (typeof gameState !== 'undefined' && (gameState?.socket?.socket?.url || gameState?.socket?.url)) || "";
+	if (socketUrl) {
+		const paramMatch = socketUrl.match(/[?&]access_token=([^&]+)/);
+		if (paramMatch && paramMatch[1]) {
+			try {
+				const decoded = decodeURIComponent(paramMatch[1]);
+				window.speakiAuthToken = decoded;
+				return decoded;
+			} catch (_) {
+				window.speakiAuthToken = paramMatch[1];
+				return paramMatch[1];
+			}
+		}
+		const jwtMatch = socketUrl.match(/eyJhb.+?(?=&|$)/);
+		if (jwtMatch) {
+			try {
+				const decoded = decodeURIComponent(jwtMatch[0]);
+				window.speakiAuthToken = decoded;
+				return decoded;
+			} catch (_) {
+				window.speakiAuthToken = jwtMatch[0];
+				return jwtMatch[0];
+			}
+		}
+	}
 	return "";
 }
 const Emotes = {
@@ -266,8 +324,8 @@ const Portals = {
 		104: {
 			portalId: 25, requiredQuestCode: null,
 			pos: {
-				x: 647.5,
-				z: 300
+				x: 647,
+				z: 250
 			}
 		}
 	},
@@ -282,7 +340,7 @@ const Portals = {
 		105: {
 			portalId: 27, requiredQuestCode: "MQ_BOSS_WORLDTREE",
 			pos: {
-				x: 783.75,
+				x: 784,
 				z: 250
 			}
 		}
@@ -483,7 +541,6 @@ const Portals = {
 	}
 };
 
-// [SpeakiMod+] Quest Interceptor & Local Storage
 window.lunCompletedQuests = new Set();
 try {
 	const saved = localStorage.getItem('lunCompletedQuests');
@@ -523,8 +580,6 @@ XMLHttpRequest.prototype.open = function(method, url) {
 	});
 	origXhrOpen.apply(this, arguments);
 };
-// Very cringe and could be generated automatically but gijfogjifsdogd fuck graph theory
-// This won't work btw if I decide to add quest portal support & Monatium
 const WorldZones = [{"zoneId": 1, "minX": 0, "maxX": 100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 2, "minX": 100, "maxX": 200, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 3, "minX": 200, "maxX": 300, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 4, "minX": 300, "maxX": 430, "minZ": 60, "maxZ": 140, "requiredQuestCode": null}, {"zoneId": 5, "minX": 430, "maxX": 560, "minZ": 60, "maxZ": 140, "requiredQuestCode": null}, {"zoneId": 6, "minX": 560, "maxX": 660, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 7, "minX": 660, "maxX": 760, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 8, "minX": 760, "maxX": 960, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 9, "minX": 960, "maxX": 1140, "minZ": 40, "maxZ": 160, "requiredQuestCode": null}, {"zoneId": 10, "minX": 1140, "maxX": 1360, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 11, "minX": 2000, "maxX": 2040, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 12, "minX": 2100, "maxX": 2140, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 13, "minX": 2200, "maxX": 2240, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 101, "minX": 100, "maxX": 300, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 102, "minX": 350, "maxX": 450, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 103, "minX": 550, "maxX": 650, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 104, "minX": 712.5, "maxX": 787.5, "minZ": 212.5, "maxZ": 287.5, "requiredQuestCode": "MQ_BOSS_WORLDTREE"}, {"zoneId": 105, "minX": 850, "maxX": 950, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 106, "minX": 1050, "maxX": 1150, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 107, "minX": 1250, "maxX": 1350, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 108, "minX": 1400, "maxX": 1600, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 181, "minX": 2300, "maxX": 2340, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 182, "minX": 2400, "maxX": 2440, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 900, "minX": 0, "maxX": 1200, "minZ": 0, "maxZ": 25, "requiredQuestCode": null}, {"zoneId": 901, "minX": 0, "maxX": 100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 201, "minX": 120, "maxX": 280, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 202, "minX": 340, "maxX": 460, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 203, "minX": 520, "maxX": 680, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 204, "minX": 725, "maxX": 775, "minZ": -75, "maxZ": -25, "requiredQuestCode": "MQ2_CORE3"}, {"zoneId": 205, "minX": 840, "maxX": 960, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 206, "minX": 1040, "maxX": 1160, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 207, "minX": 1240, "maxX": 1360, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 208, "minX": 1440, "maxX": 1560, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 209, "minX": 1620, "maxX": 1780, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 281, "minX": 2500, "maxX": 2540, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 282, "minX": 2600, "maxX": 2640, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}];
 
 const ZoneSequences = [1, 2, 5, 3, 6, 4, 7, 8, 9, 10];
@@ -538,28 +593,6 @@ const Waypoints = {
 	]
 };
 
-var GameData = null;
-
-/*
-fetch("https://sr1.overture.io.kr/api/gamedata", {
-	"method": "GET",
-	"headers": {
-		"authorization": "Bearer " + AuthToken
-	},
-	"mode": "cors"
-}).then(async x => {
-	if (!x.ok) {
-		// TODO: Special case for 429? idk if it will happen or not
-		alert("SpeakiMod is outdated or the game servers are down! Failed to fetch gamedata: " + x.status + "\nSome features will be hidden.");
-		return;
-	}
-
-	GameData = await x.json();
-
-	onGameDataUpdate();
-});
-*/
-
 function buildElement(tag, characteristics, inner, callback) {
 	var elem = document.createElement(tag);
 	elem.replaceChildren(...(inner?.filter(t => t) || []));
@@ -572,7 +605,6 @@ function buildElement(tag, characteristics, inner, callback) {
 
 function findNametagSprite(container) {
 	if (!container) return null;
-	// Direct O(1) path based on in-game Three.js structure (both on foot and mounted on vehicle)
 	const direct = container.children?.[0]?.children?.[0]?.children?.[1];
 	if (direct && direct.isSprite) return direct;
 
@@ -598,12 +630,8 @@ var lunBadWords = {
 	en: [].concat(window.SpeakiModBadWordsEN || [], [
 		"spkmodtestword"
 	]),
-	ja: [].concat(window.SpeakiModBadWordsJA || [], [
-		// "例"
-	]),
-	ko: [].concat(window.SpeakiModBadWordsKO || [], [
-		// "예시"
-	])
+	ja: [].concat(window.SpeakiModBadWordsJA || []),
+	ko: [].concat(window.SpeakiModBadWordsKO || [])
 };
 
 var lunBadWordSources = {
@@ -640,9 +668,7 @@ async function loadAllBadWordLists() {
 			console.log("[SpeakiMod+] Loaded profanity filter word lists from cache.");
 			return;
 		}
-	} catch (err) {
-		// corrupt cache, fall through to a fresh fetch
-	}
+	} catch (err) {}
 
 	const [en, ja, ko] = await Promise.all([
 		loadBadWordList("en", lunBadWordSources.en),
@@ -750,66 +776,15 @@ function filterName(name) {
 
 loadAllBadWordLists();
 
-var spkmodTranslations = {
-	en: {
-		langName: "English",
-		patchNotesBtnTooltip: "Game Patch Notes",
-		patchNotesHeader: "Game Patch Notes",
-		patchNotesLoading: "Loading & translating patch notes...",
-		patchNotesEmpty: "No patch notes available.",
-		patchNotesError: "Failed to load patch notes.",
-		pumpkinTrackerToggleLabel: "Pumpkin Plays Tracker",
-		pumpkinTrackerText: "Pumpkin: {0}/{1}",
-		pumpkinTrackerInactive: "Pumpkin: Ended",
-		currencyTrackerToggleLabel: "Show Gold & Elif on HUD",
-		statsHeader: "Session & Performance Stats",
-		statsBtnTooltip: "Session Stats & Tracker",
-		statsSessionTime: "Session Time",
-		statsDailyReset: "Daily Reset",
-		statsPumpkinPlays: "Pumpkin Plays",
-		statsExpGained: "EXP Gained",
-		statsExpPerHour: "EXP Rate",
-		statsTimeToNextLevel: "Next Level In",
-		statsCurrency: "Currency Balances",
-		statsGoldGained: "Gold Gained",
-		statsElifGained: "Elif Gained",
-		statsPing: "Network Ping",
-		settingsCatGeneral: "Chat & Gameplay",
-		settingsCatHUD: "HUD & Appearance",
-		statsResetBtn: "Reset Session",
-		statsResetConfirm: "Session stats reset.",
-		eventInfoBtnTooltip: "Event Info",
-		eventInfoHeader: "Event Info",
-		eventPumpkinTitle: "Pumpkin Minigame",
-		eventStatusActive: "Active",
-		eventStatusInactive: "Inactive",
-		eventPeriod: "Period: {0} ~ {1}",
-		eventBestScore: "Best Score: {0}",
-		eventPlaysToday: "Plays Remaining: {0}/{1}",
-		eventLoading: "Loading event info..."
-	},
-	ja: {
-		settingsCatGeneral: "チャット＆ゲームプレイ",
-		settingsCatHUD: "HUD＆外観"
-	},
-	ko: {
-		settingsCatGeneral: "채팅 및 게임플레이",
-		settingsCatHUD: "HUD 및 외형"
-	},
-	"zh-TW": {
-		settingsCatGeneral: "聊天與遊戲",
-		settingsCatHUD: "HUD 與外觀"
-	},
-	"es-419": {
-		settingsCatGeneral: "Chat y jugabilidad",
-		settingsCatHUD: "HUD y apariencia"
-	},
-	"zh-CN": {
-		settingsCatGeneral: "聊天与游戏",
-		settingsCatHUD: "HUD 与外观"
-	}
-};
-
+var spkmodTranslations = (function() {
+	try {
+		if (typeof window !== "undefined" && window.localStorage) {
+			const cached = localStorage.getItem("spkmod-translations-cache");
+			if (cached) return JSON.parse(cached);
+		}
+	} catch (_) {}
+	return {};
+})();
 
 var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) || "en";
 
@@ -822,12 +797,17 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 				for (const lang of Object.keys(data)) {
 					spkmodTranslations[lang] = Object.assign({}, spkmodTranslations[lang] || {}, data[lang]);
 				}
+				if (typeof window !== "undefined" && window.localStorage) {
+					try {
+						localStorage.setItem("spkmod-translations-cache", JSON.stringify(spkmodTranslations));
+					} catch (_) {}
+				}
 				if (!spkmodTranslations[spkmodLang]) spkmodLang = "en";
-				if (typeof refreshI18n === 'function') refreshI18n();
+				if (typeof refreshI18n === "function") refreshI18n();
 			}
 		}
 	} catch (e) {
-		console.warn("[SpeakiMod+] Failed to load translations from GitHub:", e);
+		console.warn("[SpeakiMod+] Failed to load translations.json from GitHub:", e);
 	}
 })();
 
@@ -840,10 +820,15 @@ function t(key, ...args) {
 }
 
 function getZoneName(zoneId) {
-	const localName = spkmodTranslations[spkmodLang]?.mapLocations?.[String(zoneId)];
+	const zid = String(zoneId);
+	const localName = spkmodTranslations[spkmodLang]?.mapLocations?.[zid]
+		|| spkmodTranslations.en?.mapLocations?.[zid];
 	if (localName) return localName;
-	const gameName = window.i18n ? window.i18n(`content.zone.${zoneId}.name`) : `Zone ${zoneId}`;
-	return !gameName || gameName.startsWith("content.zone") ? `Zone ${zoneId}` : gameName;
+	try {
+		const gameName = typeof window.i18n === "function" ? window.i18n(`content.zone.${zoneId}.name`) : null;
+		if (gameName && !gameName.startsWith("content.zone")) return gameName;
+	} catch (e) {}
+	return `Zone ${zoneId}`;
 }
 
 var spkmodI18nRenderers = [];
@@ -867,6 +852,10 @@ function setLanguage(lang) {
 	if (window.localStorage) localStorage.setItem("spkmod-lang", lang);
 	refreshI18n();
 }
+
+window.getZoneName = getZoneName;
+window.refreshI18n = refreshI18n;
+window.setLanguage = setLanguage;
 
 var lunHudElements = {
 	playersNearby: null,
@@ -893,7 +882,8 @@ var eventModalElements = {
 	statusBadge: null,
 	periodText: null,
 	bestScoreText: null,
-	playsRemainingText: null
+	playsRemainingText: null,
+	refreshBtn: null
 };
 var patchNotesModalElements = {
 	headerTitle: null,
@@ -940,6 +930,7 @@ var lunPanelElements = {
 	autoHeartsBtn: null,
 	petBtn: null,
 	ritualBtn: null,
+	partnerDanceBtn: null,
 	turntableBtn: null,
 	speedLabel: null,
 	turnToCameraBtn: null,
@@ -1010,7 +1001,53 @@ var lunWalkToPortal = -1;
 var lunAutoTravelTarget = null;
 var lunCameraLocked = false;
 var lunNametagMode = 0; 
-const NAMETAG_MODES = ["showAllNametags", "keepPartyNametags", "hideAllNametags"];
+const NAMETAG_MODES = ["showAllNametags", "keepPartyNametags", "keepFriendsNametags", "hideAllNametags"];
+
+var lunFriendNicknames = new Set();
+var lunFriendChatHighlightEnabled = (window.localStorage && localStorage.getItem("spkmod-friend-highlight-enabled")) === "true";
+
+function setFriendChatHighlightEnabled(enabled) {
+	lunFriendChatHighlightEnabled = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-friend-highlight-enabled", lunFriendChatHighlightEnabled ? "true" : "false");
+}
+
+var lunLastFriendFetchTime = 0;
+var lunFriendFetchInProgress = false;
+
+function fetchFriendsList(force = false) {
+	const now = Date.now();
+	if (!force && now - lunLastFriendFetchTime < 60000) return;
+	if (lunFriendFetchInProgress) return;
+	const token = typeof getAuthToken === "function" ? getAuthToken() : null;
+	if (!token) return;
+	lunFriendFetchInProgress = true;
+	fetch("https://sr1.overture.io.kr/api/friend/list", {
+		method: "GET",
+		headers: {
+			"authorization": `Bearer ${token}`
+		},
+		mode: "cors"
+	}).then(async res => {
+		if (!res.ok) return;
+		const data = await res.json();
+		const friends = data?.friends;
+		if (Array.isArray(friends)) {
+			const newSet = new Set();
+			for (const f of friends) {
+				if (f && typeof f.nickname === "string") {
+					const nick = f.nickname.trim().toLowerCase();
+					if (nick) newSet.add(nick);
+				}
+			}
+			lunFriendNicknames = newSet;
+			lunLastFriendFetchTime = Date.now();
+		}
+	}).catch(e => {
+		console.warn("[SpeakiMod+] Failed to fetch friend list:", e);
+	}).finally(() => {
+		lunFriendFetchInProgress = false;
+	});
+}
 
 const lunKnownBotNames = ["GOODSPIKI", "BADSPIKI","NEXThobagi","QAZWSXEDC", "kqland", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki"];
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
@@ -1123,9 +1160,7 @@ function hookKnownBotPlayerEmotes(player) {
 				}
 				return original.apply(this, args);
 			};
-		} catch (err) {
-			// Some game methods may be non-writable; leave those untouched.
-		}
+		} catch (err) {}
 	}
 	player.__speakiKnownBotEmotesHooked = true;
 }
@@ -1194,6 +1229,9 @@ function setFpsPingEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-fps-ping", lunFpsPingEnabled ? "true" : "false");
 	if (lunHudElements.fpsPingTracker) {
 		lunHudElements.fpsPingTracker.style.display = lunFpsPingEnabled ? "" : "none";
+	}
+	if (lunFpsPingEnabled && typeof performActivePing === 'function') {
+		performActivePing();
 	}
 }
 
@@ -1265,7 +1303,8 @@ function bringToFront(element) {
 
 function makeDraggable(element, handles) {
 	if (!element || !handles) return;
-	let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+	if (element.__spkmodDraggable) return;
+	element.__spkmodDraggable = true;
 
 	const posKey = element.id ? "spkmod-pos-" + element.id : null;
 
@@ -1300,70 +1339,134 @@ function makeDraggable(element, handles) {
 	}, true);
 
 	handles.forEach(handle => {
-		if (handle) {
-			handle.onmousedown = dragMouseDown;
+		if (handle && handle.addEventListener) {
+			handle.addEventListener("dragstart", e => e.preventDefault());
 		}
 	});
 
-	function dragMouseDown(e) {
-		e = e || window.event;
-		if (e.target && (
-			e.target.tagName === 'BUTTON' ||
-			e.target.tagName === 'INPUT' ||
-			e.target.tagName === 'SELECT' ||
-			e.target.tagName === 'A' ||
-			e.target.id?.includes('close') ||
-			e.target.closest('button') ||
-			e.target.closest('input') ||
-			e.target.closest('select') ||
-			e.target.closest('a') ||
-			e.target.closest('[id*="close"]')
-		)) {
-			return;
-		}
-		e.preventDefault();
-		pos3 = e.clientX;
-		pos4 = e.clientY;
+	let isDragging = false;
+	let startPointerX = 0, startPointerY = 0;
+	let startElemLeft = 0, startElemTop = 0;
+	let currentScale = 1;
+	let hasMovedSignificant = false;
 
-		document.onmouseup = closeDragElement;
-		document.onmousemove = elementDrag;
-	}
+	function onPointerDown(e) {
+		if (isDragging) return;
+		if (e.button !== undefined && e.button !== 0) return;
 
-	function elementDrag(e) {
-		e = e || window.event;
-		e.preventDefault();
+		const target = e.target;
+		const isExplicitDragBtn = target && (target.id === 'spkmod-drag-btn' || target.closest('#spkmod-drag-btn'));
+		const isExplicitFooter = target && (target.id === 'spkmod-footer' || target.closest('#spkmod-footer'));
+		const isHeaderRow = target && (target.id === 'spkmod-header-row' || target.closest('#spkmod-header-row'));
 
-		pos1 = pos3 - e.clientX;
-		pos2 = pos4 - e.clientY;
-		pos3 = e.clientX;
-		pos4 = e.clientY;
-
-		const maxTop = Math.max(0, window.innerHeight - 45);
-		const maxLeft = Math.max(0, window.innerWidth - 60);
-		const newTop = Math.min(Math.max(0, element.offsetTop - pos2), maxTop);
-		const newLeft = Math.min(Math.max(0, element.offsetLeft - pos1), maxLeft);
-
-		element.dataset.userDragged = "true";
-		element.style.top = newTop + "px";
-		element.style.left = newLeft + "px";
-	}
-
-	function closeDragElement() {
-		document.onmouseup = null;
-		document.onmousemove = null;
-
-		element.dataset.userDragged = "true";
-		if (posKey && window.localStorage) {
-			const posData = JSON.stringify({
-				top: element.style.top,
-				left: element.style.left
-			});
-			localStorage.setItem(posKey, posData);
-			if (element.id === "spkmod-hud") {
-				localStorage.setItem("spkmod-window-pos", posData);
+		if (!isExplicitDragBtn && !isExplicitFooter && !isHeaderRow && target) {
+			if (
+				target.tagName === 'BUTTON' ||
+				target.tagName === 'INPUT' ||
+				target.tagName === 'SELECT' ||
+				target.tagName === 'A' ||
+				target.id?.includes('close') ||
+				target.closest('button') ||
+				target.closest('input') ||
+				target.closest('select') ||
+				target.closest('a') ||
+				target.closest('[id*="close"]')
+			) {
+				return;
 			}
 		}
+
+		const scaleVar = getComputedStyle(element).getPropertyValue('--spkmod-scale');
+		currentScale = parseFloat(scaleVar) || 1;
+
+		const rect = element.getBoundingClientRect();
+		startElemLeft = parseFloat(element.style.left);
+		if (isNaN(startElemLeft)) startElemLeft = rect.left;
+		startElemTop = parseFloat(element.style.top);
+		if (isNaN(startElemTop)) startElemTop = rect.top;
+
+		startPointerX = e.clientX;
+		startPointerY = e.clientY;
+		hasMovedSignificant = false;
+		isDragging = true;
+
+		if (e.pointerId && target && target.setPointerCapture) {
+			try {
+				target.setPointerCapture(e.pointerId);
+			} catch (_) {}
+		}
+
+		window.addEventListener("pointermove", onMove, { passive: false });
+		window.addEventListener("pointerup", onUp);
+		window.addEventListener("pointercancel", onUp);
+		window.addEventListener("mousemove", onMove, { passive: false });
+		window.addEventListener("mouseup", onUp);
 	}
+
+	function onMove(ev) {
+		if (!isDragging) return;
+
+		const deltaX = (ev.clientX - startPointerX) / currentScale;
+		const deltaY = (ev.clientY - startPointerY) / currentScale;
+
+		if (!hasMovedSignificant && (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2)) {
+			hasMovedSignificant = true;
+			element.dataset.userDragged = "true";
+			element.dataset.justDragged = "true";
+		}
+
+		if (hasMovedSignificant) {
+			ev.preventDefault();
+			const maxTop = Math.max(0, window.innerHeight - 45);
+			const maxLeft = Math.max(0, window.innerWidth - 60);
+			const newLeft = Math.min(Math.max(0, startElemLeft + deltaX), maxLeft);
+			const newTop = Math.min(Math.max(0, startElemTop + deltaY), maxTop);
+
+			element.style.left = Math.round(newLeft) + "px";
+			element.style.top = Math.round(newTop) + "px";
+		}
+	}
+
+	function onUp(ev) {
+		if (!isDragging) return;
+		isDragging = false;
+
+		window.removeEventListener("pointermove", onMove);
+		window.removeEventListener("pointerup", onUp);
+		window.removeEventListener("pointercancel", onUp);
+		window.removeEventListener("mousemove", onMove);
+		window.removeEventListener("mouseup", onUp);
+
+		if (ev && ev.pointerId && ev.target && ev.target.releasePointerCapture) {
+			try {
+				ev.target.releasePointerCapture(ev.pointerId);
+			} catch (_) {}
+		}
+
+		if (hasMovedSignificant) {
+			element.dataset.userDragged = "true";
+			if (posKey && window.localStorage) {
+				const posData = JSON.stringify({
+					top: element.style.top,
+					left: element.style.left
+				});
+				localStorage.setItem(posKey, posData);
+				if (element.id === "spkmod-hud") {
+					localStorage.setItem("spkmod-window-pos", posData);
+				}
+			}
+			setTimeout(() => {
+				element.dataset.justDragged = "false";
+			}, 120);
+		}
+	}
+
+	handles.forEach(handle => {
+		if (handle) {
+			handle.addEventListener("pointerdown", onPointerDown);
+			handle.addEventListener("mousedown", onPointerDown);
+		}
+	});
 }
 
 function positionModalNicely(modal) {
@@ -1419,7 +1522,12 @@ function positionModalNicely(modal) {
 	}
 }
 
+let lastToggleSettingsTime = 0;
 function toggleSettingsModal() {
+	const now = Date.now();
+	if (now - lastToggleSettingsTime < 250) return;
+	lastToggleSettingsTime = now;
+
 	if (!lunHudElements.settingsModal) return;
 	const isClosed = lunHudElements.settingsModal.classList.contains("hidden");
 	if (isClosed) {
@@ -1430,6 +1538,9 @@ function toggleSettingsModal() {
 		lunHudElements.settingsModal.classList.remove("hidden");
 	} else {
 		lunHudElements.settingsModal.classList.add("hidden");
+		if (typeof toggleQuickLoginSettings === "function") {
+			toggleQuickLoginSettings(false);
+		}
 	}
 }
 
@@ -1477,6 +1588,8 @@ function updateEventModalContent() {
 		const cap = lunPumpkinStatus.dailyCapPlays ?? 10;
 		setText(eventModalElements.playsRemainingText, t("eventPlaysToday", rem, cap));
 	}
+
+	if (eventModalElements.refreshBtn) setText(eventModalElements.refreshBtn, "🔄 " + t("refreshBtn"));
 }
 
 var lunPatchNotesData = (() => {
@@ -1739,7 +1852,6 @@ function updateStatsModalLive() {
 	if (statsModalElements.elifGainedLabel) setText(statsModalElements.elifGainedLabel, "💎 " + t("statsElifGained"));
 	if (statsModalElements.resetBtn) setText(statsModalElements.resetBtn, "🔄 " + t("statsResetBtn"));
 
-	// 1. Session Duration
 	if (!window._lunSessionStartTime) {
 		window._lunSessionStartTime = Date.now();
 	}
@@ -1753,7 +1865,6 @@ function updateStatsModalLive() {
 		setText(statsModalElements.sessionTimeVal, timeStr);
 	}
 
-	// 2. Ping & FPS
 	if (statsModalElements.pingVal) {
 		const ping = typeof lunCurrentPing !== 'undefined' ? lunCurrentPing : "--";
 		const pingNum = Number(ping);
@@ -1772,7 +1883,6 @@ function updateStatsModalLive() {
 		statsModalElements.fpsVal.innerText = `${typeof lunCurrentFps !== 'undefined' ? lunCurrentFps : "--"} FPS`;
 	}
 
-	// 3. Daily Reset Countdown
 	if (statsModalElements.dailyResetVal) {
 		const nowUtc = new Date();
 		const kstOffset = 9 * 60 * 60 * 1000;
@@ -1787,7 +1897,6 @@ function updateStatsModalLive() {
 		statsModalElements.dailyResetVal.innerText = `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
 	}
 
-	// 4. Pumpkin Plays
 	if (statsModalElements.pumpkinVal) {
 		if (lunPumpkinStatus) {
 			if (lunPumpkinStatus.isActive) {
@@ -1805,14 +1914,13 @@ function updateStatsModalLive() {
 		}
 	}
 
-	// 3. Level & EXP
 	const myStat = (typeof gameState !== 'undefined' && gameState?.myStat) ? gameState.myStat : null;
 	const currentExp = myStat?.exp ?? 0;
 	const maxExp = myStat?.maxExp ?? 1;
 	const currentLevel = myStat?.level ?? 1;
 
 	if (window._lunSessionStartExp === undefined || window._lunSessionStartExp === null) {
-		if (currentExp > 0) window._lunSessionStartExp = currentExp;
+		window._lunSessionStartExp = currentExp;
 	}
 
 	const expPct = Math.min(100, Math.max(0, (currentExp / maxExp) * 100));
@@ -1826,14 +1934,12 @@ function updateStatsModalLive() {
 		statsModalElements.levelProgressBar.style.width = `${expPct.toFixed(1)}%`;
 	}
 
-	// EXP Gained this session
 	const startExp = window._lunSessionStartExp ?? currentExp;
 	const expGained = Math.max(0, currentExp - startExp);
 	if (statsModalElements.expGainedVal) {
 		statsModalElements.expGainedVal.innerText = `+${expGained.toLocaleString()} EXP`;
 	}
 
-	// EXP / Hour Rate
 	const hoursElapsed = elapsedMs / 3600000;
 	const expSpeedPerHour = (typeof lunExpTrackerSpeed !== 'undefined' && lunExpTrackerSpeed > 0)
 		? (lunExpTrackerSpeed * 3600)
@@ -1842,7 +1948,6 @@ function updateStatsModalLive() {
 		statsModalElements.expRateVal.innerText = `${Math.round(expSpeedPerHour).toLocaleString()} / hr`;
 	}
 
-	// Time to Next Level
 	if (statsModalElements.timeToLevelVal) {
 		if (expSpeedPerHour > 0) {
 			const expNeeded = Math.max(0, maxExp - currentExp);
@@ -1858,14 +1963,12 @@ function updateStatsModalLive() {
 		}
 	}
 
-	// 4. Currency: Balances & Gains
 	const curGold = lunLastGold ?? 0;
 	const curElif = lunLastElif ?? 0;
 	if (statsModalElements.currencyBalancesVal) {
 		statsModalElements.currencyBalancesVal.innerText = `🪙 ${curGold.toLocaleString()}  |  💎 ${curElif.toLocaleString()}`;
 	}
 
-	// Gold gained
 	if (lunSessionStartGold === null && lunLastGold !== null) {
 		lunSessionStartGold = lunLastGold;
 	}
@@ -1881,7 +1984,6 @@ function updateStatsModalLive() {
 		statsModalElements.goldGainedVal.style.color = goldDiff >= 0 ? "#ffd54a" : "#f87171";
 	}
 
-	// Elif gained
 	if (lunSessionStartElif === null && lunLastElif !== null) {
 		lunSessionStartElif = lunLastElif;
 	}
@@ -1917,7 +2019,7 @@ function updateDynamicStyles() {
 	let bgImageRule = "none";
 	const level = (typeof gameState !== 'undefined' && gameState.myStat && gameState.myStat.level) || 1;
 	let isVip = false;
-	const playerName = (typeof gameState !== 'undefined' && gameState.myStat && gameState.myStat.name) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
+	const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
 	if (playerName) {
 		const n = playerName.toLowerCase();
 		isVip = n === "glas" || n === "sp1cky" || n === "gmdt";
@@ -1998,7 +2100,7 @@ function updateHudBgDropdown() {
 	
 	const level = (typeof gameState !== 'undefined' && gameState.myStat && gameState.myStat.level) || 1;
 	let isVip = false;
-	const playerName = (typeof gameState !== 'undefined' && gameState.myStat && gameState.myStat.name) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
+	const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
 	if (playerName) {
 		const n = playerName.toLowerCase();
 		isVip = n === "glas" || n === "sp1cky" || n === "gmdt";
@@ -2072,6 +2174,7 @@ document.head.appendChild(buildElement(
 		}
 		.sr-chatbox__body-text.spkmod-translated-line { color: #ffd54a !important; -webkit-text-fill-color: #ffd54a !important;  }
 		.sr-chatbox__body-text.spkmod-gmdt-line { font-weight: 800 !important; color: #ffa726 !important; -webkit-text-fill-color: #ffa726 !important; text-shadow: 0 0 6px rgba(255, 167, 38, 0.45) !important; }
+		.sr-chatbox__sender.spkmod-friend-sender { color: #4dd0e1 !important; -webkit-text-fill-color: #4dd0e1 !important; font-weight: bold !important; text-shadow: 0 0 6px rgba(77, 208, 225, 0.45) !important; }
 		.sr-chatbox__body-text.spkmod-clickable-line { cursor: pointer !important; pointer-events: auto !important;}
 		#spkmod-footer {
 			border-top: 1px solid #DDD;
@@ -2340,8 +2443,7 @@ document.head.appendChild(buildElement(
 			from { opacity: 0.7; transform: scale(0.98); }
 			to { opacity: 1.0; transform: scale(1.02); }
 		}
-		/* honest to god forgot CSS is stupid like that */
-		.hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden, #spkmod-stats-modal.hidden {
+		#spkmod-hud.hidden, .hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden, #spkmod-stats-modal.hidden {
 			display: none !important;
 		}
 		body.spkmod-ui-hidden #spkmod-hud,
@@ -2353,6 +2455,7 @@ document.head.appendChild(buildElement(
 		body.spkmod-ui-hidden #spkmod-players-modal,
 		body.spkmod-ui-hidden #spkmod-map-modal,
 		body.spkmod-ui-hidden #spkmod-stats-modal,
+		body.spkmod-ui-hidden #spkmod-news-modal,
 		body.spkmod-ui-hidden #spkmod-translate-picker {
 			display: none !important;
 		}
@@ -2383,21 +2486,27 @@ document.head.appendChild(buildElement(
 	}
 ));
 
+document.body.classList.remove("spkmod-ui-hidden");
 lunHudElements.lowHpOverlay = buildElement("div", { id: "spkmod-low-hp-overlay" });
 document.body.appendChild(lunHudElements.lowHpOverlay);
 
 document.body.appendChild(
-	buildElement("div", {
-		id: "spkmod-hud"
+	lunHudElements.hud = buildElement("div", {
+		id: "spkmod-hud",
+		className: (typeof gameState === "undefined" || !gameState ? "hidden" : "")
 	}, [
 		buildElement("div", {
 			id: "spkmod-main"
 		}, [
-			buildElement("div", { id: "spkmod-header-row" }, [
+			buildElement("div", { id: "spkmod-header-row", style: "cursor: move; user-select: none; touch-action: none;" }, [
 				lunPanelElements.headerBtn = buildElement("span", {
 					id: "spkmod-header",
 					innerText: t("header"),
+					style: "cursor: move; user-select: none; touch-action: none; display: inline-block;",
 					onclick: _ => {
+						if (lunHudElements.hud && lunHudElements.hud.dataset.justDragged === "true") {
+							return;
+						}
 						lunMenuFoldingLevel = (lunMenuFoldingLevel + 1) % 4;
 						switch (lunMenuFoldingLevel) {
 							case 0:
@@ -2433,7 +2542,7 @@ document.body.appendChild(
 				innerText: t("nextLevelNA")
 			}),
 			lunHudElements.channelTracker = buildElement("span", {
-				innerText: t("channelTrackerError", "N/A")
+				innerText: "..."
 			}),
 			lunHudElements.currencyTracker = buildElement("span", {
 				innerText: t("currencyTracker", "--", "--"),
@@ -2484,7 +2593,9 @@ document.body.appendChild(
 					value: "",
 					onclick: _ => {
 						window.wasDancing = true;
-						gameState.sendEmoteNow(Emotes.Dance);
+						if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) {
+							gameState.sendEmoteNow(Emotes.Dance || 8);
+						}
 					}
 				}),
 				lunPanelElements.autoJumpBtn = buildElement("button", {
@@ -2533,12 +2644,13 @@ document.body.appendChild(
 				})
 			]),
 			buildElement("div", { className: "spkmod-panel-cat" }, [
-				lunPanelElements.petBtn = buildElement("button", {
+				lunPanelElements.petDanceBtn = buildElement("button", {
+					id: "spkmod-petdance-btn",
 					className: "spkmod-panel-btn",
-					innerText: t("pet"),
+					innerText: t(window.PetDanceActive ? "petDanceOn" : "petDanceOff") || (window.PetDanceActive ? "Pet Dance: ⏸️" : "Pet Dance: ▶️"),
 					value: "",
-					onclick: _ => {
-						triggerPetSequence();
+					onclick: e => {
+						togglePetDance(e.target);
 					}
 				}),
 				lunPanelElements.ritualBtn = buildElement("button", {
@@ -2548,6 +2660,15 @@ document.body.appendChild(
 					value: "",
 					onclick: e => {
 						toggleRitual(e.target);
+					}
+				}),
+				lunPanelElements.partnerDanceBtn = buildElement("button", {
+					id: "spkmod-partner-dance-btn",
+					className: "spkmod-panel-btn",
+					innerText: t(window.PartnerDanceState === 1 ? "partnerDanceOn" : (window.PartnerDanceState === 2 ? "partnerDanceInverted" : "partnerDanceOff")) || (window.PartnerDanceState === 0 ? "8 Dance: ▶️" : (window.PartnerDanceState === 1 ? "8 Dance: ⏸️" : "Rev 8: ⏸️")),
+					value: "",
+					onclick: e => {
+						togglePartnerDance(e.target);
 					}
 				})
 			]),
@@ -2625,7 +2746,7 @@ document.body.appendChild(
 							window.HyperShakeActive = false;
 							if (window.vibrateTimer) { clearInterval(window.vibrateTimer); window.vibrateTimer = null; }
 							window.ReverseBeyBladeActive = false;
-							if (gameState.playerContainer) {
+							if (gameState && gameState.playerContainer) {
 								window.moonwalkLockedYaw = gameState.playerContainer.rotation.y;
 							}
 							updateMovementButtonsUI();
@@ -2633,7 +2754,7 @@ document.body.appendChild(
 						} else {
 							window.moonwalkLockedYaw = null;
 							updateMovementButtonsUI();
-							if (gameState.playerContainer && gameState.cameraController) {
+							if (gameState && gameState.playerContainer && gameState.cameraController) {
 								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
 								gameState.moveSendAccumulator = 1;
 							}
@@ -2653,7 +2774,7 @@ document.body.appendChild(
 							const targetName = document.querySelector(".sr-party-target__name")?.innerText;
 							if (targetName) {
 								followPlayer(targetName);
-							} else if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && gameState.remotePlayers.remotePlayers.size > 0) {
+							} else if (gameState && gameState.remotePlayers && gameState.remotePlayers.remotePlayers && gameState.remotePlayers.remotePlayers.size > 0) {
 								const players = Array.from(gameState.remotePlayers.remotePlayers.values())
 									.filter(p => p && p.container && p.info && p.info.name);
 								if (players.length) {
@@ -2692,14 +2813,16 @@ document.body.appendChild(
 							chatLog(t("beybladeActivatedMsg", window.BeyBladeSpeed || 1));
 						} else {
 							if (typeof updateReverseBeyBladeButtonText === "function") updateReverseBeyBladeButtonText(); 
-							if (gameState.playerContainer && gameState.cameraController) {
+							if (gameState && gameState.playerContainer && gameState.cameraController) {
 								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
 								gameState.moveSendAccumulator = 1;
 							}
 
 							if (window.wasDancing) {
 								setTimeout(() => {
-									gameState.sendEmoteNow(Emotes.Dance);
+									if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) {
+										gameState.sendEmoteNow(Emotes.Dance);
+									}
 								}, 150);
 							}
 							window.wasDancing = false;
@@ -2727,14 +2850,16 @@ document.body.appendChild(
 							updateBeyBladeButtonText();
 							chatLog(t("reversebeybladeActivatedMsg", window.BeyBladeSpeed || 1));
 						} else {
-							if (gameState.playerContainer && gameState.cameraController) {
+							if (gameState && gameState.playerContainer && gameState.cameraController) {
 								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
 								gameState.moveSendAccumulator = 1;
 							}
 
 							if (window.wasDancing) {
 								setTimeout(() => {
-									gameState.sendEmoteNow(Emotes.Dance);
+									if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) {
+										gameState.sendEmoteNow(Emotes.Dance);
+									}
 								}, 150);
 							}
 							window.wasDancing = false;
@@ -2782,7 +2907,7 @@ document.body.appendChild(
 					innerText: t("turnToCamera"),
 					value: "",
 					onclick: _ => {
-						if (gameState.playerContainer && gameState.cameraController) {
+						if (gameState && gameState.playerContainer && gameState.cameraController) {
 							gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
 							window.moonwalkLockedYaw = gameState.cameraController.cameraYaw;
 							gameState.moveSendAccumulator = 1;
@@ -2827,7 +2952,10 @@ document.body.appendChild(
 					innerText: t("showAllNametagsBtn"),
 					value: "",
 					onclick: () => {
-						lunNametagMode = (lunNametagMode + 1) % 3;
+						lunNametagMode = (lunNametagMode + 1) % 4;
+						if (lunNametagMode === 2) {
+							fetchFriendsList(true);
+						}
 						if (lunPanelElements.nametagsBtn) {
 							setText(lunPanelElements.nametagsBtn, t(NAMETAG_MODES[lunNametagMode] + "Btn"));
 						}
@@ -2871,13 +2999,13 @@ document.body.appendChild(
 						if (lunFirstPersonActive) {
 							lunDroneModeActive = false;
 							if (lunPanelElements.freeCamBtn) setText(lunPanelElements.freeCamBtn, t("freeCamOff"));
-							if (gameState.cameraController) {
+							if (typeof gameState !== "undefined" && gameState?.cameraController) {
 								gameState.cameraController.cameraZoomDistance = 3;
 								gameState.cameraController.cameraPitch = lunFirstPersonPitch;
 								lunViewClip = true;
 								if (lunPanelElements.viewClipBtn) setText(lunPanelElements.viewClipBtn, t("viewClipOn"));
 							}
-							if (gameState.playerContainer) {
+							if (typeof gameState !== "undefined" && gameState?.playerContainer) {
 								const remoteContainers = gameState.remotePlayers?.remotePlayers ? 
 									Array.from(gameState.remotePlayers.remotePlayers.values()).map(rp => rp.container) : [];
 								gameState.playerContainer.children.forEach(c => {
@@ -2885,14 +3013,14 @@ document.body.appendChild(
 								});
 							}
 						} else {
-							if (gameState.playerContainer) {
+							if (typeof gameState !== "undefined" && gameState?.playerContainer) {
 								const remoteContainers = gameState.remotePlayers?.remotePlayers ? 
 									Array.from(gameState.remotePlayers.remotePlayers.values()).map(rp => rp.container) : [];
 								gameState.playerContainer.children.forEach(c => {
 									if (!remoteContainers.includes(c)) c.visible = true;
 								});
 							}
-							if (gameState.cameraController) {
+							if (typeof gameState !== "undefined" && gameState?.cameraController) {
 								gameState.cameraController.cameraZoomDistance = 12;
 								lunViewClip = false;
 								if (lunPanelElements.viewClipBtn) setText(lunPanelElements.viewClipBtn, t("viewClipOff"));
@@ -2940,7 +3068,7 @@ document.body.appendChild(
 				lunPanelElements.freeCamBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
 					innerText: t("freeCamOff"),
-					style: "display: none;", // hidden by default unless gamepad connected
+					style: "display: none;",
 					onclick: e => {
 						lunDroneModeActive = !lunDroneModeActive;
 						setText(e.target, t(lunDroneModeActive ? "freeCamOn" : "freeCamOff"));
@@ -2954,7 +3082,6 @@ document.body.appendChild(
 									if (!remoteContainers.includes(c)) c.visible = true;
 								});
 							}
-							// Initialize drone target at player position
 							if (gameState.playerContainer && gameState.cameraController) {
 								window.spkmodDroneTarget = { position: { x: gameState.playerContainer.position.x, y: gameState.playerContainer.position.y, z: gameState.playerContainer.position.z } };
 								gameState.cameraController.target = window.spkmodDroneTarget;
@@ -3014,8 +3141,10 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "⚙️",
-					title: "Settings",
-					onclick: _ => toggleSettingsModal()
+					title: t("settingsBtnTooltip"),
+					onclick: _ => {
+						toggleSettingsModal();
+					}
 				}),
 				lunPanelElements.patchNotesBtn = buildElement("button", {
 					id: "spkmod-patchnotes-btn",
@@ -3023,7 +3152,9 @@ document.body.appendChild(
 					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "📰",
 					title: t("patchNotesBtnTooltip"),
-					onclick: _ => togglePatchNotesModal()
+					onclick: _ => {
+						togglePatchNotesModal();
+					}
 				}),
 				lunPanelElements.eventBtn = buildElement("button", {
 					id: "spkmod-event-btn",
@@ -3031,15 +3162,19 @@ document.body.appendChild(
 					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "🎉",
 					title: t("eventInfoBtnTooltip"),
-					onclick: _ => toggleEventModal()
+					onclick: _ => {
+						toggleEventModal();
+					}
 				}),
 				lunPanelElements.mapBtn = buildElement("button", {
 					id: "spkmod-map-btn",
 					className: "spkmod-panel-btn",
 					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "🗺️",
-					title: "World Map",
-					onclick: _ => toggleMapModal()
+					title: t("mapModalTitle"),
+					onclick: _ => {
+						toggleMapModal();
+					}
 				}),
 				lunPanelElements.statsBtn = buildElement("button", {
 					id: "spkmod-stats-btn",
@@ -3047,14 +3182,16 @@ document.body.appendChild(
 					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "⏱️",
 					title: t("statsBtnTooltip"),
-					onclick: _ => toggleStatsModal()
+					onclick: _ => {
+						toggleStatsModal();
+					}
 				}),
 				lunPanelElements.dragBtn = buildElement("button", {
 					id: "spkmod-drag-btn",
 					className: "spkmod-panel-btn",
 					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: grab;",
 					innerText: "⚓",
-					title: "Drag Menu"
+					title: t("dragMenuTooltip")
 				})
 			])
 		])
@@ -3086,21 +3223,39 @@ document.body.appendChild(
 		id: "spkmod-settings-modal",
 		className: "hidden"
 	}, [
-		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
-			lunPanelElements.settingsHeader = buildElement("span", {
-				innerText: t("settingsHeader"),
-				style: "font-weight: bold;"
-			}),
+		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between; align-items: center;" }, [
+			buildElement("div", { style: "display: flex; align-items: center; gap: 8px;" }, [
+				lunPanelElements.settingsHeader = buildElement("span", {
+					innerText: t("settingsHeader"),
+					style: "font-weight: bold;"
+				}),
+				buildElement("button", {
+					id: "spkmod-settings-accounts-btn",
+					className: "spkmod-panel-btn",
+					style: "padding: 2px 6px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;",
+					innerText: "🔑 " + t("quickLoginTitle"),
+					title: t("accountMgrBtnTooltip"),
+					onclick: (e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						if (typeof toggleQuickLoginSettings === "function") {
+							toggleQuickLoginSettings();
+						}
+					}
+				})
+			]),
 			buildElement("span", {
 				id: "spkmod-settings-close",
 				innerText: "✕",
 				onclick: _ => {
 					lunHudElements.settingsModal.classList.add("hidden");
+					if (typeof toggleQuickLoginSettings === "function") {
+						toggleQuickLoginSettings(false);
+					}
 				}
 			})
 		]),
 		buildElement("div", { className: "spkmod-settings-grid" }, [
-			// Column 1: Chat & Gameplay
 			buildElement("div", { className: "spkmod-settings-col" }, [
 				lunPanelElements.settingsCatGeneral = buildElement("span", {
 					className: "spkmod-settings-section-title",
@@ -3129,6 +3284,20 @@ document.body.appendChild(
 						checked: lunGmChatHighlightEnabled,
 						onchange: e => {
 							setGmChatHighlightEnabled(e.target.checked);
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.friendChatToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("friendChatToggleLabel")
+					}),
+					lunPanelElements.friendChatToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunFriendChatHighlightEnabled,
+						onchange: e => {
+							setFriendChatHighlightEnabled(e.target.checked);
+							if (e.target.checked) fetchFriendsList(true);
 						}
 					})
 				]),
@@ -3243,7 +3412,6 @@ document.body.appendChild(
 				])
 			]),
 
-			// Column 2: HUD & Appearance
 			buildElement("div", { className: "spkmod-settings-col" }, [
 				lunPanelElements.settingsCatHUD = buildElement("span", {
 					className: "spkmod-settings-section-title",
@@ -3323,7 +3491,7 @@ document.body.appendChild(
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.accentColorLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("accentColorLabel") }),
 					lunPanelElements.accentColorInput = buildElement("input", { type: "color", value: lunAccentColor, style: "width: 40px; height: 20px; padding: 0; border: none; background: none; cursor: pointer;", onchange: e => { lunAccentColor = e.target.value; updateDynamicStyles(); } }),
-					buildElement("button", { className: "spkmod-panel-btn", style: "padding: 0px 4px; font-size: 10px; margin-left: 4px;", innerText: "OK", onclick: () => { lunAccentColor = lunPanelElements.accentColorInput.value; updateDynamicStyles(); } })
+					lunPanelElements.accentColorConfirmBtn = buildElement("button", { className: "spkmod-panel-btn", style: "padding: 0px 4px; font-size: 10px; margin-left: 4px;", innerText: t("confirmBtn") || "OK", onclick: () => { lunAccentColor = lunPanelElements.accentColorInput.value; updateDynamicStyles(); } })
 				])
 			])
 		]),
@@ -3355,9 +3523,9 @@ document.body.appendChild(
 								Object.keys(data).forEach(k => {
 									if (k.startsWith("spkmod-")) localStorage.setItem(k, data[k]);
 								});
-								alert("Settings imported! Please refresh the page to apply them.");
+								alert(t("settingsImportSuccess"));
 								location.reload();
-							} catch (err) { alert("Invalid settings file."); }
+							} catch (err) { alert(t("settingsImportInvalid")); }
 						};
 						reader.readAsText(file);
 					}
@@ -3412,22 +3580,35 @@ setTimeout(() => {
 	}
 }, 500);
 
-const lunJumpAnimMs = 700; // approx. duration of the Jump emote animation
+const lunJumpAnimMs = 500;
 
 function autoJumpLoop() {
 	if (!window.AutoJumpActive) return;
-	gameState.sendEmoteNow(Emotes.Jump);
+	if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
+		gameState.sendEmoteNow(Emotes.Jump);
+	}
 	window.__autoJumpTimeoutId = setTimeout(autoJumpLoop, lunJumpAnimMs);
 }
 
-const lunHeartsAnimMs = 950; // Optimized to match maximum server emote throughput without packet drop
+const lunHeartsAnimMs = 1100; // Debounce window is 1100ms; 1100ms pushes the limit of no dropped packets on server/clients
 
 function triggerHearts() {
-	if (gameState && gameState.bloomEffects && typeof gameState.bloomEffects.spawnHearts === "function" && gameState.playerContainer) {
-		gameState.bloomEffects.spawnHearts(gameState.playerContainer);
+	if (gameState && gameState.bloomEffects && typeof gameState.bloomEffects.spawnHearts === "function") {
+		if (gameState.playerContainer) {
+			gameState.bloomEffects.spawnHearts(gameState.playerContainer);
+		}
+		if (lunFollowTargetName && gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+			const tp = Array.from(gameState.remotePlayers.remotePlayers.values()).find(t => t.info && t.info.name === lunFollowTargetName);
+			if (tp && tp.container && tp.container !== gameState.playerContainer) {
+				gameState.bloomEffects.spawnHearts(tp.container);
+			}
+		}
 	}
 	if (gameState && typeof gameState.sendEmoteNow === "function") {
-		gameState.sendEmoteNow(Emotes.StrokeBloom);
+		// If Pet Dance is active, don't interrupt the dance emote with StrokeBloom!
+		if (!window.PetDanceActive) {
+			gameState.sendEmoteNow(Emotes.StrokeBloom);
+		}
 	}
 }
 
@@ -3449,63 +3630,82 @@ function autoChowayoLoop() {
 	window.__autoChowayoTimeoutId = setTimeout(autoChowayoLoop, lunChowayoAnimMs);
 }
 
-let petSequenceTimeouts = [];
+window.PetDanceActive = false;
+let petDanceInterval = null;
+let petDanceTick = 0;
 
-function clearPetSequence() {
-	petSequenceTimeouts.forEach(id => clearTimeout(id));
-	petSequenceTimeouts = [];
+function petDanceLoop() {
+	if (!window.PetDanceActive) return;
+	
+	petDanceTick++;
+	
+	if (petDanceTick % 7 === 0) {
+		if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) {
+			gameState.sendEmoteNow(Emotes.StrokeBloom);
+		}
+	}
+	
+	if (petDanceTick % 90 === 0) {
+		if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) {
+			gameState.sendEmoteNow(Emotes.Dance);
+		}
+	}
 }
 
-function triggerPetSequence() {
-	if (!gameState || typeof gameState.sendEmoteNow !== "function") return;
-	clearPetSequence();
-	chatLog(t("petActivatedMsg"));
-
-	// Stage 1: Stroke Start (hand appears, petting begins)
-	gameState.sendEmoteNow(Emotes.StrokeStart);
-
-	// Stage 2: Stroke Step 1 (first stroke reaction + mini hearts)
-	petSequenceTimeouts.push(setTimeout(() => {
-		if (gameState && typeof gameState.sendEmoteNow === "function") {
-			gameState.sendEmoteNow(Emotes.StrokeStage2);
-			if (gameState.bloomEffects && typeof gameState.bloomEffects.spawnHearts === "function" && gameState.playerContainer) {
-				gameState.bloomEffects.spawnHearts(gameState.playerContainer);
-			}
+function togglePetDance(btn) {
+	window.PetDanceActive = !window.PetDanceActive;
+	if (window.PetDanceActive) {
+		petDanceTick = 0;
+		if (petDanceInterval) clearInterval(petDanceInterval);
+		petDanceInterval = setInterval(petDanceLoop, 100);
+		
+		if (!window.AutoHeartsActive) {
+			window.AutoHeartsActive = true;
+			chatLog(t("autoHeartsActivatedMsg") || "Auto Hearts activated!");
+			if (typeof autoHeartsLoop === "function") autoHeartsLoop();
+			const heartsBtn = typeof lunPanelElements !== "undefined" ? lunPanelElements.autoHeartsBtn : null;
+			if (heartsBtn) setText(heartsBtn, t("autoHeartsOn") || "Auto Hearts: ON");
 		}
-	}, 450));
-
-	// Stage 3: Stroke Step 2 (second stroke reaction)
-	petSequenceTimeouts.push(setTimeout(() => {
-		if (gameState && typeof gameState.sendEmoteNow === "function") {
-			gameState.sendEmoteNow(Emotes.StrokeStage2);
+		
+		if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) {
+			gameState.sendEmoteNow(Emotes.Dance);
 		}
-	}, 950));
-
-	// Stage 4: Stroke Step 3 (third stroke reaction + mini hearts)
-	petSequenceTimeouts.push(setTimeout(() => {
-		if (gameState && typeof gameState.sendEmoteNow === "function") {
-			gameState.sendEmoteNow(Emotes.StrokeStage2);
-			if (gameState.bloomEffects && typeof gameState.bloomEffects.spawnHearts === "function" && gameState.playerContainer) {
-				gameState.bloomEffects.spawnHearts(gameState.playerContainer);
-			}
+		
+		chatLog(t("petDanceActivatedMsg") || "Pet Dance combo activated!");
+		chatLog(t("petDanceReminderMsg") || "Note: The petting combo is only fully visible to other players!");
+	} else {
+		if (petDanceInterval) {
+			clearInterval(petDanceInterval);
+			petDanceInterval = null;
 		}
-	}, 1450));
-
-	// Stage 5: Full Climax Stroke Bloom (maximum heart explosion fireworks!)
-	petSequenceTimeouts.push(setTimeout(() => {
-		triggerHearts();
-	}, 2050));
+		// Disable auto hearts when pet dance is turned off
+		if (window.AutoHeartsActive) {
+			window.AutoHeartsActive = false;
+			clearTimeout(window.__autoHeartsTimeoutId);
+			const heartsBtn = typeof lunPanelElements !== "undefined" ? lunPanelElements.autoHeartsBtn : null;
+			if (heartsBtn) setText(heartsBtn, t("autoHeartsOff") || "Auto Hearts: OFF");
+		}
+		
+		chatLog(t("petDanceDeactivatedMsg") || "Pet Dance deactivated.");
+	}
+	
+	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.petDanceBtn);
+	if (targetBtn) {
+		setText(targetBtn, t(window.PetDanceActive ? "petDanceOn" : "petDanceOff") || (window.PetDanceActive ? "Pet Dance: ⏸️" : "Pet Dance: ▶️"));
+	}
 }
 
-window.RitualState = 0; // 0: off, 1: normal, 2: inverted
+
+
+window.RitualState = 0;
 let ritualCenter = null;
 let ritualEmoteTick = 0;
-const RITUAL_RADIUS = 1.4; // Clearance to prevent colliding/vibrating against center player
+const RITUAL_RADIUS = 1.4;
 
 function toggleRitual(btn) {
 	window.RitualState = (window.RitualState + 1) % 3;
 	if (window.RitualState > 0) {
-		if (lunFollowTargetName && gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+		if (lunFollowTargetName && typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers) {
 			const tp = Array.from(gameState.remotePlayers.remotePlayers.values()).find(t => t.info && t.info.name === lunFollowTargetName);
 			if (tp && tp.container) {
 				ritualCenter = tp.container.position;
@@ -3520,11 +3720,62 @@ function toggleRitual(btn) {
 		ritualCenter = null;
 		chatLog(t("ritualDeactivatedMsg"));
 	}
-	if (btn) {
+	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.ritualBtn);
+	if (targetBtn) {
 		let textKey = "ritualOff";
 		if (window.RitualState === 1) textKey = "ritualOn";
 		if (window.RitualState === 2) textKey = "ritualInverted";
-		setText(btn, t(textKey));
+		setText(targetBtn, t(textKey));
+	}
+}
+
+window.PartnerDanceState = 0;
+let partnerDanceCenter = null;
+let partnerDanceTick = 0;
+let partnerDanceIsClockwise = true;
+const DANCE_RADIUS = 2.0;
+
+function togglePartnerDance(btn) {
+	window.PartnerDanceState = (window.PartnerDanceState + 1) % 3;
+	if (window.PartnerDanceState > 0) {
+		if (window.PartnerDanceState === 1) {
+			if (lunFollowTargetName && typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers) {
+				const tp = Array.from(gameState.remotePlayers.remotePlayers.values()).find(t => t.info && t.info.name === lunFollowTargetName);
+				if (tp && tp.container) {
+					const myPos = getPlayerPos();
+					partnerDanceCenter = {
+						x: (myPos.x + tp.container.position.x) / 2,
+						y: myPos.y,
+						z: (myPos.z + tp.container.position.z) / 2
+					};
+					
+					const myName = String(window._lunActiveCharacter || window.myPlayerName || "").toLowerCase();
+					const targetName = String(tp.info.name).toLowerCase();
+					partnerDanceIsClockwise = (myName >= targetName);
+				}
+			}
+			if (!partnerDanceCenter) {
+				const myPos = getPlayerPos();
+				partnerDanceCenter = { x: myPos.x, y: myPos.y, z: myPos.z };
+				partnerDanceIsClockwise = true;
+			}
+			partnerDanceTick = 0;
+			window.pd_reset = true;
+			chatLog(t("partnerDanceActivatedMsg") || "8 Dance activated!");
+		} else {
+			window.pd_reset = true;
+			chatLog(t("partnerDanceInvertedMsg") || "Reverse 8 Dance activated!");
+		}
+	} else {
+		partnerDanceCenter = null;
+		chatLog(t("partnerDanceDeactivatedMsg") || "8 Dance deactivated.");
+	}
+	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.partnerDanceBtn);
+	if (targetBtn) {
+		let textKey = "partnerDanceOff";
+		if (window.PartnerDanceState === 1) textKey = "partnerDanceOn";
+		if (window.PartnerDanceState === 2) textKey = "partnerDanceInverted";
+		setText(targetBtn, t(textKey) || (window.PartnerDanceState === 0 ? "8 Dance: ▶️" : (window.PartnerDanceState === 1 ? "8 Dance: ⏸️" : "Rev 8: ⏸️")));
 	}
 }
 
@@ -3637,7 +3888,6 @@ const SPKMOD_DEFAULT_GAMEPAD_CONFIG = {
 
 const SPKMOD_GAMEPAD_ACTIONS = [
 	"attack", "skill1", "skill2", "skill3", "skill4", "potion",
-	// "jump", "target", "moonwalk", "resetCamera",
 	"beyblade", "reversebeyblade", "dance", "chowayo", "hearts", "town",
 	"zoomIn", "zoomOut", "lockCamera", "autoJump", "toggleSettings"
 ];
@@ -3674,8 +3924,10 @@ let gamepadListeningAction = null;
 function executeGamepadAction(actionName) {
 	switch (actionName) {
 		case "jump":
-			gameState.sendEmoteNow(Emotes.Jump);
-			if (typeof gameState.tryUsePortal === "function") gameState.tryUsePortal();
+			if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
+				gameState.sendEmoteNow(Emotes.Jump);
+			}
+			if (typeof gameState !== "undefined" && gameState && typeof gameState.tryUsePortal === "function") gameState.tryUsePortal();
 			break;
 		case "attack":
 			if (typeof gameState.tryUsePortal === "function") gameState.tryUsePortal();
@@ -4031,14 +4283,14 @@ document.body.appendChild(
 		id: "spkmod-map-modal",
 		style: "display: none; position: absolute; top: 20px; left: calc(100vw - 1060px); background: rgba(20, 20, 25, 0.95); border: 1px solid #444; border-radius: 8px; padding: 20px; color: white; flex-direction: column; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 10001;"
 	}, [
-		mapModalElements.titleLabel = buildElement("div", { style: "font-size: 18px; font-weight: bold; margin-bottom: 15px; cursor: move; width: 100%; text-align: center; user-select: none;", innerText: "World Map" }),
+		mapModalElements.titleLabel = buildElement("div", { style: "font-size: 18px; font-weight: bold; margin-bottom: 15px; cursor: move; width: 100%; text-align: center; user-select: none;", innerText: t("mapModalTitle") }),
 		mapModalElements.canvas = buildElement("canvas", {
 			width: 1000,
 			height: 400,
 			style: "border: 1px solid #666; border-radius: 4px; background: #080808; width: 1000px;"
 		}),
 		buildElement("button", {
-			innerText: "Close",
+			innerText: t("closeBtn"),
 			style: "margin-top: 15px; padding: 6px 20px; cursor: pointer; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; font-weight: bold;",
 			onclick: () => closeMapModal()
 		})
@@ -4088,12 +4340,12 @@ document.body.appendChild(
 			])
 		]),
 		buildElement("div", { style: "display: flex; justify-content: flex-end; gap: 6px; margin-top: 2px;" }, [
-			buildElement("button", {
-				className: "spkmod-panel-btn",
-				style: "padding: 3px 10px; font-size: 9pt; cursor: pointer;",
-				innerText: "🔄 Refresh",
-				onclick: () => fetchPumpkinStatus()
-			})
+			eventModalElements.refreshBtn = buildElement("button", {
+			className: "spkmod-panel-btn",
+			style: "padding: 3px 10px; font-size: 9pt; cursor: pointer;",
+			innerText: "🔄 " + t("refreshBtn"),
+			onclick: () => fetchPumpkinStatus()
+		})
 		])
 	])
 );
@@ -4592,7 +4844,6 @@ function pollGamepadLoop() {
 			const deadzone = spkmodGamepadConfig.deadzone || 0.15;
 			const sens = spkmodGamepadConfig.cameraSensitivity || 1.2;
 
-		// 1. Left Stick -> Camera Relative Movement
 		let lx = gp.axes[0] || 0;
 		let ly = gp.axes[1] || 0;
 		const lMag = Math.hypot(lx, ly);
@@ -4606,7 +4857,6 @@ function pollGamepadLoop() {
 			gamepadMoveVector = null;
 		}
 
-		// 2. Right Stick -> Camera Yaw (X-axis) & Camera Pitch / Height (Y-axis)
 		let rx = gp.axes[2] || 0;
 		let ry = gp.axes[3] || 0;
 
@@ -4628,7 +4878,6 @@ function pollGamepadLoop() {
 			}
 		}
 
-		// 3. Buttons
 		for (let b = 0; b < gp.buttons.length && b < 16; b++) {
 			const btnObj = gp.buttons[b];
 			const isPressed = typeof btnObj === "object" ? btnObj.pressed : btnObj > 0.5;
@@ -4697,7 +4946,7 @@ function distanceToVector(vec) {
 }
 
 function getPlayerPos() {
-	return gameState.playerContainer.position;
+	return (typeof gameState !== "undefined" && gameState && gameState.playerContainer && gameState.playerContainer.position) || { x: 0, y: 0, z: 0 };
 }
 
 const lunTranslateCache = new Map(); // `${source}|${target}:${text}` -> translated text
@@ -4738,11 +4987,8 @@ function cleanTranslatedText(text) {
 	cleaned = cleaned.replace(/<\/?[a-zA-Z0-9_\-:]+(?:\s+[^>]*?)?>/gi, "");
 	cleaned = cleaned.replace(/<[^>]*>/g, "");
 
-	// Clean up raw EDICT/JMdict dictionary dumps often returned by translation APIs
 	if (/^(\[.*?\]\s*)?\//.test(cleaned)) {
-		// Remove POS tags and numbers like (int), (v5r), (n, vs), (1), (fem)
 		cleaned = cleaned.replace(/\([a-z0-9\-,\s]+\)\s*/gi, "");
-		// Format slashes into a readable list
 		cleaned = cleaned.replace(/^\//, "");
 		cleaned = cleaned.replace(/^(\[.*?\]\s*)\//, "$1");
 		cleaned = cleaned.replace(/\/$/, "");
@@ -4768,7 +5014,6 @@ async function translateChatText(text, source, target) {
 		try {
 			const params = new URLSearchParams({ q: text, langpair: `${source}|${target}` });
 			if (lunTranslateEmail) params.set("de", lunTranslateEmail);
-			// Optional: add &de=you@example.com for a higher daily quota (50k vs 5k chars/day):
 				if (window.localStorage && localStorage.getItem("spkmod-translate-email")) params.set("de", localStorage.getItem("spkmod-translate-email"));
 			const res = await fetch(`https://api.mymemory.translated.net/get?${params}`);
 			if (!res.ok) {
@@ -4783,7 +5028,6 @@ async function translateChatText(text, source, target) {
 			}
 			let translated = cleanTranslatedText(data?.responseData?.translatedText);
 			if (!translated || data.responseStatus !== 200) return null;
-			// MyMemory just echoes the input back when it has nothing better
 			if (translated.trim().toLowerCase() === text.trim().toLowerCase()) return null;
 
 			lunTranslateCache.set(cacheKey, translated);
@@ -4884,7 +5128,17 @@ function observeNextChatNode(matchText, callback) {
 }
 
 function chatLog(msg) {
-	gameState.chatBox.append(-1337, "SpeakiMod+", msg);
+	try {
+		if (typeof gameState !== "undefined" && gameState?.chatBox?.append) {
+			gameState.chatBox.append(-1337, "SpeakiMod+", msg);
+		} else if (typeof hkChatBoxAppend === "function") {
+			hkChatBoxAppend(-1337, "SpeakiMod+", msg);
+		} else {
+			console.log("[SpeakiMod+]", msg);
+		}
+	} catch (e) {
+		console.warn("[SpeakiMod+] Failed to append chat message:", e);
+	}
 }
 
 function watchPlayer(name) {
@@ -4908,7 +5162,6 @@ function watchPlayer(name) {
 	gameState.cameraController.target = gameState.playerContainer;
 }
 
-// === Smooth Stare Lock ===
 function stareAtPlayer(targetName) {
 	if (!targetName) {
 		stopStare();
@@ -4944,28 +5197,22 @@ function stareAtPlayer(targetName) {
 				const pp = gameState.playerContainer.position;
 				const tp = target.container.position;
 				
-				// Calculate target angle
 				const targetAngle = Math.atan2(tp.x - pp.x, tp.z - pp.z);
 				
-				// Shortest angular distance to prevent 360-degree spin flips
 				let diff = (targetAngle - currentAngle) % (2 * Math.PI);
 				if (diff < -Math.PI) diff += 2 * Math.PI;
 				if (diff > Math.PI) diff -= 2 * Math.PI;
 
-				// Smooth interpolation (0.35 = snappy & responsive)
 				currentAngle += diff * 0.35;
 
-				// Force player container rotation every render frame
 				gameState.playerContainer.rotation.y = currentAngle;
 			}
 		}
 		window._stareAnim = requestAnimationFrame(updateStare);
 	}
 
-	// Start render loop
 	window._stareAnim = requestAnimationFrame(updateStare);
 
-	// Sync to network at a clean ~20 packets/sec (every 50ms)
 	window._stareNetSync = setInterval(() => {
 		if (window._stareActive && gameState) {
 			gameState.moveSendAccumulator = 1;
@@ -5005,48 +5252,52 @@ function stopStare() {
 	chatLog(t("stareDeactivatedMsg"));
 }
 
-var hPartyTarget = document.querySelector(".sr-party-target");
-if (hPartyTarget) {
-	hPartyTarget.insertBefore(
-		lunPanelElements.followBtn = buildElement("button", {
-			className: "sr-btn sr-party-target__btn spkmod-watch-player-btn",
-			style: "margin-right: 4px;",
-			innerText: t("followBtn"),
-			value: "",
-			onclick: e => {
-				const name = e.target.parentElement.querySelector(".sr-party-target__name")?.innerText;
-				followPlayer(name);
-			}
-		}),
-		hPartyTarget.querySelector(".sr-party-target__close")
-	);
-	hPartyTarget.insertBefore(
-		lunPanelElements.watchBtn = buildElement("button", {
-			className: "sr-btn sr-party-target__btn spkmod-watch-player-btn",
-			style: "margin-right: 4px;",
-			innerText: t("watchBtn"),
-			value: "",
-			onclick: e => {
-				watchPlayer(e.target.parentElement.querySelector(".sr-party-target__name")?.innerText);
-			}
-		}),
-		hPartyTarget.querySelector(".sr-party-target__close")
-	);
-	hPartyTarget.insertBefore(
-		lunPanelElements.stareBtn = buildElement("button", {
-			className: "sr-btn sr-party-target__btn spkmod-watch-player-btn",
-			innerText: t("stareBtn"),
-			value: "",
-			onclick: e => {
-				const name = e.target.parentElement.querySelector(".sr-party-target__name")?.innerText;
-				stareAtPlayer(name);
-			}
-		}),
-		hPartyTarget.querySelector(".sr-party-target__close")
-	);
-} else {
-	console.warn("[SpeakiMod+] Couldn't find party target element. Watch/Follow/Stare will be available through chat commands.");
+function hookPartyTargetElement() {
+	const hPartyTarget = document.querySelector(".sr-party-target");
+	if (!hPartyTarget) return false;
+	if (hPartyTarget.querySelector(".spkmod-watch-player-btn")) return true;
+
+	const closeBtn = hPartyTarget.querySelector(".sr-party-target__close");
+	if (!closeBtn) return false;
+
+	lunPanelElements.followBtn = buildElement("button", {
+		className: "sr-btn sr-party-target__btn spkmod-watch-player-btn",
+		style: "margin-right: 4px;",
+		innerText: t("followBtn"),
+		value: "",
+		onclick: e => {
+			const name = e.target.parentElement.querySelector(".sr-party-target__name")?.innerText;
+			followPlayer(name);
+		}
+	});
+	hPartyTarget.insertBefore(lunPanelElements.followBtn, closeBtn);
+
+	lunPanelElements.watchBtn = buildElement("button", {
+		className: "sr-btn sr-party-target__btn spkmod-watch-player-btn",
+		style: "margin-right: 4px;",
+		innerText: t("watchBtn"),
+		value: "",
+		onclick: e => {
+			const name = e.target.parentElement.querySelector(".sr-party-target__name")?.innerText;
+			watchPlayer(name);
+		}
+	});
+	hPartyTarget.insertBefore(lunPanelElements.watchBtn, closeBtn);
+
+	lunPanelElements.stareBtn = buildElement("button", {
+		className: "sr-btn sr-party-target__btn spkmod-watch-player-btn",
+		innerText: t("stareBtn"),
+		value: "",
+		onclick: e => {
+			const name = e.target.parentElement.querySelector(".sr-party-target__name")?.innerText;
+			stareAtPlayer(name);
+		}
+	});
+	hPartyTarget.insertBefore(lunPanelElements.stareBtn, closeBtn);
+	return true;
 }
+hookPartyTargetElement();
+
 
 function updateMovementButtonsUI() {
 	const shakeBtn = document.querySelector("#spkmod-shake-main-btn");
@@ -5089,8 +5340,9 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.chowayoBtn, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
 	setText(lunPanelElements.heartsBtn, t("hearts"));
 	setText(lunPanelElements.autoHeartsBtn, t(window.AutoHeartsActive ? "autoHeartsOn" : "autoHeartsOff"));
-	setText(lunPanelElements.petBtn, t("pet"));
+	if (lunPanelElements.petDanceBtn) setText(lunPanelElements.petDanceBtn, t(window.PetDanceActive ? "petDanceOn" : "petDanceOff") || (window.PetDanceActive ? "Pet Dance: ⏸️" : "Pet Dance: ▶️"));
 	setText(lunPanelElements.ritualBtn, t(window.RitualState === 0 ? "ritualOff" : (window.RitualState === 1 ? "ritualOn" : "ritualInverted")));
+	if (lunPanelElements.partnerDanceBtn) setText(lunPanelElements.partnerDanceBtn, t(window.PartnerDanceState === 1 ? "partnerDanceOn" : (window.PartnerDanceState === 2 ? "partnerDanceInverted" : "partnerDanceOff")) || (window.PartnerDanceState === 0 ? "8 Dance: ▶️" : (window.PartnerDanceState === 1 ? "8 Dance: ⏸️" : "Rev 8: ⏸️")));
 	setText(lunPanelElements.turntableBtn, t(window.TurntableActive ? "turntableOn" : "turntableOff"));
 	setText(lunHudElements.discordBtn, t("discordBtn"));
 	setText(lunPanelElements.autoJumpBtn, t(window.AutoJumpActive ? "autoJumpOn" : "autoJumpOff"));
@@ -5112,6 +5364,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.settingsHeader, t("settingsHeader"));
 	if (lunPanelElements.filterToggleLabel) setText(lunPanelElements.filterToggleLabel, t("filterToggleLabel"));
 	if (lunPanelElements.gmChatToggleLabel) setText(lunPanelElements.gmChatToggleLabel, t("gmChatToggleLabel"));
+	if (lunPanelElements.friendChatToggleLabel) setText(lunPanelElements.friendChatToggleLabel, t("friendChatToggleLabel"));
 	if (lunPanelElements.mentionAlertToggleLabel) setText(lunPanelElements.mentionAlertToggleLabel, t("mentionAlertToggleLabel"));
 	if (lunPanelElements.hideKnownBotsLabel) setText(lunPanelElements.hideKnownBotsLabel, t("hideKnownBotsToggleLabel"));
 	if (lunPanelElements.chatTimestampLabel) setText(lunPanelElements.chatTimestampLabel, t("chatTimestampToggleLabel"));
@@ -5122,7 +5375,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.sessionGoldLabel) setText(lunPanelElements.sessionGoldLabel, t("sessionGoldToggleLabel"));
 	if (lunPanelElements.expRateUnitLabel) setText(lunPanelElements.expRateUnitLabel, t("expRateUnitToggleLabel"));
 	if (lunPanelElements.expRateIntervalLabel) setText(lunPanelElements.expRateIntervalLabel, t("expRateIntervalLabel"));
-	if (lunPanelElements.expRateIntervalSelect) {
+	if (lunPanelElements.expRateIntervalSelect && lunPanelElements.expRateIntervalSelect.options) {
 		LUN_EXP_INTERVAL_OPTIONS.forEach((minutes, index) => {
 			if (lunPanelElements.expRateIntervalSelect.options[index]) {
 				lunPanelElements.expRateIntervalSelect.options[index].innerText = t("expRateIntervalOption", minutes);
@@ -5138,6 +5391,14 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.settingsCatHUD) setText(lunPanelElements.settingsCatHUD, "📊 " + t("settingsCatHUD"));
 	if (lunPanelElements.eventBtn) lunPanelElements.eventBtn.title = t("eventInfoBtnTooltip");
 	if (lunPanelElements.patchNotesBtn) lunPanelElements.patchNotesBtn.title = t("patchNotesBtnTooltip");
+	if (lunPanelElements.mapBtn) lunPanelElements.mapBtn.title = t("mapModalTitle");
+	if (typeof mapModalElements !== "undefined" && mapModalElements.titleLabel) mapModalElements.titleLabel.innerText = t("mapModalTitle");
+	const qlBtn = document.getElementById("spkmod-settings-accounts-btn");
+	if (qlBtn) {
+		qlBtn.innerText = "🔑 " + t("quickLoginTitle");
+		qlBtn.title = t("accountMgrBtnTooltip");
+	}
+	if (lunPanelElements.accentColorConfirmBtn) setText(lunPanelElements.accentColorConfirmBtn, t("confirmBtn") || "OK");
 	updatePumpkinUI();
 	if (lunPatchNotesData && lunPatchNotesTranslatedLang !== (spkmodLang === "es-419" ? "es" : spkmodLang)) {
 		translatePatchNotesToUserLang().then(() => renderPatchNotesUI());
@@ -5147,13 +5408,13 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.gamepadRumbleLabel) setText(lunPanelElements.gamepadRumbleLabel, t("gamepadRumbleToggleLabel"));
 	if (lunPanelElements.uiScaleLabel) setText(lunPanelElements.uiScaleLabel, t("uiScaleLabel"));
 	if (lunPanelElements.bgOpacityLabel) setText(lunPanelElements.bgOpacityLabel, t("bgOpacityLabel"));
-	if (lunPanelElements.bgOpacitySelect) {
-		lunPanelElements.bgOpacitySelect.options[0].innerText = t("bgOpacitySolid");
-		lunPanelElements.bgOpacitySelect.options[1].innerText = t("bgOpacityTransparent");
-		lunPanelElements.bgOpacitySelect.options[2].innerText = t("bgOpacitySuperTransparent") || "Super Transparent";
-		lunPanelElements.bgOpacitySelect.options[3].innerText = t("bgOpacityGlass");
-		lunPanelElements.bgOpacitySelect.options[4].innerText = t("bgOpacityLightGlass") || "Light Glass";
-		lunPanelElements.bgOpacitySelect.options[5].innerText = t("bgOpacityHeavyGlass") || "Heavy Glass";
+	if (lunPanelElements.bgOpacitySelect && lunPanelElements.bgOpacitySelect.options) {
+		if (lunPanelElements.bgOpacitySelect.options[0]) lunPanelElements.bgOpacitySelect.options[0].innerText = t("bgOpacitySolid");
+		if (lunPanelElements.bgOpacitySelect.options[1]) lunPanelElements.bgOpacitySelect.options[1].innerText = t("bgOpacityTransparent");
+		if (lunPanelElements.bgOpacitySelect.options[2]) lunPanelElements.bgOpacitySelect.options[2].innerText = t("bgOpacitySuperTransparent") || "Super Transparent";
+		if (lunPanelElements.bgOpacitySelect.options[3]) lunPanelElements.bgOpacitySelect.options[3].innerText = t("bgOpacityGlass");
+		if (lunPanelElements.bgOpacitySelect.options[4]) lunPanelElements.bgOpacitySelect.options[4].innerText = t("bgOpacityLightGlass") || "Light Glass";
+		if (lunPanelElements.bgOpacitySelect.options[5]) lunPanelElements.bgOpacitySelect.options[5].innerText = t("bgOpacityHeavyGlass") || "Heavy Glass";
 	}
 	if (lunPanelElements.hudBgLabel) setText(lunPanelElements.hudBgLabel, t("hudBackgroundLabel"));
 	if (lunPanelElements.accentColorLabel) setText(lunPanelElements.accentColorLabel, t("accentColorLabel"));
@@ -5177,13 +5438,17 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.translateEmailInput) lunPanelElements.translateEmailInput.placeholder = t("translateEmailPlaceholder");
 	if (lunPanelElements.translateEmailInfo) lunPanelElements.translateEmailInfo.innerText = t("translateEmailTooltip");
 	if (lunPanelElements.outgoingTranslateLabel) setText(lunPanelElements.outgoingTranslateLabel, t("outgoingTranslateLabel"));
-	if (lunPanelElements.outgoingTranslateSelect && lunPanelElements.outgoingTranslateSelect.options[0]) {
+	if (lunPanelElements.outgoingTranslateSelect && lunPanelElements.outgoingTranslateSelect.options && lunPanelElements.outgoingTranslateSelect.options[0]) {
 		lunPanelElements.outgoingTranslateSelect.options[0].innerText = t("outgoingTranslateAuto");
 	}
 	document.querySelectorAll(".spkmod-clickable-line").forEach(node => {
 		node.title = t("clickToTranslateTooltip");
 	});
 });
+
+if (typeof refreshI18n === "function") {
+	refreshI18n();
+}
 
 const lunPinnedQuestInterval = sec(60); // [SpeakiMod+] Reduced to 60s to prevent 429 Too Many Requests
 var lunPinnedQuestPeriod = null;
@@ -5216,27 +5481,32 @@ function pinQuest(quest) {
 	lunHudElements.pinnedQuest.panel.className = "";
 }
 
-if (window.questManager) {
-	const hkRenderRow = questManager.prototype.renderRow;
-	questManager.prototype.renderRow = function (quest) {
-		var questElm = hkRenderRow.apply(this, [quest]);
+let questManagerHooked = false;
+function hookQuestManagerOnce() {
+	if (questManagerHooked) return;
+	if (window.questManager) {
+		questManagerHooked = true;
+		const hkRenderRow = questManager.prototype.renderRow;
+		questManager.prototype.renderRow = function (quest) {
+			var questElm = hkRenderRow.apply(this, [quest]);
 
-		if (!quest.isCompleted) {
-			questElm.querySelector(".sr-list-item__subtitle")
-				.replaceWith(
-					buildElement("button", {
-						value: "",
-						className: "spkmod-pq-button",
-						innerText: t("pinQuestBtn"),
-						onclick: _ => {
-							pinQuest(quest, questElm);
-						}
-					})
-				);
-		}
+			if (!quest.isCompleted) {
+				questElm.querySelector(".sr-list-item__subtitle")
+					.replaceWith(
+						buildElement("button", {
+							value: "",
+							className: "spkmod-pq-button",
+							innerText: t("pinQuestBtn"),
+							onclick: _ => {
+								pinQuest(quest, questElm);
+							}
+						})
+					);
+			}
 
-		return questElm;
-	};
+			return questElm;
+		};
+	}
 }
 
 function onGameDataUpdate() {
@@ -5288,11 +5558,22 @@ if (!window.__beyBladeLoopRunning) {
 
 
 function tick() {
+	if (!window.__gameStateHooked && typeof gameState !== "undefined" && gameState) {
+		if (typeof hookGameStateOnce === "function") {
+			hookGameStateOnce();
+		}
+	}
 
-	if (gameState && gameState.myStat) {
-		const hp = gameState.myStat.hp || 0;
-		const maxHp = gameState.myStat.maxHp || 1;
-		const hpRatio = hp / maxHp;
+	const currentNick = (typeof gameState !== "undefined" && gameState && (gameState.myPlayerName || gameState.myStat?.name)) || "";
+	if (!currentNick || !gameState || !gameState.myStat) return;
+
+	if (lunTickCount % 20 === 0 && typeof hookPartyTargetElement === "function") {
+		hookPartyTargetElement();
+	}
+
+	const hp = gameState.myStat.hp || 0;
+	const maxHp = gameState.myStat.maxHp || 1;
+	const hpRatio = hp / maxHp;
 
 		if (lunFirstPersonActive && gameState.cameraController) {
 			gameState.cameraController.cameraZoomDistance = 3;
@@ -5333,7 +5614,7 @@ function tick() {
 			} catch (e) {}
 		}
 		window._lunLastHp = hp;
-	}
+
 
 	if (gameState.chatBubbles && typeof gameState.chatBubbles.show === "function" && !gameState.chatBubbles.__speakiHooked) {
 		var hkChatBubblesShow = gameState.chatBubbles.show.bind(gameState.chatBubbles);
@@ -5345,8 +5626,26 @@ function tick() {
 		console.log("[SpeakiMod+] Successfully hooked chatBubbles.show!");
 	}
 	var playerExp = gameState.myStat.exp;
+	if (typeof playerExp !== "number" || isNaN(playerExp)) return;
+
+	if (window._lunActiveCharacter && window._lunActiveCharacter !== currentNick) {
+		window._lunActiveCharacter = currentNick;
+		window._lunSessionStartExp = playerExp;
+		window._lunSessionStartTime = Date.now();
+		lunSessionStartGold = lunLastGold;
+		lunSessionStartElif = lunLastElif;
+		resetExpTracker();
+	} else if (!window._lunActiveCharacter) {
+		window._lunActiveCharacter = currentNick;
+		if (window._lunSessionStartExp === undefined || window._lunSessionStartExp === null) {
+			window._lunSessionStartExp = playerExp;
+			window._lunSessionStartTime = Date.now();
+		}
+	}
+
 	if (window._lunSessionStartExp === undefined || window._lunSessionStartExp === null) {
 		window._lunSessionStartExp = playerExp;
+		window._lunSessionStartTime = Date.now();
 	}
 	var zoneId = gameState.zoneId % 10000;
 	var windowSec = lunExpIntervalMinutes * 60;
@@ -5381,13 +5680,9 @@ function tick() {
 	const elapsedSec = oldestSample ? Math.max(0, (lunTickCount - oldestSample.tick) / lunTPS) : 0;
 	const expGained = oldestSample ? Math.max(0, playerExp - oldestSample.exp) : 0;
 	
-	// The user expects the setting to be a strict fixed window.
-	// If set to 10 mins, divide by 10 mins (windowSec) regardless of elapsed time.
-	// This treats empty buffer history as 0 EXP, avoiding confusing extrapolation.
 	const divisor = windowSec;
 	lunExpTrackerSpeed = divisor > 0 ? expGained / divisor : 0;
 	
-	// Show the actual target interval so the user knows the setting worked immediately
 	const timerDisplay = (windowSec / 60) + "m avg";
 
 	if (lunExpTrackerSpeed > 0) {
@@ -5437,8 +5732,6 @@ function tick() {
 			window.beyBladeNextJumpTick = lunTickCount + 50;
 		}
 		if (lunTickCount >= window.beyBladeNextJumpTick) {
-			// gameState.sendEmoteNow(Emotes.Jump);
-			// Disabled for now, testing
 			const nextInterval = Math.floor(Math.random() * (100 - 25 + 1)) + 25;
 			window.beyBladeNextJumpTick = lunTickCount + nextInterval;
 		}
@@ -5449,32 +5742,44 @@ function tick() {
 	lunTickCount++;
 	lunSleep--;
 
-	setText(lunHudElements.playersNearby, t("playersNearby", gameState.remotePlayers.remotePlayers.size));
+	setText(lunHudElements.playersNearby, t("playersNearby", gameState.remotePlayers?.remotePlayers?.size ?? 0));
 	setText(lunHudElements.zoneId, t("zoneId", zoneId));
 	setText(lunHudElements.expTrackerL1, expTrackerL1);
 	setText(lunHudElements.expTrackerL2, expTrackerL2);
 
 	if (lunMenuFoldingLevel < 2 && lunTickCount >= lunChannelTrackerNextTicks) {
-		fetch("https://sr1.overture.io.kr/api/realtime/channels", {
-			"method": "GET",
-			"headers": {
-				"authorization": `Bearer ${getAuthToken()}`
-			},
-			"mode": "cors"
-		}).then(async x => {
-			var resp = (await x.json());
-			if (!x.ok) {
-				setText(lunHudElements.channelTracker, t("channelTrackerError", x.status));
-				return;
-			}
+		const token = getAuthToken();
+		if (!token) {
+			lunChannelTrackerNextTicks = lunTickCount + (5000 / lunTPS);
+		} else {
+			fetch("https://sr1.overture.io.kr/api/realtime/channels", {
+				"method": "GET",
+				"headers": {
+					"authorization": `Bearer ${token}`
+				},
+				"mode": "cors"
+			}).then(async x => {
+				if (!x.ok) {
+					setText(lunHudElements.channelTracker, t("channelTrackerError", x.status));
+					return;
+				}
+				var resp = (await x.json());
+				if (!Array.isArray(resp)) {
+					setText(lunHudElements.channelTracker, t("channelTrackerError", "Format"));
+					return;
+				}
 
-			var totalPop = resp.reduce((sum, ch) => sum + (ch.population || 0), 0);
-			setText(lunHudElements.channelTracker,
-				resp.map(ch => t("channelTracker", ch.channel, ch.population, ch.capacity)).join("\n")
-				+ "\n" + t("totalPlayersOnline", totalPop.toLocaleString()));
-		});
+				var totalPop = resp.reduce((sum, ch) => sum + (ch.population || 0), 0);
+				setText(lunHudElements.channelTracker,
+					resp.map(ch => t("channelTracker", ch.channel, ch.population, ch.capacity)).join("\n")
+					+ "\n" + t("totalPlayersOnline", totalPop.toLocaleString()));
+			}).catch(err => {
+				console.warn("[SpeakiMod+] Channel tracker fetch failed:", err);
+				setText(lunHudElements.channelTracker, t("channelTrackerError", "Net"));
+			});
 
-		lunChannelTrackerNextTicks = lunTickCount + lunChannelTrackerWindow;
+			lunChannelTrackerNextTicks = lunTickCount + lunChannelTrackerWindow;
+		}
 	}
 	if (lunMenuFoldingLevel < 2 && lunTickCount >= lunCurrencyTrackerNextTicks) {
 		fetch("https://sr1.overture.io.kr/api/items/inventory", {
@@ -5547,13 +5852,17 @@ function tick() {
 		lunPumpkinTrackerNextTicks = lunTickCount + lunPumpkinTrackerWindow;
 	}
 
+	if (lunNametagMode === 2 || lunFriendChatHighlightEnabled) {
+		fetchFriendsList();
+	}
+
 	let partyNames = null;
 	gameState.remotePlayers.remotePlayers.forEach(t => {
 		const sprite = findNametagSprite(t.container);
 		if (sprite) {
 			if (lunNametagMode === 0) {
 				sprite.visible = true;
-			} else if (lunNametagMode === 2) {
+			} else if (lunNametagMode === 3) {
 				sprite.visible = false;
 			} else if (lunNametagMode === 1) {
 				if (partyNames === null) {
@@ -5561,6 +5870,9 @@ function tick() {
 				}
 				const pName = (t.info?.name || "").trim().toLowerCase();
 				sprite.visible = partyNames.has(pName);
+			} else if (lunNametagMode === 2) {
+				const pName = (t.info?.name || "").trim().toLowerCase();
+				sprite.visible = lunFriendNicknames.has(pName);
 			}
 		}
 	});
@@ -5570,7 +5882,7 @@ function tick() {
 
 	if (gameState && gameState.myStat) {
 		const currentLevel = gameState.myStat.level;
-		const currentName = gameState.myStat.name || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
+		const currentName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
 		if (window._lunLastLevel !== currentLevel || window._lunLastName !== currentName) {
 			window._lunLastLevel = currentLevel;
 			window._lunLastName = currentName;
@@ -5589,7 +5901,6 @@ function tick() {
 		if (startZone === endZone) {
 			path = [];
 		} else {
-			// BFS Pathfinding
 			let queue = [startZone];
 			let visited = new Set();
 			visited.add(startZone);
@@ -5647,7 +5958,6 @@ function tick() {
 				return;
 			}
 
-			// might look a bit jerky without `while` on a zone with multiple wps
 			const wps = Waypoints[zoneId];
 			if (wps) {
 				const wp = wps.find(t => !t.crossed);
@@ -5678,208 +5988,6 @@ function tick() {
 	}
 }
 
-var hkCombatAssistUpdate = gameState.combatAssist.update.bind(gameState.combatAssist);
-gameState.combatAssist.update = (e) => {
-	if (lunAutoTravelTarget) {
-		const pp = getPlayerPos();
-
-		return {
-			moveDir: normalizeVector(
-				lunAutoTravelTarget.x - pp.x,
-				lunAutoTravelTarget.z - pp.z
-			),
-			castSkillId: null
-		};
-	}
-
-	let baseMove = hkCombatAssistUpdate(e);
-	
-	if (lunDroneModeActive) {
-		let moveVector = null;
-		if (gamepadMoveVector) {
-			moveVector = gamepadMoveVector;
-		} else if (baseMove && baseMove.moveDir && (baseMove.moveDir.x !== 0 || baseMove.moveDir.z !== 0)) {
-			moveVector = baseMove.moveDir;
-		}
-		
-		if (moveVector && window.spkmodDroneTarget) {
-			const speed = 0.35; 
-			window.spkmodDroneTarget.position.x += moveVector.x * speed;
-			window.spkmodDroneTarget.position.z += moveVector.z * speed;
-		}
-		
-		return { moveDir: { x: 0, z: 0 }, castSkillId: null };
-	}
-	
-	if (gamepadMoveVector) {
-		return {
-			moveDir: gamepadMoveVector,
-			castSkillId: null
-		};
-	}
-
-	if (window.RitualState > 0 && ritualCenter) {
-		const pp = getPlayerPos();
-		const dx = pp.x - ritualCenter.x;
-		const dz = pp.z - ritualCenter.z;
-		let currentAngle = Math.atan2(dx, dz);
-
-		currentAngle += (window.RitualState === 2 ? -0.045 : 0.045);
-
-		const targetX = ritualCenter.x + Math.sin(currentAngle) * RITUAL_RADIUS;
-		const targetZ = ritualCenter.z + Math.cos(currentAngle) * RITUAL_RADIUS;
-
-		ritualEmoteTick++;
-		if (ritualEmoteTick % 30 === 0) {
-			if (ritualEmoteTick % 60 === 0) {
-				gameState.sendEmoteNow(Emotes.Jump);
-			} else {
-				triggerHearts();
-			}
-		}
-
-		return {
-			moveDir: normalizeVector(targetX - pp.x, targetZ - pp.z),
-			castSkillId: null
-		};
-	}
-
-	if (lunFollowTargetName && gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
-		const targetPlayer = Array.from(gameState.remotePlayers.remotePlayers.values()).find(t => t.info && t.info.name === lunFollowTargetName);
-		if (targetPlayer && targetPlayer.container) {
-			const pp = getPlayerPos();
-			const tp = targetPlayer.container.position;
-			const dist = Math.hypot(tp.x - pp.x, tp.z - pp.z);
-			if (dist > 2.2) {
-				return {
-					moveDir: normalizeVector(tp.x - pp.x, tp.z - pp.z),
-					castSkillId: null
-				};
-			}
-		} else {
-			followPlayer(null);
-		}
-	}
-
-	return baseMove;
-}
-
-var hkComputeCameraTargetPosition = gameState.cameraController.computeCameraTargetPosition.bind(gameState.cameraController);
-gameState.cameraController.computeCameraTargetPosition = (pos) => {
-	if (lunCameraLocked) return undefined;
-	const targetPos = hkComputeCameraTargetPosition(pos);
-	if (lunFirstPersonActive && targetPos) {
-		// Elevate the pivot point to eye level so zoom can be 0 without being in the floor
-		targetPos.y = (pos.y || 0) + 1.25; 
-	}
-	return targetPos;
-	if (!lunCameraLocked)
-		return hkComputeCameraTargetPosition(pos);
-}
-
-var hkCameraControllerGetObstacles = gameState.cameraController.getObstacles.bind(gameState.cameraController);
-gameState.cameraController.getObstacles = () => lunViewClip ? [] : hkCameraControllerGetObstacles()
-
-var hkTrySendChat = gameState.trySendChat.bind(gameState);
-gameState.trySendChat = (msg) => {
-	if (msg.startsWith("!")) {
-		const cmd = msg.substring(1).split(" ");
-		switch (cmd[0]) {
-			case "watch":
-				watchPlayer(cmd[1]);
-				break;
-			case "follow":
-				followPlayer(cmd[1]);
-				break;
-			case "stare":
-				stareAtPlayer(cmd[1]);
-				break;
-			case "players":
-			case "who":
-				showPlayersRadar();
-				break;
-			case "pos":
-			case "loc":
-			case "zone":
-				if (gameState && gameState.playerContainer) {
-					const pos = gameState.playerContainer.position;
-					const zid = gameState.zoneId || "Unknown";
-					chatLog(`ZoneID: ${zid} | Pos: X:${Math.round(pos.x)}, Y:${Math.round(pos.y)}, Z:${Math.round(pos.z)}`);
-				}
-				break;
-			case "dance":
-				gameState.sendEmoteNow(Emotes.Dance);
-				break;
-			case "hearts":
-			case "pat":
-				triggerPetSequence();
-				break;
-			case "joayo":
-			case "chowayo":
-				gameState.sendEmoteNow(Emotes.PumpkinJoayo);
-				break;
-			case "zoom":
-				if (!cmd[1]) {
-					chatLog(t("zoomUsage1Msg"));
-					chatLog(t("zoomUsage2Msg"));
-					return;
-				}
-
-				chatLog(t("zoomSetMsg", gameState.cameraController.cameraZoomDistance = Number.parseInt(cmd[1], 10) || 12));
-				break;
-			case "fppitch":
-				const newPitch = parseFloat(cmd[1]);
-				if (!isNaN(newPitch)) {
-					lunFirstPersonPitch = newPitch;
-					if (window.localStorage) localStorage.setItem("spkmod-fp-pitch", lunFirstPersonPitch);
-					chatLog(`[SpeakiMod+] 1st Person Pitch set to ${lunFirstPersonPitch}`);
-				} else {
-					chatLog(`[SpeakiMod+] 1st Person Pitch is currently ${lunFirstPersonPitch}. Usage: !fppitch 0.45`);
-				}
-				break;
-			default:
-				chatLog(t("unknownCmdMsg", cmd[0]));
-				chatLog(t("availableCmdsMsg"));
-				break;
-		}
-		return;
-	}
-
-	if (typeof msg === "string" && msg.startsWith(".")) {
-		const match = msg.match(/^\.([a-zA-Z\-]+)(?::|\s+)(.+)$/s);
-		if (match) {
-			const prefix = match[1].toLowerCase();
-			const targetLang = lunOutgoingLangPrefixes[prefix];
-			if (targetLang) {
-				const sourceText = match[2].trim();
-				if (!sourceText) return;
-				const sourceLang = getEffectiveSourceLang(sourceText);
-				if (sourceLang === targetLang) {
-					return hkTrySendChat(sourceText);
-				}
-				translateChatText(sourceText, sourceLang, targetLang).then(translated => {
-					if (translated && translated.trim()) {
-						hkTrySendChat(translated.trim());
-					} else {
-						chatLog(t("outgoingTranslateFailed", sourceText));
-						hkTrySendChat(sourceText);
-					}
-				}).catch(err => {
-					console.warn("[SpeakiMod+] Outgoing translation error:", err);
-					chatLog(t("outgoingTranslateFailed", sourceText));
-					hkTrySendChat(sourceText);
-				});
-				return;
-			}
-		}
-	}
-
-	return hkTrySendChat(msg);
-}
-
-window.filterName = filterName;
-window.lunBadWords = lunBadWords;
-
 let lunChatScrollEl = null;
 let lunChatUserScrolledUp = false;
 
@@ -5905,61 +6013,403 @@ function updateChatScrollTracking() {
 	return el;
 }
 
-var hkChatBoxAppend = gameState.chatBox.append.bind(gameState.chatBox);
-gameState.chatBox.append = (id, name, msg) => {
-	const scrollEl = updateChatScrollTracking();
-	const wasAtBottom = !lunChatUserScrolledUp && (!scrollEl || (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight <= 45));
+var hkChatBoxAppend = (id, name, msg) => {
+	if (window.__speakiOrigChatBoxAppend) return window.__speakiOrigChatBoxAppend(id, name, msg);
+	if (typeof gameState !== "undefined" && gameState?.chatBox?.append) return gameState.chatBox.append(id, name, msg);
+};
 
-	let filteredName = filterName(name);
-	const filteredMsg = filterName(msg);
+function hookGameStateOnce() {
+	if (typeof gameState === "undefined" || !gameState) return false;
+	if (window.__gameStateHooked) return true;
+	window.__gameStateHooked = true;
+	if (window.spkmodDebug) spkmodDebug.log("Initializing in-game GameState hooks...");
 
-	const myName = gameState.myStat?.name || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
-	if (lunMentionAlertEnabled && myName && filteredMsg && filteredMsg.toLowerCase().includes(myName.toLowerCase()) && id !== -1337 && id !== -1338) {
-		chatLog(t("mentionAlertMsg", filteredName, filteredMsg));
-	}
-
-	if (filteredMsg && filteredMsg.trim()) {
-		observeNextChatNode(filteredMsg, (bodyText, rowNode) => {
-			if (lunGmChatHighlightEnabled && name && name.trim().toUpperCase() === "GMDT") {
-				bodyText.classList.add("spkmod-gmdt-line");
+	if (gameState.combatAssist && typeof gameState.combatAssist.update === "function" && !gameState.combatAssist.__speakiHooked) {
+		const origCombatAssistUpdate = gameState.combatAssist.update.bind(gameState.combatAssist);
+		gameState.combatAssist.update = (e) => {
+			if (lunAutoTravelTarget) {
+				const pp = getPlayerPos();
+				return {
+					moveDir: normalizeVector(
+						lunAutoTravelTarget.x - pp.x,
+						lunAutoTravelTarget.z - pp.z
+					),
+					castSkillId: null
+				};
 			}
-			if (id !== -1337 && id !== -1338) {
-				bodyText.classList.add("spkmod-clickable-line");
-				bodyText.title = t("clickToTranslateTooltip");
-				bodyText.addEventListener("click", () => forceTranslateMessage(name, filteredMsg));
-				
-				const senderEl = rowNode.classList?.contains("sr-chatbox__sender") ? rowNode : rowNode.querySelector?.(".sr-chatbox__sender");
-				if (senderEl) {
-					let currentText = senderEl.innerText;
-					
-					if (lunChatTimestampsEnabled) {
-						const d = new Date();
-						const ts = `[${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}] `;
-						currentText = ts + currentText;
-					}
 
-					senderEl.innerText = currentText;
+			let baseMove = origCombatAssistUpdate(e);
+			
+			if (lunDroneModeActive) {
+				let moveVector = null;
+				if (gamepadMoveVector) {
+					moveVector = gamepadMoveVector;
+				} else if (baseMove && baseMove.moveDir && (baseMove.moveDir.x !== 0 || baseMove.moveDir.z !== 0)) {
+					moveVector = baseMove.moveDir;
+				}
+				
+				if (moveVector && window.spkmodDroneTarget) {
+					const speed = 0.35; 
+					window.spkmodDroneTarget.position.x += moveVector.x * speed;
+					window.spkmodDroneTarget.position.z += moveVector.z * speed;
+				}
+				
+				return { moveDir: { x: 0, z: 0 }, castSkillId: null };
+			}
+			
+			if (gamepadMoveVector) {
+				return {
+					moveDir: gamepadMoveVector,
+					castSkillId: null
+				};
+			}
+
+			if (window.RitualState > 0 && ritualCenter) {
+				const pp = getPlayerPos();
+				const dx = pp.x - ritualCenter.x;
+				const dz = pp.z - ritualCenter.z;
+				let currentAngle = Math.atan2(dx, dz);
+
+				currentAngle += (window.RitualState === 2 ? -0.045 : 0.045);
+
+				const targetX = ritualCenter.x + Math.sin(currentAngle) * RITUAL_RADIUS;
+				const targetZ = ritualCenter.z + Math.cos(currentAngle) * RITUAL_RADIUS;
+
+				ritualEmoteTick++;
+				if (ritualEmoteTick % 30 === 0) {
+					if (ritualEmoteTick % 60 === 0) {
+						if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
+							gameState.sendEmoteNow(Emotes.Jump);
+						}
+					} else {
+						triggerHearts();
+					}
+				}
+
+				return {
+					moveDir: normalizeVector(targetX - pp.x, targetZ - pp.z),
+					castSkillId: null
+				};
+			}
+
+			if (window.PartnerDanceState > 0 && partnerDanceCenter) {
+				const pp = getPlayerPos();
+				partnerDanceTick++;
+				
+				const stateDir = window.PartnerDanceState === 1 ? 1 : -1;
+				const phase = partnerDanceIsClockwise ? 0 : Math.PI;
+				const scale = DANCE_RADIUS * 1.5;
+				
+				if (typeof window.pd_t === "undefined" || window.pd_reset) {
+					window.pd_t = phase;
+					window.pd_lastPos = { x: pp.x, z: pp.z };
+					window.pd_reset = false;
+				}
+				
+				const distMoved = Math.hypot(pp.x - window.pd_lastPos.x, pp.z - window.pd_lastPos.z);
+				window.pd_lastPos = { x: pp.x, z: pp.z };
+				
+				let t_advance = distMoved * 0.4;
+				if (t_advance < 0.01) t_advance = 0.01;
+				
+				window.pd_t += t_advance * stateDir;
+				
+				const t_target = window.pd_t + (0.8 * stateDir);
+				
+				const rawX_target = (scale * Math.cos(t_target)) / (1 + Math.pow(Math.sin(t_target), 2));
+				const rawZ_target = (scale * Math.sin(t_target) * Math.cos(t_target)) / (1 + Math.pow(Math.sin(t_target), 2));
+				
+				const targetX = partnerDanceCenter.x + rawX_target;
+				const targetZ = partnerDanceCenter.z + rawZ_target;
+				
+				if (partnerDanceTick % 40 === 0) {
+					if (partnerDanceTick % 80 === 0) {
+						if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
+							gameState.sendEmoteNow(Emotes.Jump);
+						}
+					} else {
+						triggerHearts();
+					}
+				}
+
+				return {
+					moveDir: normalizeVector(targetX - pp.x, targetZ - pp.z),
+					castSkillId: null
+				};
+			}
+
+			if (lunFollowTargetName && gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+				const targetPlayer = Array.from(gameState.remotePlayers.remotePlayers.values()).find(t => t.info && t.info.name === lunFollowTargetName);
+				if (targetPlayer && targetPlayer.container) {
+					const pp = getPlayerPos();
+					const tp = targetPlayer.container.position;
+					const dist = Math.hypot(tp.x - pp.x, tp.z - pp.z);
+					if (dist > 2.2) {
+						return {
+							moveDir: normalizeVector(tp.x - pp.x, tp.z - pp.z),
+							castSkillId: null
+						};
+					}
+				} else {
+					followPlayer(null);
 				}
 			}
-			if (wasAtBottom && !lunChatUserScrolledUp && scrollEl) {
-				scrollEl.scrollTop = scrollEl.scrollHeight;
-			}
-		});
+
+			return baseMove;
+		};
+		gameState.combatAssist.__speakiHooked = true;
 	}
 
-	const result = hkChatBoxAppend(id, filteredName, filteredMsg);
-
-	if (wasAtBottom && scrollEl) {
-		requestAnimationFrame(() => {
-			if (!lunChatUserScrolledUp && scrollEl) {
-				scrollEl.scrollTop = scrollEl.scrollHeight;
+	if (gameState.cameraController && typeof gameState.cameraController.computeCameraTargetPosition === "function" && !gameState.cameraController.__speakiComputeHooked) {
+		const origComputeCameraTargetPosition = gameState.cameraController.computeCameraTargetPosition.bind(gameState.cameraController);
+		gameState.cameraController.computeCameraTargetPosition = (pos) => {
+			if (lunCameraLocked) return undefined;
+			const targetPos = origComputeCameraTargetPosition(pos);
+			if (lunFirstPersonActive && targetPos) {
+				targetPos.y = (pos.y || 0) + 1.25; 
 			}
-		});
+			return targetPos;
+		};
+		gameState.cameraController.__speakiComputeHooked = true;
 	}
 
-	maybeTranslateChatMessage(id, name, filteredMsg); // pass original name for translate cache
-	return result;
-};
+	if (gameState.cameraController && typeof gameState.cameraController.getObstacles === "function" && !gameState.cameraController.__speakiObstaclesHooked) {
+		const origGetObstacles = gameState.cameraController.getObstacles.bind(gameState.cameraController);
+		gameState.cameraController.getObstacles = () => lunViewClip ? [] : origGetObstacles();
+		gameState.cameraController.__speakiObstaclesHooked = true;
+	}
+
+	if (typeof gameState.trySendChat === "function" && !gameState.__speakiTrySendChatHooked) {
+		const origTrySendChat = gameState.trySendChat.bind(gameState);
+		gameState.trySendChat = (msg) => {
+			if (msg && msg.startsWith("!")) {
+				const cmd = msg.substring(1).split(" ");
+				if (window.spkmodDebug) spkmodDebug.log("Chat command executed:", cmd[0], cmd.slice(1));
+				switch (cmd[0]) {
+					case "watch":
+						watchPlayer(cmd[1]);
+						break;
+					case "follow":
+						followPlayer(cmd[1]);
+						break;
+					case "stare":
+						stareAtPlayer(cmd[1]);
+						break;
+					case "players":
+					case "who":
+						showPlayersRadar();
+						break;
+					case "pos":
+					case "loc":
+					case "zone":
+						if (gameState && gameState.playerContainer) {
+							const pos = gameState.playerContainer.position;
+							const zid = gameState.zoneId || "Unknown";
+							chatLog(`ZoneID: ${zid} | Pos: X:${Math.round(pos.x)}, Y:${Math.round(pos.y)}, Z:${Math.round(pos.z)}`);
+						}
+						break;
+					case "dance":
+						if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
+							gameState.sendEmoteNow(Emotes.Dance);
+						}
+						break;
+					case "hearts":
+						triggerHearts();
+						break;
+					case "pet":
+					case "pat":
+						triggerPetSequence();
+						break;
+					case "joayo":
+					case "chowayo":
+						if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
+							gameState.sendEmoteNow(Emotes.PumpkinJoayo);
+						}
+						break;
+					case "zoom":
+						if (!cmd[1]) {
+							chatLog(t("zoomUsage1Msg"));
+							chatLog(t("zoomUsage2Msg"));
+							return;
+						}
+						chatLog(t("zoomSetMsg", gameState.cameraController.cameraZoomDistance = Number.parseInt(cmd[1], 10) || 12));
+						break;
+					case "fppitch":
+						const newPitch = parseFloat(cmd[1]);
+						if (!isNaN(newPitch)) {
+							lunFirstPersonPitch = newPitch;
+							if (window.localStorage) localStorage.setItem("spkmod-fp-pitch", lunFirstPersonPitch);
+							chatLog(t("fpPitchSetMsg", lunFirstPersonPitch));
+						} else {
+							chatLog(t("fpPitchUsageMsg", lunFirstPersonPitch));
+						}
+						break;
+					case "ritual":
+						toggleRitual();
+						break;
+					case "autojump":
+						if (lunPanelElements.autoJumpBtn) lunPanelElements.autoJumpBtn.click();
+						break;
+					case "autohearts":
+						if (lunPanelElements.autoHeartsBtn) lunPanelElements.autoHeartsBtn.click();
+						break;
+					case "firstperson":
+					case "fp":
+						if (lunPanelElements.firstPersonBtn) lunPanelElements.firstPersonBtn.click();
+						break;
+					case "camlock":
+						if (lunPanelElements.lockCameraBtn) lunPanelElements.lockCameraBtn.click();
+						break;
+					case "viewclip":
+						if (lunPanelElements.viewClipBtn) lunPanelElements.viewClipBtn.click();
+						break;
+					case "turntocam":
+					case "turn":
+						if (lunPanelElements.turnToCameraBtn) lunPanelElements.turnToCameraBtn.click();
+						break;
+					case "moonwalk":
+						if (document.getElementById("spkmod-moonwalk-main-btn")) document.getElementById("spkmod-moonwalk-main-btn").click();
+						break;
+					case "hypershake":
+						if (lunPanelElements.hyperShakeBtn) lunPanelElements.hyperShakeBtn.click();
+						break;
+					case "beyblade":
+						if (document.getElementById("spkmod-beyblade-main-btn")) document.getElementById("spkmod-beyblade-main-btn").click();
+						break;
+					case "reversebeyblade":
+						if (document.getElementById("spkmod-reversebeyblade-main-btn")) document.getElementById("spkmod-reversebeyblade-main-btn").click();
+						break;
+					case "speed":
+						if (cmd[1]) {
+							const speed = parseInt(cmd[1], 10);
+							if (!isNaN(speed) && speed >= 1 && speed <= 10) {
+								window.BeyBladeSpeed = speed;
+								if (window.localStorage) localStorage.setItem("spkmod-beyblade-speed", speed);
+								if (lunPanelElements.speedValue) setText(lunPanelElements.speedValue, "x" + speed);
+								updateBeyBladeButtonText();
+								updateReverseBeyBladeButtonText();
+								chatLog(t("speedSetMsg", speed));
+							} else {
+								chatLog(t("speedInvalidMsg"));
+							}
+						} else {
+							chatLog(t("speedUsageMsg"));
+						}
+						break;
+					default:
+						chatLog(t("unknownCmdMsg", cmd[0]));
+						chatLog(t("availableCmdsMsg"));
+						break;
+				}
+				return;
+			}
+
+			if (typeof msg === "string" && msg.startsWith(".")) {
+				const match = msg.match(/^\.([a-zA-Z\-]+)(?::|\s+)(.+)$/s);
+				if (match) {
+					const prefix = match[1].toLowerCase();
+					const targetLang = lunOutgoingLangPrefixes[prefix];
+					if (targetLang) {
+						const sourceText = match[2].trim();
+						if (!sourceText) return;
+						const sourceLang = getEffectiveSourceLang(sourceText);
+						if (sourceLang === targetLang) {
+							return origTrySendChat(sourceText);
+						}
+						translateChatText(sourceText, sourceLang, targetLang).then(translated => {
+							if (translated && translated.trim()) {
+								origTrySendChat(translated.trim());
+							} else {
+								chatLog(t("outgoingTranslateFailed", sourceText));
+								origTrySendChat(sourceText);
+							}
+						}).catch(err => {
+							console.warn("[SpeakiMod+] Outgoing translation error:", err);
+							chatLog(t("outgoingTranslateFailed", sourceText));
+							origTrySendChat(sourceText);
+						});
+						return;
+					}
+				}
+			}
+
+			return origTrySendChat(msg);
+		};
+		gameState.__speakiTrySendChatHooked = true;
+	}
+
+	if (gameState.chatBox && typeof gameState.chatBox.append === "function" && !gameState.chatBox.__speakiAppendHooked) {
+		const origChatBoxAppend = gameState.chatBox.append.bind(gameState.chatBox);
+		window.__speakiOrigChatBoxAppend = origChatBoxAppend;
+		hkChatBoxAppend = origChatBoxAppend;
+		gameState.chatBox.append = (id, name, msg) => {
+			const scrollEl = updateChatScrollTracking();
+			const wasAtBottom = !lunChatUserScrolledUp && (!scrollEl || (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight <= 45));
+
+			let filteredName = filterName(name);
+			const filteredMsg = filterName(msg);
+
+			const myName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
+			if (lunMentionAlertEnabled && myName && filteredMsg && filteredMsg.toLowerCase().includes(myName.toLowerCase()) && id !== -1337 && id !== -1338) {
+				chatLog(t("mentionAlertMsg", filteredName, filteredMsg));
+			}
+
+			if (filteredMsg && filteredMsg.trim()) {
+				observeNextChatNode(filteredMsg, (bodyText, rowNode) => {
+					if (lunGmChatHighlightEnabled && name && name.trim().toUpperCase() === "GMDT") {
+						bodyText.classList.add("spkmod-gmdt-line");
+					}
+					if (id !== -1337 && id !== -1338) {
+						bodyText.classList.add("spkmod-clickable-line");
+						bodyText.title = t("clickToTranslateTooltip");
+						bodyText.addEventListener("click", () => forceTranslateMessage(name, filteredMsg));
+						
+						const senderEl = rowNode.classList?.contains("sr-chatbox__sender") ? rowNode : rowNode.querySelector?.(".sr-chatbox__sender");
+						if (senderEl) {
+							if (lunFriendChatHighlightEnabled && name && lunFriendNicknames.has(name.trim().toLowerCase())) {
+								senderEl.classList.add("spkmod-friend-sender");
+							}
+							let currentText = senderEl.innerText;
+							
+							if (lunChatTimestampsEnabled) {
+								const d = new Date();
+								const ts = `[${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}] `;
+								currentText = ts + currentText;
+							}
+
+							senderEl.innerText = currentText;
+						}
+					}
+					if (wasAtBottom && !lunChatUserScrolledUp && scrollEl) {
+						scrollEl.scrollTop = scrollEl.scrollHeight;
+					}
+				});
+			}
+
+			const result = origChatBoxAppend(id, filteredName, filteredMsg);
+
+			if (wasAtBottom && scrollEl) {
+				requestAnimationFrame(() => {
+					if (!lunChatUserScrolledUp && scrollEl) {
+						scrollEl.scrollTop = scrollEl.scrollHeight;
+					}
+				});
+			}
+
+			maybeTranslateChatMessage(id, name, filteredMsg);
+			return result;
+		};
+		gameState.chatBox.__speakiAppendHooked = true;
+	}
+
+	hookRemotePlayersOnce();
+	if (typeof refreshI18n === "function") refreshI18n();
+	if (window.spkmodDebug) spkmodDebug.log("In-game GameState hooks successfully installed.");
+	return true;
+}
+
+window.hookGameStateOnce = hookGameStateOnce;
+hookGameStateOnce();
 
 function appendColoredChatLine(id, name, text) {
 	const scrollEl = updateChatScrollTracking();
@@ -6037,8 +6487,12 @@ function forceTranslateMessage(name, msg) {
 	});
 }
 
-if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && typeof gameState.remotePlayers.remotePlayers.set === "function") {
-	var hkRemotePlayersSet = gameState.remotePlayers.remotePlayers.set.bind(gameState.remotePlayers.remotePlayers);
+function hookRemotePlayersOnce() {
+	if (typeof gameState === 'undefined' || !gameState?.remotePlayers?.remotePlayers) return;
+	if (gameState.remotePlayers.remotePlayers.__speakiHooked) return;
+	gameState.remotePlayers.remotePlayers.__speakiHooked = true;
+
+	const hkRemotePlayersSet = gameState.remotePlayers.remotePlayers.set.bind(gameState.remotePlayers.remotePlayers);
 	gameState.remotePlayers.remotePlayers.set = function (key, value) {
 		if (value && value.info && typeof value.info.name === "string") {
 			value.info.name = filterName(value.info.name);
@@ -6054,24 +6508,93 @@ if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers && typeof g
 	});
 	hookKnownBotHeartEmotes();
 	hookKnownBotPlayerEmotesForAll();
-} else {
-	console.warn("[SpeakiMod+] Could not hook remotePlayers.set — nametag filtering will not work. Please report this.");
 }
+hookRemotePlayersOnce();
 
 setInterval(tick, 50);
 
 const hudWindow = document.getElementById("spkmod-hud");
-const dragHandle = document.getElementById("spkmod-drag-btn");
-
-if (hudWindow && dragHandle) {
+if (hudWindow) {
+	const dragHandle = document.getElementById("spkmod-drag-btn");
 	const footerHandle = document.getElementById("spkmod-footer");
-	makeDraggable(hudWindow, [dragHandle, footerHandle]);
+	const headerRow = document.getElementById("spkmod-header-row");
+	const headerBtn = document.getElementById("spkmod-header");
+	const mainCard = document.getElementById("spkmod-main");
+	makeDraggable(hudWindow, [hudWindow, mainCard, headerRow, headerBtn, dragHandle, footerHandle].filter(Boolean));
 }
 
 let lunLastFrameTime = performance.now();
 let lunFrameCount = 0;
-let lunCurrentFps = 0;
-let lunCurrentPing = "--";
+lunCurrentFps = 0;
+lunCurrentPing = "--";
+let lunLastPingTime = performance.now() + 3000; // 3s initial delay on boot
+let lunPingInFlight = false;
+let lunPingBackoffUntil = 0;
+const LUN_PING_INTERVAL_MS = 5000; // Sample every 5 seconds
+
+function updatePingMeasurement(sampleMs) {
+	if (typeof sampleMs !== 'number' || isNaN(sampleMs) || sampleMs <= 0) return;
+	const rounded = Math.round(sampleMs);
+	if (lunCurrentPing === "--") {
+		lunCurrentPing = rounded;
+	} else {
+		lunCurrentPing = Math.round(rounded * 0.6 + Number(lunCurrentPing) * 0.4);
+	}
+	lunLastPingTime = performance.now();
+	if (lunFpsPingEnabled && lunHudElements.fpsPingTracker) {
+		setText(lunHudElements.fpsPingTracker, t("fpsPingText", lunCurrentFps, lunCurrentPing));
+	}
+}
+
+const originalFetch = window.fetch;
+window.fetch = async function(...args) {
+	const start = performance.now();
+	try {
+		const response = await originalFetch.apply(this, args);
+		if (args[0] && typeof args[0] === "string" && args[0].includes("api/")) {
+			updatePingMeasurement(performance.now() - start);
+		}
+		return response;
+	} catch (e) {
+		throw e;
+	}
+};
+
+async function performActivePing() {
+	const now = performance.now();
+	if (lunPingInFlight || now < lunPingBackoffUntil) return;
+	if (typeof document !== 'undefined' && document.hidden) return;
+
+	const isHudActive = !!(lunFpsPingEnabled && lunHudElements.fpsPingTracker && lunHudElements.fpsPingTracker.style.display !== "none");
+	const isStatsModalActive = !!(typeof lunHudElements !== 'undefined' && lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden"));
+	if (!isHudActive && !isStatsModalActive) return;
+
+	if (now - lunLastPingTime < LUN_PING_INTERVAL_MS) return;
+
+	lunPingInFlight = true;
+	const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+	const timeoutId = controller ? setTimeout(() => controller.abort(), 3000) : null;
+	const start = performance.now();
+
+	try {
+		const res = await originalFetch("https://sr1.overture.io.kr/api/notices/latest", {
+			method: "GET",
+			cache: "no-store",
+			signal: controller ? controller.signal : undefined
+		});
+		if (timeoutId) clearTimeout(timeoutId);
+		if (res.ok || res.status === 204 || res.status === 401) {
+			updatePingMeasurement(performance.now() - start);
+		} else if (res.status >= 500) {
+			lunPingBackoffUntil = performance.now() + 10000;
+		}
+	} catch (e) {
+		if (timeoutId) clearTimeout(timeoutId);
+		lunPingBackoffUntil = performance.now() + 5000;
+	} finally {
+		lunPingInFlight = false;
+	}
+}
 
 function fpsLoop() {
 	const now = performance.now();
@@ -6106,6 +6629,8 @@ function fpsLoop() {
 			updateStatsModalLive();
 		}
 
+		performActivePing();
+
 		lunLastFrameTime = now;
 	}
 	
@@ -6113,29 +6638,16 @@ function fpsLoop() {
 }
 requestAnimationFrame(fpsLoop);
 
-// Hook fetch to estimate API latency for the Ping counter
-const originalFetch = window.fetch;
-window.fetch = async function(...args) {
-	const start = performance.now();
-	try {
-		const response = await originalFetch.apply(this, args);
-		if (args[0] && typeof args[0] === "string" && args[0].includes("api/")) {
-			lunCurrentPing = Math.round(performance.now() - start);
-			if (lunFpsPingEnabled && lunHudElements.fpsPingTracker) {
-				setText(lunHudElements.fpsPingTracker, t("fpsPingText", lunCurrentFps, lunCurrentPing));
-			}
-		}
-		return response;
-	} catch (e) {
-		throw e;
-	}
-};
-
 setTimeout(() => {
 	fetchPatchNotesOnce();
 }, 2500);
 
 setTimeout(() => {
+	if (typeof window !== "undefined" && window.__speakiErpin) {
+		const cleanSignature = window.__speakiErpin.replace(/^<!--\s*/, '').replace(/\s*-->$/, '');
+		console.log(cleanSignature);
+		return;
+	}
 	fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/erpin.html")
 		.then(res => res.text())
 		.then(signature => {
@@ -6145,7 +6657,247 @@ setTimeout(() => {
 		.catch(err => console.error("[SpeakiMod+] Failed to load signature:", err));
 }, 15000);
 
-// Hotkey to fully hide / unhide the entire mod UI with 'P' key
+function parseSemver(verStr) {
+	if (!verStr || typeof verStr !== "string") return [0, 0, 0];
+	const match = verStr.trim().replace(/^[vV]/, "").match(/^(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+	if (!match) return [0, 0, 0];
+	return [
+		parseInt(match[1] || "0", 10),
+		parseInt(match[2] || "0", 10),
+		parseInt(match[3] || "0", 10)
+	];
+}
+
+function isNewerVersion(remote, local) {
+	const [rMaj, rMin, rPat] = parseSemver(remote);
+	const [lMaj, lMin, lPat] = parseSemver(local);
+	if (rMaj !== lMaj) return rMaj > lMaj;
+	if (rMin !== lMin) return rMin > lMin;
+	return rPat > lPat;
+}
+
+function getClientBuildVersion() {
+	if (typeof window !== "undefined" && window.__speakiBuildVersion) {
+		return String(window.__speakiBuildVersion).trim();
+	}
+	const isElectron = typeof window !== "undefined" && (
+		typeof window.electronAPI !== "undefined" ||
+		(typeof navigator !== "undefined" && /electron/i.test(navigator.userAgent || ""))
+	);
+	if (isElectron) {
+		return "1.0.8";
+	}
+	return null;
+}
+
+let speakiNewsChecked = false;
+
+function showNewsModal(remoteVer, htmlBody, stylesHtml = "") {
+	let backdrop = document.getElementById("spkmod-news-modal");
+	if (backdrop) {
+		backdrop.style.display = "flex";
+		return;
+	}
+
+	backdrop = document.createElement("div");
+	backdrop.id = "spkmod-news-modal";
+	backdrop.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.72); z-index: 700000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(3px);";
+
+	const dialog = document.createElement("div");
+	dialog.className = "spkmod-news-dialog";
+	dialog.style.cssText = "background: #0f172a; border: 1px solid #334155; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9); width: 540px; max-width: 92vw; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;";
+
+	const header = document.createElement("div");
+	header.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #1e293b; border-bottom: 1px solid #334155;";
+
+	const headerTitle = document.createElement("div");
+	headerTitle.style.cssText = "display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #f8fafc;";
+	headerTitle.innerHTML = `<span>📢</span> <span>${t("newsModalTitle")}</span>`;
+
+	const closeBtn = document.createElement("button");
+	closeBtn.type = "button";
+	closeBtn.innerText = "✕";
+	closeBtn.style.cssText = "background: transparent; border: none; color: #94a3b8; font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 4px; line-height: 1;";
+	closeBtn.onmouseenter = () => { closeBtn.style.color = "#ffffff"; closeBtn.style.background = "#334155"; };
+	closeBtn.onmouseleave = () => { closeBtn.style.color = "#94a3b8"; closeBtn.style.background = "transparent"; };
+	closeBtn.onclick = () => { backdrop.style.display = "none"; };
+
+	header.appendChild(headerTitle);
+	header.appendChild(closeBtn);
+
+	const content = document.createElement("div");
+	content.style.cssText = "padding: 16px; overflow-y: auto; flex: 1; max-height: 48vh; font-size: 13px; line-height: 1.5;";
+	content.innerHTML = (stylesHtml || "") + htmlBody;
+
+	const langTabs = content.querySelectorAll(".spk-lang-tab");
+	const langSections = content.querySelectorAll(".spk-news-section");
+
+	function setModalNewsLang(targetLang) {
+		let matched = false;
+		langTabs.forEach(tab => {
+			const isMatch = tab.getAttribute("data-target-lang") === targetLang;
+			if (isMatch) matched = true;
+			tab.classList.toggle("active", isMatch);
+		});
+		langSections.forEach(sec => {
+			sec.classList.toggle("active", sec.getAttribute("data-lang") === targetLang);
+		});
+		if (!matched && targetLang !== "en") {
+			setModalNewsLang("en");
+		}
+	}
+
+	langTabs.forEach(tab => {
+		tab.addEventListener("click", () => {
+			const lang = tab.getAttribute("data-target-lang");
+			if (lang) setModalNewsLang(lang);
+		});
+	});
+
+	const initialLang = (typeof spkmodLang !== "undefined" && spkmodLang) ? spkmodLang : "en";
+	setModalNewsLang(initialLang);
+
+	content.querySelectorAll("a").forEach(a => {
+		a.addEventListener("click", e => {
+			e.preventDefault();
+		});
+	});
+
+	const copySection = document.createElement("div");
+	copySection.style.cssText = "padding: 12px 16px; background: rgba(15, 23, 42, 0.95); border-top: 1px solid #1e293b; border-bottom: 1px solid #1e293b;";
+
+	const copyLabel = document.createElement("div");
+	copyLabel.style.cssText = "font-size: 11px; font-weight: 600; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;";
+	copyLabel.innerText = t("patchNotesReleasesLink");
+
+	const copyRow = document.createElement("div");
+	copyRow.style.cssText = "display: flex; gap: 8px; align-items: center;";
+
+	const copyInput = document.createElement("input");
+	copyInput.type = "text";
+	copyInput.readOnly = true;
+	copyInput.value = "https://github.com/DJTOMATO/SpeakiRPG/releases";
+	copyInput.style.cssText = "flex: 1; background: #020617; border: 1px solid #334155; border-radius: 6px; padding: 7px 10px; color: #38bdf8; font-family: monospace; font-size: 12px; outline: none; cursor: text;";
+	copyInput.onclick = () => copyInput.select();
+
+	const copyBtn = document.createElement("button");
+	copyBtn.type = "button";
+	copyBtn.style.cssText = "background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; border-radius: 6px; color: #ffffff; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; transition: all 0.15s ease;";
+	copyBtn.innerHTML = `<span class="spkmod-news-icon">📋</span><span class="spkmod-news-btn-text">${t("newsCopyLinkBtn")}</span>`;
+
+	copyBtn.onclick = () => {
+		const url = copyInput.value;
+		const handleSuccess = () => {
+			const iconEl = copyBtn.querySelector(".spkmod-news-icon");
+			const textEl = copyBtn.querySelector(".spkmod-news-btn-text");
+			if (iconEl) iconEl.innerText = "✓";
+			if (textEl) textEl.innerText = t("newsCopied");
+			copyBtn.style.background = "linear-gradient(135deg, #10b981, #059669)";
+			setTimeout(() => {
+				if (iconEl) iconEl.innerText = "📋";
+				if (textEl) textEl.innerText = t("newsCopyLinkBtn");
+				copyBtn.style.background = "linear-gradient(135deg, #3b82f6, #2563eb)";
+			}, 2500);
+		};
+
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(url).then(handleSuccess).catch(() => {
+				copyInput.select();
+				document.execCommand("copy");
+				handleSuccess();
+			});
+		} else {
+			copyInput.select();
+			document.execCommand("copy");
+			handleSuccess();
+		}
+	};
+
+	copyRow.appendChild(copyInput);
+	copyRow.appendChild(copyBtn);
+	copySection.appendChild(copyLabel);
+	copySection.appendChild(copyRow);
+
+	const footer = document.createElement("div");
+	footer.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #1e293b;";
+
+	const dismissBtn = document.createElement("button");
+	dismissBtn.type = "button";
+	dismissBtn.innerText = t("newsDismissBtn");
+	dismissBtn.style.cssText = "background: transparent; border: 1px solid #475569; border-radius: 6px; color: #94a3b8; padding: 6px 12px; font-size: 11px; cursor: pointer; transition: all 0.15s ease;";
+	dismissBtn.onmouseenter = () => { dismissBtn.style.color = "#ffffff"; dismissBtn.style.borderColor = "#64748b"; };
+	dismissBtn.onmouseleave = () => { dismissBtn.style.color = "#94a3b8"; dismissBtn.style.borderColor = "#475569"; };
+	dismissBtn.onclick = () => {
+		try {
+			localStorage.setItem("spkmod-dismissed-news-version", remoteVer);
+		} catch (_) {}
+		backdrop.style.display = "none";
+	};
+
+	const closeFooterBtn = document.createElement("button");
+	closeFooterBtn.type = "button";
+	closeFooterBtn.innerText = "✕";
+	closeFooterBtn.style.cssText = "background: #334155; border: none; border-radius: 6px; color: #f8fafc; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer;";
+	closeFooterBtn.onclick = () => { backdrop.style.display = "none"; };
+
+	footer.appendChild(dismissBtn);
+	footer.appendChild(closeFooterBtn);
+
+	dialog.appendChild(header);
+	dialog.appendChild(content);
+	dialog.appendChild(copySection);
+	dialog.appendChild(footer);
+	backdrop.appendChild(dialog);
+
+	backdrop.addEventListener("click", e => {
+		if (e.target === backdrop) {
+			backdrop.style.display = "none";
+		}
+	});
+
+	document.body.appendChild(backdrop);
+}
+
+async function checkAndShowNewsPopup() {
+	if (speakiNewsChecked) return;
+	const clientVer = getClientBuildVersion();
+	if (!clientVer) return;
+	speakiNewsChecked = true;
+
+	try {
+		const res = await fetch(`https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/news.html?_t=${Date.now()}`, {
+			cache: "no-store"
+		});
+		if (!res.ok) return;
+		const htmlText = await res.text();
+		const parser = new DOMParser();
+		const doc = parser.parseFromString(htmlText, "text/html");
+		const metaEl = doc.querySelector('meta[name="min-build-version"]');
+		const remoteVer = metaEl ? metaEl.getAttribute("content") : null;
+		if (!remoteVer) return;
+
+		try {
+			const dismissedVer = localStorage.getItem("spkmod-dismissed-news-version");
+			if (dismissedVer && dismissedVer === remoteVer) return;
+		} catch (_) {}
+
+		if (!isNewerVersion(remoteVer, clientVer)) return;
+
+		const styleEl = doc.head ? doc.head.querySelector("style") : null;
+		const stylesHtml = styleEl ? styleEl.outerHTML : "";
+		const bodyHtml = doc.body ? doc.body.innerHTML : htmlText;
+		showNewsModal(remoteVer, bodyHtml, stylesHtml);
+	} catch (e) {
+		console.warn("[SpeakiMod+] Failed to check news/update:", e);
+	}
+}
+
+setTimeout(() => {
+	if (typeof gameState !== "undefined" && gameState) {
+		checkAndShowNewsPopup();
+	}
+}, 4500);
+
 window.addEventListener("keydown", e => {
 	if (e.key !== "p" && e.key !== "P" && e.code !== "KeyP") return;
 	if (e.ctrlKey || e.altKey || e.metaKey) return;
@@ -6159,14 +6911,38 @@ window.addEventListener("keydown", e => {
 	}
 
 	e.preventDefault();
-	document.body.classList.toggle("spkmod-ui-hidden");
+	const isHidden = document.body.classList.toggle("spkmod-ui-hidden");
+	chatLog(t(isHidden ? "uiHiddenMsg" : "uiShownMsg"));
 });
 
-// Close topmost open modal with 'Escape' key
+window.addEventListener("keydown", e => {
+	if (e.key !== "F2" && e.code !== "F2") return;
+	if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+	const active = document.activeElement;
+	if (active) {
+		const tag = active.tagName ? active.tagName.toLowerCase() : "";
+		if (tag === "input" || tag === "textarea" || active.isContentEditable) {
+			return;
+		}
+	}
+
+	e.preventDefault();
+	if (typeof toggleSettingsModal === "function") {
+		toggleSettingsModal();
+	}
+});
+
 window.addEventListener("keydown", e => {
 	if (e.key !== "Escape" && e.code !== "Escape") return;
 
-	// 1. Language translation picker
+	const newsModal = document.getElementById("spkmod-news-modal");
+	if (newsModal && newsModal.style.display !== "none") {
+		e.preventDefault();
+		newsModal.style.display = "none";
+		return;
+	}
+
 	const picker = document.getElementById("spkmod-translate-picker");
 	if (picker) {
 		e.preventDefault();
@@ -6174,7 +6950,6 @@ window.addEventListener("keydown", e => {
 		return;
 	}
 
-	// 2. World Map Modal
 	if (typeof mapModalElements !== "undefined" && mapModalElements.modalWindow && mapModalElements.modalWindow.style.display !== "none") {
 		e.preventDefault();
 		if (typeof closeMapModal === "function") {
@@ -6185,7 +6960,6 @@ window.addEventListener("keydown", e => {
 		return;
 	}
 
-	// 3. Modals in lunHudElements (close topmost modal first based on zIndex)
 	if (typeof lunHudElements !== "undefined") {
 		const candidateModals = [
 			lunHudElements.settingsModal,
@@ -6202,8 +6976,734 @@ window.addEventListener("keydown", e => {
 				const zb = parseInt(b.style.zIndex || window.getComputedStyle(b).zIndex, 10) || 0;
 				return zb - za;
 			});
-			candidateModals[0].classList.add("hidden");
+			const closedModal = candidateModals[0];
+			closedModal.classList.add("hidden");
+			if (closedModal === lunHudElements.settingsModal && typeof toggleQuickLoginSettings === "function") {
+				toggleQuickLoginSettings(false);
+			}
 			return;
 		}
 	}
 });
+
+const SPKMOD_ACCOUNTS_KEY = "spkmod-saved-accounts";
+const SPKMOD_DISMISS_KEY = "spkmod-dismiss-ql-prompt";
+
+function getSavedAccounts() {
+	if (typeof window === "undefined" || !window.localStorage) return [];
+	try {
+		const raw = localStorage.getItem(SPKMOD_ACCOUNTS_KEY);
+		if (!raw) return [];
+		const parsed = JSON.parse(raw);
+		return Array.isArray(parsed) ? parsed : [];
+	} catch (e) {
+		console.warn("[SpeakiMod+] Failed to parse saved accounts:", e);
+		return [];
+	}
+}
+
+function maskRecoveryCode(code) {
+	if (!code || typeof code !== "string") return "••••-••••";
+	const clean = code.trim().toUpperCase();
+	const parts = clean.split("-");
+	if (parts.length >= 4) {
+		return `••••-••••-••••-${parts[parts.length - 1]}`;
+	}
+	if (clean.length > 4) {
+		return "••••-••••-" + clean.slice(-4);
+	}
+	return "••••-••••";
+}
+
+function saveAccountLocally(nickname, code) {
+	if (!nickname || !code) return false;
+	const nickClean = String(nickname).trim();
+	const codeClean = String(code).trim().toUpperCase();
+	if (!nickClean || codeClean.length < 8) return false;
+
+	const accounts = getSavedAccounts();
+	const existingIdx = accounts.findIndex(a => a.nickname.toLowerCase() === nickClean.toLowerCase());
+
+	const record = {
+		nickname: nickClean,
+		code: codeClean,
+		masked: maskRecoveryCode(codeClean),
+		lastUsed: Date.now()
+	};
+
+	if (existingIdx !== -1) {
+		accounts[existingIdx] = record;
+	} else {
+		accounts.unshift(record);
+	}
+
+	try {
+		localStorage.setItem(SPKMOD_ACCOUNTS_KEY, JSON.stringify(accounts));
+		return true;
+	} catch (e) {
+		console.error("[SpeakiMod+] Failed to store account in localStorage:", e);
+		return false;
+	}
+}
+
+function removeAccountLocally(nickname) {
+	if (!nickname) return false;
+	const nickLower = String(nickname).trim().toLowerCase();
+	const accounts = getSavedAccounts().filter(a => a.nickname.toLowerCase() !== nickLower);
+	try {
+		localStorage.setItem(SPKMOD_ACCOUNTS_KEY, JSON.stringify(accounts));
+		return true;
+	} catch (e) {
+		console.error("[SpeakiMod+] Failed to update accounts in localStorage:", e);
+		return false;
+	}
+}
+
+async function fetchCurrentRecoveryCode() {
+	const token = typeof getAuthToken === "function" ? getAuthToken() : "";
+	if (!token) throw new Error("No authentication token found");
+
+	const res = await fetch("https://sr1.overture.io.kr/api/auth/recovery-code", {
+		headers: {
+			"Authorization": `Bearer ${token}`
+		}
+	});
+
+	if (!res.ok) {
+		throw new Error(`Server returned status ${res.status}`);
+	}
+
+	const data = await res.json();
+	if (!data || !data.recoveryCode) {
+		throw new Error("No recoveryCode property in response");
+	}
+
+	return data.recoveryCode;
+}
+
+function performQuickRecovery(account) {
+	if (!account || !account.code) return;
+
+	const executeFillAndSubmit = () => {
+		const codeInput = document.querySelector(".sr-nickname-gate input[placeholder*='XXXX']");
+		const continueBtn = document.querySelector(".sr-nickname-gate button.sr-btn--primary");
+
+		if (codeInput && continueBtn) {
+			codeInput.value = account.code;
+			codeInput.dispatchEvent(new Event("input", { bubbles: true }));
+			codeInput.dispatchEvent(new Event("change", { bubbles: true }));
+
+			saveAccountLocally(account.nickname, account.code);
+
+			setTimeout(() => {
+				continueBtn.click();
+			}, 50);
+			return true;
+		}
+		return false;
+	};
+
+	if (executeFillAndSubmit()) return;
+
+	const subtitleLinks = Array.from(document.querySelectorAll(".sr-nickname-gate .sr-list-item__subtitle"));
+	const recoveryLink = subtitleLinks.find(el => {
+		const text = (el.textContent || "").toLowerCase();
+		return text.includes("recovery") || text.includes("기존") || text.includes("復元") || text.includes("復原") || text.includes("recuperación") || text.includes("existing");
+	}) || subtitleLinks[subtitleLinks.length - 1];
+
+	if (recoveryLink) {
+		recoveryLink.click();
+		setTimeout(executeFillAndSubmit, 60);
+	}
+}
+
+function ensureQuickLoginStyles() {
+	if (document.getElementById("spkmod-quick-login-styles")) return;
+	const style = document.createElement("style");
+	style.id = "spkmod-quick-login-styles";
+	style.textContent = `
+		#spkmod-quick-login-box {
+			position: fixed;
+			top: 50%;
+			left: calc(50% + 245px);
+			transform: translateY(-50%);
+			width: 320px;
+			max-height: 85vh;
+			overflow-y: auto;
+			z-index: 9999999;
+			background: var(--sr-color-panel-bg, #1a1b26);
+			color: var(--sr-color-text, #ffffff);
+			border: .1875rem solid var(--sr-color-border-strong, #3a3b4e);
+			border-radius: var(--sr-radius-lg, 12px);
+			box-shadow: 0 8px 32px rgba(0,0,0,0.75);
+			padding: 16px;
+			box-sizing: border-box;
+			font-family: inherit;
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+			pointer-events: auto;
+			animation: spkmodFadeIn 0.2s ease-out;
+		}
+		@keyframes spkmodFadeIn {
+			from { opacity: 0; transform: translateY(-50%) scale(0.95); }
+			to { opacity: 1; transform: translateY(-50%) scale(1); }
+		}
+		@media (max-width: 960px) {
+			#spkmod-quick-login-box {
+				left: 50% !important;
+				top: auto !important;
+				bottom: 16px !important;
+				transform: translateX(-50%) !important;
+				width: calc(100vw - 32px) !important;
+				max-width: 440px !important;
+				max-height: 45vh !important;
+			}
+		}
+		.spkmod-ql-card {
+			background: rgba(255, 255, 255, 0.05);
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			border-radius: 8px;
+			padding: 10px 12px;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+			transition: background 0.15s ease;
+		}
+		.spkmod-ql-card:hover {
+			background: rgba(255, 255, 255, 0.09);
+			border-color: rgba(255, 255, 255, 0.2);
+		}
+		.spkmod-ql-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 8px;
+		}
+		.spkmod-ql-nick {
+			font-weight: bold;
+			font-size: 13px;
+			color: #fff;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+		.spkmod-ql-masked {
+			font-size: 11px;
+			color: #94a3b8;
+			letter-spacing: 0.5px;
+			font-family: monospace;
+		}
+		.spkmod-ql-btn-login {
+			background: var(--sr-color-primary, #3b82f6);
+			color: #fff;
+			border: none;
+			border-radius: 6px;
+			padding: 6px 12px;
+			font-size: 12px;
+			font-weight: bold;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 6px;
+			transition: filter 0.15s;
+		}
+		.spkmod-ql-btn-login:hover {
+			filter: brightness(1.15);
+		}
+		.spkmod-ql-btn-del {
+			background: transparent;
+			color: #ef4444;
+			border: 1px solid rgba(239, 68, 68, 0.3);
+			border-radius: 6px;
+			padding: 4px 8px;
+			font-size: 11px;
+			cursor: pointer;
+			transition: background 0.15s;
+		}
+		.spkmod-ql-btn-del:hover {
+			background: rgba(239, 68, 68, 0.15);
+		}
+		.spkmod-ql-input {
+			box-sizing: border-box;
+			width: 100%;
+			background: rgba(0, 0, 0, 0.25);
+			border: 1px solid rgba(255, 255, 255, 0.15);
+			border-radius: 6px;
+			padding: 7px 10px;
+			color: #fff;
+			font-size: 12px;
+			outline: none;
+		}
+		.spkmod-ql-input:focus {
+			border-color: var(--sr-color-primary, #3b82f6);
+		}
+	`;
+	document.head.appendChild(style);
+}
+
+function renderQuickLoginBox(gateEl) {
+	if (!gateEl || !gateEl.isConnected) return;
+	ensureQuickLoginStyles();
+
+	let box = document.getElementById("spkmod-quick-login-box");
+	if (!box) {
+		box = document.createElement("div");
+		box.id = "spkmod-quick-login-box";
+		document.body.appendChild(box);
+	}
+
+	const accounts = getSavedAccounts();
+	box.replaceChildren();
+
+	const header = document.createElement("div");
+	header.style.cssText = "display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;";
+	
+	const title = document.createElement("div");
+	title.style.cssText = "font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 6px;";
+	title.innerText = "🔑 " + t("quickLoginTitle");
+	
+	const countBadge = document.createElement("span");
+	countBadge.style.cssText = "font-size: 11px; color: #94a3b8; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px;";
+	countBadge.innerText = String(accounts.length);
+
+	header.appendChild(title);
+	header.appendChild(countBadge);
+	box.appendChild(header);
+
+	if (accounts.length > 0) {
+		const subTitle = document.createElement("div");
+		subTitle.style.cssText = "font-size: 11px; color: #94a3b8; margin-bottom: 2px;";
+		subTitle.innerText = t("quickLoginSubtitle");
+		box.appendChild(subTitle);
+
+		const listContainer = document.createElement("div");
+		listContainer.style.cssText = "display: flex; flex-direction: column; gap: 8px; max-height: 40vh; overflow-y: auto;";
+
+		accounts.forEach(acc => {
+			const card = document.createElement("div");
+			card.className = "spkmod-ql-card";
+
+			const topRow = document.createElement("div");
+			topRow.className = "spkmod-ql-row";
+
+			const nickSpan = document.createElement("span");
+			nickSpan.className = "spkmod-ql-nick";
+			nickSpan.innerText = "👤 " + acc.nickname;
+
+			const delBtn = document.createElement("button");
+			delBtn.className = "spkmod-ql-btn-del";
+			delBtn.innerText = "✕";
+			delBtn.title = t("quickLoginRemoveConfirm", acc.nickname);
+			delBtn.onclick = (e) => {
+				e.stopPropagation();
+				if (window.confirm(t("quickLoginRemoveConfirm", acc.nickname))) {
+					removeAccountLocally(acc.nickname);
+					renderQuickLoginBox(gateEl);
+				}
+			};
+
+			topRow.appendChild(nickSpan);
+			topRow.appendChild(delBtn);
+
+			const maskedSpan = document.createElement("div");
+			maskedSpan.className = "spkmod-ql-masked";
+			maskedSpan.innerText = acc.masked || maskRecoveryCode(acc.code);
+
+			const loginBtn = document.createElement("button");
+			loginBtn.className = "spkmod-ql-btn-login";
+			loginBtn.innerText = "🚀 " + t("quickLoginBtnLogin", acc.nickname);
+			loginBtn.onclick = () => performQuickRecovery(acc);
+
+			card.appendChild(topRow);
+			card.appendChild(maskedSpan);
+			card.appendChild(loginBtn);
+			listContainer.appendChild(card);
+		});
+
+		box.appendChild(listContainer);
+
+		let addFormOpen = false;
+		const toggleAddBtn = document.createElement("button");
+		toggleAddBtn.style.cssText = "background: transparent; border: 1px dashed rgba(255,255,255,0.2); color: #cbd5e1; border-radius: 6px; padding: 6px; font-size: 11px; cursor: pointer; text-align: center; margin-top: 4px;";
+		toggleAddBtn.innerText = t("quickLoginAddNewAccount");
+
+		const addForm = document.createElement("div");
+		addForm.style.cssText = "display: none; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; margin-top: 4px;";
+
+		const nickInput = document.createElement("input");
+		nickInput.className = "spkmod-ql-input";
+		nickInput.placeholder = t("quickLoginNickPlaceholder");
+
+		const codeInput = document.createElement("input");
+		codeInput.className = "spkmod-ql-input";
+		codeInput.placeholder = t("quickLoginCodePlaceholder");
+		codeInput.oninput = () => { codeInput.value = codeInput.value.toUpperCase(); };
+
+		const saveBtn = document.createElement("button");
+		saveBtn.className = "spkmod-ql-btn-login";
+		saveBtn.style.cssText = "padding: 5px 10px; font-size: 11px;";
+		saveBtn.innerText = t("quickLoginSaveAndLogin");
+		saveBtn.onclick = () => {
+			const n = nickInput.value.trim();
+			const c = codeInput.value.trim();
+			if (n && c.length >= 8) {
+				saveAccountLocally(n, c);
+				performQuickRecovery({ nickname: n, code: c });
+				renderQuickLoginBox(gateEl);
+			}
+		};
+
+		addForm.appendChild(nickInput);
+		addForm.appendChild(codeInput);
+		addForm.appendChild(saveBtn);
+
+		toggleAddBtn.onclick = () => {
+			addFormOpen = !addFormOpen;
+			addForm.style.display = addFormOpen ? "flex" : "none";
+			toggleAddBtn.style.display = addFormOpen ? "none" : "";
+		};
+
+		box.appendChild(toggleAddBtn);
+		box.appendChild(addForm);
+
+	} else {
+		const emptyMsg = document.createElement("div");
+		emptyMsg.style.cssText = "font-size: 12px; color: #cbd5e1; line-height: 1.4; margin-bottom: 4px;";
+		emptyMsg.innerText = t("quickLoginNoAccountsPrompt");
+		box.appendChild(emptyMsg);
+
+		const form = document.createElement("div");
+		form.style.cssText = "display: flex; flex-direction: column; gap: 8px;";
+
+		const nickInput = document.createElement("input");
+		nickInput.className = "spkmod-ql-input";
+		nickInput.placeholder = t("quickLoginNickPlaceholder");
+
+		const codeInput = document.createElement("input");
+		codeInput.className = "spkmod-ql-input";
+		codeInput.placeholder = t("quickLoginCodePlaceholder");
+		codeInput.oninput = () => { codeInput.value = codeInput.value.toUpperCase(); };
+
+		const submitBtn = document.createElement("button");
+		submitBtn.className = "spkmod-ql-btn-login";
+		submitBtn.innerText = t("quickLoginSaveAndLogin");
+		submitBtn.onclick = () => {
+			const n = nickInput.value.trim();
+			const c = codeInput.value.trim();
+			if (n && c.length >= 8) {
+				saveAccountLocally(n, c);
+				performQuickRecovery({ nickname: n, code: c });
+			}
+		};
+
+		form.appendChild(nickInput);
+		form.appendChild(codeInput);
+		form.appendChild(submitBtn);
+		box.appendChild(form);
+	}
+
+	const privacyNote = document.createElement("div");
+	privacyNote.style.cssText = "font-size: 11px; color: #94a3b8; line-height: 1.3; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px; display: flex; align-items: center; gap: 4px;";
+	privacyNote.innerText = "🔒 " + t("quickLoginPrivacyNotice");
+	box.appendChild(privacyNote);
+}
+
+function initPreLoginGateObserver() {
+	let isUpdating = false;
+	let observer = null;
+
+	const checkExisting = () => {
+		if (isUpdating) return;
+		isUpdating = true;
+		try {
+			const existingBox = document.getElementById("spkmod-quick-login-box");
+			const isAlreadyInGame = typeof gameState !== "undefined" && gameState && (gameState.myPlayerName || gameState.myStat?.name);
+			if (isAlreadyInGame) {
+				if (existingBox) existingBox.remove();
+				if (observer) {
+					observer.disconnect();
+					observer = null;
+				}
+				return;
+			}
+
+			const gateEl = document.querySelector(".sr-nickname-gate, .sr-boot-gate");
+			if (gateEl) {
+				if (!existingBox || !existingBox.isConnected) {
+					renderQuickLoginBox(gateEl);
+				}
+			} else if (existingBox) {
+				existingBox.remove();
+			}
+		} finally {
+			isUpdating = false;
+		}
+	};
+
+	checkExisting();
+
+	observer = new MutationObserver(() => {
+		checkExisting();
+	});
+
+	if (document.body) {
+		observer.observe(document.body, { childList: true, subtree: true });
+	} else {
+		document.addEventListener("DOMContentLoaded", () => {
+			if (observer && document.body) {
+				observer.observe(document.body, { childList: true, subtree: true });
+			}
+			checkExisting();
+		});
+	}
+
+	spkmodI18nRenderers.push(() => {
+		const gate = document.querySelector(".sr-nickname-gate, .sr-boot-gate");
+		if (gate && document.getElementById("spkmod-quick-login-box")) {
+			renderQuickLoginBox(gate);
+		}
+	});
+}
+
+function injectQuickLoginIntoSettingsModal() {
+	if (!lunHudElements || !lunHudElements.settingsModal) return;
+	if (document.getElementById("spkmod-settings-ql-section")) return;
+
+	const settingsGrid = lunHudElements.settingsModal.querySelector(".spkmod-settings-grid");
+	if (!settingsGrid) return;
+
+	const col = settingsGrid.firstElementChild || settingsGrid;
+	if (!col) return;
+
+	const section = document.createElement("div");
+	section.id = "spkmod-settings-ql-section";
+	section.style.cssText = "display: none; margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;";
+
+	const title = document.createElement("span");
+	title.className = "spkmod-settings-section-title";
+	title.style.cssText = "font-weight: bold; font-size: 12px; color: #fff; display: block; margin-bottom: 4px;";
+	title.innerText = "🔑 " + t("quickLoginSectionSettings") + " (F2)";
+
+	const desc = document.createElement("div");
+	desc.style.cssText = "font-size: 11px; color: #94a3b8; margin-bottom: 8px; line-height: 1.3;";
+	desc.innerText = t("quickLoginSectionDesc");
+
+	const saveBtn = document.createElement("button");
+	saveBtn.style.cssText = "background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 11px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 8px;";
+	saveBtn.innerText = "💾 " + t("quickLoginSaveCurrentBtn");
+
+	const accountsList = document.createElement("div");
+	accountsList.style.cssText = "display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto;";
+
+	const refreshSettingsAccounts = () => {
+		accountsList.replaceChildren();
+		const accounts = getSavedAccounts();
+		if (accounts.length === 0) {
+			const none = document.createElement("div");
+			none.style.cssText = "font-size: 11px; color: #64748b; font-style: italic;";
+			none.innerText = "--";
+			accountsList.appendChild(none);
+			return;
+		}
+		accounts.forEach(acc => {
+			const row = document.createElement("div");
+			row.style.cssText = "display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; font-size: 11px;";
+
+			const info = document.createElement("span");
+			info.style.cssText = "overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
+			info.innerText = `👤 ${acc.nickname} (${acc.masked})`;
+
+			const actions = document.createElement("div");
+			actions.style.cssText = "display: flex; align-items: center; gap: 4px;";
+
+			const copyBtn = document.createElement("button");
+			copyBtn.style.cssText = "background: transparent; border: none; color: #38bdf8; cursor: pointer; font-size: 11px; padding: 0 4px;";
+			copyBtn.innerText = "📋";
+			copyBtn.title = t("quickLoginCopyCode");
+			copyBtn.onclick = async () => {
+				try {
+					await navigator.clipboard.writeText(acc.code);
+					copyBtn.innerText = "✔";
+					setTimeout(() => { copyBtn.innerText = "📋"; }, 2000);
+				} catch (e) {
+					console.error("Clipboard copy failed:", e);
+				}
+			};
+
+			const del = document.createElement("button");
+			del.style.cssText = "background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 11px; padding: 0 4px;";
+			del.innerText = "✕";
+			del.onclick = () => {
+				if (window.confirm(t("quickLoginRemoveConfirm", acc.nickname))) {
+					removeAccountLocally(acc.nickname);
+					refreshSettingsAccounts();
+				}
+			};
+
+			actions.appendChild(copyBtn);
+			actions.appendChild(del);
+
+			row.appendChild(info);
+			row.appendChild(actions);
+			accountsList.appendChild(row);
+		});
+	};
+
+	saveBtn.onclick = async () => {
+		saveBtn.disabled = true;
+		saveBtn.innerText = "...";
+		try {
+			const code = await fetchCurrentRecoveryCode();
+			const currentNick = (gameState && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || window.myPlayerName || "Player";
+			saveAccountLocally(currentNick, code);
+			saveBtn.innerText = "✔ " + t("quickLoginSaveSuccess", currentNick);
+			try {
+				if (typeof chatLog === "function") {
+					chatLog(t("quickLoginSaveSuccess", currentNick));
+				}
+			} catch (_) {}
+			refreshSettingsAccounts();
+			setTimeout(() => {
+				saveBtn.disabled = false;
+				saveBtn.innerText = "💾 " + t("quickLoginSaveCurrentBtn");
+			}, 3000);
+		} catch (err) {
+			console.error("[SpeakiMod+] Failed to save current account:", err);
+			saveBtn.disabled = false;
+			saveBtn.innerText = "⚠️ " + err.message;
+			setTimeout(() => {
+				saveBtn.innerText = "💾 " + t("quickLoginSaveCurrentBtn");
+			}, 3000);
+		}
+	};
+
+	section.appendChild(title);
+	section.appendChild(desc);
+	section.appendChild(saveBtn);
+	section.appendChild(accountsList);
+
+	const privacyNote = document.createElement("div");
+	privacyNote.style.cssText = "font-size: 10px; color: #94a3b8; line-height: 1.3; margin-top: 6px; display: flex; align-items: center; gap: 4px;";
+	privacyNote.innerText = "🔒 " + t("quickLoginPrivacyNotice");
+	section.appendChild(privacyNote);
+
+	col.appendChild(section);
+
+	refreshSettingsAccounts();
+
+	spkmodI18nRenderers.push(() => {
+		if (!section.isConnected) return;
+		title.innerText = "🔑 " + t("quickLoginSectionSettings") + " (F2)";
+		desc.innerText = t("quickLoginSectionDesc");
+		if (!saveBtn.disabled) saveBtn.innerText = "💾 " + t("quickLoginSaveCurrentBtn");
+		privacyNote.innerText = "🔒 " + t("quickLoginPrivacyNotice");
+	});
+}
+
+function toggleQuickLoginSettings(forceState) {
+	if (typeof injectQuickLoginIntoSettingsModal === "function") {
+		injectQuickLoginIntoSettingsModal();
+	}
+	const sec = document.getElementById("spkmod-settings-ql-section");
+	const btn = document.getElementById("spkmod-settings-accounts-btn");
+	if (!sec) return false;
+
+	const isCurrentlyHidden = sec.style.display === "none" || sec.classList.contains("hidden");
+	const shouldShow = typeof forceState === "boolean" ? forceState : isCurrentlyHidden;
+
+	sec.style.display = shouldShow ? "block" : "none";
+	sec.classList.toggle("hidden", !shouldShow);
+
+	if (btn) {
+		btn.classList.toggle("active", shouldShow);
+		btn.style.background = shouldShow ? "rgba(59, 130, 246, 0.35)" : "";
+		btn.style.borderColor = shouldShow ? "#3b82f6" : "";
+	}
+	if (shouldShow) {
+		sec.scrollIntoView({ behavior: "smooth", block: "nearest" });
+	}
+	return shouldShow;
+}
+
+if (typeof window !== "undefined") {
+	window.toggleQuickLoginSettings = toggleQuickLoginSettings;
+	window.injectQuickLoginIntoSettingsModal = injectQuickLoginIntoSettingsModal;
+}
+
+function initQuickLoginInGamePrompt() {
+	if (typeof window === "undefined" || !window.localStorage) return;
+	if (localStorage.getItem(SPKMOD_DISMISS_KEY)) return;
+	const accounts = getSavedAccounts();
+	if (accounts.length > 0) return;
+
+	setTimeout(() => {
+		if (getSavedAccounts().length > 0) return;
+		if (typeof chatLog === "function") {
+			chatLog(`${t("quickLoginInviteChat")} (⚙️ -> ${t("quickLoginSectionSettings")})`);
+		}
+	}, 6000);
+}
+
+initPreLoginGateObserver();
+
+function onInGameReady() {
+	if (typeof hookGameStateOnce === "function") {
+		hookGameStateOnce();
+	}
+	if (typeof hookRemotePlayersOnce === "function") {
+		hookRemotePlayersOnce();
+	}
+	if (typeof hookQuestManagerOnce === "function") {
+		hookQuestManagerOnce();
+	}
+	const hudEl = document.getElementById("spkmod-hud");
+	if (hudEl) hudEl.classList.remove("hidden");
+	if (typeof lunHudElements !== "undefined" && lunHudElements.hud) {
+		lunHudElements.hud.classList.remove("hidden");
+	}
+
+	if (typeof gameState !== "undefined" && gameState?.myStat) {
+		const currentNick = (gameState.myPlayerName || gameState.myStat.name || "").trim();
+		const currentExp = gameState.myStat.exp ?? 0;
+		window._lunActiveCharacter = currentNick;
+		window._lunSessionStartExp = currentExp;
+		window._lunSessionStartTime = Date.now();
+		if (typeof resetExpTracker === "function") {
+			resetExpTracker();
+		}
+	}
+
+	injectQuickLoginIntoSettingsModal();
+	initQuickLoginInGamePrompt();
+	if (typeof checkAndShowNewsPopup === "function") {
+		setTimeout(() => {
+			checkAndShowNewsPopup();
+		}, 3000);
+	}
+}
+
+let inGameReadyExecuted = false;
+function checkAndTriggerInGameReady() {
+	if (inGameReadyExecuted) return true;
+	const isInGame = typeof gameState !== "undefined" && gameState && gameState.myStat && (gameState.myPlayerName || gameState.myStat.name);
+	if (isInGame) {
+		inGameReadyExecuted = true;
+		onInGameReady();
+		return true;
+	}
+	return false;
+}
+
+if (!checkAndTriggerInGameReady()) {
+	const _waitForGameInterval = setInterval(() => {
+		if (checkAndTriggerInGameReady()) {
+			clearInterval(_waitForGameInterval);
+		}
+	}, 200);
+}
+
+window.__speakiInitInGame = onInGameReady;
+
+

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="min-build-version" content="1.1.0">
+    <title>Speaki RPG Desktop - News & Update</title>
+    <style>
+        .spk-news-body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #e2e8f0;
+            line-height: 1.5;
+            font-size: 13px;
+        }
+        .spk-news-lang-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .spk-lang-tab {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #94a3b8;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .spk-lang-tab:hover {
+            color: #ffffff;
+            border-color: #64748b;
+            background: #334155;
+        }
+        .spk-lang-tab.active {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-color: #60a5fa;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.35);
+        }
+        .spk-news-section {
+            display: none;
+        }
+        .spk-news-section.active {
+            display: block;
+            animation: spkFadeIn 0.18s ease-in-out;
+        }
+        @keyframes spkFadeIn {
+            from { opacity: 0; transform: translateY(2px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .spk-news-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .spk-news-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0 0 8px 0;
+        }
+        .spk-news-highlight {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 3px solid #3b82f6;
+            padding: 8px 12px;
+            border-radius: 0 6px 6px 0;
+            margin-bottom: 12px;
+            font-size: 12px;
+        }
+        .spk-news-list {
+            margin: 0 0 14px 0;
+            padding-left: 18px;
+        }
+        .spk-news-list li {
+            margin-bottom: 6px;
+        }
+        .spk-news-note {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body class="spk-news-body">
+    <!-- Language Switcher Bar -->
+    <div class="spk-news-lang-bar">
+        <button type="button" class="spk-lang-tab active" data-target-lang="en">English</button>
+        <button type="button" class="spk-lang-tab" data-target-lang="ja">日本語</button>
+        <button type="button" class="spk-lang-tab" data-target-lang="ko">한국어</button>
+        <button type="button" class="spk-lang-tab" data-target-lang="zh-TW">繁體中文</button>
+        <button type="button" class="spk-lang-tab" data-target-lang="es-419">Español</button>
+        <button type="button" class="spk-lang-tab" data-target-lang="zh-CN">简体中文</button>
+    </div>
+
+    <!-- English -->
+    <div class="spk-news-section active" data-lang="en">
+        <div class="spk-news-badge">Update Available</div>
+        <h2 class="spk-news-title">Speaki RPG Desktop v1.1.0 is Here!</h2>
+        <div class="spk-news-highlight">
+            A new version of the Speaki RPG Desktop client is now available with major stability and quality of life upgrades.
+        </div>
+        <ul class="spk-news-list">
+            <li><strong>Early Login Companion Box:</strong> Save and recover accounts with 1-click right from the pre-login gate.</li>
+            <li><strong>In-Game Account Manager:</strong> Press <strong>F2</strong> or click <strong>🔑</strong> on the HUD to securely manage and copy your recovery codes.</li>
+            <li><strong>Local Asset Bundling:</strong> Faster and more reliable offline boot with bundled signatures.</li>
+            <li><strong>Security & Privacy:</strong> All credentials remain strictly local to your device and are never shared.</li>
+        </ul>
+        <p class="spk-news-note">
+            Copy the releases link below into your web browser to download the latest setup installer:
+        </p>
+    </div>
+
+    <!-- Japanese -->
+    <div class="spk-news-section" data-lang="ja">
+        <div class="spk-news-badge">アップデート配信</div>
+        <h2 class="spk-news-title">Speaki RPG Desktop v1.1.0 リリース！</h2>
+        <div class="spk-news-highlight">
+            Speaki RPG デスクトップクライアントの最新バージョンが利用可能になりました。安定性の向上と便利な新機能が多数追加されています。
+        </div>
+        <ul class="spk-news-list">
+            <li><strong>ログイン前クイックログイン機能:</strong> ログイン画面（ニックネーム入力画面）から1クリックでアカウントを保存・復旧可能。</li>
+            <li><strong>ゲーム内アカウントマネージャー:</strong> <strong>F2</strong>キーまたはHUDの<strong>🔑</strong>ボタンから復旧コードを安全に管理・コピー。</li>
+            <li><strong>ローカルアセット同梱:</strong> 署名ファイルをローカルに同梱し、オフライン環境でも高速かつ安定して起動。</li>
+            <li><strong>セキュリティ＆プライバシー保護:</strong> アカウント情報はすべてお使いの端末ローカルにのみ保存され、外部送信されません。</li>
+        </ul>
+        <p class="spk-news-note">
+            以下のリリースリンクをブラウザにコピーして、最新インストーラーをダウンロードしてください：
+        </p>
+    </div>
+
+    <!-- Korean -->
+    <div class="spk-news-section" data-lang="ko">
+        <div class="spk-news-badge">업데이트 안내</div>
+        <h2 class="spk-news-title">Speaki RPG Desktop v1.1.0 출시!</h2>
+        <div class="spk-news-highlight">
+            Speaki RPG 데스크톱 클라이언트의 새로운 버전이 출시되었습니다. 안정성 향상 및 유용한 편의 기능이 대폭 추가되었습니다.
+        </div>
+        <ul class="spk-news-list">
+            <li><strong>로그인 화면 간편 로그인:</strong> 닉네임 설정/복구 화면에서 1클릭으로 계정을 저장하고 즉시 복구 로그인 가능.</li>
+            <li><strong>인게임 계정 관리자:</strong> <strong>F2</strong> 키 또는 HUD의 <strong>🔑</strong> 버튼으로 복구 코드를 안전하게 관리하고 복사.</li>
+            <li><strong>로컬 에셋 번들링:</strong> 서명 파일을 로컬에 포함하여 네트워크 지연 없이 빠르고 안정적인 오프라인 구동 지원.</li>
+            <li><strong>보안 및 개인정보 보호:</strong> 모든 계정 코드는 오직 사용자 기기 로컬에만 보관되며 절대 외부로 전송되지 않습니다.</li>
+        </ul>
+        <p class="spk-news-note">
+            아래 Releases 링크를 웹 브라우저에 복사하여 최신 셋업 설치 프로그램을 다운로드하세요:
+        </p>
+    </div>
+
+    <!-- Traditional Chinese (zh-TW) -->
+    <div class="spk-news-section" data-lang="zh-TW">
+        <div class="spk-news-badge">版本更新</div>
+        <h2 class="spk-news-title">Speaki RPG Desktop v1.1.0 正式發布！</h2>
+        <div class="spk-news-highlight">
+            Speaki RPG 桌面客戶端全新版本現已推出，帶來大幅穩定性提升與多項便利功能。
+        </div>
+        <ul class="spk-news-list">
+            <li><strong>登入前快速登入助手:</strong> 在登入畫面（暱稱門檻）即可一鍵儲存並快速復原登入帳號。</li>
+            <li><strong>遊戲內帳號管理器:</strong> 按 <strong>F2</strong> 鍵或點擊 HUD 上的 <strong>🔑</strong> 按鈕，安全管理並複製復原代碼。</li>
+            <li><strong>本機資源打包:</strong> 簽名檔案已整合至安裝包，離線啟動更迅速、更穩定。</li>
+            <li><strong>安全與隱私保障:</strong> 所有憑證僅保留於您的本機裝置，絕不外流或上傳。</li>
+        </ul>
+        <p class="spk-news-note">
+            請將下方的 Releases 連結複製至瀏覽器中下載最新安裝程式：
+        </p>
+    </div>
+
+    <!-- Latin American Spanish (es-419) -->
+    <div class="spk-news-section" data-lang="es-419">
+        <div class="spk-news-badge">Actualización Disponible</div>
+        <h2 class="spk-news-title">¡Speaki RPG Desktop v1.1.0 ya está aquí!</h2>
+        <div class="spk-news-highlight">
+            Ya está disponible una nueva versión del cliente de escritorio Speaki RPG con grandes mejoras de estabilidad y comodidad.
+        </div>
+        <ul class="spk-news-list">
+            <li><strong>Cuadro de Inicio Rápido previo al Login:</strong> Guarda y recupera cuentas con un solo clic directamente en la pantalla de inicio.</li>
+            <li><strong>Administrador de Cuentas en el Juego:</strong> Presiona <strong>F2</strong> o haz clic en <strong>🔑</strong> en el HUD para gestionar y copiar tus códigos de recuperación de forma segura.</li>
+            <li><strong>Recursos Locales Integrados:</strong> Inicio más rápido y confiable con firmas empaquetadas localmente.</li>
+            <li><strong>Seguridad y Privacidad:</strong> Todas las credenciales se guardan exclusivamente en tu dispositivo local y nunca se comparten.</li>
+        </ul>
+        <p class="spk-news-note">
+            Copia el enlace de Releases a continuación en tu navegador para descargar el instalador más reciente:
+        </p>
+    </div>
+
+    <!-- Simplified Chinese (zh-CN) -->
+    <div class="spk-news-section" data-lang="zh-CN">
+        <div class="spk-news-badge">版本更新</div>
+        <h2 class="spk-news-title">Speaki RPG Desktop v1.1.0 正式发布！</h2>
+        <div class="spk-news-highlight">
+            Speaki RPG 桌面客户端全新版本现已推出，带来大幅稳定性提升与多项便利功能。
+        </div>
+        <ul class="spk-news-list">
+            <li><strong>登录前快速登录助手:</strong> 在登录界面（昵称门槛）即可一键保存并快速恢复登录账号。</li>
+            <li><strong>游戏内账号管理器:</strong> 按 <strong>F2</strong> 键或点击 HUD 上的 <strong>🔑</strong> 按钮，安全管理并复制恢复代码。</li>
+            <li><strong>本地资源打包:</strong> 签名文件已内置于安装包中，离线启动更迅速、更稳定。</li>
+            <li><strong>安全与隐私保护:</strong> 所有凭据仅保存在您的本地设备上，绝不外流或上传。</li>
+        </ul>
+        <p class="spk-news-note">
+            请将下方的 Releases 链接复制至浏览器中下载最新安装程序：
+        </p>
+    </div>
+
+    <script>
+        // Standalone browser support for tab switching
+        (function() {
+            function setNewsLang(lang) {
+                var tabs = document.querySelectorAll('.spk-lang-tab');
+                var sections = document.querySelectorAll('.spk-news-section');
+                var matched = false;
+                tabs.forEach(function(tab) {
+                    var isMatch = tab.getAttribute('data-target-lang') === lang;
+                    if (isMatch) matched = true;
+                    tab.classList.toggle('active', isMatch);
+                });
+                sections.forEach(function(sec) {
+                    sec.classList.toggle('active', sec.getAttribute('data-lang') === lang);
+                });
+                if (!matched && lang !== 'en') {
+                    setNewsLang('en');
+                }
+            }
+            document.querySelectorAll('.spk-lang-tab').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    setNewsLang(btn.getAttribute('data-target-lang'));
+                });
+            });
+        })();
+    </script>
+</body>
+</html>

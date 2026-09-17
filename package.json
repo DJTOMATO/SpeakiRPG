@@ -1,11 +1,12 @@
 {
   "name": "SpeakiRPG",
-  "version": "1.0.8",
+  "version": "1.1.0",
   "description": "Speaki RPG with Discord Rich Presence integration",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
+    "build:win": "electron-builder --win --publish never",
     "build:mac": "electron-builder --mac --publish never",
     "build:linux": "electron-builder --linux --publish never"
   },
@@ -53,7 +54,8 @@
       "index.html",
       "node_modules/**/*",
       "SpeakiMod.js",
-      "injector.js"
+      "injector.js",
+      "erpin.html"
     ]
   }
 }

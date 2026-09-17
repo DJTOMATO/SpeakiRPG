@@ -90,6 +90,8 @@
 - **[NEW]** MOD UIの一括非表示/表示 (Pキーで全MODオーバーレイの表示/非表示を切り替え)
 - **[NEW]** 公式パッチノートニュースレター (📰ボタンからゲーム内翻訳済みパッチノートを閲覧可能)
 - **[NEW]** セッション＆スタッツウィンドウ (⏱️ボタンからセッション時間、EXP/時、次レベルまで、ゴールド＆エリフ獲得量、Pingをリアルタイム表示)
+- **[NEW]** クイックログイン＆アカウント管理 (HUDの🔑ボタンまたはF2キーで開閉。復旧コードの安全保存・確認・コピーが可能。端末ローカルにのみ安全保存され外部共有なし)
+- **[NEW]** アップデート＆お知らせウィンドウ (クライアントの最新バージョン通知や更新内容をゲーム内に直接配信)
 
 <img width="450" height="537" alt="image" src="https://github.com/user-attachments/assets/6b5c5837-d2ca-488e-8d8c-5d0a8e63a0aa" />
 <img width="254" height="177" alt="image" src="https://github.com/user-attachments/assets/8971e06c-c687-48ea-b309-8e4eaec74152" />

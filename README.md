@@ -99,6 +99,8 @@
 - **[NEW]** Toggle Mod UI Visibility (Press P to hide or show all mod overlays)
 - **[NEW]** Official Patch Notes Newsletter (View translated game update notes in-game via 📰 button)
 - **[NEW]** Session & Performance Stats Window (Real-time session clock, EXP/hr, time to level, Gold & Elif gains, and network ping via ⏱️ button)
+- **[NEW]** Quick Login & Account Manager (Open via 🔑 on HUD or press F2 to securely save, view, and copy your recovery code; stored strictly locally and never shared)
+- **[NEW]** Update & News Bulletin Window (Delivers client update notices and changelogs directly in-game)
 
 <img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
 
