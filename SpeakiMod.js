@@ -1868,7 +1868,7 @@ function setGamepadRumbleEnabled(enabled) {
 var lunUiScale = (window.localStorage && localStorage.getItem("spkmod-ui-scale")) || "1.0";
 var lunGameUiScale = (window.localStorage && localStorage.getItem("spkmod-uiscale")) || "1.0";
 var lunCameraEffect = (window.localStorage && localStorage.getItem("spkmod-camera-effect")) || "none";
-var lunDroneSpeed = (window.localStorage && parseFloat(localStorage.getItem("spkmod-drone-speed"))) || 0.10;
+var lunDroneSpeed = window.lunDroneSpeed = (window.localStorage && parseFloat(localStorage.getItem("spkmod-drone-speed"))) || 0.10;
 var lunViewClip = false;
 var lunBgOpacity = (window.localStorage && localStorage.getItem("spkmod-bg-opacity")) || "glass";
 var lunAccentColor = (window.localStorage && localStorage.getItem("spkmod-accent-color")) || "#ffd54a";
@@ -3191,12 +3191,12 @@ document.body.appendChild(
 												}
 											}
 											if (moveVector) {
-												const speed = (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10);
+												const speed = ((typeof window.lunDroneSpeed !== 'undefined' ? window.lunDroneSpeed : (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10)));
 												window.spkmodDroneTarget.position.x += moveVector.x * speed;
 												window.spkmodDroneTarget.position.z += moveVector.z * speed;
 											}
 											if (window.spkmodDroneKeys) {
-												const speed = (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10);
+												const speed = ((typeof window.lunDroneSpeed !== 'undefined' ? window.lunDroneSpeed : (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10)));
 												if (window.spkmodDroneKeys.up) window.spkmodDroneTarget.position.y += speed;
 												if (window.spkmodDroneKeys.down) window.spkmodDroneTarget.position.y -= speed;
 											}
@@ -3635,9 +3635,11 @@ document.body.appendChild(
 					} })
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
-					lunPanelElements.droneSpeedLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("droneSpeedLabel") || "Drone Speed" }),
-					lunPanelElements.droneSpeedInput = buildElement("input", { type: "range", min: "0.01", max: "2.0", step: "0.05", value: (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10), style: "width: 70px;", oninput: e => { 
+					lunPanelElements.droneSpeedLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: (t("droneSpeedLabel") || "Drone Speed") + ": x" + (((typeof window.lunDroneSpeed !== 'undefined' ? window.lunDroneSpeed : (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10))).toFixed(2)) }),
+					lunPanelElements.droneSpeedInput = buildElement("input", { type: "range", min: "0.01", max: "2.0", step: "0.05", value: ((typeof window.lunDroneSpeed !== 'undefined' ? window.lunDroneSpeed : (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10))), style: "width: 70px;", oninput: e => { 
 						lunDroneSpeed = parseFloat(e.target.value);
+						window.lunDroneSpeed = lunDroneSpeed;
+						if (lunPanelElements.droneSpeedLabel) lunPanelElements.droneSpeedLabel.innerText = (t("droneSpeedLabel") || "Drone Speed") + ": x" + lunDroneSpeed.toFixed(2);
 						if (window.localStorage) localStorage.setItem("spkmod-drone-speed", lunDroneSpeed);
 					} })
 				]),
@@ -8079,16 +8081,20 @@ window.addEventListener("keydown", e => {
 		if (e.code === "NumpadAdd" || (e.key === "+" && !e.ctrlKey && !e.altKey && !e.metaKey)) {
 			e.preventDefault();
 			lunDroneSpeed = Math.min(2.0, lunDroneSpeed + 0.05);
+			window.lunDroneSpeed = lunDroneSpeed;
 			if (window.localStorage) localStorage.setItem("spkmod-drone-speed", lunDroneSpeed);
 			if (typeof lunPanelElements !== "undefined" && lunPanelElements.droneSpeedInput) lunPanelElements.droneSpeedInput.value = lunDroneSpeed.toFixed(2);
+			if (typeof lunPanelElements !== "undefined" && lunPanelElements.droneSpeedLabel) lunPanelElements.droneSpeedLabel.innerText = (typeof t === "function" ? (t("droneSpeedLabel") || "Drone Speed") : "Drone Speed") + ": x" + lunDroneSpeed.toFixed(2);
 			if (typeof chatLog === "function") chatLog("Drone Speed: " + lunDroneSpeed.toFixed(2));
 			return;
 		}
 		if (e.code === "NumpadSubtract" || (e.key === "-" && !e.ctrlKey && !e.altKey && !e.metaKey)) {
 			e.preventDefault();
 			lunDroneSpeed = Math.max(0.01, lunDroneSpeed - 0.05);
+			window.lunDroneSpeed = lunDroneSpeed;
 			if (window.localStorage) localStorage.setItem("spkmod-drone-speed", lunDroneSpeed);
 			if (typeof lunPanelElements !== "undefined" && lunPanelElements.droneSpeedInput) lunPanelElements.droneSpeedInput.value = lunDroneSpeed.toFixed(2);
+			if (typeof lunPanelElements !== "undefined" && lunPanelElements.droneSpeedLabel) lunPanelElements.droneSpeedLabel.innerText = (typeof t === "function" ? (t("droneSpeedLabel") || "Drone Speed") : "Drone Speed") + ": x" + lunDroneSpeed.toFixed(2);
 			if (typeof chatLog === "function") chatLog("Drone Speed: " + lunDroneSpeed.toFixed(2));
 			return;
 		}
