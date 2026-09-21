@@ -1221,6 +1221,7 @@ function resetExpTracker() {
 	lunExpTrackerInitialized = false;
 	lunExpTrackerSamples = [];
 	lunExpTrackerLastSampleTick = 0;
+	window.lunExpTrackerIgnoredExp = 0;
 }
 function setExpRatePerHour(enabled) {
 	lunExpRatePerHour = !!enabled;
@@ -2003,7 +2004,8 @@ function updateStatsModalLive() {
 	}
 
 	const startExp = window._lunSessionStartExp ?? currentExp;
-	const expGained = Math.max(0, currentExp - startExp);
+	const effectiveCurrentExp = currentExp - (window.lunExpTrackerIgnoredExp || 0);
+	const expGained = Math.max(0, effectiveCurrentExp - startExp);
 	if (statsModalElements.expGainedVal) {
 		statsModalElements.expGainedVal.innerText = `+${expGained.toLocaleString()} EXP`;
 	}
@@ -5974,20 +5976,34 @@ function tick() {
 	var expTrackerL2 = t("nextLevelNA");
 
 	const now = Date.now();
+	const currentEffectiveExp = playerExp - (window.lunExpTrackerIgnoredExp || 0);
+	
 	if (!lunExpTrackerInitialized) {
-		lunExpTrackerSamples = [{ time: now, exp: playerExp }];
+		lunExpTrackerSamples = [{ time: now, exp: currentEffectiveExp }];
 		lunExpTrackerStartExp = playerExp;
 		lunExpTrackerLastSampleTick = now; // using this variable to hold timestamp
 		lunExpTrackerInitialized = true;
-	} else if (lunExpTrackerSamples[lunExpTrackerSamples.length - 1].exp > playerExp) {
-		resetExpTracker();
-		lunExpTrackerSamples = [{ time: now, exp: playerExp }];
-		lunExpTrackerStartExp = playerExp;
-		lunExpTrackerLastSampleTick = now;
-		lunExpTrackerInitialized = true;
-	} else if (now - lunExpTrackerLastSampleTick >= 1000) { // sample every 1 real-world second
-		lunExpTrackerSamples.push({ time: now, exp: playerExp });
-		lunExpTrackerLastSampleTick = now;
+	} else {
+		const lastSampleExp = lunExpTrackerSamples[lunExpTrackerSamples.length - 1].exp;
+		if (lastSampleExp > currentEffectiveExp) {
+			// Leveled up or lost exp
+			resetExpTracker();
+			lunExpTrackerSamples = [{ time: now, exp: playerExp }]; // After reset, ignoredExp is 0, so currentEffectiveExp is just playerExp
+			lunExpTrackerStartExp = playerExp;
+			lunExpTrackerLastSampleTick = now;
+			lunExpTrackerInitialized = true;
+		} else {
+			// Gained exp
+			const gained = currentEffectiveExp - lastSampleExp;
+			if (gained > 3000) {
+				// Ignore sudden massive exp spikes (e.g. event rewards or quests)
+				window.lunExpTrackerIgnoredExp = (window.lunExpTrackerIgnoredExp || 0) + gained;
+				// The new currentEffectiveExp will now match lastSampleExp!
+			} else if (now - lunExpTrackerLastSampleTick >= 1000) { // sample every 1 real-world second
+				lunExpTrackerSamples.push({ time: now, exp: currentEffectiveExp });
+				lunExpTrackerLastSampleTick = now;
+			}
+		}
 	}
 
 	const windowMs = windowSec * 1000;
@@ -5997,7 +6013,7 @@ function tick() {
 	}
 	const oldestSample = lunExpTrackerSamples[0];
 	const elapsedSec = oldestSample ? Math.max(1, (now - oldestSample.time) / 1000) : 1;
-	const expGained = oldestSample ? Math.max(0, playerExp - oldestSample.exp) : 0;
+	const expGained = oldestSample ? Math.max(0, currentEffectiveExp - oldestSample.exp) : 0;
 	
 	const divisor = windowSec;
 	lunExpTrackerSpeed = divisor > 0 ? expGained / divisor : 0;
