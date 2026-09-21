@@ -5952,7 +5952,7 @@ function tick() {
 	const elapsedSec = oldestSample ? Math.max(1, (now - oldestSample.time) / 1000) : 1;
 	const expGained = oldestSample ? Math.max(0, playerExp - oldestSample.exp) : 0;
 	
-	const divisor = Math.min(windowSec, elapsedSec);
+	const divisor = windowSec;
 	lunExpTrackerSpeed = divisor > 0 ? expGained / divisor : 0;
 	
 	const timerDisplay = (windowSec / 60) + "m avg";
