@@ -3058,26 +3058,15 @@ document.body.appendChild(
 				})
 			]),
 
-			buildElement("div", { className: "spkmod-panel-cat" }, [
-				lunPanelElements.flipCameraBtn = buildElement("button", {
-					className: "spkmod-panel-btn",
-					innerText: t("flipCamera") || "180° Camera",
-					onclick: _ => {
-						if (typeof gameState !== "undefined" && gameState?.cameraController) {
-							gameState.cameraController.cameraYaw += Math.PI;
-						}
-					}
-				}),
-				lunPanelElements.resetCameraBtn = buildElement("button", {
-					className: "spkmod-panel-btn hidden",
-					innerText: t("resetCamera"),
-					value: "",
-					onclick: _ => {
-						watchPlayer();
-						stopStare();
-					}
-				})
-			]),
+			lunPanelElements.resetCameraBtn = buildElement("button", {
+				className: "spkmod-panel-btn hidden",
+				innerText: t("resetCamera"),
+				value: "",
+				onclick: _ => {
+					watchPlayer();
+					stopStare();
+				}
+			}),
 			buildElement("div", { className: "spkmod-panel-cat", id: "spkmod-camera-modes-cat" }, [
 				lunPanelElements.firstPersonBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
@@ -5648,7 +5637,6 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.speedLabel, t("speedLabel"));
 	setText(lunPanelElements.turnToCameraBtn, t("turnToCamera"));
 
-	if (lunPanelElements.flipCameraBtn) setText(lunPanelElements.flipCameraBtn, t("flipCamera") || "180° Camera");
 	setText(lunPanelElements.resetCameraBtn, t("resetCamera"));
 	setText(lunPanelElements.lockCameraBtn, lunCameraLocked ? t("unlockCamera") : t("lockCamera"));
 	setText(lunPanelElements.nametagsBtn, t(NAMETAG_MODES[lunNametagMode] + "Btn"));
