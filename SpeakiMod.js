@@ -3167,7 +3167,34 @@ document.body.appendChild(
 								if (!gameState.cameraController._spkmodPatchedUpdate) {
 									const origUpdate = gameState.cameraController.update;
 									gameState.cameraController.update = function(dt) {
+										if (lunDroneModeActive && window.spkmodDroneTarget) {
+											let lx = 0, ly = 0;
+											if (window.spkmodDroneKeys) {
+												if (window.spkmodDroneKeys.w) ly -= 1;
+												if (window.spkmodDroneKeys.s) ly += 1;
+												if (window.spkmodDroneKeys.a) lx -= 1;
+												if (window.spkmodDroneKeys.d) lx += 1;
+											}
+											if (lx !== 0 || ly !== 0) {
+												const camYaw = this.cameraYaw || 0;
+												let moveVector = {
+													x: lx * Math.cos(camYaw) + ly * Math.sin(camYaw),
+													z: -lx * Math.sin(camYaw) + ly * Math.cos(camYaw)
+												};
+												const mag = Math.sqrt(moveVector.x * moveVector.x + moveVector.z * moveVector.z);
+												const speed = (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10);
+												window.spkmodDroneTarget.position.x += (moveVector.x / mag) * speed;
+												window.spkmodDroneTarget.position.z += (moveVector.z / mag) * speed;
+											}
+											if (window.spkmodDroneKeys) {
+												const speed = (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10);
+												if (window.spkmodDroneKeys.up) window.spkmodDroneTarget.position.y += speed;
+												if (window.spkmodDroneKeys.down) window.spkmodDroneTarget.position.y -= speed;
+											}
+										}
+										
 										origUpdate.call(this, dt);
+										
 										if (lunDroneModeActive && typeof this.snapToTarget === "function") {
 											this.snapToTarget();
 										}
@@ -6313,40 +6340,6 @@ function hookGameStateOnce() {
 			let baseMove = origCombatAssistUpdate(e);
 			
 			if (lunDroneModeActive) {
-				let moveVector = null;
-				if (gamepadMoveVector) {
-					moveVector = gamepadMoveVector;
-				} else {
-					let lx = 0, ly = 0;
-					if (window.spkmodDroneKeys) {
-						if (window.spkmodDroneKeys.w) ly -= 1;
-						if (window.spkmodDroneKeys.s) ly += 1;
-						if (window.spkmodDroneKeys.a) lx -= 1;
-						if (window.spkmodDroneKeys.d) lx += 1;
-					}
-					
-					if (lx !== 0 || ly !== 0) {
-						const camYaw = gameState?.cameraController ? gameState.cameraController.cameraYaw : 0;
-						moveVector = {
-							x: lx * Math.cos(camYaw) + ly * Math.sin(camYaw),
-							z: -lx * Math.sin(camYaw) + ly * Math.cos(camYaw)
-						};
-						const mag = Math.sqrt(moveVector.x * moveVector.x + moveVector.z * moveVector.z);
-						moveVector.x /= mag;
-						moveVector.z /= mag;
-					}
-				}
-				
-				const speed = (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10);
-				if (moveVector && window.spkmodDroneTarget) {
-					window.spkmodDroneTarget.position.x += moveVector.x * speed;
-					window.spkmodDroneTarget.position.z += moveVector.z * speed;
-				}
-				if (window.spkmodDroneTarget) {
-					if (window.spkmodDroneKeys && window.spkmodDroneKeys.up) window.spkmodDroneTarget.position.y += speed;
-					if (window.spkmodDroneKeys && window.spkmodDroneKeys.down) window.spkmodDroneTarget.position.y -= speed;
-				}
-				
 				return { moveDir: { x: 0, z: 0 }, castSkillId: null };
 			}
 			
