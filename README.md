@@ -49,6 +49,11 @@
 
 <img width="450" height="537" alt="image" src="https://github.com/user-attachments/assets/6b5c5837-d2ca-488e-8d8c-5d0a8e63a0aa" />
 
+- **Advanced Drone Camera Mode**: Explore the map with complete freedom using the new stabilized Free Camera mode (press F4 to toggle, use WASD to fly, Space/Ctrl for elevation).
+- **Cinematic Camera Filters**: Instantly switch between 5 cinematic visual styles (Ctrl + 6~0 for Normal, B&W, Sepia, Morning, Dusk).
+- **Dynamic UI Scaling**: Shrink the HUD without squishing the game world! Use /uiscale <0.5 - 2.0> in chat or Ctrl + U to reset.
+- **Hotkeys Viewer Modal**: Easily see all available mod shortcuts directly in-game by clicking the new ⌨️ icon.
+- **Native Night Mode Integration**: Quickly toggle the game's darker scenery mode by pressing N.
 - Nearby player count
 - EXP tracker (EXP per minute and time until next level estimation)
 - Channel tracker

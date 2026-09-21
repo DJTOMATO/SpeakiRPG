@@ -144,7 +144,7 @@ function getAuthToken() {
 const Emotes = {
 	Cry: 1,
 	Jump: 2,
-	PumpkinJoayo: 3,
+	MinigameJoayo: 3,
 	StrokeStart: 4,
 	StrokeStage2: 5,
 	StrokeBloom: 6,
@@ -870,11 +870,12 @@ var lunHudElements = {
 		pbar: null
 	},
 	currencyTracker: null,
-	pumpkinTracker: null,
+	minigameTracker: null,
 	settingsModal: null,
 	eventModal: null,
 	patchNotesModal: null,
-	statsModal: null
+	statsModal: null,
+	hotkeysModal: null
 };
 var eventModalElements = {
 	headerTitle: null,
@@ -889,6 +890,10 @@ var patchNotesModalElements = {
 	headerTitle: null,
 	contentContainer: null
 };
+var hotkeysModalElements = {
+	headerTitle: null,
+	contentContainer: null
+};
 var statsModalElements = {
 	headerTitle: null,
 	sessionTimeLabel: null,
@@ -898,8 +903,8 @@ var statsModalElements = {
 	fpsVal: null,
 	dailyResetLabel: null,
 	dailyResetVal: null,
-	pumpkinLabel: null,
-	pumpkinVal: null,
+	minigameLabel: null,
+	minigameVal: null,
 	levelProgressVal: null,
 	levelExpNumbers: null,
 	levelProgressBar: null,
@@ -968,8 +973,8 @@ var lunPanelElements = {
 	patchNotesBtn: null,
 	eventBtn: null,
 	statsBtn: null,
-	pumpkinTrackerLabel: null,
-	pumpkinTrackerToggleInput: null,
+	minigameTrackerLabel: null,
+	minigameTrackerToggleInput: null,
 	hideKnownBotsLabel: null,
 	hideKnownBotsToggleInput: null,
 	settingsCatGeneral: null,
@@ -1244,49 +1249,100 @@ function setResetTimerEnabled(enabled) {
 	}
 }
 
-var lunPumpkinTrackerEnabled = (window.localStorage && localStorage.getItem("spkmod-pumpkin-tracker")) === "true";
-var lunPumpkinStatus = null;
-var lunPumpkinTrackerWindow = 60000 / lunTPS;
-var lunPumpkinTrackerNextTicks = 0;
+var lunMinigameTrackerEnabled = (window.localStorage && localStorage.getItem("spkmod-pumpkin-tracker")) === "true";
+var lunMinigameStatus = null;
+var lunMinigameTrackerWindow = 60000 / lunTPS;
+var lunMinigameTrackerNextTicks = 0;
 
-function setPumpkinTrackerEnabled(enabled) {
-	lunPumpkinTrackerEnabled = !!enabled;
-	if (window.localStorage) localStorage.setItem("spkmod-pumpkin-tracker", lunPumpkinTrackerEnabled ? "true" : "false");
-	if (lunHudElements.pumpkinTracker) {
-		lunHudElements.pumpkinTracker.style.display = lunPumpkinTrackerEnabled ? "" : "none";
+function setMinigameTrackerEnabled(enabled) {
+	lunMinigameTrackerEnabled = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-pumpkin-tracker", lunMinigameTrackerEnabled ? "true" : "false");
+	if (lunHudElements.minigameTracker) {
+		lunHudElements.minigameTracker.style.display = lunMinigameTrackerEnabled ? "" : "none";
 	}
-	if (lunPumpkinTrackerEnabled && !lunPumpkinStatus) {
-		fetchPumpkinStatus();
+	if (lunMinigameTrackerEnabled && !lunMinigameStatus) {
+		fetchMinigameStatus();
 	}
 }
 
-function fetchPumpkinStatus() {
+let ACTIVE_MINIGAME_ID = null;
+
+function fetchMinigameStatus() {
 	const token = getAuthToken();
 	if (!token) return;
-	fetch("https://sr1.overture.io.kr/api/minigame/pumpkin/status", {
+
+	let keysToTry = ["pumpkin", "sweep", "nuruling"];
+	if (typeof gameState !== "undefined" && gameState && gameState.minigameEntryDialogs) {
+		const dynamicKeys = gameState.minigameEntryDialogs.map(d => d.def && d.def.gameKey).filter(Boolean);
+		if (dynamicKeys.length > 0) keysToTry = dynamicKeys;
+	}
+
+	if (!ACTIVE_MINIGAME_ID) {
+		let lastResp = null;
+		
+		const checkNext = (index) => {
+			if (index >= keysToTry.length) {
+				if (lastResp) {
+					lunMinigameStatus = lastResp;
+					updateMinigameUI();
+				}
+				return;
+			}
+			const key = keysToTry[index];
+			fetch(`https://sr1.overture.io.kr/api/minigame/${key}/status`, {
+				"method": "GET",
+				"headers": { "authorization": `Bearer ${token}` },
+				"mode": "cors"
+			})
+			.then(res => res.json())
+			.then(resp => {
+				if (resp && resp.isActive) {
+					ACTIVE_MINIGAME_ID = key;
+					lunMinigameStatus = resp;
+					updateMinigameUI();
+				} else {
+					if (resp) lastResp = resp;
+					checkNext(index + 1);
+				}
+			})
+			.catch(err => {
+				checkNext(index + 1);
+			});
+		};
+		checkNext(0);
+		return;
+	}
+
+	fetch(`https://sr1.overture.io.kr/api/minigame/${ACTIVE_MINIGAME_ID}/status`, {
 		"method": "GET",
 		"headers": {
 			"authorization": `Bearer ${token}`
 		},
 		"mode": "cors"
-	}).then(async x => {
-		if (!x.ok) return;
-		var resp = (await x.json());
-		lunPumpkinStatus = resp;
-		updatePumpkinUI();
-	}).catch(_ => {});
+	})
+		.then(res => res.json())
+		.then(resp => {
+			if (resp && !resp.isActive) {
+				ACTIVE_MINIGAME_ID = null; // reset so it searches again on next tick
+			}
+			lunMinigameStatus = resp;
+			updateMinigameUI();
+		})
+		.catch(err => {
+			console.error("[SpeakiMod] Failed to fetch minigame status:", err);
+		});
 }
 
-function updatePumpkinUI() {
-	if (lunHudElements.pumpkinTracker) {
-		if (lunPumpkinStatus) {
-			if (lunPumpkinStatus.isActive) {
-				setText(lunHudElements.pumpkinTracker, t("pumpkinTrackerText", lunPumpkinStatus.remainingPlaysToday ?? 0, lunPumpkinStatus.dailyCapPlays ?? 10));
+function updateMinigameUI() {
+	if (lunHudElements.minigameTracker) {
+		if (lunMinigameStatus) {
+			if (lunMinigameStatus.isActive) {
+				setText(lunHudElements.minigameTracker, t("minigameTrackerText", lunMinigameStatus.remainingPlaysToday ?? 0, lunMinigameStatus.dailyCapPlays ?? 10));
 			} else {
-				setText(lunHudElements.pumpkinTracker, t("pumpkinTrackerInactive"));
+				setText(lunHudElements.minigameTracker, t("minigameTrackerInactive"));
 			}
 		} else {
-			setText(lunHudElements.pumpkinTracker, t("pumpkinTrackerText", "--", "--"));
+			setText(lunHudElements.minigameTracker, t("minigameTrackerText", "--", "--"));
 		}
 	}
 	updateEventModalContent();
@@ -1550,7 +1606,7 @@ function toggleEventModal() {
 	if (isClosed) {
 		positionModalNicely(lunHudElements.eventModal);
 		lunHudElements.eventModal.classList.remove("hidden");
-		fetchPumpkinStatus();
+		fetchMinigameStatus();
 	} else {
 		lunHudElements.eventModal.classList.add("hidden");
 	}
@@ -1559,14 +1615,14 @@ function toggleEventModal() {
 function updateEventModalContent() {
 	if (!lunHudElements.eventModal) return;
 	if (eventModalElements.headerTitle) setText(eventModalElements.headerTitle, t("eventInfoHeader"));
-	if (eventModalElements.titleText) setText(eventModalElements.titleText, "🎃 " + t("eventPumpkinTitle"));
+	if (eventModalElements.titleText) setText(eventModalElements.titleText, "🎃 " + t("eventMinigameTitle"));
 	
-	if (!lunPumpkinStatus) {
+	if (!lunMinigameStatus) {
 		if (eventModalElements.periodText) setText(eventModalElements.periodText, t("eventLoading"));
 		return;
 	}
 
-	const active = !!lunPumpkinStatus.isActive;
+	const active = !!lunMinigameStatus.isActive;
 	if (eventModalElements.statusBadge) {
 		setText(eventModalElements.statusBadge, active ? t("eventStatusActive") : t("eventStatusInactive"));
 		eventModalElements.statusBadge.style.color = active ? "#4ade80" : "#f87171";
@@ -1574,18 +1630,18 @@ function updateEventModalContent() {
 	}
 
 	if (eventModalElements.periodText) {
-		const start = lunPumpkinStatus.activeStartDate || "--";
-		const end = lunPumpkinStatus.activeEndDate || "--";
+		const start = lunMinigameStatus.activeStartDate || "--";
+		const end = lunMinigameStatus.activeEndDate || "--";
 		setText(eventModalElements.periodText, t("eventPeriod", start, end));
 	}
 
 	if (eventModalElements.bestScoreText) {
-		setText(eventModalElements.bestScoreText, t("eventBestScore", lunPumpkinStatus.myBestScore ?? "--"));
+		setText(eventModalElements.bestScoreText, t("eventBestScore", lunMinigameStatus.myBestScore ?? "--"));
 	}
 
 	if (eventModalElements.playsRemainingText) {
-		const rem = lunPumpkinStatus.remainingPlaysToday ?? 0;
-		const cap = lunPumpkinStatus.dailyCapPlays ?? 10;
+		const rem = lunMinigameStatus.remainingPlaysToday ?? 0;
+		const cap = lunMinigameStatus.dailyCapPlays ?? 10;
 		setText(eventModalElements.playsRemainingText, t("eventPlaysToday", rem, cap));
 	}
 
@@ -1803,6 +1859,10 @@ function setGamepadRumbleEnabled(enabled) {
 }
 
 var lunUiScale = (window.localStorage && localStorage.getItem("spkmod-ui-scale")) || "1.0";
+var lunGameUiScale = (window.localStorage && localStorage.getItem("spkmod-uiscale")) || "1.0";
+var lunCameraEffect = (window.localStorage && localStorage.getItem("spkmod-camera-effect")) || "none";
+var lunDroneSpeed = (window.localStorage && parseFloat(localStorage.getItem("spkmod-drone-speed"))) || 0.10;
+var lunViewClip = false;
 var lunBgOpacity = (window.localStorage && localStorage.getItem("spkmod-bg-opacity")) || "glass";
 var lunAccentColor = (window.localStorage && localStorage.getItem("spkmod-accent-color")) || "#ffd54a";
 var lunHudBackground = (window.localStorage && localStorage.getItem("spkmod-hud-bg")) || "none";
@@ -1813,8 +1873,8 @@ function toggleStatsModal() {
 	if (isClosed) {
 		positionModalNicely(lunHudElements.statsModal);
 		lunHudElements.statsModal.classList.remove("hidden");
-		if (!lunPumpkinStatus) {
-			fetchPumpkinStatus();
+		if (!lunMinigameStatus) {
+			fetchMinigameStatus();
 		}
 		updateStatsModalLive();
 	} else {
@@ -1843,7 +1903,7 @@ function updateStatsModalLive() {
 	if (statsModalElements.sessionTimeLabel) setText(statsModalElements.sessionTimeLabel, "⏱️ " + t("statsSessionTime"));
 	if (statsModalElements.pingLabel) setText(statsModalElements.pingLabel, "📶 " + t("statsPing"));
 	if (statsModalElements.dailyResetLabel) setText(statsModalElements.dailyResetLabel, "🌅 " + t("statsDailyReset"));
-	if (statsModalElements.pumpkinLabel) setText(statsModalElements.pumpkinLabel, "🎃 " + t("statsPumpkinPlays"));
+	if (statsModalElements.minigameLabel) setText(statsModalElements.minigameLabel, "🎃 " + t("statsMinigamePlays"));
 	if (statsModalElements.expGainedLabel) setText(statsModalElements.expGainedLabel, "⭐ " + t("statsExpGained"));
 	if (statsModalElements.expRateLabel) setText(statsModalElements.expRateLabel, "📈 " + t("statsExpPerHour"));
 	if (statsModalElements.timeToLevelLabel) setText(statsModalElements.timeToLevelLabel, "⏳ " + t("statsTimeToNextLevel"));
@@ -1897,20 +1957,20 @@ function updateStatsModalLive() {
 		statsModalElements.dailyResetVal.innerText = `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
 	}
 
-	if (statsModalElements.pumpkinVal) {
-		if (lunPumpkinStatus) {
-			if (lunPumpkinStatus.isActive) {
-				const remaining = lunPumpkinStatus.remainingPlaysToday ?? 0;
-				const cap = lunPumpkinStatus.dailyCapPlays ?? 10;
-				statsModalElements.pumpkinVal.innerText = `${remaining} / ${cap}`;
-				statsModalElements.pumpkinVal.style.color = remaining > 0 ? "#4ade80" : "#f87171";
+	if (statsModalElements.minigameVal) {
+		if (lunMinigameStatus) {
+			if (lunMinigameStatus.isActive) {
+				const remaining = lunMinigameStatus.remainingPlaysToday ?? 0;
+				const cap = lunMinigameStatus.dailyCapPlays ?? 10;
+				statsModalElements.minigameVal.innerText = `${remaining} / ${cap}`;
+				statsModalElements.minigameVal.style.color = remaining > 0 ? "#4ade80" : "#f87171";
 			} else {
-				statsModalElements.pumpkinVal.innerText = t("pumpkinTrackerInactive");
-				statsModalElements.pumpkinVal.style.color = "#aaa";
+				statsModalElements.minigameVal.innerText = t("minigameTrackerInactive");
+				statsModalElements.minigameVal.style.color = "#aaa";
 			}
 		} else {
-			statsModalElements.pumpkinVal.innerText = "-- / --";
-			statsModalElements.pumpkinVal.style.color = "#aaa";
+			statsModalElements.minigameVal.innerText = "-- / --";
+			statsModalElements.minigameVal.style.color = "#aaa";
 		}
 	}
 
@@ -1999,6 +2059,14 @@ function updateStatsModalLive() {
 function updateDynamicStyles() {
 	let bgRule = "rgba(0, 0, 0, 0.75)";
 	let blurRule = "blur(4px)";
+	let filterRule = "none";
+	switch(lunCameraEffect) {
+		case "bw": filterRule = "grayscale(100%) contrast(110%)"; break;
+		case "sepia": filterRule = "sepia(80%) saturate(140%) hue-rotate(-10deg) contrast(110%)"; break;
+		case "morning": filterRule = "brightness(110%) contrast(110%) sepia(20%) hue-rotate(5deg) saturate(120%)"; break;
+		case "dusk": filterRule = "brightness(90%) sepia(30%) hue-rotate(330deg) saturate(130%) contrast(120%)"; break;
+		case "night": filterRule = "brightness(75%) contrast(120%) sepia(40%) hue-rotate(180deg) saturate(150%)"; break;
+	}
 	if (lunBgOpacity === "solid") {
 		bgRule = "rgba(10, 10, 10, 0.95)";
 		blurRule = "none";
@@ -2070,6 +2138,8 @@ function updateDynamicStyles() {
 			--spkmod-blur: ${blurRule};
 			--spkmod-accent: ${lunAccentColor};
 		}
+				#app { filter: ${filterRule}; }
+		#app > *:not(:has(canvas)):not(canvas) { zoom: ${lunGameUiScale} !important; }
 		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-stats-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
 		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-stats-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
@@ -2144,6 +2214,7 @@ var lunSessionStartGold = null;
 var lunSessionStartElif = null;
 
 var lunDroneModeActive = false;
+window.spkmodDroneKeys = { up: false, down: false, w: false, a: false, s: false, d: false };
 var lunFirstPersonActive = false;
 
 const spkmodBorderWidth = "1.5px";
@@ -2350,7 +2421,7 @@ document.head.appendChild(buildElement(
 			padding: 0 var(--sr-space-3);
 			border-radius: var(--sr-radius-md);
 			font-size: var(--sr-font-md);
-			cursor: var(--sr-cursor-pumpkin);
+			cursor: var(--sr-cursor-minigame);
 			user-select: none;
 			border: .125rem solid #0000;
 			font-weight: 600;
@@ -2560,9 +2631,9 @@ document.body.appendChild(
 				innerText: t("resetTimerText", "--", "--", "--"),
 				style: lunResetTimerEnabled ? "" : "display: none;"
 			}),
-			lunHudElements.pumpkinTracker = buildElement("span", {
-				innerText: t("pumpkinTrackerText", "--", "--"),
-				style: lunPumpkinTrackerEnabled ? "" : "display: none;"
+			lunHudElements.minigameTracker = buildElement("span", {
+				innerText: t("minigameTrackerText", "--", "--"),
+				style: lunMinigameTrackerEnabled ? "" : "display: none;"
 			}),
 			lunHudElements.footerMsg = buildElement("span", {
 				id: "spkmod-footer",
@@ -3068,7 +3139,7 @@ document.body.appendChild(
 				lunPanelElements.freeCamBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
 					innerText: t("freeCamOff"),
-					style: "display: none;",
+					style: "flex: 1;",
 					onclick: e => {
 						lunDroneModeActive = !lunDroneModeActive;
 						setText(e.target, t(lunDroneModeActive ? "freeCamOn" : "freeCamOff"));
@@ -3085,10 +3156,35 @@ document.body.appendChild(
 							if (gameState.playerContainer && gameState.cameraController) {
 								window.spkmodDroneTarget = { position: { x: gameState.playerContainer.position.x, y: gameState.playerContainer.position.y, z: gameState.playerContainer.position.z } };
 								gameState.cameraController.target = window.spkmodDroneTarget;
+								
+								if (!gameState.cameraController._spkmodPatchedUpdate) {
+									const origUpdate = gameState.cameraController.update;
+									gameState.cameraController.update = function(dt) {
+										origUpdate.call(this, dt);
+										if (lunDroneModeActive && typeof this.snapToTarget === "function") {
+											this.snapToTarget();
+										}
+									};
+									gameState.cameraController._spkmodPatchedUpdate = true;
+								}
+								
+								// Debugging hooks
+								console.log("[DroneMode] Activated. Target:", window.spkmodDroneTarget);
+								window.spkmodDebugCamera = () => {
+									console.log("Camera Yaw:", gameState.cameraController.cameraYaw);
+									console.log("Camera Pitch:", gameState.cameraController.cameraPitch);
+									console.log("Camera Zoom:", gameState.cameraController.cameraZoomDistance);
+									console.log("Camera Target:", gameState.cameraController.target);
+									console.log("Camera Position:", gameState.cameraController.camera.position);
+									console.log("Drone Keys:", window.spkmodDroneKeys);
+								};
+								chatLog("Drone Mode ON (Run spkmodDebugCamera() in console to debug)");
 							}
 						} else {
 							if (gameState.cameraController && gameState.playerContainer) {
 								gameState.cameraController.target = gameState.playerContainer;
+								console.log("[DroneMode] Deactivated. Target restored to player.");
+								chatLog("Drone Mode OFF");
 							}
 						}
 					}
@@ -3144,6 +3240,16 @@ document.body.appendChild(
 					title: t("settingsBtnTooltip"),
 					onclick: _ => {
 						toggleSettingsModal();
+					}
+				}),
+				lunPanelElements.hotkeysBtn = buildElement("button", {
+					id: "spkmod-hotkeys-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					innerText: "⌨️",
+					title: t("hotkeysModalTitle") || "Hotkeys",
+					onclick: _ => {
+						toggleHotkeysModal();
 					}
 				}),
 				lunPanelElements.patchNotesBtn = buildElement("button", {
@@ -3434,8 +3540,8 @@ document.body.appendChild(
 					lunPanelElements.resetTimerToggleInput = buildElement("input", { type: "checkbox", checked: lunResetTimerEnabled, onchange: e => setResetTimerEnabled(e.target.checked) })
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
-					lunPanelElements.pumpkinTrackerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("pumpkinTrackerToggleLabel") }),
-					lunPanelElements.pumpkinTrackerToggleInput = buildElement("input", { type: "checkbox", checked: lunPumpkinTrackerEnabled, onchange: e => setPumpkinTrackerEnabled(e.target.checked) })
+					lunPanelElements.minigameTrackerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("minigameTrackerToggleLabel") }),
+					lunPanelElements.minigameTrackerToggleInput = buildElement("input", { type: "checkbox", checked: lunMinigameTrackerEnabled, onchange: e => setMinigameTrackerEnabled(e.target.checked) })
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.expRateUnitLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("expRateUnitToggleLabel") }),
@@ -3450,6 +3556,34 @@ document.body.appendChild(
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.uiScaleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("uiScaleLabel") }),
 					lunPanelElements.uiScaleSlider = buildElement("input", { type: "range", min: "0.8", max: "1.3", step: "0.05", value: lunUiScale, style: "width: 70px;", onchange: e => { lunUiScale = e.target.value; updateDynamicStyles(); } })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.cameraEffectLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("cameraEffectLabel") || "Camera Effect" }),
+					lunPanelElements.cameraEffectSelect = buildElement("select", { className: "spkmod-panel-combo", value: lunCameraEffect, onchange: e => { lunCameraEffect = e.target.value; if (window.localStorage) localStorage.setItem("spkmod-camera-effect", lunCameraEffect); updateDynamicStyles(); } }, [
+						buildElement("option", { value: "none", innerText: t("effectNone") || "Normal" }),
+						buildElement("option", { value: "bw", innerText: t("effectBw") || "Black & White" }),
+						buildElement("option", { value: "sepia", innerText: t("effectSepia") || "Sepia" }),
+						buildElement("option", { value: "morning", innerText: t("effectMorning") || "Morning" }),
+						buildElement("option", { value: "dusk", innerText: t("effectDusk") || "Dusk / Dawn" }),
+						buildElement("option", { value: "night", innerText: t("effectNight") || "Night" })
+					])
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.gameUiScaleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("gameUiScaleLabel") || "Game UI Scale" }),
+					lunPanelElements.gameUiScaleSlider = buildElement("input", { type: "range", min: "0.5", max: "2", step: "0.05", value: lunGameUiScale, style: "width: 70px;", onchange: e => { 
+						lunGameUiScale = e.target.value; 
+						if (window.localStorage) localStorage.setItem("spkmod-uiscale", lunGameUiScale);
+						const appEl = document.getElementById("app");
+						if (appEl) appEl.style.zoom = ""; // Clear old buggy zoom
+						if (typeof updateDynamicStyles === "function") updateDynamicStyles();
+					} })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.droneSpeedLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("droneSpeedLabel") || "Drone Speed" }),
+					lunPanelElements.droneSpeedInput = buildElement("input", { type: "range", min: "0.01", max: "2.0", step: "0.05", value: (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10), style: "width: 70px;", onchange: e => { 
+						lunDroneSpeed = parseFloat(e.target.value);
+						if (window.localStorage) localStorage.setItem("spkmod-drone-speed", lunDroneSpeed);
+					} })
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.bgOpacityLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("bgOpacityLabel") }),
@@ -3625,7 +3759,7 @@ const lunChowayoAnimMs = 2800; // tuned for sync
 function autoChowayoLoop() {
 	if (!window.AutoChowayoActive) return;
 	if (gameState && typeof gameState.sendEmoteNow === "function") {
-		gameState.sendEmoteNow(Emotes.PumpkinJoayo);
+		gameState.sendEmoteNow(Emotes.MinigameJoayo);
 	}
 	window.__autoChowayoTimeoutId = setTimeout(autoChowayoLoop, lunChowayoAnimMs);
 }
@@ -3864,6 +3998,7 @@ const SPKMOD_DEFAULT_GAMEPAD_CONFIG = {
 	enabled: false,
 	deadzone: 0.15,
 	cameraSensitivity: 1.2,
+	droneSpeed: 0.35,
 	invertCameraX: false,
 	invertCameraY: false,
 	bindings: {
@@ -4000,7 +4135,7 @@ function executeGamepadAction(actionName) {
 			gameState.sendEmoteNow(Emotes.Dance);
 			break;
 		case "chowayo":
-			gameState.sendEmoteNow(Emotes.PumpkinJoayo);
+			gameState.sendEmoteNow(Emotes.MinigameJoayo);
 			break;
 		case "hearts":
 			triggerHearts();
@@ -4318,7 +4453,7 @@ document.body.appendChild(
 			style: "background: rgba(255, 140, 0, 0.12); border: 1px solid rgba(255, 140, 0, 0.35); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px;"
 		}, [
 			buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
-				eventModalElements.titleText = buildElement("span", { style: "font-weight: bold; font-size: 11pt; color: #ffa500;", innerText: "🎃 " + t("eventPumpkinTitle") }),
+				eventModalElements.titleText = buildElement("span", { style: "font-weight: bold; font-size: 11pt; color: #ffa500;", innerText: "🎃 " + t("eventMinigameTitle") }),
 				eventModalElements.statusBadge = buildElement("span", {
 					style: "font-size: 9pt; font-weight: bold; padding: 1px 6px; border: 1px solid #4ade80; border-radius: 4px; color: #4ade80;",
 					innerText: t("eventStatusActive")
@@ -4344,7 +4479,7 @@ document.body.appendChild(
 			className: "spkmod-panel-btn",
 			style: "padding: 3px 10px; font-size: 9pt; cursor: pointer;",
 			innerText: "🔄 " + t("refreshBtn"),
-			onclick: () => fetchPumpkinStatus()
+			onclick: () => fetchMinigameStatus()
 		})
 		])
 	])
@@ -4420,8 +4555,8 @@ document.body.appendChild(
 					statsModalElements.dailyResetVal = buildElement("span", { style: "font-weight: bold; font-family: monospace; font-size: 11px; color: #67e8f9;", innerText: "--:--:--" })
 				]),
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
-					statsModalElements.pumpkinLabel = buildElement("span", { style: "color: #aaa;", innerText: "🎃 " + t("statsPumpkinPlays") }),
-					statsModalElements.pumpkinVal = buildElement("span", { style: "font-weight: bold; color: #f97316;", innerText: "-- / --" })
+					statsModalElements.minigameLabel = buildElement("span", { style: "color: #aaa;", innerText: "🎃 " + t("statsMinigamePlays") }),
+					statsModalElements.minigameVal = buildElement("span", { style: "font-weight: bold; color: #f97316;", innerText: "-- / --" })
 				])
 			]),
 
@@ -4758,6 +4893,22 @@ document.body.appendChild(
 				}
 			}),
 			buildElement("div", { style: "display: flex; gap: 12px; margin-top: 4px; font-size: 11px;" }, [
+				buildElement("div", { style: "display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;" }, [
+					gamepadModalElements.droneSensLabel = buildElement("span", { innerText: t("gamepadDroneSpeed") || "Free Camera Speed" }),
+					buildElement("div", { style: "display: flex; align-items: center; gap: 4px;" }, [
+						gamepadModalElements.droneSensValue = buildElement("span", { style: "font-family: monospace; font-weight: bold; width: 30px; text-align: right;", innerText: (spkmodGamepadConfig.droneSpeed || 0.35).toFixed(2) + "x" }),
+						gamepadModalElements.droneSensSlider = buildElement("input", {
+							type: "range", min: "0.05", max: "1.0", step: "0.05", value: spkmodGamepadConfig.droneSpeed || 0.35, style: "width: 60px;",
+							oninput: e => {
+								gamepadModalElements.droneSensValue.innerText = Number(e.target.value).toFixed(2) + "x";
+							},
+							onchange: e => {
+								spkmodGamepadConfig.droneSpeed = Number(e.target.value);
+								saveGamepadConfig();
+							}
+						})
+					])
+				]),
 				buildElement("label", { style: "display: flex; align-items: center; gap: 4px; cursor: pointer;" }, [
 					gamepadModalElements.invertXCheckbox = buildElement("input", {
 						type: "checkbox", checked: !!spkmodGamepadConfig.invertCameraX,
@@ -4808,6 +4959,8 @@ document.body.appendChild(
 					gamepadModalElements.deadzoneSlider.value = spkmodGamepadConfig.deadzone;
 					gamepadModalElements.deadzoneValue.innerText = Math.round(spkmodGamepadConfig.deadzone * 100) + "%";
 					gamepadModalElements.sensSlider.value = spkmodGamepadConfig.cameraSensitivity;
+					gamepadModalElements.droneSensSlider.value = spkmodGamepadConfig.droneSpeed;
+					gamepadModalElements.droneSensValue.innerText = spkmodGamepadConfig.droneSpeed.toFixed(2) + "x";
 					gamepadModalElements.sensValue.innerText = spkmodGamepadConfig.cameraSensitivity.toFixed(1) + "x";
 					gamepadModalElements.invertXCheckbox.checked = false;
 					gamepadModalElements.invertYCheckbox.checked = false;
@@ -4910,6 +5063,77 @@ function pollGamepadLoop() {
 
 requestAnimationFrame(pollGamepadLoop);
 
+document.body.appendChild(
+	lunHudElements.hotkeysModal = buildElement("div", {
+		id: "spkmod-hotkeys-modal",
+		className: "hidden",
+		style: "position: absolute; top: 15%; left: 50%; transform: translateX(-50%); width: 350px; background: rgba(15, 23, 42, 0.95); border: 1px solid #1e293b; border-radius: 8px; z-index: 9999; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.5); font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #f8fafc;"
+	}, [
+		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between; align-items: center;" }, [
+			hotkeysModalElements.headerTitle = buildElement("span", {
+				innerText: "⌨️ " + (typeof t === 'function' && t("hotkeysModalTitle") ? t("hotkeysModalTitle") : "Hotkeys"),
+				style: "font-weight: bold; font-size: 12px; cursor: move; user-select: none;"
+			}),
+			buildElement("span", {
+				id: "spkmod-hotkeys-close",
+				innerText: "✕",
+				style: "cursor: pointer; padding: 0 4px;",
+				onclick: _ => lunHudElements.hotkeysModal.classList.add("hidden")
+			})
+		]),
+		hotkeysModalElements.contentContainer = buildElement("div", {
+			style: "display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; padding: 6px; font-size: 11px;"
+		})
+	])
+);
+setTimeout(() => {
+	if (typeof makeDraggable === 'function' && lunHudElements.hotkeysModal && hotkeysModalElements.headerTitle) {
+		makeDraggable(lunHudElements.hotkeysModal, [hotkeysModalElements.headerTitle]);
+	}
+}, 500);
+
+function toggleHotkeysModal() {
+	if (!lunHudElements.hotkeysModal) return;
+	const isClosed = lunHudElements.hotkeysModal.classList.contains("hidden");
+	if (isClosed) {
+		positionModalNicely(lunHudElements.hotkeysModal);
+		lunHudElements.hotkeysModal.classList.remove("hidden");
+		renderHotkeysUI();
+	} else {
+		lunHudElements.hotkeysModal.classList.add("hidden");
+	}
+}
+
+function renderHotkeysUI() {
+	if (!hotkeysModalElements.contentContainer) return;
+	const c = hotkeysModalElements.contentContainer;
+	c.innerHTML = "";
+	
+	const hotkeys = [
+		{ k: "P", d: "Toggle UI Visibility" },
+		{ k: "F2", d: "Open Mod Settings" },
+		{ k: "F4", d: "Toggle Drone Camera Mode" },
+		{ k: "N", d: "Toggle Native Night Mode" },
+		{ k: "Ctrl + U", d: "Reset Game UI Scale" },
+		{ k: "Ctrl + 6", d: "Camera Effect: None" },
+		{ k: "Ctrl + 7", d: "Camera Effect: B&W" },
+		{ k: "Ctrl + 8", d: "Camera Effect: Sepia" },
+		{ k: "Ctrl + 9", d: "Camera Effect: Morning" },
+		{ k: "Ctrl + 0", d: "Camera Effect: Dusk" },
+		{ k: "W, A, S, D", d: "Drone Mode: Move" },
+		{ k: "Space", d: "Drone Mode: Ascend" },
+		{ k: "Left Ctrl", d: "Drone Mode: Descend" }
+	];
+	
+	hotkeys.forEach(hk => {
+		c.appendChild(buildElement("div", {
+			style: "display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2px;"
+		}, [
+			buildElement("span", { innerText: hk.k, style: "font-weight: bold; color: #ffeb3b;" }),
+			buildElement("span", { innerText: hk.d })
+		]));
+	});
+}
 function updateBeyBladeButtonText() {
 	const mainBtn = document.querySelector("#spkmod-beyblade-main-btn");
 	if (!mainBtn) return;
@@ -5386,7 +5610,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.fpsPingLabel) setText(lunPanelElements.fpsPingLabel, t("fpsPingToggleLabel"));
 	if (lunPanelElements.currencyTrackerLabel) setText(lunPanelElements.currencyTrackerLabel, t("currencyTrackerToggleLabel"));
 	if (lunPanelElements.resetTimerLabel) setText(lunPanelElements.resetTimerLabel, t("resetTimerToggleLabel"));
-	if (lunPanelElements.pumpkinTrackerLabel) setText(lunPanelElements.pumpkinTrackerLabel, t("pumpkinTrackerToggleLabel"));
+	if (lunPanelElements.minigameTrackerLabel) setText(lunPanelElements.minigameTrackerLabel, t("minigameTrackerToggleLabel"));
 	if (lunPanelElements.settingsCatGeneral) setText(lunPanelElements.settingsCatGeneral, "💬 " + t("settingsCatGeneral"));
 	if (lunPanelElements.settingsCatHUD) setText(lunPanelElements.settingsCatHUD, "📊 " + t("settingsCatHUD"));
 	if (lunPanelElements.eventBtn) lunPanelElements.eventBtn.title = t("eventInfoBtnTooltip");
@@ -5399,7 +5623,7 @@ spkmodI18nRenderers.push(() => {
 		qlBtn.title = t("accountMgrBtnTooltip");
 	}
 	if (lunPanelElements.accentColorConfirmBtn) setText(lunPanelElements.accentColorConfirmBtn, t("confirmBtn") || "OK");
-	updatePumpkinUI();
+	updateMinigameUI();
 	if (lunPatchNotesData && lunPatchNotesTranslatedLang !== (spkmodLang === "es-419" ? "es" : spkmodLang)) {
 		translatePatchNotesToUserLang().then(() => renderPatchNotesUI());
 	} else {
@@ -5407,6 +5631,17 @@ spkmodI18nRenderers.push(() => {
 	}
 	if (lunPanelElements.gamepadRumbleLabel) setText(lunPanelElements.gamepadRumbleLabel, t("gamepadRumbleToggleLabel"));
 	if (lunPanelElements.uiScaleLabel) setText(lunPanelElements.uiScaleLabel, t("uiScaleLabel"));
+	if (lunPanelElements.gameUiScaleLabel) setText(lunPanelElements.gameUiScaleLabel, t("gameUiScaleLabel") || "Game UI Scale");
+	if (lunPanelElements.cameraEffectLabel) setText(lunPanelElements.cameraEffectLabel, t("cameraEffectLabel") || "Camera Effect");
+	if (lunPanelElements.cameraEffectSelect && lunPanelElements.cameraEffectSelect.options) {
+		if (lunPanelElements.cameraEffectSelect.options[0]) lunPanelElements.cameraEffectSelect.options[0].innerText = t("effectNone") || "Normal";
+		if (lunPanelElements.cameraEffectSelect.options[1]) lunPanelElements.cameraEffectSelect.options[1].innerText = t("effectBw") || "Black & White";
+		if (lunPanelElements.cameraEffectSelect.options[2]) lunPanelElements.cameraEffectSelect.options[2].innerText = t("effectSepia") || "Sepia";
+		if (lunPanelElements.cameraEffectSelect.options[3]) lunPanelElements.cameraEffectSelect.options[3].innerText = t("effectMorning") || "Morning";
+		if (lunPanelElements.cameraEffectSelect.options[4]) lunPanelElements.cameraEffectSelect.options[4].innerText = t("effectDusk") || "Dusk / Dawn";
+		if (lunPanelElements.cameraEffectSelect.options[5]) lunPanelElements.cameraEffectSelect.options[5].innerText = t("effectNight") || "Night";
+	}
+
 	if (lunPanelElements.bgOpacityLabel) setText(lunPanelElements.bgOpacityLabel, t("bgOpacityLabel"));
 	if (lunPanelElements.bgOpacitySelect && lunPanelElements.bgOpacitySelect.options) {
 		if (lunPanelElements.bgOpacitySelect.options[0]) lunPanelElements.bgOpacitySelect.options[0].innerText = t("bgOpacitySolid");
@@ -5656,31 +5891,33 @@ function tick() {
 	var expTrackerL1 = t(lunExpRatePerHour ? "zeroExpPerHour" : "zeroExp");
 	var expTrackerL2 = t("nextLevelNA");
 
+	const now = Date.now();
 	if (!lunExpTrackerInitialized) {
-		lunExpTrackerSamples = [{ tick: lunTickCount, exp: playerExp }];
+		lunExpTrackerSamples = [{ time: now, exp: playerExp }];
 		lunExpTrackerStartExp = playerExp;
-		lunExpTrackerLastSampleTick = lunTickCount;
+		lunExpTrackerLastSampleTick = now; // using this variable to hold timestamp
 		lunExpTrackerInitialized = true;
 	} else if (lunExpTrackerSamples[lunExpTrackerSamples.length - 1].exp > playerExp) {
 		resetExpTracker();
-		lunExpTrackerSamples = [{ tick: lunTickCount, exp: playerExp }];
+		lunExpTrackerSamples = [{ time: now, exp: playerExp }];
 		lunExpTrackerStartExp = playerExp;
-		lunExpTrackerLastSampleTick = lunTickCount;
+		lunExpTrackerLastSampleTick = now;
 		lunExpTrackerInitialized = true;
-	} else if (lunTickCount - lunExpTrackerLastSampleTick >= sampleIntervalTicks) {
-		lunExpTrackerSamples.push({ tick: lunTickCount, exp: playerExp });
-		lunExpTrackerLastSampleTick = lunTickCount;
+	} else if (now - lunExpTrackerLastSampleTick >= 1000) { // sample every 1 real-world second
+		lunExpTrackerSamples.push({ time: now, exp: playerExp });
+		lunExpTrackerLastSampleTick = now;
 	}
 
-	const cutoffTick = lunTickCount - windowTicks;
-	while (lunExpTrackerSamples.length > 1 && lunExpTrackerSamples[1].tick <= cutoffTick) {
+	const windowMs = windowSec * 1000;
+	const cutoffTime = now - windowMs;
+	while (lunExpTrackerSamples.length > 1 && lunExpTrackerSamples[1].time <= cutoffTime) {
 		lunExpTrackerSamples.shift();
 	}
 	const oldestSample = lunExpTrackerSamples[0];
-	const elapsedSec = oldestSample ? Math.max(0, (lunTickCount - oldestSample.tick) / lunTPS) : 0;
+	const elapsedSec = oldestSample ? Math.max(1, (now - oldestSample.time) / 1000) : 1;
 	const expGained = oldestSample ? Math.max(0, playerExp - oldestSample.exp) : 0;
 	
-	const divisor = windowSec;
+	const divisor = Math.min(windowSec, elapsedSec);
 	lunExpTrackerSpeed = divisor > 0 ? expGained / divisor : 0;
 	
 	const timerDisplay = (windowSec / 60) + "m avg";
@@ -5847,9 +6084,9 @@ function tick() {
 		lunPinnedQuestNextQueryTick += lunPinnedQuestInterval;
 	}
 
-	if ((lunPumpkinTrackerEnabled || (lunHudElements.eventModal && !lunHudElements.eventModal.classList.contains("hidden")) || (lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden"))) && lunTickCount >= lunPumpkinTrackerNextTicks) {
-		fetchPumpkinStatus();
-		lunPumpkinTrackerNextTicks = lunTickCount + lunPumpkinTrackerWindow;
+	if ((lunMinigameTrackerEnabled || (lunHudElements.eventModal && !lunHudElements.eventModal.classList.contains("hidden")) || (lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden"))) && lunTickCount >= lunMinigameTrackerNextTicks) {
+		fetchMinigameStatus();
+		lunMinigameTrackerNextTicks = lunTickCount + lunMinigameTrackerWindow;
 	}
 
 	if (lunNametagMode === 2 || lunFriendChatHighlightEnabled) {
@@ -6044,14 +6281,35 @@ function hookGameStateOnce() {
 				let moveVector = null;
 				if (gamepadMoveVector) {
 					moveVector = gamepadMoveVector;
-				} else if (baseMove && baseMove.moveDir && (baseMove.moveDir.x !== 0 || baseMove.moveDir.z !== 0)) {
-					moveVector = baseMove.moveDir;
+				} else {
+					let lx = 0, ly = 0;
+					if (window.spkmodDroneKeys) {
+						if (window.spkmodDroneKeys.w) ly -= 1;
+						if (window.spkmodDroneKeys.s) ly += 1;
+						if (window.spkmodDroneKeys.a) lx -= 1;
+						if (window.spkmodDroneKeys.d) lx += 1;
+					}
+					
+					if (lx !== 0 || ly !== 0) {
+						const camYaw = gameState?.cameraController ? gameState.cameraController.cameraYaw : 0;
+						moveVector = {
+							x: lx * Math.cos(camYaw) + ly * Math.sin(camYaw),
+							z: -lx * Math.sin(camYaw) + ly * Math.cos(camYaw)
+						};
+						const mag = Math.sqrt(moveVector.x * moveVector.x + moveVector.z * moveVector.z);
+						moveVector.x /= mag;
+						moveVector.z /= mag;
+					}
 				}
 				
+				const speed = (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10);
 				if (moveVector && window.spkmodDroneTarget) {
-					const speed = 0.35; 
 					window.spkmodDroneTarget.position.x += moveVector.x * speed;
 					window.spkmodDroneTarget.position.z += moveVector.z * speed;
+				}
+				if (window.spkmodDroneTarget) {
+					if (window.spkmodDroneKeys && window.spkmodDroneKeys.up) window.spkmodDroneTarget.position.y += speed;
+					if (window.spkmodDroneKeys && window.spkmodDroneKeys.down) window.spkmodDroneTarget.position.y -= speed;
 				}
 				
 				return { moveDir: { x: 0, z: 0 }, castSkillId: null };
@@ -6223,7 +6481,21 @@ function hookGameStateOnce() {
 					case "joayo":
 					case "chowayo":
 						if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
-							gameState.sendEmoteNow(Emotes.PumpkinJoayo);
+							gameState.sendEmoteNow(Emotes.MinigameJoayo);
+						}
+						break;
+					case "uiscale":
+						const newScale = parseFloat(cmd[1]);
+						if (!isNaN(newScale) && newScale >= 0.5 && newScale <= 2) {
+							lunGameUiScale = newScale;
+							if (window.localStorage) localStorage.setItem("spkmod-uiscale", newScale);
+							const appEl = document.getElementById("app");
+							if (appEl) appEl.style.zoom = ""; // Clear old buggy zoom
+							if (typeof updateDynamicStyles === "function") updateDynamicStyles();
+							if (lunPanelElements.gameUiScaleSlider) lunPanelElements.gameUiScaleSlider.value = newScale;
+							chatLog("Game UI scale set to " + newScale);
+						} else {
+							chatLog("Usage: /uiscale [0.5 - 2.0] (Current: " + (lunGameUiScale || 1) + ")");
 						}
 						break;
 					case "zoom":
@@ -7705,5 +7977,139 @@ if (!checkAndTriggerInGameReady()) {
 }
 
 window.__speakiInitInGame = onInGameReady;
+
+window.addEventListener("keydown", e => {
+	if (lunDroneModeActive) {
+		const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+		if (tag !== "input" && tag !== "textarea" && !document.activeElement.isContentEditable) {
+			let handled = false;
+			if (e.code === "Space") { window.spkmodDroneKeys.up = true; handled = true; }
+			if (e.code === "ControlLeft") { window.spkmodDroneKeys.down = true; handled = true; }
+			if (e.code === "KeyW" || e.code === "ArrowUp") { window.spkmodDroneKeys.w = true; handled = true; }
+			if (e.code === "KeyS" || e.code === "ArrowDown") { window.spkmodDroneKeys.s = true; handled = true; }
+			if (e.code === "KeyA" || e.code === "ArrowLeft") { window.spkmodDroneKeys.a = true; handled = true; }
+			if (e.code === "KeyD" || e.code === "ArrowRight") { window.spkmodDroneKeys.d = true; handled = true; }
+			if (handled) {
+				e.preventDefault();
+				e.stopPropagation();
+				e.stopImmediatePropagation();
+				return;
+			}
+		}
+	}
+	if (e.ctrlKey && !e.altKey && !e.shiftKey) {
+		let newEffect = null;
+		if (e.key === "6") newEffect = "none";
+		if (e.key === "7") newEffect = "bw";
+		if (e.key === "8") newEffect = "sepia";
+		if (e.key === "9") newEffect = "morning";
+		if (e.key === "0") newEffect = "night"; // 0 instead of 10
+		
+		if (newEffect !== null) {
+			e.preventDefault();
+			lunCameraEffect = newEffect;
+			if (window.localStorage) localStorage.setItem("spkmod-camera-effect", lunCameraEffect);
+			if (typeof updateDynamicStyles === "function") updateDynamicStyles();
+			if (typeof lunPanelElements !== "undefined" && lunPanelElements.cameraEffectSelect) lunPanelElements.cameraEffectSelect.value = lunCameraEffect;
+			if (typeof chatLog === "function") chatLog("Camera Effect: " + newEffect.toUpperCase());
+			return;
+		}
+	}
+	if (lunDroneModeActive) {
+		if (e.code === "NumpadAdd" || (e.key === "+" && !e.ctrlKey && !e.altKey && !e.metaKey)) {
+			e.preventDefault();
+			lunDroneSpeed = Math.min(2.0, lunDroneSpeed + 0.05);
+			if (window.localStorage) localStorage.setItem("spkmod-drone-speed", lunDroneSpeed);
+			if (typeof lunPanelElements !== "undefined" && lunPanelElements.droneSpeedInput) lunPanelElements.droneSpeedInput.value = lunDroneSpeed.toFixed(2);
+			if (typeof chatLog === "function") chatLog("Drone Speed: " + lunDroneSpeed.toFixed(2));
+			return;
+		}
+		if (e.code === "NumpadSubtract" || (e.key === "-" && !e.ctrlKey && !e.altKey && !e.metaKey)) {
+			e.preventDefault();
+			lunDroneSpeed = Math.max(0.01, lunDroneSpeed - 0.05);
+			if (window.localStorage) localStorage.setItem("spkmod-drone-speed", lunDroneSpeed);
+			if (typeof lunPanelElements !== "undefined" && lunPanelElements.droneSpeedInput) lunPanelElements.droneSpeedInput.value = lunDroneSpeed.toFixed(2);
+			if (typeof chatLog === "function") chatLog("Drone Speed: " + lunDroneSpeed.toFixed(2));
+			return;
+		}
+	}
+	if ((e.key === "n" || e.key === "N") && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+		const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+		if (tag !== "input" && tag !== "textarea" && !document.activeElement.isContentEditable) {
+			const rows = document.querySelectorAll(".sr-panel__row");
+			for (const row of rows) {
+				const checkbox = row.querySelector("input[type='checkbox']");
+				const span = row.querySelector("span");
+				if (checkbox && span) {
+					const txt = span.innerText.toLowerCase();
+					if (txt.includes("night") || txt.includes("darker") || txt.includes("밤") || txt.includes("야간") || txt.includes("夜") || txt.includes("noche") || txt.includes("noite")) {
+						e.preventDefault();
+						checkbox.click();
+						if (typeof chatLog === "function") chatLog("Toggled Native Night Mode");
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	if (e.key === "F4" && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+		const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+		if (tag !== "input" && tag !== "textarea" && !document.activeElement.isContentEditable) {
+			e.preventDefault();
+			if (typeof lunPanelElements !== "undefined" && lunPanelElements.freeCamBtn) {
+				lunPanelElements.freeCamBtn.click();
+				if (typeof chatLog === "function") chatLog(lunDroneModeActive ? "Free Camera Mode ON" : "Free Camera Mode OFF");
+			}
+		}
+	}
+
+	if ((e.key === "u" || e.key === "U") && e.ctrlKey && !e.altKey && !e.shiftKey) {
+		e.preventDefault();
+		lunGameUiScale = 1;
+		if (window.localStorage) localStorage.setItem("spkmod-uiscale", lunGameUiScale);
+		const appEl = document.getElementById("app");
+		if (appEl) appEl.style.zoom = ""; // Clear old buggy zoom
+		if (typeof updateDynamicStyles === "function") updateDynamicStyles();
+		if (typeof lunPanelElements !== "undefined" && lunPanelElements.gameUiScaleSlider) {
+			lunPanelElements.gameUiScaleSlider.value = lunGameUiScale;
+		}
+		if (typeof chatLog === "function") {
+			chatLog("Game UI scale reset to 1");
+		}
+	}
+}, true);
+
+window.addEventListener("keyup", e => {
+	if (lunDroneModeActive) {
+		const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+		if (tag !== "input" && tag !== "textarea" && !document.activeElement.isContentEditable) {
+			let handled = false;
+			if (e.code === "Space") { window.spkmodDroneKeys.up = false; handled = true; }
+			if (e.code === "ControlLeft") { window.spkmodDroneKeys.down = false; handled = true; }
+			if (e.code === "KeyW" || e.code === "ArrowUp") { window.spkmodDroneKeys.w = false; handled = true; }
+			if (e.code === "KeyS" || e.code === "ArrowDown") { window.spkmodDroneKeys.s = false; handled = true; }
+			if (e.code === "KeyA" || e.code === "ArrowLeft") { window.spkmodDroneKeys.a = false; handled = true; }
+			if (e.code === "KeyD" || e.code === "ArrowRight") { window.spkmodDroneKeys.d = false; handled = true; }
+			if (handled) {
+				e.stopPropagation();
+				e.stopImmediatePropagation();
+				return;
+			}
+		}
+	}
+}, true);
+
+// Restore uiscale on load
+setTimeout(() => {
+	const appEl = document.getElementById('app');
+	if (appEl) appEl.style.zoom = ""; // Clear any buggy inline zoom
+	const savedScale = window.localStorage ? localStorage.getItem('spkmod-uiscale') : null;
+	if (savedScale) {
+		lunGameUiScale = savedScale;
+		if (typeof updateDynamicStyles === "function") updateDynamicStyles();
+	}
+}, 1000);
+
 
 
