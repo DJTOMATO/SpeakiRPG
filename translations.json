@@ -352,7 +352,9 @@
     "hideVerboseChatToggleLabel": "Hide Mod Chat Messages",
     "hkDescDroneSpeedUp": "Drone Mode: Speed Up",
     "hkDescDroneSpeedDown": "Drone Mode: Speed Down",
-    "flipCamera": "Flip Camera 180°"
+    "flipCamera": "Flip Camera 180°",
+    "turntableHalf": "Camera Pan: 半",
+    "turntableHalfMsg": "Camera half-rotation activated!"
   },
   "ja": {
     "langName": "日本語",
@@ -707,7 +709,9 @@
     "hideVerboseChatToggleLabel": "Modのチャットメッセージを非表示",
     "hkDescDroneSpeedUp": "ドローンモード: 速度アップ",
     "hkDescDroneSpeedDown": "ドローンモード: 速度ダウン",
-    "flipCamera": "カメラを180°反転"
+    "flipCamera": "カメラを180°反転",
+    "turntableHalf": "カメラを回転: 半",
+    "turntableHalfMsg": "カメラ半回転をオンにしました！"
   },
   "ko": {
     "langName": "한국어",
@@ -1062,7 +1066,9 @@
     "hideVerboseChatToggleLabel": "모드 채팅 메시지 숨기기",
     "hkDescDroneSpeedUp": "드론 모드: 속도 증가",
     "hkDescDroneSpeedDown": "드론 모드: 속도 감소",
-    "flipCamera": "카메라 180° 뒤집기"
+    "flipCamera": "카메라 180° 뒤집기",
+    "turntableHalf": "카메라 회전: 반",
+    "turntableHalfMsg": "카메라 반회전을 켰습니다!"
   },
   "zh-TW": {
     "langName": "繁體中文",
@@ -1417,7 +1423,9 @@
     "hideVerboseChatToggleLabel": "隱藏模組聊天訊息",
     "hkDescDroneSpeedUp": "無人機模式: 加速",
     "hkDescDroneSpeedDown": "無人機模式: 減速",
-    "flipCamera": "翻轉相機180°"
+    "flipCamera": "翻轉相機180°",
+    "turntableHalf": "旋轉相機: 半",
+    "turntableHalfMsg": "相機半旋轉已開啟！"
   },
   "es-419": {
     "langName": "Español",
@@ -1772,7 +1780,9 @@
     "hideVerboseChatToggleLabel": "Ocultar Mensajes de Chat del Mod",
     "hkDescDroneSpeedUp": "Modo Dron: Acelerar",
     "hkDescDroneSpeedDown": "Modo Dron: Decelerar",
-    "flipCamera": "Girar Cámara 180°"
+    "flipCamera": "Girar Cámara 180°",
+    "turntableHalf": "Girar Cámara: Medio",
+    "turntableHalfMsg": "¡Medio giro de cámara activado!"
   },
   "zh-CN": {
     "langName": "简体中文",
@@ -2127,6 +2137,8 @@
     "hideVerboseChatToggleLabel": "隐藏模组聊天信息",
     "hkDescDroneSpeedUp": "无人机模式: 加速",
     "hkDescDroneSpeedDown": "无人机模式: 减速",
-    "flipCamera": "翻转相机180°"
+    "flipCamera": "翻转相机180°",
+    "turntableHalf": "旋转相机: 半",
+    "turntableHalfMsg": "相机半旋转已开启！"
   }
 }

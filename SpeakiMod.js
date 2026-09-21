@@ -3016,7 +3016,7 @@ document.body.appendChild(
 				lunPanelElements.turntableBtn = buildElement("button", {
 					id: "spkmod-turntable-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.TurntableActive ? "turntableOn" : "turntableOff"),
+					innerText: t(window.TurntableActive === 1 ? "turntableOn" : (window.TurntableActive === 2 ? "turntableHalf" : "turntableOff")),
 					value: "",
 					onclick: e => {
 						toggleTurntable(e.target);
@@ -3974,13 +3974,19 @@ function togglePartnerDance(btn) {
 window.TurntableActive = false;
 
 function toggleTurntable(btn) {
-	window.TurntableActive = !window.TurntableActive;
-	if (window.TurntableActive) {
-		chatLog(t("turntableActivatedMsg"));
+	if (!window.TurntableActive) {
+		window.TurntableActive = 1;
+		chatLog(t("turntableActivatedMsg") || "Camera rotation activated!");
+	} else if (window.TurntableActive === 1) {
+		window.TurntableActive = 2;
+		window._turntableTraveled = 0;
+		window._turntableDir = 1;
+		chatLog(t("turntableHalfMsg") || "Camera half-rotation activated!");
 	} else {
-		chatLog(t("turntableDeactivatedMsg"));
+		window.TurntableActive = false;
+		chatLog(t("turntableDeactivatedMsg") || "Camera rotation deactivated.");
 	}
-	if (btn) setText(btn, t(window.TurntableActive ? "turntableOn" : "turntableOff"));
+	if (btn) setText(btn, t(window.TurntableActive === 1 ? "turntableOn" : (window.TurntableActive === 2 ? "turntableHalf" : "turntableOff")));
 }
 
 function followPlayer(name) {
@@ -5636,7 +5642,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.petDanceBtn) setText(lunPanelElements.petDanceBtn, t(window.PetDanceActive ? "petDanceOn" : "petDanceOff") || (window.PetDanceActive ? "Pet Dance: ⏸️" : "Pet Dance: ▶️"));
 	setText(lunPanelElements.ritualBtn, t(window.RitualState === 0 ? "ritualOff" : (window.RitualState === 1 ? "ritualOn" : "ritualInverted")));
 	if (lunPanelElements.partnerDanceBtn) setText(lunPanelElements.partnerDanceBtn, t(window.PartnerDanceState === 1 ? "partnerDanceOn" : (window.PartnerDanceState === 2 ? "partnerDanceInverted" : "partnerDanceOff")) || (window.PartnerDanceState === 0 ? "8 Dance: ▶️" : (window.PartnerDanceState === 1 ? "8 Dance: ⏸️" : "Rev 8: ⏸️")));
-	setText(lunPanelElements.turntableBtn, t(window.TurntableActive ? "turntableOn" : "turntableOff"));
+	setText(lunPanelElements.turntableBtn, t(window.TurntableActive === 1 ? "turntableOn" : (window.TurntableActive === 2 ? "turntableHalf" : "turntableOff")));
 	setText(lunHudElements.discordBtn, t("discordBtn"));
 	setText(lunPanelElements.autoJumpBtn, t(window.AutoJumpActive ? "autoJumpOn" : "autoJumpOff"));
 	setText(lunPanelElements.speedLabel, t("speedLabel"));
@@ -6025,7 +6031,22 @@ function tick() {
 	}
 
 	if (window.TurntableActive && gameState && gameState.cameraController && !lunCameraLocked) {
-		gameState.cameraController.cameraYaw += 0.015;
+		if (window.TurntableActive === 2) {
+			if (window._turntableDir === undefined) window._turntableDir = 1;
+			if (window._turntableTraveled === undefined) window._turntableTraveled = 0;
+			
+			const speed = 0.010;
+			gameState.cameraController.cameraYaw += speed * window._turntableDir;
+			window._turntableTraveled += speed * window._turntableDir;
+			
+			if (window._turntableTraveled >= Math.PI / 2) {
+				window._turntableDir = -1;
+			} else if (window._turntableTraveled <= -Math.PI / 2) {
+				window._turntableDir = 1;
+			}
+		} else {
+			gameState.cameraController.cameraYaw += 0.015;
+		}
 	}
 
 	window.shakeBaseAngle = window.shakeBaseAngle || 0;
