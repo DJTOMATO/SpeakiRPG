@@ -1222,6 +1222,7 @@ function resetExpTracker() {
 	lunExpTrackerSamples = [];
 	lunExpTrackerLastSampleTick = 0;
 	window.lunExpTrackerIgnoredExp = 0;
+	window.lunExpTrackerLastRawExp = undefined;
 }
 function setExpRatePerHour(enabled) {
 	lunExpRatePerHour = !!enabled;
@@ -5976,30 +5977,41 @@ function tick() {
 	var expTrackerL2 = t("nextLevelNA");
 
 	const now = Date.now();
+	if (window.lunExpTrackerLastRawExp === undefined) {
+		window.lunExpTrackerLastRawExp = playerExp;
+		window.lunExpTrackerLastMaxExp = gameState.myStat.maxExp;
+	}
+
+	let trueGainedThisFrame = playerExp - window.lunExpTrackerLastRawExp;
+	if (trueGainedThisFrame < 0) {
+		// Leveled up!
+		trueGainedThisFrame = (window.lunExpTrackerLastMaxExp - window.lunExpTrackerLastRawExp) + playerExp;
+	}
+	
+	if (trueGainedThisFrame > 3000) {
+		window.lunExpTrackerIgnoredExp = (window.lunExpTrackerIgnoredExp || 0) + trueGainedThisFrame;
+	}
+
+	window.lunExpTrackerLastRawExp = playerExp;
+	window.lunExpTrackerLastMaxExp = gameState.myStat.maxExp;
+
 	const currentEffectiveExp = playerExp - (window.lunExpTrackerIgnoredExp || 0);
 	
 	if (!lunExpTrackerInitialized) {
 		lunExpTrackerSamples = [{ time: now, exp: currentEffectiveExp }];
 		lunExpTrackerStartExp = playerExp;
-		lunExpTrackerLastSampleTick = now; // using this variable to hold timestamp
+		lunExpTrackerLastSampleTick = now;
 		lunExpTrackerInitialized = true;
 	} else {
 		const lastSampleExp = lunExpTrackerSamples[lunExpTrackerSamples.length - 1].exp;
 		if (lastSampleExp > currentEffectiveExp) {
-			// Leveled up or lost exp
 			resetExpTracker();
-			lunExpTrackerSamples = [{ time: now, exp: playerExp }]; // After reset, ignoredExp is 0, so currentEffectiveExp is just playerExp
+			lunExpTrackerSamples = [{ time: now, exp: playerExp }];
 			lunExpTrackerStartExp = playerExp;
 			lunExpTrackerLastSampleTick = now;
 			lunExpTrackerInitialized = true;
 		} else {
-			// Gained exp
-			const gained = currentEffectiveExp - lastSampleExp;
-			if (gained > 3000) {
-				// Ignore sudden massive exp spikes (e.g. event rewards or quests)
-				window.lunExpTrackerIgnoredExp = (window.lunExpTrackerIgnoredExp || 0) + gained;
-				// The new currentEffectiveExp will now match lastSampleExp!
-			} else if (now - lunExpTrackerLastSampleTick >= 1000) { // sample every 1 real-world second
+			if (now - lunExpTrackerLastSampleTick >= 1000) {
 				lunExpTrackerSamples.push({ time: now, exp: currentEffectiveExp });
 				lunExpTrackerLastSampleTick = now;
 			}
