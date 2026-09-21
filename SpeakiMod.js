@@ -5110,19 +5110,19 @@ function renderHotkeysUI() {
 	c.innerHTML = "";
 	
 	const hotkeys = [
-		{ k: "P", d: "Toggle UI Visibility" },
-		{ k: "F2", d: "Open Mod Settings" },
-		{ k: "F4", d: "Toggle Drone Camera Mode" },
-		{ k: "N", d: "Toggle Native Night Mode" },
-		{ k: "Ctrl + U", d: "Reset Game UI Scale" },
-		{ k: "Ctrl + 6", d: "Camera Effect: None" },
-		{ k: "Ctrl + 7", d: "Camera Effect: B&W" },
-		{ k: "Ctrl + 8", d: "Camera Effect: Sepia" },
-		{ k: "Ctrl + 9", d: "Camera Effect: Morning" },
-		{ k: "Ctrl + 0", d: "Camera Effect: Dusk" },
-		{ k: "W, A, S, D", d: "Drone Mode: Move" },
-		{ k: "Space", d: "Drone Mode: Ascend" },
-		{ k: "Left Ctrl", d: "Drone Mode: Descend" }
+		{ k: "P", d: (typeof t === 'function' ? t("hkDescToggleUI") : "") || "Toggle UI Visibility" },
+		{ k: "F2", d: (typeof t === 'function' ? t("hkDescModSettings") : "") || "Open Mod Settings" },
+		{ k: "F4", d: (typeof t === 'function' ? t("hkDescDroneMode") : "") || "Toggle Drone Camera Mode" },
+		{ k: "N", d: (typeof t === 'function' ? t("hkDescNightMode") : "") || "Toggle Native Night Mode" },
+		{ k: "Ctrl + U", d: (typeof t === 'function' ? t("hkDescResetUIScale") : "") || "Reset Game UI Scale" },
+		{ k: "Ctrl + 6", d: (typeof t === 'function' ? t("hkDescCamNormal") : "") || "Camera Effect: None" },
+		{ k: "Ctrl + 7", d: (typeof t === 'function' ? t("hkDescCamBW") : "") || "Camera Effect: B&W" },
+		{ k: "Ctrl + 8", d: (typeof t === 'function' ? t("hkDescCamSepia") : "") || "Camera Effect: Sepia" },
+		{ k: "Ctrl + 9", d: (typeof t === 'function' ? t("hkDescCamMorning") : "") || "Camera Effect: Morning" },
+		{ k: "Ctrl + 0", d: (typeof t === 'function' ? t("hkDescCamDusk") : "") || "Camera Effect: Dusk" },
+		{ k: "W, A, S, D", d: (typeof t === 'function' ? t("hkDescDroneMove") : "") || "Drone Mode: Move" },
+		{ k: "Space", d: (typeof t === 'function' ? t("hkDescDroneAscend") : "") || "Drone Mode: Ascend" },
+		{ k: "Left Ctrl", d: (typeof t === 'function' ? t("hkDescDroneDescend") : "") || "Drone Mode: Descend" }
 	];
 	
 	hotkeys.forEach(hk => {
@@ -5132,6 +5132,14 @@ function renderHotkeysUI() {
 			buildElement("span", { innerText: hk.k, style: "font-weight: bold; color: #ffeb3b;" }),
 			buildElement("span", { innerText: hk.d })
 		]));
+	});
+}
+
+if (typeof spkmodI18nRenderers !== "undefined") {
+	spkmodI18nRenderers.push(() => {
+		if (lunHudElements && lunHudElements.hotkeysModal && !lunHudElements.hotkeysModal.classList.contains("hidden")) {
+			renderHotkeysUI();
+		}
 	});
 }
 function updateBeyBladeButtonText() {
