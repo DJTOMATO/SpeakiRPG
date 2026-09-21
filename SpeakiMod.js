@@ -695,6 +695,13 @@ function setFilterEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-filter-enabled", String(enabled));
 }
 
+var lunHideVerboseChat = (window.localStorage && localStorage.getItem("spkmod-hide-verbose-chat")) === "true";
+
+function setHideVerboseChat(enabled) {
+	lunHideVerboseChat = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-hide-verbose-chat", String(lunHideVerboseChat));
+}
+
 var lunTranslateEnabled = (window.localStorage && localStorage.getItem("spkmod-translate-enabled")) === "true";
 var lunTranslateTarget = (window.localStorage && localStorage.getItem("spkmod-translate-target")) || "en";
 
@@ -3381,6 +3388,19 @@ document.body.appendChild(
 					})
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.verboseChatToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("hideVerboseChatToggleLabel") || "Hide Mod Chat Messages"
+					}),
+					lunPanelElements.verboseChatToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunHideVerboseChat,
+						onchange: e => {
+							setHideVerboseChat(e.target.checked);
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.gmChatToggleLabel = buildElement("span", {
 						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
 						innerText: t("gmChatToggleLabel")
@@ -5360,6 +5380,7 @@ function observeNextChatNode(matchText, callback) {
 }
 
 function chatLog(msg) {
+	if (typeof lunHideVerboseChat !== "undefined" && lunHideVerboseChat) return;
 	try {
 		if (typeof gameState !== "undefined" && gameState?.chatBox?.append) {
 			gameState.chatBox.append(-1337, "SpeakiMod+", msg);
@@ -5595,6 +5616,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunHudElements.footerMsg, t("footerMsg"));
 	setText(lunPanelElements.settingsHeader, t("settingsHeader"));
 	if (lunPanelElements.filterToggleLabel) setText(lunPanelElements.filterToggleLabel, t("filterToggleLabel"));
+	if (lunPanelElements.verboseChatToggleLabel) setText(lunPanelElements.verboseChatToggleLabel, t("hideVerboseChatToggleLabel") || "Hide Mod Chat Messages");
 	if (lunPanelElements.gmChatToggleLabel) setText(lunPanelElements.gmChatToggleLabel, t("gmChatToggleLabel"));
 	if (lunPanelElements.friendChatToggleLabel) setText(lunPanelElements.friendChatToggleLabel, t("friendChatToggleLabel"));
 	if (lunPanelElements.mentionAlertToggleLabel) setText(lunPanelElements.mentionAlertToggleLabel, t("mentionAlertToggleLabel"));
