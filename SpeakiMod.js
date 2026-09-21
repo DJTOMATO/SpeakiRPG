@@ -3058,15 +3058,26 @@ document.body.appendChild(
 				})
 			]),
 
-			lunPanelElements.resetCameraBtn = buildElement("button", {
-				className: "spkmod-panel-btn hidden",
-				innerText: t("resetCamera"),
-				value: "",
-				onclick: _ => {
-					watchPlayer();
-					stopStare();
-				}
-			}),
+			buildElement("div", { className: "spkmod-panel-cat" }, [
+				lunPanelElements.flipCameraBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					innerText: t("flipCamera") || "180° Camera",
+					onclick: _ => {
+						if (typeof gameState !== "undefined" && gameState?.cameraController) {
+							gameState.cameraController.cameraYaw += Math.PI;
+						}
+					}
+				}),
+				lunPanelElements.resetCameraBtn = buildElement("button", {
+					className: "spkmod-panel-btn hidden",
+					innerText: t("resetCamera"),
+					value: "",
+					onclick: _ => {
+						watchPlayer();
+						stopStare();
+					}
+				})
+			]),
 			buildElement("div", { className: "spkmod-panel-cat", id: "spkmod-camera-modes-cat" }, [
 				lunPanelElements.firstPersonBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
@@ -5169,7 +5180,9 @@ function renderHotkeysUI() {
 		{ k: "Ctrl + 0", d: (typeof t === 'function' ? t("hkDescCamDusk") : "") || "Camera Effect: Dusk" },
 		{ k: "W, A, S, D", d: (typeof t === 'function' ? t("hkDescDroneMove") : "") || "Drone Mode: Move" },
 		{ k: "Space", d: (typeof t === 'function' ? t("hkDescDroneAscend") : "") || "Drone Mode: Ascend" },
-		{ k: "Left Ctrl", d: (typeof t === 'function' ? t("hkDescDroneDescend") : "") || "Drone Mode: Descend" }
+		{ k: "Left Ctrl", d: (typeof t === 'function' ? t("hkDescDroneDescend") : "") || "Drone Mode: Descend" },
+		{ k: "Numpad +", d: (typeof t === 'function' ? t("hkDescDroneSpeedUp") : "") || "Drone Mode: Speed Up" },
+		{ k: "Numpad -", d: (typeof t === 'function' ? t("hkDescDroneSpeedDown") : "") || "Drone Mode: Speed Down" }
 	];
 	
 	hotkeys.forEach(hk => {
@@ -5629,6 +5642,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.speedLabel, t("speedLabel"));
 	setText(lunPanelElements.turnToCameraBtn, t("turnToCamera"));
 
+	if (lunPanelElements.flipCameraBtn) setText(lunPanelElements.flipCameraBtn, t("flipCamera") || "180° Camera");
 	setText(lunPanelElements.resetCameraBtn, t("resetCamera"));
 	setText(lunPanelElements.lockCameraBtn, lunCameraLocked ? t("unlockCamera") : t("lockCamera"));
 	setText(lunPanelElements.nametagsBtn, t(NAMETAG_MODES[lunNametagMode] + "Btn"));
