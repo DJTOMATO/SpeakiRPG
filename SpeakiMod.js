@@ -3168,23 +3168,32 @@ document.body.appendChild(
 									const origUpdate = gameState.cameraController.update;
 									gameState.cameraController.update = function(dt) {
 										if (lunDroneModeActive && window.spkmodDroneTarget) {
-											let lx = 0, ly = 0;
-											if (window.spkmodDroneKeys) {
-												if (window.spkmodDroneKeys.w) ly -= 1;
-												if (window.spkmodDroneKeys.s) ly += 1;
-												if (window.spkmodDroneKeys.a) lx -= 1;
-												if (window.spkmodDroneKeys.d) lx += 1;
+											let moveVector = null;
+											if (typeof gamepadMoveVector !== 'undefined' && gamepadMoveVector) {
+												moveVector = gamepadMoveVector;
+											} else {
+												let lx = 0, ly = 0;
+												if (window.spkmodDroneKeys) {
+													if (window.spkmodDroneKeys.w) ly -= 1;
+													if (window.spkmodDroneKeys.s) ly += 1;
+													if (window.spkmodDroneKeys.a) lx -= 1;
+													if (window.spkmodDroneKeys.d) lx += 1;
+												}
+												if (lx !== 0 || ly !== 0) {
+													const camYaw = this.cameraYaw || 0;
+													moveVector = {
+														x: lx * Math.cos(camYaw) + ly * Math.sin(camYaw),
+														z: -lx * Math.sin(camYaw) + ly * Math.cos(camYaw)
+													};
+													const mag = Math.sqrt(moveVector.x * moveVector.x + moveVector.z * moveVector.z);
+													moveVector.x /= mag;
+													moveVector.z /= mag;
+												}
 											}
-											if (lx !== 0 || ly !== 0) {
-												const camYaw = this.cameraYaw || 0;
-												let moveVector = {
-													x: lx * Math.cos(camYaw) + ly * Math.sin(camYaw),
-													z: -lx * Math.sin(camYaw) + ly * Math.cos(camYaw)
-												};
-												const mag = Math.sqrt(moveVector.x * moveVector.x + moveVector.z * moveVector.z);
+											if (moveVector) {
 												const speed = (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10);
-												window.spkmodDroneTarget.position.x += (moveVector.x / mag) * speed;
-												window.spkmodDroneTarget.position.z += (moveVector.z / mag) * speed;
+												window.spkmodDroneTarget.position.x += moveVector.x * speed;
+												window.spkmodDroneTarget.position.z += moveVector.z * speed;
 											}
 											if (window.spkmodDroneKeys) {
 												const speed = (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10);
@@ -3627,7 +3636,7 @@ document.body.appendChild(
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.droneSpeedLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("droneSpeedLabel") || "Drone Speed" }),
-					lunPanelElements.droneSpeedInput = buildElement("input", { type: "range", min: "0.01", max: "2.0", step: "0.05", value: (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10), style: "width: 70px;", onchange: e => { 
+					lunPanelElements.droneSpeedInput = buildElement("input", { type: "range", min: "0.01", max: "2.0", step: "0.05", value: (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10), style: "width: 70px;", oninput: e => { 
 						lunDroneSpeed = parseFloat(e.target.value);
 						if (window.localStorage) localStorage.setItem("spkmod-drone-speed", lunDroneSpeed);
 					} })
