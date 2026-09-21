@@ -5632,6 +5632,11 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.gamepadRumbleLabel) setText(lunPanelElements.gamepadRumbleLabel, t("gamepadRumbleToggleLabel"));
 	if (lunPanelElements.uiScaleLabel) setText(lunPanelElements.uiScaleLabel, t("uiScaleLabel"));
 	if (lunPanelElements.gameUiScaleLabel) setText(lunPanelElements.gameUiScaleLabel, t("gameUiScaleLabel") || "Game UI Scale");
+	if (lunPanelElements.droneSpeedLabel) setText(lunPanelElements.droneSpeedLabel, t("droneSpeedLabel") || "Drone Speed");
+	if (lunPanelElements.hotkeysBtn) lunPanelElements.hotkeysBtn.title = t("hotkeysModalTitle") || "Hotkeys";
+	if (typeof hotkeysModalElements !== "undefined" && hotkeysModalElements.headerTitle) {
+		hotkeysModalElements.headerTitle.innerText = "⌨️ " + (t("hotkeysModalTitle") || "Hotkeys");
+	}
 	if (lunPanelElements.cameraEffectLabel) setText(lunPanelElements.cameraEffectLabel, t("cameraEffectLabel") || "Camera Effect");
 	if (lunPanelElements.cameraEffectSelect && lunPanelElements.cameraEffectSelect.options) {
 		if (lunPanelElements.cameraEffectSelect.options[0]) lunPanelElements.cameraEffectSelect.options[0].innerText = t("effectNone") || "Normal";
