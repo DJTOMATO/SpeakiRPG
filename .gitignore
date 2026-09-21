@@ -18,8 +18,9 @@ release/
 .DS_Store
 Thumbs.db
 cors.py
-
+update_docs.py
 
 # Project-specific
 .github/tools
 /tools
+/tools/modules
