@@ -1061,7 +1061,7 @@ function fetchFriendsList(force = false) {
 	});
 }
 
-const lunKnownBotNames = ["GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47"];
+const lunKnownBotNames = ["GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47"];
 
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
@@ -4038,9 +4038,15 @@ function findBestTarget(cycle = false) {
 	return targetId;
 }
 
-function showPlayersRadar() {
+function showPlayersRadar(levelFilter) {
 	if (!gameState.remotePlayers || !gameState.remotePlayers.remotePlayers) return;
-	const players = Array.from(gameState.remotePlayers.remotePlayers.values());
+	let players = Array.from(gameState.remotePlayers.remotePlayers.values());
+	
+	if (levelFilter && !isNaN(parseInt(levelFilter))) {
+		const targetLevel = parseInt(levelFilter);
+		players = players.filter(p => p.info?.level === targetLevel);
+	}
+	
 	if (!players.length) {
 		chatLog(t("playersRadarNone"));
 		return;
@@ -4051,12 +4057,12 @@ function showPlayersRadar() {
 		return {
 			name: p.info?.name || "Unknown",
 			level: p.info?.level ?? "?",
-			id: p.info?.playerId ?? "?",
+			// id: p.info?.playerId ?? "?", // ID removed per request
 			dist: dist
 		};
 	}).sort((a, b) => parseFloat(a.dist) - parseFloat(b.dist));
 
-	chatLog(t("playersRadarHeader", list.length) + "\n" + list.map(p => t("playersRadarRow", p.name, p.level, p.dist, p.id)).join("\n"));
+	chatLog(t("playersRadarHeader", list.length) + "\n" + list.map(p => t("playersRadarRow", p.name, p.level, p.dist)).join("\n"));
 }
 
 const SPKMOD_GAMEPAD_CONFIG_KEY = "spkmod-gamepad-config";
@@ -6546,7 +6552,7 @@ function hookGameStateOnce() {
 						break;
 					case "players":
 					case "who":
-						showPlayersRadar();
+						showPlayersRadar(cmd[1]);
 						break;
 					case "pos":
 					case "loc":
