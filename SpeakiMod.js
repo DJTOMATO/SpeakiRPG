@@ -4757,10 +4757,10 @@ document.body.appendChild(
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
 					statsModalElements.timeToLevelLabel = buildElement("span", { style: "color: #aaa;", innerText: "⏳ " + t("statsTimeToNextLevel") }),
 					statsModalElements.timeToLevelVal = buildElement("span", { style: "font-weight: bold;", innerText: "N/A" })
-				])
-			]),
+				]),
+				
+				buildElement("div", { style: "width: 100%; height: 1px; background: rgba(255,255,255,0.1); margin: 2px 0;" }),
 
-			buildElement("div", { style: "background: rgba(255,255,255,0.04); border-radius: 6px; padding: 5px 8px; display: flex; flex-direction: column; gap: 4px;" }, [
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
 					statsModalElements.currencyLabel = buildElement("span", { style: "color: #aaa;", innerText: "💰 " + t("statsCurrency") }),
 					statsModalElements.currencyBalancesVal = buildElement("span", { style: "font-weight: bold;", innerText: "🪙 0  |  💎 0" })
