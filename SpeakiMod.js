@@ -2665,9 +2665,6 @@ document.body.appendChild(
 				id: "spkmod-texpb",
 				innerText: t("nextLevelNA")
 			}),
-			lunHudElements.channelTracker = buildElement("span", {
-				innerText: "..."
-			}),
 			lunHudElements.currencyTracker = buildElement("span", {
 				innerText: t("currencyTracker", "--", "--"),
 				style: lunCurrencyTrackerEnabled ? "" : "display: none;"
@@ -2675,6 +2672,9 @@ document.body.appendChild(
 			lunHudElements.sessionGoldTracker = buildElement("span", {
 				innerText: t("sessionGoldText", "--", "--"),
 				style: lunSessionGoldTrackerEnabled ? "" : "display: none;"
+			}),
+			lunHudElements.channelTracker = buildElement("span", {
+				innerText: "..."
 			}),
 			lunHudElements.fpsPingTracker = buildElement("span", {
 				innerText: t("fpsPingText", "--", "--"),

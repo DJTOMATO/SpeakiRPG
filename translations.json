@@ -1,7 +1,7 @@
 {
   "en": {
     "langName": "English",
-    "header": "SpeakiMod+ v1.8.3",
+    "header": "SpeakiMod+ v1.8.4",
     "playersNearby": "Speaki nearby: {0}",
     "zoneId": "Zone ID: {0}",
     "expPerMinute": "{0} EXP/min",
@@ -358,7 +358,7 @@
   },
   "ja": {
     "langName": "日本語",
-    "header": "SpeakiMod+ v1.8.3",
+    "header": "SpeakiMod+ v1.8.4",
     "playersNearby": "近くのｽﾋﾟｷ数: {0}",
     "zoneId": "エリアID: {0}",
     "expPerMinute": "{0} 経験値/分",
@@ -715,7 +715,7 @@
   },
   "ko": {
     "langName": "한국어",
-    "header": "SpeakiMod+ v1.8.3",
+    "header": "SpeakiMod+ v1.8.4",
     "playersNearby": "근처 스피키: {0}",
     "zoneId": "존 ID: {0}",
     "expPerMinute": "{0} EXP/분",
@@ -1072,7 +1072,7 @@
   },
   "zh-TW": {
     "langName": "繁體中文",
-    "header": "SpeakiMod+ v1.8.3",
+    "header": "SpeakiMod+ v1.8.4",
     "playersNearby": "附近的斯皮奇: {0}",
     "zoneId": "區域 ID: {0}",
     "expPerMinute": "{0} 經驗值/每分鐘",
@@ -1429,7 +1429,7 @@
   },
   "es-419": {
     "langName": "Español",
-    "header": "SpeakiMod+ v1.8.3",
+    "header": "SpeakiMod+ v1.8.4",
     "playersNearby": "Speaki cercanos: {0}",
     "zoneId": "ID de zona: {0}",
     "expPerMinute": "{0} EXP/min",
@@ -1786,7 +1786,7 @@
   },
   "zh-CN": {
     "langName": "简体中文",
-    "header": "SpeakiMod+ v1.8.3",
+    "header": "SpeakiMod+ v1.8.4",
     "playersNearby": "附近的斯皮奇: {0}",
     "zoneId": "区域 ID: {0}",
     "expPerMinute": "{0} 经验值/每分钟",
