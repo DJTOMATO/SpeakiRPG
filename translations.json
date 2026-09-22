@@ -13,7 +13,7 @@
     "channelTracker": "Channel {0}: {1}/{2}",
     "channelTrackerError": "Channel tracker: Error {0}",
     "totalPlayersOnline": "Total players: {0}",
-    "currencyTracker": "Gold: {0} / Elif: {1}",
+    "currencyTracker": "Gold: {0} / Elif: {1} / SpkCoin: {2}",
     "currencyTrackerError": "Currency: Error {0}",
     "settingsHeader": "Settings",
     "filterToggleLabel": "Filter bad words in names",
@@ -353,7 +353,8 @@
     "hkDescDroneSpeedUp": "Drone Mode: Speed Up",
     "hkDescDroneSpeedDown": "Drone Mode: Speed Down",
     "turntableHalf": "Camera Pan: 半",
-    "turntableHalfMsg": "Camera half-rotation activated!"
+    "turntableHalfMsg": "Camera half-rotation activated!",
+    "statsSpkCoinGained": "Speaki Coin Gained"
   },
   "ja": {
     "langName": "日本語",
@@ -369,7 +370,7 @@
     "channelTracker": "チャンネル {0}: {1}/{2}",
     "channelTrackerError": "チャンネル情報取得エラー: {0}",
     "totalPlayersOnline": "同時接続ｽﾋﾟｷ数: {0}",
-    "currencyTracker": "ゴールド: {0} | エリーフ: {1}",
+    "currencyTracker": "Gold: {0} / Elif: {1} / SpkCoin: {2}",
     "currencyTrackerError": "所持通貨情報取得エラー: {0}",
     "settingsHeader": "設定",
     "filterToggleLabel": "不適切な単語をフィルタリング(メンテ中)",
@@ -709,7 +710,8 @@
     "hkDescDroneSpeedUp": "ドローンモード: 速度アップ",
     "hkDescDroneSpeedDown": "ドローンモード: 速度ダウン",
     "turntableHalf": "カメラを回転: 半",
-    "turntableHalfMsg": "カメラ半回転をオンにしました！"
+    "turntableHalfMsg": "カメラ半回転をオンにしました！",
+    "statsSpkCoinGained": "獲得したスピーキコイン"
   },
   "ko": {
     "langName": "한국어",
@@ -725,7 +727,7 @@
     "channelTracker": "채널 {0}: {1}/{2}",
     "channelTrackerError": "채널 정보 오류: {0}",
     "totalPlayersOnline": "총 플레이어 수: {0}",
-    "currencyTracker": "골드: {0} / 엘리프: {1}",
+    "currencyTracker": "골드: {0} / 엘리프: {1} / 스피키 코인: {2}",
     "currencyTrackerError": "재화 정보 오류: {0}",
     "settingsHeader": "설정",
     "filterToggleLabel": "이름 욕설 필터링",
@@ -1065,7 +1067,8 @@
     "hkDescDroneSpeedUp": "드론 모드: 속도 증가",
     "hkDescDroneSpeedDown": "드론 모드: 속도 감소",
     "turntableHalf": "카메라 회전: 반",
-    "turntableHalfMsg": "카메라 반회전을 켰습니다!"
+    "turntableHalfMsg": "카메라 반회전을 켰습니다!",
+    "statsSpkCoinGained": "스피키 코인 획득량"
   },
   "zh-TW": {
     "langName": "繁體中文",
@@ -1081,7 +1084,7 @@
     "channelTracker": "頻道 {0}: {1}/{2}",
     "channelTrackerError": "頻道追蹤錯誤: {0}",
     "totalPlayersOnline": "全服總斯皮奇數量: {0}",
-    "currencyTracker": "金幣: {0} / 水晶葉: {1}",
+    "currencyTracker": "金币: {0} / Elif: {1} / Spk硬币: {2}",
     "currencyTrackerError": "金幣追蹤錯誤: {0}",
     "settingsHeader": "設定",
     "filterToggleLabel": "過濾名稱中的不雅詞彙",
@@ -1421,7 +1424,8 @@
     "hkDescDroneSpeedUp": "無人機模式: 加速",
     "hkDescDroneSpeedDown": "無人機模式: 減速",
     "turntableHalf": "旋轉相機: 半",
-    "turntableHalfMsg": "相機半旋轉已開啟！"
+    "turntableHalfMsg": "相機半旋轉已開啟！",
+    "statsSpkCoinGained": "获得的Speaki硬币"
   },
   "es-419": {
     "langName": "Español",
@@ -1437,7 +1441,7 @@
     "channelTracker": "Canal {0}: {1}/{2}",
     "channelTrackerError": "Rastreador de canales: Error {0}",
     "totalPlayersOnline": "Total de jugadores: {0}",
-    "currencyTracker": "Oro: {0} / Elif: {1}",
+    "currencyTracker": "Oro: {0} / Elif: {1} / Moneda Spk: {2}",
     "currencyTrackerError": "Moneda: Error {0}",
     "settingsHeader": "Configuración",
     "filterToggleLabel": "Filtrar malas palabras en los nombres",
@@ -1777,7 +1781,8 @@
     "hkDescDroneSpeedUp": "Modo Dron: Acelerar",
     "hkDescDroneSpeedDown": "Modo Dron: Decelerar",
     "turntableHalf": "Girar Cámara: Medio",
-    "turntableHalfMsg": "¡Medio giro de cámara activado!"
+    "turntableHalfMsg": "¡Medio giro de cámara activado!",
+    "statsSpkCoinGained": "Moneda Speaki Obtenida"
   },
   "zh-CN": {
     "langName": "简体中文",
@@ -1793,7 +1798,7 @@
     "channelTracker": "频道 {0}: {1}/{2}",
     "channelTrackerError": "频道追踪错误: {0}",
     "totalPlayersOnline": "全服总斯皮奇数量: {0}",
-    "currencyTracker": "金币: {0} / 水晶叶: {1}",
+    "currencyTracker": "金币: {0} / Elif: {1} / Spk硬币: {2}",
     "currencyTrackerError": "金币追踪错误: {0}",
     "settingsHeader": "设定",
     "filterToggleLabel": "过滤名称中的不雅词汇",
@@ -2133,6 +2138,7 @@
     "hkDescDroneSpeedUp": "无人机模式: 加速",
     "hkDescDroneSpeedDown": "无人机模式: 减速",
     "turntableHalf": "旋转相机: 半",
-    "turntableHalfMsg": "相机半旋转已开启！"
+    "turntableHalfMsg": "相机半旋转已开启！",
+    "statsSpkCoinGained": "获得的Speaki硬币"
   }
 }

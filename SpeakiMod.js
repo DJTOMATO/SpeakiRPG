@@ -927,6 +927,8 @@ var statsModalElements = {
 	goldGainedVal: null,
 	elifGainedLabel: null,
 	elifGainedVal: null,
+	spkCoinGainedLabel: null,
+	spkCoinGainedVal: null,
 	resetBtn: null
 };
 var lunPanelElements = {
@@ -1007,8 +1009,10 @@ var lunCurrencyTrackerWindow = 60000 / lunTPS; // [SpeakiMod+] Reduced from 25s 
 var lunCurrencyTrackerNextTicks = 0;
 var lunLastGold = null;
 var lunLastElif = null;
+var lunLastSpkCoin = null;
 var lunSessionStartGold = null;
 var lunSessionStartElif = null;
+var lunSessionStartSpkCoin = null;
 var lunWalkToPortal = -1;
 var lunAutoTravelTarget = null;
 var lunCameraLocked = false;
@@ -1921,6 +1925,7 @@ function resetSessionStats() {
 	}
 	lunSessionStartGold = lunLastGold;
 	lunSessionStartElif = lunLastElif;
+	lunSessionStartSpkCoin = lunLastSpkCoin;
 	resetExpTracker();
 	if (typeof chatLog === 'function') {
 		chatLog(t("statsResetConfirm"));
@@ -1942,6 +1947,7 @@ function updateStatsModalLive() {
 	if (statsModalElements.currencyLabel) setText(statsModalElements.currencyLabel, "💰 " + t("statsCurrency"));
 	if (statsModalElements.goldGainedLabel) setText(statsModalElements.goldGainedLabel, "🪙 " + t("statsGoldGained"));
 	if (statsModalElements.elifGainedLabel) setText(statsModalElements.elifGainedLabel, "💎 " + t("statsElifGained"));
+	if (statsModalElements.spkCoinGainedLabel) setText(statsModalElements.spkCoinGainedLabel, "🟣 " + (t("statsSpkCoinGained") || "Speaki Coin Gained"));
 	if (statsModalElements.resetBtn) setText(statsModalElements.resetBtn, "🔄 " + t("statsResetBtn"));
 
 	if (!window._lunSessionStartTime) {
@@ -2058,8 +2064,9 @@ function updateStatsModalLive() {
 
 	const curGold = lunLastGold ?? 0;
 	const curElif = lunLastElif ?? 0;
+	const curSpkCoin = lunLastSpkCoin ?? 0;
 	if (statsModalElements.currencyBalancesVal) {
-		statsModalElements.currencyBalancesVal.innerText = `🪙 ${curGold.toLocaleString()}  |  💎 ${curElif.toLocaleString()}`;
+		statsModalElements.currencyBalancesVal.innerText = `🪙 ${curGold.toLocaleString()} | 💎 ${curElif.toLocaleString()} | 🟣 ${curSpkCoin.toLocaleString()}`;
 	}
 
 	if (lunSessionStartGold === null && lunLastGold !== null) {
@@ -2079,6 +2086,7 @@ function updateStatsModalLive() {
 
 	if (lunSessionStartElif === null && lunLastElif !== null) {
 		lunSessionStartElif = lunLastElif;
+	lunSessionStartSpkCoin = lunLastSpkCoin;
 	}
 	const elifDiff = lunSessionStartElif !== null ? (curElif - lunSessionStartElif) : 0;
 	const elifPerHour = hoursElapsed > 0 ? (elifDiff / hoursElapsed).toFixed(1) : "0";
@@ -2086,6 +2094,14 @@ function updateStatsModalLive() {
 	if (statsModalElements.elifGainedVal) {
 		statsModalElements.elifGainedVal.innerText = `${elifPrefix}${elifDiff.toLocaleString()} (${elifPrefix}${elifPerHour} / hr)`;
 		statsModalElements.elifGainedVal.style.color = elifDiff >= 0 ? "#67e8f9" : "#f87171";
+	}
+	
+	const spkCoinDiff = lunSessionStartSpkCoin !== null ? (curSpkCoin - lunSessionStartSpkCoin) : 0;
+	const spkCoinPerHour = hoursElapsed > 0 ? (spkCoinDiff / hoursElapsed).toFixed(1) : "0";
+	const spkCoinPrefix = spkCoinDiff >= 0 ? "+" : "";
+	if (statsModalElements.spkCoinGainedVal) {
+		statsModalElements.spkCoinGainedVal.innerText = `${spkCoinPrefix}${spkCoinDiff.toLocaleString()} (${spkCoinPrefix}${spkCoinPerHour} / hr)`;
+		statsModalElements.spkCoinGainedVal.style.color = spkCoinDiff >= 0 ? "#a78bfa" : "#f87171";
 	}
 }
 
@@ -4756,6 +4772,10 @@ document.body.appendChild(
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
 					statsModalElements.elifGainedLabel = buildElement("span", { style: "color: #aaa;", innerText: "💎 " + t("statsElifGained") }),
 					statsModalElements.elifGainedVal = buildElement("span", { style: "font-weight: bold; color: #67e8f9;", innerText: "+0 (+0 / hr)" })
+				]),
+				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
+					statsModalElements.spkCoinGainedLabel = buildElement("span", { style: "color: #aaa;", innerText: "🟣 " + (t("statsSpkCoinGained") || "Speaki Coin Gained") }),
+					statsModalElements.spkCoinGainedVal = buildElement("span", { style: "font-weight: bold; color: #a78bfa;", innerText: "+0 (+0 / hr)" })
 				])
 			]),
 
@@ -6253,8 +6273,9 @@ function tick() {
 			var resp = (await x.json());
 			lunLastGold = resp.find(i => i.itemId === 1)?.quantity ?? 0;
 			lunLastElif = resp.find(i => i.itemId === 2)?.quantity ?? 0;
+			lunLastSpkCoin = resp.find(i => i.itemId === 5)?.quantity ?? 0;
 
-			setText(lunHudElements.currencyTracker, t("currencyTracker", lunLastGold.toLocaleString(), lunLastElif.toLocaleString()));
+			setText(lunHudElements.currencyTracker, t("currencyTracker", lunLastGold.toLocaleString(), lunLastElif.toLocaleString(), lunLastSpkCoin.toLocaleString()));
 
 			if (lunSessionStartGold === null) {
 				lunSessionStartGold = lunLastGold;
@@ -6262,6 +6283,9 @@ function tick() {
 			}
 			if (lunSessionStartElif === null) {
 				lunSessionStartElif = lunLastElif;
+			}
+			if (lunSessionStartSpkCoin === null) {
+				lunSessionStartSpkCoin = lunLastSpkCoin;
 			}
 			const diff = lunLastGold - lunSessionStartGold;
 			const hours = (Date.now() - window._lunSessionStartTime) / 3600000;
@@ -6645,6 +6669,7 @@ function hookGameStateOnce() {
 					case "findbots":
 						if (typeof findBotsRadar === "function") findBotsRadar();
 						break;
+
 					case "pos":
 					case "loc":
 					case "zone":
