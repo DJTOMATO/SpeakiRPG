@@ -4069,7 +4069,7 @@ function findBotsRadar() {
 	if (!gameState.remotePlayers || !gameState.remotePlayers.remotePlayers) return;
 	const players = Array.from(gameState.remotePlayers.remotePlayers.values());
 	
-	const level1s = players.filter(p => p.info?.level === 1 && p.container);
+	const level1s = players.filter(p => p.info?.level === 1 && p.container && (typeof lunKnownBotNames === "undefined" || !lunKnownBotNames.includes(p.info?.name)));
 	
 	const suspiciousBots = [];
 	
