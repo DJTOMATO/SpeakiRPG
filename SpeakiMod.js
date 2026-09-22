@@ -1945,7 +1945,7 @@ function updateStatsModalLive() {
 	if (statsModalElements.expRateLabel) setText(statsModalElements.expRateLabel, "📈 " + t("statsExpPerHour"));
 	if (statsModalElements.timeToLevelLabel) setText(statsModalElements.timeToLevelLabel, "⏳ " + t("statsTimeToNextLevel"));
 	if (statsModalElements.currencyLabel) setText(statsModalElements.currencyLabel, "💰 " + t("statsCurrency"));
-	if (statsModalElements.goldGainedLabel) setText(statsModalElements.goldGainedLabel, "🪙 " + t("statsGoldGained"));
+	if (statsModalElements.goldGainedLabel) setText(statsModalElements.goldGainedLabel, "💰 " + t("statsGoldGained"));
 	if (statsModalElements.elifGainedLabel) setText(statsModalElements.elifGainedLabel, "💎 " + t("statsElifGained"));
 	if (statsModalElements.spkCoinGainedLabel) setText(statsModalElements.spkCoinGainedLabel, "🟣 " + (t("statsSpkCoinGained") || "Speaki Coin Gained"));
 	if (statsModalElements.resetBtn) setText(statsModalElements.resetBtn, "🔄 " + t("statsResetBtn"));
@@ -2070,7 +2070,7 @@ function updateStatsModalLive() {
 	const curElif = lunLastElif ?? 0;
 	const curSpkCoin = lunLastSpkCoin ?? 0;
 	if (statsModalElements.currencyBalancesVal) {
-		statsModalElements.currencyBalancesVal.innerText = `🪙 ${curGold.toLocaleString()} | 💎 ${curElif.toLocaleString()} | 🟣 ${curSpkCoin.toLocaleString()}`;
+		statsModalElements.currencyBalancesVal.innerText = `💰 ${curGold.toLocaleString()} | 💎 ${curElif.toLocaleString()} | 🟣 ${curSpkCoin.toLocaleString()}`;
 	}
 
 	if (lunSessionStartGold === null && lunLastGold !== null) {
@@ -4767,10 +4767,10 @@ document.body.appendChild(
 
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
 					statsModalElements.currencyLabel = buildElement("span", { style: "color: #aaa;", innerText: "💰 " + t("statsCurrency") }),
-					statsModalElements.currencyBalancesVal = buildElement("span", { style: "font-weight: bold;", innerText: "🪙 0  |  💎 0" })
+					statsModalElements.currencyBalancesVal = buildElement("span", { style: "font-weight: bold;", innerText: "💰 0  |  💎 0" })
 				]),
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
-					statsModalElements.goldGainedLabel = buildElement("span", { style: "color: #aaa;", innerText: "🪙 " + t("statsGoldGained") }),
+					statsModalElements.goldGainedLabel = buildElement("span", { style: "color: #aaa;", innerText: "💰 " + t("statsGoldGained") }),
 					statsModalElements.goldGainedVal = buildElement("span", { style: "font-weight: bold; color: #ffd54a;", innerText: "+0 (+0 / hr)" })
 				]),
 				buildElement("div", { style: "display: flex; justify-content: space-between; align-items: center;" }, [
