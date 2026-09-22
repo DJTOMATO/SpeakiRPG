@@ -4165,7 +4165,9 @@ function findBotsRadar(auto = false) {
 	}
 	
 	if (!suspiciousBots.length) {
-		if (!auto) chatLog("No clustered Level 1 bots found nearby.");
+		if (!auto && typeof gameState !== "undefined" && gameState && (gameState.myPlayerName === "Glas" || gameState.myStat?.name === "Glas")) {
+			chatLog("No clustered Level 1 bots found nearby.");
+		}
 		return;
 	}
 	
@@ -4181,10 +4183,14 @@ function findBotsRadar(auto = false) {
 		updateKnownBotVisibility();
 	}
 	
-	if (!auto) {
+	const isGlas = typeof gameState !== "undefined" && gameState && (gameState.myPlayerName === "Glas" || gameState.myStat?.name === "Glas");
+	
+	if (isGlas && addedCount > 0) {
 		const botNames = suspiciousBots.map(b => `"${b.name}"`);
-		chatLog(`Found & auto-banned ${addedCount} clustered bots!`);
+		chatLog(`[Debug] Auto-banned ${addedCount} clustered bots: ${botNames.join(", ")}`);
 		console.log("[SpeakiMod] Auto-banned bots:", botNames);
+	} else if (!auto && !suspiciousBots.length && isGlas) {
+		chatLog("No clustered Level 1 bots found nearby.");
 	}
 }
 
