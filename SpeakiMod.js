@@ -1061,7 +1061,7 @@ function fetchFriendsList(force = false) {
 	});
 }
 
-const lunKnownBotNames = ["OO0OOOOO72", "llIlIIll62","sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", "OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", "OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63","SPKecho98","OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", "llIIllll38", "takutaku6", "kutakuta2", "takutaku7"];
+const lunKnownBotNames = ["OO0OOOOO72", "llIlIIll62", "lIllIIIl39", "IIlIIIlI45", "00OO0OO099","sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", "OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", "OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63","SPKecho98","OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", "llIIllll38", "takutaku6", "kutakuta2", "takutaku7"];
 
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
@@ -1088,17 +1088,29 @@ function setHideKnownBotsEnabled(enabled) {
 	updateKnownBotVisibility();
 }
 
-function isKnownBotName(name) {
+function isKnownBotName(name, level) {
 	if (typeof name !== "string") return false;
-	const normalizedName = name.trim().toLocaleLowerCase();
-	return lunKnownBotNames.some(botName => botName.trim().toLocaleLowerCase() === normalizedName);
+	const normalizedName = name.trim();
+	const lowerName = normalizedName.toLocaleLowerCase();
+	
+	if (lunKnownBotNames.some(botName => botName.trim().toLocaleLowerCase() === lowerName)) {
+		return true;
+	}
+	
+	const parsedLevel = typeof level === "number" ? level : parseInt(level);
+	if (!isNaN(parsedLevel) && parsedLevel <= 2) {
+		if (/^[Il]{6,10}[0-9]{2}$/.test(normalizedName)) return true;
+		if (/^[O0]{6,10}[0-9]{2}$/.test(normalizedName)) return true;
+	}
+	
+	return false;
 }
 
 function updateKnownBotVisibility() {
 	if (!gameState?.remotePlayers?.remotePlayers) return;
 	gameState.remotePlayers.remotePlayers.forEach(player => {
 		if (player?.container) {
-			player.container.visible = !lunHideKnownBotsEnabled || !isKnownBotName(player.info?.name);
+			player.container.visible = !lunHideKnownBotsEnabled || !isKnownBotName(player.info?.name, player.info?.level);
 		}
 	});
 }
@@ -1109,7 +1121,7 @@ function isKnownBotContainer(container) {
 	let current = container;
 	while (current) {
 		for (const player of gameState.remotePlayers.remotePlayers.values()) {
-			if (player?.container === current) return isKnownBotName(player.info?.name);
+			if (player?.container === current) return isKnownBotName(player.info?.name, player.info?.level);
 		}
 		current = current.parent;
 	}
@@ -1119,12 +1131,12 @@ function isKnownBotContainer(container) {
 function isKnownBotBubbleSource(source) {
 	if (!source || !gameState?.remotePlayers?.remotePlayers) return false;
 	if (isKnownBotContainer(source) || isKnownBotContainer(source.container)) return true;
-	if (isKnownBotName(source.info?.name) || isKnownBotName(source.name)) return true;
+	if (isKnownBotName(source.info?.name, source.info?.level) || isKnownBotName(source.name, source.level)) return true;
 
 	for (const player of gameState.remotePlayers.remotePlayers.values()) {
 		const playerInfo = player?.info;
 		if (playerInfo && (source === playerInfo.playerId || source === playerInfo.id || source === playerInfo.userId)) {
-			return isKnownBotName(playerInfo.name);
+			return isKnownBotName(playerInfo.name, playerInfo.level);
 		}
 	}
 	return false;
@@ -1168,7 +1180,7 @@ function hookKnownBotPlayerEmotes(player) {
 		if (typeof original !== "function") continue;
 		try {
 			player[name] = function(...args) {
-				if (lunHideKnownBotsEnabled && isKnownBotName(this.info?.name) && args.some(arg => containsRemoteEmote(arg))) {
+				if (lunHideKnownBotsEnabled && isKnownBotName(this.info?.name, this.info?.level) && args.some(arg => containsRemoteEmote(arg))) {
 					return;
 				}
 				return original.apply(this, args);
