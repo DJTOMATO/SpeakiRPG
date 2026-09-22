@@ -1001,11 +1001,11 @@ var lunExpTrackerInitialized = false;
 var lunExpTrackerSamples = [];
 var lunExpTrackerLastSampleTick = 0;
 
-var lunChannelTrackerWindow = 60000 / lunTPS; // [SpeakiMod+] Reduced from 25s to 60s
+var lunChannelTrackerWindow = 60 * lunTPS; // [SpeakiMod+] Reduced from 25s to 60s
 var lunChannelTrackerNextTicks = 0;
 
 
-var lunCurrencyTrackerWindow = 60000 / lunTPS; // [SpeakiMod+] Reduced from 25s to 60s
+var lunCurrencyTrackerWindow = 60 * lunTPS; // [SpeakiMod+] Reduced from 25s to 60s
 var lunCurrencyTrackerNextTicks = 0;
 var lunLastGold = null;
 var lunLastElif = null;
@@ -1287,7 +1287,7 @@ function setResetTimerEnabled(enabled) {
 
 var lunMinigameTrackerEnabled = (window.localStorage && localStorage.getItem("spkmod-pumpkin-tracker")) === "true";
 var lunMinigameStatus = null;
-var lunMinigameTrackerWindow = 60000 / lunTPS;
+var lunMinigameTrackerWindow = 60 * lunTPS;
 var lunMinigameTrackerNextTicks = 0;
 
 function setMinigameTrackerEnabled(enabled) {
@@ -2090,7 +2090,9 @@ function updateStatsModalLive() {
 
 	if (lunSessionStartElif === null && lunLastElif !== null) {
 		lunSessionStartElif = lunLastElif;
-	lunSessionStartSpkCoin = lunLastSpkCoin;
+	}
+	if (lunSessionStartSpkCoin === null && lunLastSpkCoin !== null) {
+		lunSessionStartSpkCoin = lunLastSpkCoin;
 	}
 	const elifDiff = lunSessionStartElif !== null ? (curElif - lunSessionStartElif) : 0;
 	const elifPerHour = hoursElapsed > 0 ? (elifDiff / hoursElapsed).toFixed(1) : "0";
