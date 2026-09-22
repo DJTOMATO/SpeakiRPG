@@ -1061,7 +1061,7 @@ function fetchFriendsList(force = false) {
 	});
 }
 
-const lunKnownBotNames = ["sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", "OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", "OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63","SPKecho98","OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", "llIIllll38", "takutaku6", "kutakuta2", "takutaku7"];
+const lunKnownBotNames = ["OO0OOOOO72", "llIlIIll62","sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", "OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", "OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63","SPKecho98","OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", "llIIllll38", "takutaku6", "kutakuta2", "takutaku7"];
 
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
@@ -3172,9 +3172,18 @@ document.body.appendChild(
 									const origUpdate = gameState.cameraController.update;
 									gameState.cameraController.update = function(dt) {
 										if (lunDroneModeActive && window.spkmodDroneTarget) {
-											let moveVector = null;
+											const now = performance.now();
+											window.lunDroneLastFrame = window.lunDroneLastFrame || now;
+											const dtNormalized = Math.min(now - window.lunDroneLastFrame, 100) / 16.666;
+											window.lunDroneLastFrame = now;
+
+											let targetVX = 0;
+											let targetVZ = 0;
+											let targetVY = 0;
+
 											if (typeof gamepadMoveVector !== 'undefined' && gamepadMoveVector) {
-												moveVector = gamepadMoveVector;
+												targetVX = gamepadMoveVector.x;
+												targetVZ = gamepadMoveVector.z;
 											} else {
 												let lx = 0, ly = 0;
 												if (window.spkmodDroneKeys) {
@@ -3185,25 +3194,38 @@ document.body.appendChild(
 												}
 												if (lx !== 0 || ly !== 0) {
 													const camYaw = this.cameraYaw || 0;
-													moveVector = {
-														x: lx * Math.cos(camYaw) + ly * Math.sin(camYaw),
-														z: -lx * Math.sin(camYaw) + ly * Math.cos(camYaw)
-													};
-													const mag = Math.sqrt(moveVector.x * moveVector.x + moveVector.z * moveVector.z);
-													moveVector.x /= mag;
-													moveVector.z /= mag;
+													targetVX = lx * Math.cos(camYaw) + ly * Math.sin(camYaw);
+													targetVZ = -lx * Math.sin(camYaw) + ly * Math.cos(camYaw);
+													const mag = Math.sqrt(targetVX * targetVX + targetVZ * targetVZ);
+													targetVX /= mag;
+													targetVZ /= mag;
 												}
 											}
-											if (moveVector) {
-												const speed = ((typeof window.lunDroneSpeed !== 'undefined' ? window.lunDroneSpeed : (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10)));
-												window.spkmodDroneTarget.position.x += moveVector.x * speed;
-												window.spkmodDroneTarget.position.z += moveVector.z * speed;
-											}
+
 											if (window.spkmodDroneKeys) {
-												const speed = ((typeof window.lunDroneSpeed !== 'undefined' ? window.lunDroneSpeed : (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10)));
-												if (window.spkmodDroneKeys.up) window.spkmodDroneTarget.position.y += speed;
-												if (window.spkmodDroneKeys.down) window.spkmodDroneTarget.position.y -= speed;
+												if (window.spkmodDroneKeys.up) targetVY += 1;
+												if (window.spkmodDroneKeys.down) targetVY -= 1;
 											}
+											
+											window.lunDroneVX = window.lunDroneVX || 0;
+											window.lunDroneVZ = window.lunDroneVZ || 0;
+											window.lunDroneVY = window.lunDroneVY || 0;
+											
+											const lerp = 1 - Math.pow(0.7, Math.max(0.001, dtNormalized));
+											window.lunDroneVX += (targetVX - window.lunDroneVX) * lerp;
+											window.lunDroneVZ += (targetVZ - window.lunDroneVZ) * lerp;
+											window.lunDroneVY += (targetVY - window.lunDroneVY) * lerp;
+											
+											const speed = ((typeof window.lunDroneSpeed !== 'undefined' ? window.lunDroneSpeed : (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10)));
+											
+											// Stop completely if the velocity is extremely small to prevent endless micro-drifting
+											if (Math.abs(window.lunDroneVX) < 0.001) window.lunDroneVX = 0;
+											if (Math.abs(window.lunDroneVZ) < 0.001) window.lunDroneVZ = 0;
+											if (Math.abs(window.lunDroneVY) < 0.001) window.lunDroneVY = 0;
+											
+											window.spkmodDroneTarget.position.x += window.lunDroneVX * speed * dtNormalized;
+											window.spkmodDroneTarget.position.z += window.lunDroneVZ * speed * dtNormalized;
+											window.spkmodDroneTarget.position.y += window.lunDroneVY * speed * dtNormalized;
 										}
 										
 										origUpdate.call(this, dt);
