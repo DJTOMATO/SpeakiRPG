@@ -1061,7 +1061,7 @@ function fetchFriendsList(force = false) {
 	});
 }
 
-const lunKnownBotNames = ["GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso"];
+const lunKnownBotNames = ["GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "000OO00O81", "frogbee79"];
 
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
