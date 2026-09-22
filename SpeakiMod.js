@@ -6151,8 +6151,12 @@ function tick() {
 	const timerDisplay = (windowSec / 60) + "m avg";
 
 	if (lunExpTrackerSpeed > 0) {
-		const expRate = lunExpRatePerHour ? lunExpTrackerSpeed * 3600 : lunExpTrackerSpeed * 60;
-		expTrackerL1 = t(lunExpRatePerHour ? "expPerHour" : "expPerMinute", expRate.toFixed(0), "");
+		let displayRate = Math.round(lunExpRatePerHour ? lunExpTrackerSpeed * 3600 : lunExpTrackerSpeed * 60);
+		if (displayRate >= 1000000) displayRate = (displayRate / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+		else if (displayRate >= 1000) displayRate = (displayRate / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+		else displayRate = displayRate.toLocaleString();
+		
+		expTrackerL1 = t(lunExpRatePerHour ? "expPerHour" : "expPerMinute", displayRate, "");
 
 		var minutesRemaining = (gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60;
 		if (minutesRemaining > 60) {
@@ -6279,7 +6283,13 @@ function tick() {
 			lunLastElif = resp.find(i => i.itemId === 2)?.quantity ?? 0;
 			lunLastSpkCoin = resp.find(i => i.itemId === 5)?.quantity ?? 0;
 
-			setText(lunHudElements.currencyTracker, t("currencyTracker", lunLastGold.toLocaleString(), lunLastElif.toLocaleString(), lunLastSpkCoin.toLocaleString()));
+			const formatCurrency = (num) => {
+				if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+				if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+				return num.toLocaleString();
+			};
+
+			setText(lunHudElements.currencyTracker, t("currencyTracker", formatCurrency(lunLastGold), formatCurrency(lunLastElif), formatCurrency(lunLastSpkCoin)));
 
 			if (lunSessionStartGold === null) {
 				lunSessionStartGold = lunLastGold;
