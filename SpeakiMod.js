@@ -6645,6 +6645,15 @@ function hookGameStateOnce() {
 					case "findbots":
 						if (typeof findBotsRadar === "function") findBotsRadar();
 						break;
+					case "lag":
+					case "clip":
+						const seconds = parseFloat(cmd[1]) || 3;
+						chatLog(`[SpeakiMod] Freezing game for ${seconds}s in 2 seconds... Start walking!`);
+						setTimeout(() => {
+							const end = Date.now() + (seconds * 1000);
+							while (Date.now() < end) {}
+						}, 2000);
+						break;
 					case "pos":
 					case "loc":
 					case "zone":
