@@ -2044,7 +2044,11 @@ function updateStatsModalLive() {
 		? (lunExpTrackerSpeed * 3600)
 		: (hoursElapsed > 0 ? (expGained / hoursElapsed) : 0);
 	if (statsModalElements.expRateVal) {
-		statsModalElements.expRateVal.innerText = `${Math.round(expSpeedPerHour).toLocaleString()} / hr`;
+		let displaySpeed = Math.round(expSpeedPerHour);
+		if (displaySpeed >= 1000000) displaySpeed = (displaySpeed / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+		else if (displaySpeed >= 1000) displaySpeed = (displaySpeed / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+		else displaySpeed = displaySpeed.toLocaleString();
+		statsModalElements.expRateVal.innerText = `${displaySpeed} / hr`;
 	}
 
 	if (statsModalElements.timeToLevelVal) {
