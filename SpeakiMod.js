@@ -1061,7 +1061,7 @@ function fetchFriendsList(force = false) {
 	});
 }
 
-const lunKnownBotNames = ["GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081"];
+const lunKnownBotNames = ["GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", "OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "OOOOO0O081", "SPKstar65", "", "llIIllll38", "takutaku6", "kutakuta2", "takutaku7"];
 
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
@@ -4065,6 +4065,50 @@ function showPlayersRadar(levelFilter) {
 	chatLog(t("playersRadarHeader", list.length) + "\n" + list.map(p => t("playersRadarRow", p.name, p.level, p.dist)).join("\n"));
 }
 
+function findBotsRadar() {
+	if (!gameState.remotePlayers || !gameState.remotePlayers.remotePlayers) return;
+	const players = Array.from(gameState.remotePlayers.remotePlayers.values());
+	
+	const level1s = players.filter(p => p.info?.level === 1 && p.container);
+	
+	const suspiciousBots = [];
+	
+	for (const p of level1s) {
+		let nearbyLv1s = 0;
+		for (const other of level1s) {
+			if (p === other) continue;
+			const dist = Math.hypot(
+				p.container.position.x - other.container.position.x,
+				p.container.position.z - other.container.position.z
+			);
+			if (dist < 5.0) nearbyLv1s++;
+		}
+		
+		const id = parseInt(p.info?.playerId) || 0;
+		suspiciousBots.push({
+			name: p.info?.name,
+			id: id,
+			clusterSize: nearbyLv1s
+		});
+	}
+	
+	suspiciousBots.sort((a, b) => b.id - a.id); // Newest first
+	
+	if (!suspiciousBots.length) {
+		chatLog("No Level 1 bots found.");
+		return;
+	}
+	
+	// Format as array
+	const botNames = suspiciousBots.map(b => `"${b.name}"`);
+	const output = `[${botNames.join(", ")}]`;
+	
+	chatLog(`Found ${suspiciousBots.length} Suspected Bots (check console F12 to copy easily):\n${output}`);
+	console.log("[SpeakiMod] Paste this into lunKnownBotNames array:");
+	console.log(output);
+	console.table(suspiciousBots);
+}
+
 const SPKMOD_GAMEPAD_CONFIG_KEY = "spkmod-gamepad-config";
 
 const SPKMOD_DEFAULT_GAMEPAD_CONFIG = {
@@ -6553,6 +6597,9 @@ function hookGameStateOnce() {
 					case "players":
 					case "who":
 						showPlayersRadar(cmd[1]);
+						break;
+					case "findbots":
+						if (typeof findBotsRadar === "function") findBotsRadar();
 						break;
 					case "pos":
 					case "loc":
