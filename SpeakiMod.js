@@ -3855,8 +3855,24 @@ setTimeout(() => {
 
 // --- EMOJI PICKER ---
 let lunEmojiPickerPanel = null;
+let lunEmojiTab = "standard";
 const LUN_EMOJIS = ["👍","👎","👋","🙏","👏","🙌","🤝","😊","😂","🤣","😍","😎","🤔","😅","😭","🥺","🔥","💯","❤️","✨","🎉","💀","👀","🗣️","💰","💎","🟣","⭐","❌","✅", "💪", "🤷", "🤦", "🎈", "🎂", "🥳", "🙄", "🤐", "🥵", "🥶", "🤯", "😴", "🤮", "🤡", "👻", "👽", "💩", "🤖"];
 let lunEmojiFreq = JSON.parse((window.localStorage && localStorage.getItem("spkmod-emoji-freq")) || "{}");
+
+// Custom Emojis (Fetched from GitHub)
+var lunCustomEmojis = {};
+fetch("https://raw.githubusercontent.com/Glas/emojis/main/emojis.txt").then(res => res.text()).then(txt => {
+    txt.split("\n").forEach(line => {
+        const parts = line.split(":");
+        if (parts.length >= 2) {
+            lunCustomEmojis[parts[0].trim()] = parts.slice(1).join(":").trim();
+        }
+    });
+}).catch(err => {
+    console.warn("[SpeakiMod+] Failed to load custom emojis:", err);
+    // Add a default test emoji so the feature can be tested even if the repo doesn't exist yet
+    lunCustomEmojis["test"] = "https://cdn.discordapp.com/emojis/1545980359064297472.webp?size=128";
+});
 
 function getSortedEmojis() {
     return [...LUN_EMOJIS].sort((a,b) => (lunEmojiFreq[b]||0) - (lunEmojiFreq[a]||0));
@@ -3870,12 +3886,11 @@ function toggleEmojiPicker(anchorBtn) {
     }
     
     lunEmojiPickerPanel = document.createElement("div");
-    lunEmojiPickerPanel.style.cssText = "position: absolute; bottom: 35px; right: 0px; width: 220px; max-height: 160px; overflow-y: auto; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-wrap: wrap; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5);";
+    lunEmojiPickerPanel.style.cssText = "position: absolute; bottom: 35px; right: 0px; width: 230px; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5);";
     
     renderEmojiGrid();
     anchorBtn.parentElement.appendChild(lunEmojiPickerPanel);
     
-    // Close when clicking outside
     const closeHandler = (e) => {
         if (lunEmojiPickerPanel && !lunEmojiPickerPanel.contains(e.target) && e.target !== anchorBtn) {
             lunEmojiPickerPanel.remove();
@@ -3889,23 +3904,68 @@ function toggleEmojiPicker(anchorBtn) {
 function renderEmojiGrid() {
     if (!lunEmojiPickerPanel) return;
     lunEmojiPickerPanel.innerHTML = "";
-    const sorted = getSortedEmojis();
     
-    sorted.forEach(emoji => {
-        const btn = document.createElement("button");
-        btn.innerText = emoji;
-        btn.style.cssText = "width: 28px; height: 28px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: background 0.1s;";
-        btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
-        btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
-        btn.onclick = (e) => {
-            e.stopPropagation();
-            lunEmojiFreq[emoji] = (lunEmojiFreq[emoji]||0) + 1;
-            if (window.localStorage) localStorage.setItem("spkmod-emoji-freq", JSON.stringify(lunEmojiFreq));
-            renderEmojiGrid();
-            insertEmojiIntoChat(emoji);
-        };
-        lunEmojiPickerPanel.appendChild(btn);
-    });
+    // Header Tabs
+    const header = document.createElement("div");
+    header.style.cssText = "display: flex; gap: 4px; margin-bottom: 4px; border-bottom: 1px solid #444; padding-bottom: 4px;";
+    
+    const btnStd = document.createElement("button");
+    btnStd.innerText = "😀 Standard";
+    btnStd.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'standard' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
+    btnStd.onclick = (e) => { e.stopPropagation(); lunEmojiTab = 'standard'; renderEmojiGrid(); };
+    
+    const btnCus = document.createElement("button");
+    btnCus.innerText = "⭐ Custom";
+    btnCus.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'custom' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
+    btnCus.onclick = (e) => { e.stopPropagation(); lunEmojiTab = 'custom'; renderEmojiGrid(); };
+    
+    header.appendChild(btnStd);
+    header.appendChild(btnCus);
+    lunEmojiPickerPanel.appendChild(header);
+
+    // Grid Container
+    const grid = document.createElement("div");
+    grid.style.cssText = "display: flex; flex-wrap: wrap; gap: 4px; max-height: 140px; overflow-y: auto;";
+    
+    if (lunEmojiTab === 'standard') {
+        const sorted = getSortedEmojis();
+        sorted.forEach(emoji => {
+            const btn = document.createElement("button");
+            btn.innerText = emoji;
+            btn.style.cssText = "width: 28px; height: 28px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: background 0.1s;";
+            btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
+            btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                lunEmojiFreq[emoji] = (lunEmojiFreq[emoji]||0) + 1;
+                if (window.localStorage) localStorage.setItem("spkmod-emoji-freq", JSON.stringify(lunEmojiFreq));
+                renderEmojiGrid();
+                insertEmojiIntoChat(emoji);
+            };
+            grid.appendChild(btn);
+        });
+    } else {
+        Object.entries(lunCustomEmojis).forEach(([name, url]) => {
+            const btn = document.createElement("button");
+            btn.title = `:${name}:`;
+            btn.style.cssText = "width: 32px; height: 32px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; padding: 2px;";
+            btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
+            btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
+            
+            const img = document.createElement("img");
+            img.src = url;
+            img.style.cssText = "max-width: 100%; max-height: 100%; object-fit: contain;";
+            btn.appendChild(img);
+            
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                insertEmojiIntoChat(`:${name}: `);
+            };
+            grid.appendChild(btn);
+        });
+    }
+    
+    lunEmojiPickerPanel.appendChild(grid);
 }
 
 function insertEmojiIntoChat(emoji) {
@@ -5546,7 +5606,22 @@ async function translateChatText(text, source, target) {
 	if (!text || !text.trim() || source === target) return null;
 	if (text.length > lunTranslateMaxLen) text = text.slice(0, lunTranslateMaxLen);
 
-	const normalized = text.trim().toLowerCase().replace(/\s+/g, " ");
+	// Protect Custom Emojis from translation API by swapping them with safe tokens
+	let safeText = text;
+	const tokenMap = {};
+	let tIdx = 0;
+	if (typeof lunCustomEmojis !== "undefined") {
+		for (const ename of Object.keys(lunCustomEmojis)) {
+			const tag = ":" + ename + ":";
+			if (safeText.includes(tag)) {
+				const tkn = ` [E${tIdx++}] `;
+				tokenMap[tkn.trim()] = tag;
+				safeText = safeText.split(tag).join(tkn);
+			}
+		}
+	}
+
+	const normalized = safeText.trim().toLowerCase().replace(/\s+/g, " ");
 	const cacheKey = `${source}|${target}:${normalized}`;
 	if (lunTranslateCache.has(cacheKey)) return lunTranslateCache.get(cacheKey);
 
@@ -5565,7 +5640,7 @@ async function translateChatText(text, source, target) {
 				useFallback = true;
 			} else {
 				try {
-					const params = new URLSearchParams({ q: text, langpair: `${source}|${target}` });
+					const params = new URLSearchParams({ q: safeText, langpair: `${source}|${target}` });
 					if (lunTranslateEmail) params.set("de", lunTranslateEmail);
 					if (window.localStorage && localStorage.getItem("spkmod-translate-email")) params.set("de", localStorage.getItem("spkmod-translate-email"));
 					
@@ -5593,7 +5668,7 @@ async function translateChatText(text, source, target) {
 			// Fallback API: Google Translate
 			if (useFallback) {
 				try {
-					const gtUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${source}&tl=${target}&dt=t&q=${encodeURIComponent(text)}`;
+					const gtUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${source}&tl=${target}&dt=t&q=${encodeURIComponent(safeText)}`;
 					const gtRes = await fetch(gtUrl);
 					if (gtRes.ok) {
 						const gtData = await gtRes.json();
@@ -5618,6 +5693,12 @@ async function translateChatText(text, source, target) {
 					chatLog(t("translateQuotaHitMsg"));
 				}
 				return null;
+			}
+
+			// Restore tokens
+			for (const [tkn, tag] of Object.entries(tokenMap)) {
+				// Also handle potential whitespace stripping by APIs
+				translated = translated.replace(new RegExp(tkn.trim(), "gi"), tag);
 			}
 
 			if (translated.trim().toLowerCase() === text.trim().toLowerCase()) return null;
@@ -7034,6 +7115,19 @@ function hookGameStateOnce() {
 
 			if (filteredMsg && filteredMsg.trim()) {
 				observeNextChatNode(filteredMsg, (bodyText, rowNode) => {
+					if (typeof lunCustomEmojis !== "undefined" && Object.keys(lunCustomEmojis).length > 0) {
+						let html = bodyText.innerHTML;
+						let changed = false;
+						for (const [ename, eurl] of Object.entries(lunCustomEmojis)) {
+							const tag = ":" + ename + ":";
+							if (html.includes(tag)) {
+								html = html.split(tag).join(`<img src="${eurl}" title="${tag}" style="height: 1.6em; vertical-align: middle; padding: 0 1px; display: inline-block;">`);
+								changed = true;
+							}
+						}
+						if (changed) bodyText.innerHTML = html;
+					}
+
 					if (lunGmChatHighlightEnabled && name && name.trim().toUpperCase() === "GMDT") {
 						bodyText.classList.add("spkmod-gmdt-line");
 					}
@@ -7095,6 +7189,20 @@ function appendColoredChatLine(id, name, text) {
 
 	observeNextChatNode(text, (bodyText) => {
 		bodyText.classList.add("spkmod-translated-line");
+		
+		if (typeof lunCustomEmojis !== "undefined" && Object.keys(lunCustomEmojis).length > 0) {
+			let html = bodyText.innerHTML;
+			let changed = false;
+			for (const [ename, eurl] of Object.entries(lunCustomEmojis)) {
+				const tag = ":" + ename + ":";
+				if (html.includes(tag)) {
+					html = html.split(tag).join(`<img src="${eurl}" title="${tag}" style="height: 1.6em; vertical-align: middle; padding: 0 1px; display: inline-block;">`);
+					changed = true;
+				}
+			}
+			if (changed) bodyText.innerHTML = html;
+		}
+
 		if (wasAtBottom && !lunChatUserScrolledUp && scrollEl) {
 			scrollEl.scrollTop = scrollEl.scrollHeight;
 		}
