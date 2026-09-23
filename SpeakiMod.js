@@ -3892,7 +3892,7 @@ function toggleEmojiPicker(anchorBtn) {
     }
     
     lunEmojiPickerPanel = document.createElement("div");
-    lunEmojiPickerPanel.style.cssText = "position: absolute; bottom: 0px; left: calc(100% + 10px); width: 230px; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;";
+    lunEmojiPickerPanel.style.cssText = "position: absolute; bottom: 0px; left: calc(100% + 10px); width: 340px; height: 300px; min-width: 200px; min-height: 150px; resize: both; overflow: hidden; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;";
     
     // Prevent clicks inside the panel from stealing chat input focus (which breaks cursor position)
     lunEmojiPickerPanel.onmousedown = (e) => { e.preventDefault(); };
@@ -3937,7 +3937,7 @@ function renderEmojiGrid() {
 
     // Grid Container
     const grid = document.createElement("div");
-    grid.style.cssText = "display: flex; flex-wrap: wrap; gap: 4px; max-height: 140px; overflow-y: auto;";
+    grid.style.cssText = "display: flex; flex-wrap: wrap; gap: 4px; flex-grow: 1; overflow-y: auto; align-content: flex-start;";
     
     if (lunEmojiTab === 'standard') {
         const sorted = getSortedEmojis();
