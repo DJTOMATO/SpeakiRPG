@@ -3891,7 +3891,7 @@ function toggleEmojiPicker(anchorBtn) {
     }
     
     lunEmojiPickerPanel = document.createElement("div");
-    lunEmojiPickerPanel.style.cssText = "position: absolute; bottom: 35px; right: 0px; width: 230px; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;";
+    lunEmojiPickerPanel.style.cssText = "position: absolute; bottom: 0px; left: calc(100% + 10px); width: 230px; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;";
     
     // Prevent clicks inside the panel from stealing chat input focus (which breaks cursor position)
     lunEmojiPickerPanel.onmousedown = (e) => { e.preventDefault(); };
