@@ -11,13 +11,11 @@ cry5,https://i.imgur.com/fQXJGs5.png
 erpin,https://i.imgur.com/n1w6jFv.png
 fat,https://i.imgur.com/aWmLh4O.png
 fat,https://i.imgur.com/OUa5d3h.png
-fell,https://i.imgur.com/YZhNiZb.png
 goat,https://i.imgur.com/00kgFfk.png
 hap,https://i.imgur.com/O64STmp.png
 hapm,https://i.imgur.com/LCk5tXt.png
 heh,https://i.imgur.com/NlK29FJ.png
 hmf,https://i.imgur.com/dHVaQfU.png
-huh,https://i.imgur.com/pjBiT2J.png
 nana,https://i.imgur.com/NaIUobv.png
 sit,https://i.imgur.com/gPKIlS3.png
 smile,https://i.imgur.com/Cwen62T.png
@@ -82,9 +80,6 @@ SPK_62,https://i.imgur.com/uujdd9a.png
 SPK_7,https://i.imgur.com/TfGoxXo.png
 SPK_8,https://i.imgur.com/gjQRkBQ.png
 SPK_9,https://i.imgur.com/oWnfITs.png
-stare,https://i.imgur.com/dQm5FGp.png
-str,https://i.imgur.com/ju2CWkZ.png
 sur,https://i.imgur.com/40cLsyI.png
 tv,https://i.imgur.com/vLDWXNd.png
 weh,https://i.imgur.com/a9XC7RT.png
-zoom3,https://i.imgur.com/3P7VcLT.png
