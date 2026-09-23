@@ -1092,6 +1092,8 @@ function setHideKnownBotsEnabled(enabled) {
 	updateKnownBotVisibility();
 }
 
+var lunAutoBannedLevel1s = new Set();
+
 function isKnownBotName(name, level) {
 	if (typeof name !== "string") return false;
 	const normalizedName = name.trim();
@@ -1103,6 +1105,10 @@ function isKnownBotName(name, level) {
 	
 	const parsedLevel = typeof level === "number" ? level : parseInt(level);
 	if (!isNaN(parsedLevel)) {
+		if (parsedLevel === 1 && lunAutoBannedLevel1s.has(lowerName)) {
+			return true;
+		}
+
 		if (parsedLevel <= 2) {
 			if (/^[Il]{6,10}[0-9]{2}$/.test(normalizedName)) return true;
 			if (/^[O0]{6,10}[0-9]{2}$/.test(normalizedName)) return true;
@@ -4173,8 +4179,9 @@ function findBotsRadar(auto = false) {
 	
 	let addedCount = 0;
 	suspiciousBots.forEach(b => {
-		if (typeof lunKnownBotNames !== "undefined" && !lunKnownBotNames.includes(b.name)) {
-			lunKnownBotNames.push(b.name);
+		const lowerName = (b.name || "").trim().toLowerCase();
+		if (lowerName && typeof lunAutoBannedLevel1s !== "undefined" && !lunAutoBannedLevel1s.has(lowerName)) {
+			lunAutoBannedLevel1s.add(lowerName);
 			addedCount++;
 		}
 	});
