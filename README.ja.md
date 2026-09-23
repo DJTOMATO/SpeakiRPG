@@ -38,6 +38,8 @@
 * **ワールドマップの実装:** マップ毎の位置関係を確認できます
 
 <img width="564" height="534" alt="image" src="https://github.com/user-attachments/assets/b4bf5c88-017e-49d5-8f75-109961c838c8" />
+* **カスタムチャット絵文字**: お気に入りのDiscordスタイルの絵文字を使える、インタラクティブな絵文字ピッカー機能（大きなホバープレビュー付き）
+
 
 <h2 id="2-additional-features">2. 追加機能</h2>
 
