@@ -4159,8 +4159,9 @@ function findBotsRadar(auto = false) {
 			if (dist < 5.0) nearbyLv1s++;
 		}
 		
-		// Only flag them if they are clustered with AT LEAST 1 other level 1 player
-		if (nearbyLv1s >= 1) {
+		// Only flag them if they are in a massive swarm (AT LEAST 4 other level 1 players within 5 meters)
+		// This prevents false positives when 2 or 3 real new players happen to spawn at the same time.
+		if (nearbyLv1s >= 4) {
 			const id = parseInt(p.info?.playerId) || 0;
 			suspiciousBots.push({
 				name: p.info?.name,
