@@ -3865,10 +3865,11 @@ fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/emoj
     txt.split("\n").forEach(l => {
         const line = l.trim();
         if (!line) return;
-        const httpIdx = line.indexOf("http");
-        if (httpIdx > 0) {
-            const name = line.substring(0, httpIdx).replace(/:/g, "").trim();
-            const url = line.substring(httpIdx).trim();
+        // Uses comma separator format: name,url
+        const parts = line.split(",");
+        if (parts.length >= 2) {
+            const name = parts[0].replace(/:/g, "").trim();
+            const url = parts.slice(1).join(",").trim();
             if (name && url) {
                 lunCustomEmojis[name] = url;
             }
