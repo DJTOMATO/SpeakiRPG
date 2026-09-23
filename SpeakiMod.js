@@ -716,6 +716,7 @@ function setTranslateTarget(target) {
 	if (window.localStorage) localStorage.setItem("spkmod-translate-target", target);
 }
 var lunTranslateEmail = (window.localStorage && localStorage.getItem("spkmod-translate-email")) || "";
+var lunMyMemoryQuotaHit = window.localStorage && localStorage.getItem("spkmod-mymemory-quota") === new Date().toDateString();
 function setTranslateEmail(email) {
 	lunTranslateEmail = (email || "").trim();
 	if (window.localStorage) localStorage.setItem("spkmod-translate-email", lunTranslateEmail);
@@ -5466,27 +5467,33 @@ async function translateChatText(text, source, target) {
 			let useFallback = false;
 
 			// Primary API: MyMemory
-			try {
-				const params = new URLSearchParams({ q: text, langpair: `${source}|${target}` });
-				if (lunTranslateEmail) params.set("de", lunTranslateEmail);
-				if (window.localStorage && localStorage.getItem("spkmod-translate-email")) params.set("de", localStorage.getItem("spkmod-translate-email"));
-				
-				const res = await fetch(`https://api.mymemory.translated.net/get?${params}`);
-				if (!res.ok) {
-					useFallback = true;
-					apiStatus = res.status;
-				} else {
-					const data = await res.json();
-					if (res.status === 429 || data?.responseStatus === 429 || data?.responseStatus === 403) {
-						useFallback = true;
-						apiStatus = 429;
-					} else {
-						translated = cleanTranslatedText(data?.responseData?.translatedText);
-						if (!translated || data.responseStatus !== 200) useFallback = true;
-					}
-				}
-			} catch (err) {
+			if (typeof lunMyMemoryQuotaHit !== "undefined" && lunMyMemoryQuotaHit) {
 				useFallback = true;
+			} else {
+				try {
+					const params = new URLSearchParams({ q: text, langpair: `${source}|${target}` });
+					if (lunTranslateEmail) params.set("de", lunTranslateEmail);
+					if (window.localStorage && localStorage.getItem("spkmod-translate-email")) params.set("de", localStorage.getItem("spkmod-translate-email"));
+					
+					const res = await fetch(`https://api.mymemory.translated.net/get?${params}`);
+					if (!res.ok) {
+						useFallback = true;
+						apiStatus = res.status;
+					} else {
+						const data = await res.json();
+						if (res.status === 429 || data?.responseStatus === 429 || data?.responseStatus === 403) {
+							useFallback = true;
+							apiStatus = 429;
+							lunMyMemoryQuotaHit = true;
+							if (window.localStorage) localStorage.setItem("spkmod-mymemory-quota", new Date().toDateString());
+						} else {
+							translated = cleanTranslatedText(data?.responseData?.translatedText);
+							if (!translated || data.responseStatus !== 200) useFallback = true;
+						}
+					}
+				} catch (err) {
+					useFallback = true;
+				}
 			}
 
 			// Fallback API: Google Translate
