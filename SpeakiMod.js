@@ -2222,8 +2222,6 @@ function updateDynamicStyles() {
 		}
 		.spkmod-panel-btn:hover { background: rgba(255,255,255,0.1) !important; }
 		.spkmod-custom-emoji { position: relative; display: inline-block; cursor: pointer; }
-		.spkmod-custom-emoji-preview { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); max-height: 250px; max-width: 250px; z-index: 9999999; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.8); pointer-events: none; border: 2px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.8); margin-bottom: 5px; }
-		.spkmod-custom-emoji:hover .spkmod-custom-emoji-preview { display: block; }
 	`;
 	if (!document.getElementById("spkmod-dynamic-styles")) {
 		document.head.appendChild(styleTag);
@@ -7128,7 +7126,7 @@ function hookGameStateOnce() {
 						for (const [ename, eurl] of Object.entries(lunCustomEmojis)) {
 							const tag = ":" + ename + ":";
 							if (html.includes(tag)) {
-								html = html.split(tag).join(`<span class="spkmod-custom-emoji" title="${tag}"><img src="${eurl}" style="height: 1.6em; vertical-align: middle; padding: 0 1px; display: inline-block;"><img src="${eurl}" class="spkmod-custom-emoji-preview"></span>`);
+								html = html.split(tag).join(`<span class="spkmod-custom-emoji" data-url="${eurl}" title="${tag}"><img src="${eurl}" style="height: 1.6em; vertical-align: middle; padding: 0 1px; display: inline-block;"></span>`);
 								changed = true;
 							}
 						}
@@ -7203,7 +7201,7 @@ function appendColoredChatLine(id, name, text) {
 			for (const [ename, eurl] of Object.entries(lunCustomEmojis)) {
 				const tag = ":" + ename + ":";
 				if (html.includes(tag)) {
-					html = html.split(tag).join(`<span class="spkmod-custom-emoji" title="${tag}"><img src="${eurl}" style="height: 1.6em; vertical-align: middle; padding: 0 1px; display: inline-block;"><img src="${eurl}" class="spkmod-custom-emoji-preview"></span>`);
+					html = html.split(tag).join(`<span class="spkmod-custom-emoji" data-url="${eurl}" title="${tag}"><img src="${eurl}" style="height: 1.6em; vertical-align: middle; padding: 0 1px; display: inline-block;"></span>`);
 					changed = true;
 				}
 			}
@@ -7778,6 +7776,41 @@ window.addEventListener("keydown", e => {
 		}
 	}
 });
+
+
+// Global hover preview for custom emojis (avoids chatbox overflow clipping)
+let lunEmojiPreviewTooltip = null;
+function ensureEmojiTooltip() {
+	if (lunEmojiPreviewTooltip) return;
+	lunEmojiPreviewTooltip = document.createElement("img");
+	lunEmojiPreviewTooltip.id = "spkmod-global-emoji-preview";
+	lunEmojiPreviewTooltip.style.cssText = "display: none; position: fixed; max-height: 250px; max-width: 250px; z-index: 9999999; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.8); pointer-events: none; border: 2px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.8);";
+	document.body.appendChild(lunEmojiPreviewTooltip);
+
+	document.addEventListener("mouseover", (e) => {
+		const target = e.target.closest('.spkmod-custom-emoji');
+		if (target) {
+			const url = target.getAttribute("data-url");
+			if (!url) return;
+			lunEmojiPreviewTooltip.src = url;
+			lunEmojiPreviewTooltip.style.display = "block";
+			
+			const rect = target.getBoundingClientRect();
+			// Position above the emoji
+			lunEmojiPreviewTooltip.style.bottom = (window.innerHeight - rect.top + 10) + "px";
+			lunEmojiPreviewTooltip.style.left = (rect.left + rect.width / 2) + "px";
+			lunEmojiPreviewTooltip.style.transform = "translateX(-50%)";
+		}
+	});
+
+	document.addEventListener("mouseout", (e) => {
+		const target = e.target.closest('.spkmod-custom-emoji');
+		if (target) {
+			lunEmojiPreviewTooltip.style.display = "none";
+		}
+	});
+}
+ensureEmojiTooltip();
 
 const SPKMOD_ACCOUNTS_KEY = "spkmod-saved-accounts";
 const SPKMOD_DISMISS_KEY = "spkmod-dismiss-ql-prompt";
