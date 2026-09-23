@@ -2221,6 +2221,9 @@ function updateDynamicStyles() {
 			text-shadow: 1px 1px 2px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.8) !important;
 		}
 		.spkmod-panel-btn:hover { background: rgba(255,255,255,0.1) !important; }
+		.spkmod-custom-emoji { position: relative; display: inline-block; cursor: pointer; }
+		.spkmod-custom-emoji-preview { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); max-height: 250px; max-width: 250px; z-index: 9999999; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.8); pointer-events: none; border: 2px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.8); margin-bottom: 5px; }
+		.spkmod-custom-emoji:hover .spkmod-custom-emoji-preview { display: block; }
 	`;
 	if (!document.getElementById("spkmod-dynamic-styles")) {
 		document.head.appendChild(styleTag);
@@ -7125,7 +7128,7 @@ function hookGameStateOnce() {
 						for (const [ename, eurl] of Object.entries(lunCustomEmojis)) {
 							const tag = ":" + ename + ":";
 							if (html.includes(tag)) {
-								html = html.split(tag).join(`<img src="${eurl}" title="${tag}" style="height: 1.6em; vertical-align: middle; padding: 0 1px; display: inline-block;">`);
+								html = html.split(tag).join(`<span class="spkmod-custom-emoji" title="${tag}"><img src="${eurl}" style="height: 1.6em; vertical-align: middle; padding: 0 1px; display: inline-block;"><img src="${eurl}" class="spkmod-custom-emoji-preview"></span>`);
 								changed = true;
 							}
 						}
@@ -7200,7 +7203,7 @@ function appendColoredChatLine(id, name, text) {
 			for (const [ename, eurl] of Object.entries(lunCustomEmojis)) {
 				const tag = ":" + ename + ":";
 				if (html.includes(tag)) {
-					html = html.split(tag).join(`<img src="${eurl}" title="${tag}" style="height: 1.6em; vertical-align: middle; padding: 0 1px; display: inline-block;">`);
+					html = html.split(tag).join(`<span class="spkmod-custom-emoji" title="${tag}"><img src="${eurl}" style="height: 1.6em; vertical-align: middle; padding: 0 1px; display: inline-block;"><img src="${eurl}" class="spkmod-custom-emoji-preview"></span>`);
 					changed = true;
 				}
 			}
