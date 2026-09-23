@@ -3993,10 +3993,12 @@ function hookChatEmojiButton() {
         btn.id = "spkmod-emoji-btn";
         btn.innerText = "😀";
         btn.title = "Emojis";
-        btn.style.cssText = "position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: transparent; border: none; cursor: pointer; z-index: 100; font-size: 16px; display: flex; align-items: center; justify-content: center; filter: grayscale(100%); transition: filter 0.2s;";
+        btn.style.cssText = "position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: transparent; border: none; cursor: pointer; z-index: 9999; font-size: 16px; display: flex; align-items: center; justify-content: center; filter: grayscale(100%); transition: filter 0.2s; pointer-events: auto; user-select: none;";
+        btn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); }; // Prevent input from stealing focus
         btn.onmouseenter = () => btn.style.filter = "none";
         btn.onmouseleave = () => btn.style.filter = "grayscale(100%)";
         btn.onclick = (e) => {
+            e.preventDefault();
             e.stopPropagation();
             toggleEmojiPicker(btn);
         };
