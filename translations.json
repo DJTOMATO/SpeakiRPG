@@ -352,7 +352,7 @@
     "hideVerboseChatToggleLabel": "Hide Mod Chat Messages",
     "hkDescDroneSpeedUp": "Drone Mode: Speed Up",
     "hkDescDroneSpeedDown": "Drone Mode: Speed Down",
-    "turntableHalf": "Camera Pan: 半",
+    "turntableHalf": "Camera Pan: 🔄",
     "turntableHalfMsg": "Camera half-rotation activated!",
     "statsSpkCoinGained": "Speaki Coin Gained"
   },

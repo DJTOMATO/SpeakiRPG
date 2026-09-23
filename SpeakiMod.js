@@ -3862,16 +3862,20 @@ let lunEmojiFreq = JSON.parse((window.localStorage && localStorage.getItem("spkm
 // Custom Emojis (Fetched from GitHub)
 var lunCustomEmojis = {};
 fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/emojis.txt").then(res => res.text()).then(txt => {
-    txt.split("\n").forEach(line => {
-        const parts = line.split(":");
-        if (parts.length >= 2) {
-            lunCustomEmojis[parts[0].trim()] = parts.slice(1).join(":").trim();
+    txt.split("\n").forEach(l => {
+        const line = l.trim();
+        if (!line) return;
+        const httpIdx = line.indexOf("http");
+        if (httpIdx > 0) {
+            const name = line.substring(0, httpIdx).replace(/:/g, "").trim();
+            const url = line.substring(httpIdx).trim();
+            if (name && url) {
+                lunCustomEmojis[name] = url;
+            }
         }
     });
 }).catch(err => {
     console.warn("[SpeakiMod+] Failed to load custom emojis:", err);
-    // Add a default test emoji so the feature can be tested even if the repo doesn't exist yet
-    lunCustomEmojis["test"] = "https://cdn.discordapp.com/emojis/1545980359064297472.webp?size=128";
 });
 
 function getSortedEmojis() {
