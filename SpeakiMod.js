@@ -5628,14 +5628,16 @@ async function translateChatText(text, source, target) {
 	let safeText = text;
 	const tokenMap = {};
 	let tIdx = 0;
-	if (typeof lunCustomEmojis !== "undefined") {
-		for (const ename of Object.keys(lunCustomEmojis)) {
-			const tag = ":" + ename + ":";
-			if (safeText.includes(tag)) {
-				const tkn = ` [E${tIdx++}] `;
-				tokenMap[tkn.trim()] = tag;
-				safeText = safeText.split(tag).join(tkn);
-			}
+	
+	// Protect ALL :emoji_name: patterns from translation, regardless of whether they are in the dictionary yet
+	const emojiRegex = /:[a-zA-Z0-9_]+:/g;
+	const matches = safeText.match(emojiRegex);
+	if (matches) {
+		const uniqueTags = [...new Set(matches)];
+		for (const tag of uniqueTags) {
+			const tkn = ` __E${tIdx++}__ `;
+			tokenMap[tkn.trim()] = tag;
+			safeText = safeText.split(tag).join(tkn);
 		}
 	}
 
