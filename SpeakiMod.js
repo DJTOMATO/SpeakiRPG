@@ -3960,6 +3960,8 @@ function renderEmojiGrid() {
         Object.entries(lunCustomEmojis).forEach(([name, url]) => {
             const btn = document.createElement("button");
             btn.title = `:${name}:`;
+            btn.className = "spkmod-custom-emoji";
+            btn.setAttribute("data-url", url);
             btn.style.cssText = "width: 32px; height: 32px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; padding: 2px;";
             btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
             btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
