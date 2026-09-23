@@ -3886,19 +3886,25 @@ function toggleEmojiPicker(anchorBtn) {
     }
     
     lunEmojiPickerPanel = document.createElement("div");
-    lunEmojiPickerPanel.style.cssText = "position: absolute; bottom: 35px; right: 0px; width: 230px; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5);";
+    lunEmojiPickerPanel.style.cssText = "position: absolute; bottom: 35px; right: 0px; width: 230px; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;";
     
+    // Prevent clicks inside the panel from stealing chat input focus (which breaks cursor position)
+    lunEmojiPickerPanel.onmousedown = (e) => { e.preventDefault(); };
+
     renderEmojiGrid();
     anchorBtn.parentElement.appendChild(lunEmojiPickerPanel);
     
     const closeHandler = (e) => {
-        if (lunEmojiPickerPanel && !lunEmojiPickerPanel.contains(e.target) && e.target !== anchorBtn) {
+        if (!lunEmojiPickerPanel) return;
+        const path = e.composedPath ? e.composedPath() : [];
+        const isInside = path.includes(lunEmojiPickerPanel) || path.includes(anchorBtn);
+        if (!isInside) {
             lunEmojiPickerPanel.remove();
             lunEmojiPickerPanel = null;
-            document.removeEventListener("click", closeHandler);
+            document.removeEventListener("mousedown", closeHandler);
         }
     };
-    setTimeout(() => document.addEventListener("click", closeHandler), 10);
+    setTimeout(() => document.addEventListener("mousedown", closeHandler), 10);
 }
 
 function renderEmojiGrid() {
@@ -3969,18 +3975,23 @@ function renderEmojiGrid() {
 }
 
 function insertEmojiIntoChat(emoji) {
-    const chatInput = document.querySelector(".sr-chatbox input, input[placeholder*='chat']");
+    const chatInput = document.querySelector(".sr-chatbox__input, .sr-chatbox input, input[placeholder*='chat']");
     if (!chatInput) return;
     
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
-    if (nativeInputValueSetter) {
-        nativeInputValueSetter.call(chatInput, chatInput.value + emoji);
-        chatInput.dispatchEvent(new Event('input', { bubbles: true }));
-    } else {
-        chatInput.value += emoji;
-        chatInput.dispatchEvent(new Event('input', { bubbles: true }));
-    }
     chatInput.focus();
+    // Try the bulletproof document.execCommand which forces React native event handlers to fire
+    if (!document.execCommand('insertText', false, emoji)) {
+        // Fallback to setter if execCommand fails
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+        if (nativeInputValueSetter) {
+            nativeInputValueSetter.call(chatInput, chatInput.value + emoji);
+            chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+            chatInput.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
+            chatInput.value += emoji;
+            chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
 }
 
 function hookChatEmojiButton() {
