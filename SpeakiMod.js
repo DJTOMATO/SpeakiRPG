@@ -5624,24 +5624,13 @@ async function translateChatText(text, source, target) {
 	if (!text || !text.trim() || source === target) return null;
 	if (text.length > lunTranslateMaxLen) text = text.slice(0, lunTranslateMaxLen);
 
-	// Protect Custom Emojis from translation API by swapping them with safe tokens
-	let safeText = text;
-	const tokenMap = {};
-	let tIdx = 0;
+	// Strip all :emoji_name: patterns completely from translation input
+	let safeText = text.replace(/:[a-zA-Z0-9_]+:/g, '').trim().replace(/\s+/g, " ");
 	
-	// Protect ALL :emoji_name: patterns from translation, regardless of whether they are in the dictionary yet
-	const emojiRegex = /:[a-zA-Z0-9_]+:/g;
-	const matches = safeText.match(emojiRegex);
-	if (matches) {
-		const uniqueTags = [...new Set(matches)];
-		for (const tag of uniqueTags) {
-			const tkn = ` __E${tIdx++}__ `;
-			tokenMap[tkn.trim()] = tag;
-			safeText = safeText.split(tag).join(tkn);
-		}
-	}
+	// If the message was entirely composed of emojis (or left empty), don't translate it
+	if (!safeText) return null;
 
-	const normalized = safeText.trim().toLowerCase().replace(/\s+/g, " ");
+	const normalized = safeText.toLowerCase();
 	const cacheKey = `${source}|${target}:${normalized}`;
 	if (lunTranslateCache.has(cacheKey)) return lunTranslateCache.get(cacheKey);
 
@@ -5715,13 +5704,8 @@ async function translateChatText(text, source, target) {
 				return null;
 			}
 
-			// Restore tokens
-			for (const [tkn, tag] of Object.entries(tokenMap)) {
-				// Also handle potential whitespace stripping by APIs
-				translated = translated.replace(new RegExp(tkn.trim(), "gi"), tag);
-			}
-
-			if (translated.trim().toLowerCase() === text.trim().toLowerCase()) return null;
+			// Check against the stripped text, so it doesn't just re-translate identical text
+			if (translated.trim().toLowerCase() === safeText.toLowerCase()) return null;
 
 			lunTranslateCache.set(cacheKey, translated);
 			return translated;
