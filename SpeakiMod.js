@@ -5461,22 +5461,64 @@ async function translateChatText(text, source, target) {
 		lunTranslateLastAt = Date.now();
 
 		try {
-			const params = new URLSearchParams({ q: text, langpair: `${source}|${target}` });
-			if (lunTranslateEmail) params.set("de", lunTranslateEmail);
+			let translated = null;
+			let apiStatus = 200;
+			let useFallback = false;
+
+			// Primary API: MyMemory
+			try {
+				const params = new URLSearchParams({ q: text, langpair: `${source}|${target}` });
+				if (lunTranslateEmail) params.set("de", lunTranslateEmail);
 				if (window.localStorage && localStorage.getItem("spkmod-translate-email")) params.set("de", localStorage.getItem("spkmod-translate-email"));
-			const res = await fetch(`https://api.mymemory.translated.net/get?${params}`);
-			if (!res.ok) {
-				console.warn(`[SpeakiMod+] Translation HTTP ${res.status}`);
+				
+				const res = await fetch(`https://api.mymemory.translated.net/get?${params}`);
+				if (!res.ok) {
+					useFallback = true;
+					apiStatus = res.status;
+				} else {
+					const data = await res.json();
+					if (res.status === 429 || data?.responseStatus === 429 || data?.responseStatus === 403) {
+						useFallback = true;
+						apiStatus = 429;
+					} else {
+						translated = cleanTranslatedText(data?.responseData?.translatedText);
+						if (!translated || data.responseStatus !== 200) useFallback = true;
+					}
+				}
+			} catch (err) {
+				useFallback = true;
+			}
+
+			// Fallback API: Google Translate
+			if (useFallback) {
+				try {
+					const gtUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${source}&tl=${target}&dt=t&q=${encodeURIComponent(text)}`;
+					const gtRes = await fetch(gtUrl);
+					if (gtRes.ok) {
+						const gtData = await gtRes.json();
+						if (gtData && gtData[0]) {
+							translated = "";
+							for (let i = 0; i < gtData[0].length; i++) {
+								if (gtData[0][i][0]) translated += gtData[0][i][0];
+							}
+							translated = cleanTranslatedText(translated);
+						}
+					} else {
+						apiStatus = gtRes.status;
+					}
+				} catch (err) {
+					console.warn("[SpeakiMod+] Google Translate fallback error:", err);
+				}
+			}
+
+			if (!translated) {
+				if (apiStatus === 429) {
+					setTranslateEnabled(false);
+					chatLog(t("translateQuotaHitMsg"));
+				}
 				return null;
 			}
-			const data = await res.json();
-			if (res.status === 429 || data?.responseStatus === 429) {
-				setTranslateEnabled(false);
-				chatLog(t("translateQuotaHitMsg"));
-				return null;
-			}
-			let translated = cleanTranslatedText(data?.responseData?.translatedText);
-			if (!translated || data.responseStatus !== 200) return null;
+
 			if (translated.trim().toLowerCase() === text.trim().toLowerCase()) return null;
 
 			lunTranslateCache.set(cacheKey, translated);
