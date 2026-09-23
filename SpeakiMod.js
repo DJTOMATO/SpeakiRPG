@@ -3861,7 +3861,7 @@ let lunEmojiFreq = JSON.parse((window.localStorage && localStorage.getItem("spkm
 
 // Custom Emojis (Fetched from GitHub)
 var lunCustomEmojis = {};
-fetch("https://raw.githubusercontent.com/Glas/emojis/main/emojis.txt").then(res => res.text()).then(txt => {
+fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/emojis.txt").then(res => res.text()).then(txt => {
     txt.split("\n").forEach(line => {
         const parts = line.split(":");
         if (parts.length >= 2) {
