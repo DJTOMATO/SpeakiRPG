@@ -87,6 +87,4 @@ str,https://i.imgur.com/ju2CWkZ.png
 sur,https://i.imgur.com/40cLsyI.png
 tv,https://i.imgur.com/vLDWXNd.png
 weh,https://i.imgur.com/a9XC7RT.png
-zoom,https://i.imgur.com/9pNwLUn.png
-zoom2,https://i.imgur.com/exXhlZL.png
 zoom3,https://i.imgur.com/3P7VcLT.png
