@@ -3852,6 +3852,100 @@ setTimeout(() => {
 	}
 }, 500);
 
+
+// --- EMOJI PICKER ---
+let lunEmojiPickerPanel = null;
+const LUN_EMOJIS = ["👍","👎","👋","🙏","👏","🙌","🤝","😊","😂","🤣","😍","😎","🤔","😅","😭","🥺","🔥","💯","❤️","✨","🎉","💀","👀","🗣️","💰","💎","🟣","⭐","❌","✅", "💪", "🤷", "🤦", "🎈", "🎂", "🥳", "🙄", "🤐", "🥵", "🥶", "🤯", "😴", "🤮", "🤡", "👻", "👽", "💩", "🤖"];
+let lunEmojiFreq = JSON.parse((window.localStorage && localStorage.getItem("spkmod-emoji-freq")) || "{}");
+
+function getSortedEmojis() {
+    return [...LUN_EMOJIS].sort((a,b) => (lunEmojiFreq[b]||0) - (lunEmojiFreq[a]||0));
+}
+
+function toggleEmojiPicker(anchorBtn) {
+    if (lunEmojiPickerPanel) {
+        lunEmojiPickerPanel.remove();
+        lunEmojiPickerPanel = null;
+        return;
+    }
+    
+    lunEmojiPickerPanel = document.createElement("div");
+    lunEmojiPickerPanel.style.cssText = "position: absolute; bottom: 35px; right: 0px; width: 220px; max-height: 160px; overflow-y: auto; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-wrap: wrap; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5);";
+    
+    renderEmojiGrid();
+    anchorBtn.parentElement.appendChild(lunEmojiPickerPanel);
+    
+    // Close when clicking outside
+    const closeHandler = (e) => {
+        if (lunEmojiPickerPanel && !lunEmojiPickerPanel.contains(e.target) && e.target !== anchorBtn) {
+            lunEmojiPickerPanel.remove();
+            lunEmojiPickerPanel = null;
+            document.removeEventListener("click", closeHandler);
+        }
+    };
+    setTimeout(() => document.addEventListener("click", closeHandler), 10);
+}
+
+function renderEmojiGrid() {
+    if (!lunEmojiPickerPanel) return;
+    lunEmojiPickerPanel.innerHTML = "";
+    const sorted = getSortedEmojis();
+    
+    sorted.forEach(emoji => {
+        const btn = document.createElement("button");
+        btn.innerText = emoji;
+        btn.style.cssText = "width: 28px; height: 28px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: background 0.1s;";
+        btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
+        btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            lunEmojiFreq[emoji] = (lunEmojiFreq[emoji]||0) + 1;
+            if (window.localStorage) localStorage.setItem("spkmod-emoji-freq", JSON.stringify(lunEmojiFreq));
+            renderEmojiGrid();
+            insertEmojiIntoChat(emoji);
+        };
+        lunEmojiPickerPanel.appendChild(btn);
+    });
+}
+
+function insertEmojiIntoChat(emoji) {
+    const chatInput = document.querySelector(".sr-chatbox input, input[placeholder*='chat']");
+    if (!chatInput) return;
+    
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+    if (nativeInputValueSetter) {
+        nativeInputValueSetter.call(chatInput, chatInput.value + emoji);
+        chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+    } else {
+        chatInput.value += emoji;
+        chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    chatInput.focus();
+}
+
+function hookChatEmojiButton() {
+    const chatInput = document.querySelector(".sr-chatbox input, input[placeholder*='chat']");
+    if (!chatInput) return;
+    const container = chatInput.parentElement;
+    
+    if (!document.getElementById("spkmod-emoji-btn")) {
+        const btn = document.createElement("button");
+        btn.id = "spkmod-emoji-btn";
+        btn.innerText = "😀";
+        btn.title = "Emojis";
+        btn.style.cssText = "position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: transparent; border: none; cursor: pointer; z-index: 100; font-size: 16px; display: flex; align-items: center; justify-content: center; filter: grayscale(100%); transition: filter 0.2s;";
+        btn.onmouseenter = () => btn.style.filter = "none";
+        btn.onmouseleave = () => btn.style.filter = "grayscale(100%)";
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            toggleEmojiPicker(btn);
+        };
+        container.style.position = "relative";
+        container.appendChild(btn);
+        
+        chatInput.style.paddingRight = "30px";
+    }
+}
 const lunJumpAnimMs = 500;
 
 function autoJumpLoop() {
@@ -6085,6 +6179,9 @@ function tick() {
 
 	if (lunTickCount % 20 === 0 && typeof hookPartyTargetElement === "function") {
 		hookPartyTargetElement();
+	}
+	if (lunTickCount % 20 === 0 && typeof hookChatEmojiButton === "function") {
+		hookChatEmojiButton();
 	}
 
 	if (lunTickCount % (lunTPS * 5) === 0 && typeof findBotsRadar === "function") {
