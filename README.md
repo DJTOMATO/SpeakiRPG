@@ -43,6 +43,7 @@
 
 * **World Map UI**: See exactly where you are and where you want to go
 * **Custom Chat Emojis**: A fully interactive custom emoji picker panel with huge hover previews for your favorite Discord-style chat emotes.
+<img width="707" height="357" alt="image" src="https://github.com/user-attachments/assets/e07bbae1-835d-4eab-9d18-2706d3a5e233" />
 
 <h2 id="2-additional-features">2. Additional Features</h2>
 
