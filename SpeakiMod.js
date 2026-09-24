@@ -2679,7 +2679,7 @@ document.body.appendChild(
 				innerText: t("nextLevelNA")
 			}),
 			lunHudElements.currencyTracker = buildElement("span", {
-				innerText: t("currencyTracker", "--", "--"),
+				innerText: t("currencyTracker", "--", "--", "--"),
 				style: lunCurrencyTrackerEnabled ? "" : "display: none;"
 			}),
 			lunHudElements.sessionGoldTracker = buildElement("span", {
@@ -3922,12 +3922,12 @@ function renderEmojiGrid() {
     header.style.cssText = "display: flex; gap: 4px; margin-bottom: 4px; border-bottom: 1px solid #444; padding-bottom: 4px;";
     
     const btnStd = document.createElement("button");
-    btnStd.innerText = "😀 Standard";
+    btnStd.innerText = "😀 " + t("emojiTabStandard", "Standard");
     btnStd.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'standard' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
     btnStd.onclick = (e) => { e.stopPropagation(); lunEmojiTab = 'standard'; renderEmojiGrid(); };
     
     const btnCus = document.createElement("button");
-    btnCus.innerText = "⭐ Custom";
+    btnCus.innerText = "⭐ " + t("emojiTabCustom", "Custom");
     btnCus.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'custom' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
     btnCus.onclick = (e) => { e.stopPropagation(); lunEmojiTab = 'custom'; renderEmojiGrid(); };
     
@@ -6125,8 +6125,8 @@ spkmodI18nRenderers.push(() => {
 	if (typeof updateHudBgDropdown === 'function') updateHudBgDropdown();
 
 	setText(lunHudElements.currencyTracker, lunLastGold === null
-		? t("currencyTracker", "--", "--")
-		: t("currencyTracker", lunLastGold.toLocaleString(), lunLastElif.toLocaleString()));
+		? t("currencyTracker", "--", "--", "--")
+		: t("currencyTracker", lunLastGold.toLocaleString(), lunLastElif.toLocaleString(), typeof lunLastSpkCoin !== 'undefined' && lunLastSpkCoin !== null ? lunLastSpkCoin.toLocaleString() : "--"));
 	setText(lunHudElements.sessionGoldTracker, t("sessionGoldText", "--", "--"));
 	if (!lunPinnedQuestId) setText(lunHudElements.pinnedQuest.content, t("pinnedQuestDefault"));
 

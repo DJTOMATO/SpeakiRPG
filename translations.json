@@ -354,7 +354,9 @@
     "hkDescDroneSpeedDown": "Drone Mode: Speed Down",
     "turntableHalf": "Camera Pan: 🔄",
     "turntableHalfMsg": "Camera half-rotation activated!",
-    "statsSpkCoinGained": "Speaki Coin Gained"
+    "statsSpkCoinGained": "Speaki Coin Gained",
+    "emojiTabStandard": "Standard",
+    "emojiTabCustom": "Custom"
   },
   "ja": {
     "langName": "日本語",
@@ -711,7 +713,9 @@
     "hkDescDroneSpeedDown": "ドローンモード: 速度ダウン",
     "turntableHalf": "カメラを回転: 半",
     "turntableHalfMsg": "カメラ半回転をオンにしました！",
-    "statsSpkCoinGained": "獲得したスピーキコイン"
+    "statsSpkCoinGained": "獲得したスピーキコイン",
+    "emojiTabStandard": "標準",
+    "emojiTabCustom": "カスタム"
   },
   "ko": {
     "langName": "한국어",
@@ -1068,7 +1072,9 @@
     "hkDescDroneSpeedDown": "드론 모드: 속도 감소",
     "turntableHalf": "카메라 회전: 반",
     "turntableHalfMsg": "카메라 반회전을 켰습니다!",
-    "statsSpkCoinGained": "스피키 코인 획득량"
+    "statsSpkCoinGained": "스피키 코인 획득량",
+    "emojiTabStandard": "기본",
+    "emojiTabCustom": "커스텀"
   },
   "zh-TW": {
     "langName": "繁體中文",
@@ -1425,7 +1431,9 @@
     "hkDescDroneSpeedDown": "無人機模式: 減速",
     "turntableHalf": "旋轉相機: 半",
     "turntableHalfMsg": "相機半旋轉已開啟！",
-    "statsSpkCoinGained": "获得的Speaki硬币"
+    "statsSpkCoinGained": "获得的Speaki硬币",
+    "emojiTabStandard": "Standard",
+    "emojiTabCustom": "Custom"
   },
   "es-419": {
     "langName": "Español",
@@ -1782,7 +1790,9 @@
     "hkDescDroneSpeedDown": "Modo Dron: Decelerar",
     "turntableHalf": "Girar Cámara: Medio",
     "turntableHalfMsg": "¡Medio giro de cámara activado!",
-    "statsSpkCoinGained": "Moneda Speaki Obtenida"
+    "statsSpkCoinGained": "Moneda Speaki Obtenida",
+    "emojiTabStandard": "Standard",
+    "emojiTabCustom": "Custom"
   },
   "zh-CN": {
     "langName": "简体中文",
@@ -2139,6 +2149,8 @@
     "hkDescDroneSpeedDown": "无人机模式: 减速",
     "turntableHalf": "旋转相机: 半",
     "turntableHalfMsg": "相机半旋转已开启！",
-    "statsSpkCoinGained": "获得的Speaki硬币"
+    "statsSpkCoinGained": "获得的Speaki硬币",
+    "emojiTabStandard": "Standard",
+    "emojiTabCustom": "Custom"
   }
 }
