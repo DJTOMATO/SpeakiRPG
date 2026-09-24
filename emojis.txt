@@ -84,3 +84,4 @@ sur,https://i.imgur.com/40cLsyI.png
 tv,https://i.imgur.com/vLDWXNd.png
 weh,https://i.imgur.com/a9XC7RT.png
 sheepiki,https://i.imgur.com/ADZyOsX.png
+call,https://i.imgur.com/DQxprva.jpeg
