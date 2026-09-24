@@ -1,7 +1,6 @@
 beam,https://i.imgur.com/prgd47X.png
 cart,https://i.imgur.com/TPH3U8O.jpeg
 cart2,https://i.imgur.com/qQu3yOy.png
-scissorfi,https://i.imgur.com/q8OeHe4.png
 cart,https://i.imgur.com/3xf6FUm.png
 cry,https://i.imgur.com/zIV9VfA.png
 cry2,https://i.imgur.com/3qFoBOO.png
