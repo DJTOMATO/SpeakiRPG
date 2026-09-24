@@ -356,7 +356,9 @@
     "turntableHalfMsg": "Camera half-rotation activated!",
     "statsSpkCoinGained": "Speaki Coin Gained",
     "emojiTabStandard": "Standard",
-    "emojiTabCustom": "Custom"
+    "emojiTabCustom": "Custom",
+    "emojiCooldownWait": "Please wait {0}s before sending another emoji.",
+    "emojiCooldownStripped": "Emojis removed from message (on cooldown)."
   },
   "ja": {
     "langName": "日本語",
@@ -715,7 +717,9 @@
     "turntableHalfMsg": "カメラ半回転をオンにしました！",
     "statsSpkCoinGained": "獲得したスピーキコイン",
     "emojiTabStandard": "標準",
-    "emojiTabCustom": "カスタム"
+    "emojiTabCustom": "カスタム",
+    "emojiCooldownWait": "次の絵文字を送信するまで {0} 秒お待ちください。",
+    "emojiCooldownStripped": "クールダウン中のため、メッセージから絵文字が削除されました。"
   },
   "ko": {
     "langName": "한국어",
@@ -1074,7 +1078,9 @@
     "turntableHalfMsg": "카메라 반회전을 켰습니다!",
     "statsSpkCoinGained": "스피키 코인 획득량",
     "emojiTabStandard": "기본",
-    "emojiTabCustom": "커스텀"
+    "emojiTabCustom": "커스텀",
+    "emojiCooldownWait": "다음 이모티콘을 보내려면 {0}초 기다려주세요.",
+    "emojiCooldownStripped": "재사용 대기시간으로 인해 메시지에서 이모티콘이 제거되었습니다."
   },
   "zh-TW": {
     "langName": "繁體中文",
@@ -1433,7 +1439,9 @@
     "turntableHalfMsg": "相機半旋轉已開啟！",
     "statsSpkCoinGained": "获得的Speaki硬币",
     "emojiTabStandard": "Standard",
-    "emojiTabCustom": "Custom"
+    "emojiTabCustom": "Custom",
+    "emojiCooldownWait": "請等待 {0} 秒後再發送表情。",
+    "emojiCooldownStripped": "由於冷卻時間，已從訊息中移除表情。"
   },
   "es-419": {
     "langName": "Español",
@@ -1792,7 +1800,9 @@
     "turntableHalfMsg": "¡Medio giro de cámara activado!",
     "statsSpkCoinGained": "Moneda Speaki Obtenida",
     "emojiTabStandard": "Standard",
-    "emojiTabCustom": "Custom"
+    "emojiTabCustom": "Custom",
+    "emojiCooldownWait": "Por favor espera {0}s antes de enviar otro emoji.",
+    "emojiCooldownStripped": "Emojis eliminados del mensaje (en enfriamiento)."
   },
   "zh-CN": {
     "langName": "简体中文",
@@ -2151,6 +2161,8 @@
     "turntableHalfMsg": "相机半旋转已开启！",
     "statsSpkCoinGained": "获得的Speaki硬币",
     "emojiTabStandard": "Standard",
-    "emojiTabCustom": "Custom"
+    "emojiTabCustom": "Custom",
+    "emojiCooldownWait": "请等待 {0} 秒后再发送表情。",
+    "emojiCooldownStripped": "由于冷却时间，已从消息中移除表情。"
   }
 }

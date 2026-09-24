@@ -7814,6 +7814,114 @@ function ensureEmojiTooltip() {
 }
 ensureEmojiTooltip();
 
+// ==========================================
+// EMOJI COOLDOWN SYSTEM
+// ==========================================
+let lunLastEmojiSentTime = 0;
+let lunEmojiCdInterval = null;
+const lunEmojiCooldownMs = 20000;
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        const active = document.activeElement;
+        if (active && (active.classList.contains("sr-chatbox__input") || (active.placeholder && active.placeholder.toLowerCase().includes("chat")))) {
+            let val = active.value;
+            if (!val || typeof lunCustomEmojis === 'undefined') return;
+            
+            const emojiRegex = /:[a-zA-Z0-9_]+:/g;
+            const matches = val.match(emojiRegex);
+            if (!matches) return;
+            
+            let hasCustomEmoji = false;
+            for (const match of matches) {
+                const name = match.slice(1, -1);
+                if (lunCustomEmojis[name]) {
+                    hasCustomEmoji = true;
+                    break;
+                }
+            }
+            
+            if (hasCustomEmoji) {
+                const now = Date.now();
+                const elapsed = now - lunLastEmojiSentTime;
+                
+                if (elapsed < lunEmojiCooldownMs) {
+                    // Cooldown ACTIVE
+                    for (const name of Object.keys(lunCustomEmojis)) {
+                        val = val.split(`:${name}:`).join("");
+                    }
+                    val = val.replace(/\s+/g, " ").trim();
+                    
+                    if (val === "") {
+                        // Emoji only -> Block entirely
+                        e.stopPropagation();
+                        e.preventDefault();
+                        
+                        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+                        if (nativeSetter) {
+                            nativeSetter.call(active, "");
+                            active.dispatchEvent(new Event('input', { bubbles: true }));
+                        } else {
+                            active.value = "";
+                        }
+                        
+                        const remaining = Math.ceil((lunEmojiCooldownMs - elapsed) / 1000);
+                        chatLog(t("emojiCooldownWait", remaining));
+                        return; // Done
+                    } else {
+                        // Text + Emoji -> Strip emojis and send text
+                        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+                        if (nativeSetter) {
+                            nativeSetter.call(active, val);
+                            active.dispatchEvent(new Event('input', { bubbles: true }));
+                        } else {
+                            active.value = val;
+                        }
+                        chatLog(t("emojiCooldownStripped"));
+                    }
+                } else {
+                    // Cooldown INACTIVE -> Allow and start cooldown
+                    lunLastEmojiSentTime = now;
+                    startEmojiCooldownUI();
+                }
+            }
+        }
+    }
+}, true); // Use capture phase
+
+function startEmojiCooldownUI() {
+    if (lunEmojiCdInterval) clearInterval(lunEmojiCdInterval);
+    const chatInput = document.querySelector(".sr-chatbox__input, .sr-chatbox input, input[placeholder*='chat']");
+    const originalPlaceholder = chatInput ? chatInput.placeholder.split(" (")[0] : "Press Enter to chat";
+    const emojiBtn = document.getElementById("spkmod-emoji-btn");
+    
+    // Add badge
+    if (emojiBtn) {
+        let badge = document.getElementById("spkmod-emoji-btn-cd");
+        if (!badge) {
+            badge = document.createElement("div");
+            badge.id = "spkmod-emoji-btn-cd";
+            badge.style.cssText = "position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; font-size: 10px; width: 14px; height: 14px; display: flex; justify-content: center; align-items: center; font-weight: bold;";
+            emojiBtn.appendChild(badge);
+        }
+    }
+    
+    lunEmojiCdInterval = setInterval(() => {
+        const remaining = Math.ceil((lunEmojiCooldownMs - (Date.now() - lunLastEmojiSentTime)) / 1000);
+        if (remaining <= 0) {
+            clearInterval(lunEmojiCdInterval);
+            lunEmojiCdInterval = null;
+            if (chatInput) chatInput.placeholder = originalPlaceholder;
+            const badge = document.getElementById("spkmod-emoji-btn-cd");
+            if (badge) badge.remove();
+        } else {
+            if (chatInput) chatInput.placeholder = `${originalPlaceholder} (CD: ${remaining}s)`;
+            const badge = document.getElementById("spkmod-emoji-btn-cd");
+            if (badge) badge.innerText = remaining;
+        }
+    }, 500);
+}
+
 const SPKMOD_ACCOUNTS_KEY = "spkmod-saved-accounts";
 const SPKMOD_DISMISS_KEY = "spkmod-dismiss-ql-prompt";
 
