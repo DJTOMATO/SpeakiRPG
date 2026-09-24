@@ -85,3 +85,7 @@ weh,https://i.imgur.com/a9XC7RT.png
 sheepiki,https://i.imgur.com/ADZyOsX.png
 call,https://i.imgur.com/DQxprva.jpeg
 dt,https://i.imgur.com/JuUPmBL.png
+SPK_63,https://i.imgur.com/0orL75O.png
+SPK_64,https://i.imgur.com/FzOKBai.jpeg
+elena,https://i.imgur.com/91pUQBR.png
+SPK_65,https://i.imgur.com/pnw5EuJ.png
