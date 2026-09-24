@@ -358,7 +358,8 @@
     "emojiTabStandard": "Standard",
     "emojiTabCustom": "Custom",
     "emojiCooldownWait": "Please wait {0}s before sending another emoji.",
-    "emojiCooldownStripped": "Emojis removed from message (on cooldown)."
+    "emojiCooldownStripped": "Emojis removed from message (on cooldown).",
+    "emojiWarning": "⚠️ Please don’t abuse this feature, or you might get sent to the weekend farm."
   },
   "ja": {
     "langName": "日本語",
@@ -719,7 +720,8 @@
     "emojiTabStandard": "標準",
     "emojiTabCustom": "カスタム",
     "emojiCooldownWait": "次の絵文字を送信するまで {0} 秒お待ちください。",
-    "emojiCooldownStripped": "クールダウン中のため、メッセージから絵文字が削除されました。"
+    "emojiCooldownStripped": "クールダウン中のため、メッセージから絵文字が削除されました。",
+    "emojiWarning": "⚠️ この機能を悪用しないでください。週末農場送りにされるかもしれません。"
   },
   "ko": {
     "langName": "한국어",
@@ -1080,7 +1082,8 @@
     "emojiTabStandard": "기본",
     "emojiTabCustom": "커스텀",
     "emojiCooldownWait": "다음 이모티콘을 보내려면 {0}초 기다려주세요.",
-    "emojiCooldownStripped": "재사용 대기시간으로 인해 메시지에서 이모티콘이 제거되었습니다."
+    "emojiCooldownStripped": "재사용 대기시간으로 인해 메시지에서 이모티콘이 제거되었습니다.",
+    "emojiWarning": "⚠️ 이 기능을 악용하지 마세요. 주말 농장으로 보내질 수 있습니다."
   },
   "zh-TW": {
     "langName": "繁體中文",
@@ -1441,7 +1444,8 @@
     "emojiTabStandard": "Standard",
     "emojiTabCustom": "Custom",
     "emojiCooldownWait": "請等待 {0} 秒後再發送表情。",
-    "emojiCooldownStripped": "由於冷卻時間，已從訊息中移除表情。"
+    "emojiCooldownStripped": "由於冷卻時間，已從訊息中移除表情。",
+    "emojiWarning": "⚠️ 請勿濫用此功能，否則你可能會被送到週末農場。"
   },
   "es-419": {
     "langName": "Español",
@@ -1802,7 +1806,8 @@
     "emojiTabStandard": "Standard",
     "emojiTabCustom": "Custom",
     "emojiCooldownWait": "Por favor espera {0}s antes de enviar otro emoji.",
-    "emojiCooldownStripped": "Emojis eliminados del mensaje (en enfriamiento)."
+    "emojiCooldownStripped": "Emojis eliminados del mensaje (en enfriamiento).",
+    "emojiWarning": "⚠️ Por favor no abuses de esta función, o podrías terminar en la granja de fin de semana."
   },
   "zh-CN": {
     "langName": "简体中文",
@@ -2163,6 +2168,7 @@
     "emojiTabStandard": "Standard",
     "emojiTabCustom": "Custom",
     "emojiCooldownWait": "请等待 {0} 秒后再发送表情。",
-    "emojiCooldownStripped": "由于冷却时间，已从消息中移除表情。"
+    "emojiCooldownStripped": "由于冷却时间，已从消息中移除表情。",
+    "emojiWarning": "⚠️ 请勿滥用此功能，否则你可能会被送到周末农场。"
   }
 }

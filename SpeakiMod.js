@@ -3917,6 +3917,12 @@ function renderEmojiGrid() {
     if (!lunEmojiPickerPanel) return;
     lunEmojiPickerPanel.innerHTML = "";
     
+    // Warning Banner
+    const warningBanner = document.createElement("div");
+    warningBanner.innerText = t("emojiWarning", "⚠️ Please don’t abuse this feature, or you might get sent to the weekend farm.");
+    warningBanner.style.cssText = "color: #ffaa00; font-size: 11px; text-align: center; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px dashed #555; font-weight: bold; font-family: sans-serif;";
+    lunEmojiPickerPanel.appendChild(warningBanner);
+
     // Header Tabs
     const header = document.createElement("div");
     header.style.cssText = "display: flex; gap: 4px; margin-bottom: 4px; border-bottom: 1px solid #444; padding-bottom: 4px;";
