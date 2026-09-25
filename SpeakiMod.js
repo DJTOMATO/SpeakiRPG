@@ -1453,6 +1453,7 @@ function makeDraggable(element, handles) {
 	let hasMovedSignificant = false;
 
 	function onPointerDown(e) {
+		if (element.dataset.spkmodLocked === "true") return;
 		if (isDragging) return;
 		if (e.button !== undefined && e.button !== 0) return;
 
@@ -3421,7 +3422,21 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: grab;",
 					innerText: "⚓",
-					title: t("dragMenuTooltip")
+					title: t("dragMenuTooltip"),
+					ondblclick: (e) => {
+						const isLocked = lunHudElements.hud.dataset.spkmodLocked === "true";
+						if (isLocked) {
+							lunHudElements.hud.dataset.spkmodLocked = "false";
+							e.target.innerText = "⚓";
+							e.target.style.cursor = "grab";
+							if (window.localStorage) localStorage.setItem("spkmod-hud-locked", "false");
+						} else {
+							lunHudElements.hud.dataset.spkmodLocked = "true";
+							e.target.innerText = "🔒";
+							e.target.style.cursor = "not-allowed";
+							if (window.localStorage) localStorage.setItem("spkmod-hud-locked", "true");
+						}
+					}
 				})
 			])
 		])
