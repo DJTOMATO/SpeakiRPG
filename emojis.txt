@@ -90,3 +90,4 @@ SPK_64,https://i.imgur.com/FzOKBai.jpeg
 elena,https://i.imgur.com/91pUQBR.png
 SPK_65,https://i.imgur.com/pnw5EuJ.png
 ner,https://i.imgur.com/KW79yrk.png
+egg,https://i.imgur.com/DaCLujp.png
