@@ -152,6 +152,15 @@ SpeakiMod+ 是基于原始 SpeakiMod 进行大幅修改与全面重构的分支�
 
 前往 [Releases（版本发布页面）](https://github.com/DJTOMATO/SpeakiRPG/releases) 下载最新版本的安装档案。
 
+
+
+> [!NOTE]
+> **macOS 用户必读（“应用已损坏” 错误）：**
+> 如果您在打开应用时看到“已损坏，应将其移至废纸篓”的警告，这是由于 macOS 的 Gatekeeper 安全机制所致。
+> 要解决此问题，请打开 **终端 (Terminal)** 并运行以下命令：
+> `xattr -cr /Applications/SpeakiRPG.app`
+> *（※ 运行前请确保应用已移动到“应用程序 (Applications)”文件夹中！）*
+
 <h2 id="6-self-compile-quick-start-guide">6. 自行编译快速入门指南</h2>
 
 [⬆ 返回顶部](#table-of-contents)
@@ -227,8 +236,8 @@ npm start
 **使用这个工具安全吗？我会被封锁帐号 (Ban) 吗？**
 - 根据开发者的官方声明，只要不损害其他玩家权益的客户端修改都是允许的。但像自动打怪或任何给予不正当优势的功能并不在此限，可能会导致帐号被封禁。请自行斟酌并理性使用。
 
-**可以在 Mac / Linux 上执行吗？**
-- 预编译的释出版本为 Windows 专用。Mac / Linux 使用者可以参考 [自行编译快速入门指南](#6-self-compile-quick-start-guide) 尝试自行编译，不过我们并未在这些平台上进行官方测试。
+**支持 Mac / Linux 系统吗？**
+- 是的！Mac 版本已官方确认可以运行（只要您运行了“下载”部分提到的终端命令）。Linux 用户可以尝试参考 [自行编译快速入门指南](#6-self-compile-quick-start-guide) 自己进行编译。
 
 **这是免费的吗？**
 - 是的，完全免费且在 GNU 授权下开源。

@@ -161,6 +161,15 @@ So, according to the official developer statement:
 
 Head to [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) and get the latest version setup file.
 
+
+
+> [!NOTE]
+> **For macOS Users ("App is damaged" error):**
+> If you see a warning that the app is damaged and should be moved to the Trash, this is due to Apple's Gatekeeper blocking apps without a paid developer certificate.
+> To fix this, open **Terminal** and run:
+> `xattr -cr /Applications/SpeakiRPG.app`
+> *(Make sure the app is in your Applications folder first!)*
+
 <h2 id="6-self-compile-quick-start-guide">6. Self-compile Quick Start Guide</h2>
 
 [⬆ Back to Top](#table-of-contents)
@@ -237,7 +246,7 @@ Want to collaborate? Join our [Discord](https://discord.gg/bruZhcwqRx), [send a 
 - Per the developer's official statement, client modifications that don't harm other players are permitted. Features like auto-hunting or anything that gives you an unfair advantage over other players are not covered by this and could get you banned. Use good judgment.
 
 **Does this work on Mac / Linux?**
-- The pre-built releases are for Windows. Mac/Linux users can try the [Self-compile Quick Start Guide](#6-self-compile-quick-start-guide) to build it themselves, though it isn't officially tested on those platforms.
+- Yes! Mac builds have been officially confirmed to work (as long as you run the terminal command mentioned in the Download section). Linux users can try the [Self-compile Quick Start Guide](#6-self-compile-quick-start-guide) to build it themselves.
 
 **Is this free?**
 - Yes, completely free and open source under the GNU License.

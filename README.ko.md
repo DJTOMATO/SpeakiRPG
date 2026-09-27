@@ -150,6 +150,15 @@ SpeakiMod+는 원본 SpeakiMod를 대대적으로 수정하고 완전히 개편�
 
 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases)로 이동하여 최신 버전 설치 파일을 다운로드하세요.
 
+
+
+> [!NOTE]
+> **macOS 사용자 필독 ("앱이 손상되었습니다" 오류):**
+> 앱을 열 때 "앱이 손상되었기 때문에 휴지통으로 이동해야 합니다"라는 경고가 나타나면, 이는 macOS의 Gatekeeper 보안 기능 때문입니다.
+> 이를 해결하려면 **터미널(Terminal)**을 열고 다음 명령어를 실행하세요:
+> `xattr -cr /Applications/SpeakiRPG.app`
+> *(※ 먼저 앱을 '응용 프로그램(Applications)' 폴더로 이동한 후 실행하세요!)*
+
 <h2 id="6-self-compile-quick-start-guide">6. 자체 컴파일 빠른 시작 가이드</h2>
 
 [⬆ 맨 위로](#table-of-contents)
@@ -225,8 +234,8 @@ npm start
 **사용해도 안전한가요? / 밴을 당하나요?**
 - 개발자의 공식 성명에 따르면 다른 플레이어에게 피해를 주지 않는 클라이언트 수정은 허용됩니다. 자동 사냥 등 다른 플레이어에게 불공정한 이점을 주는 기능은 여기에 해당되지 않으며, 밴의 대상이 될 수 있습니다. 스스로 판단하여 사용하시기 바랍니다.
 
-**Mac / Linux에서도 사용할 수 있나요?**
-- 배포되는 빌드 버전은 Windows용입니다. Mac/Linux 사용자는 [자체 컴파일 빠른 시작 가이드](#6-self-compile-quick-start-guide)를 참고하여 직접 빌드할 수 있지만, 해당 환경에서는 공식적으로 테스트되지 않았습니다.
+**Mac / Linux 에서도 작동하나요?**
+- 네! Mac 빌드는 공식적으로 작동이 확인되었습니다 (다운로드 섹션에 언급된 터미널 명령어를 실행해야 합니다). Linux 사용자는 [자체 컴파일 빠른 시작 가이드](#6-self-compile-quick-start-guide)를 참조하여 직접 빌드해 볼 수 있습니다.
 
 **무료인가요?**
 - 네, 완전 무료이며 GNU 라이센스로 오픈소스입니다.
