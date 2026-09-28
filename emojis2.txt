@@ -41,3 +41,6 @@ t_40,https://i.imgur.com/UUgukPf.png
 t_41,https://i.imgur.com/a3e0OVr.png
 t_42,https://i.imgur.com/qFSPNgA.png
 t_43,https://i.imgur.com/Cfs9prq.png
+t_44,https://i.imgur.com/h37L6PG.gif
+t_45,https://i.imgur.com/KatqjCA.gif
+t_46,https://i.imgur.com/etWdzLn.png
