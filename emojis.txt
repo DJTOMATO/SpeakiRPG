@@ -96,3 +96,4 @@ cerb,https://i.imgur.com/WsPnA4b.png
 dash,https://i.imgur.com/qKapHJN.png
 end,https://i.imgur.com/xhxN1it.jpeg
 glow,https://i.imgur.com/Phj6j4r.png
+SPK_66,https://i.imgur.com/aCcDsLS.gif
