@@ -1231,6 +1231,22 @@ function setLowHpWarningEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-low-hp-warning", lunLowHpWarningEnabled ? "true" : "false");
 }
 
+var lunPanelLeft = (window.localStorage && localStorage.getItem("spkmod-panel-left")) === "true";
+function setPanelLeft(enabled) {
+	lunPanelLeft = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-panel-left", lunPanelLeft ? "true" : "false");
+	if (lunPanelLeft) {
+		document.body.classList.add("spkmod-panel-left-mode");
+	} else {
+		document.body.classList.remove("spkmod-panel-left-mode");
+	}
+}
+
+// Ensure the class is added early on load
+if (typeof document !== "undefined" && lunPanelLeft) {
+    document.body.classList.add("spkmod-panel-left-mode");
+}
+
 var lunCurrencyTrackerEnabled = (window.localStorage && localStorage.getItem("spkmod-currency-tracker")) !== "false";
 function setCurrencyTrackerEnabled(enabled) {
 	lunCurrencyTrackerEnabled = !!enabled;
@@ -2298,6 +2314,9 @@ document.head.appendChild(buildElement(
 			font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
 			user-select: none;
 		}
+		body.spkmod-panel-left-mode #spkmod-hud {
+			flex-direction: row-reverse !important;
+		}
 		#spkmod-hud {
 			display: flex;
 			flex-direction: row;
@@ -2584,6 +2603,35 @@ document.head.appendChild(buildElement(
 		#spkmod-hud.hidden, .hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden, #spkmod-stats-modal.hidden {
 			display: none !important;
 		}
+		
+		/* --- MOBILE VIEW --- */
+		body.spkmod-mobile-view #spkmod-hud {
+			font-size: 11px !important;
+			top: 70px !important;
+			left: 5px !important;
+		}
+		body.spkmod-mobile-view #spkmod-settings-modal {
+			width: 95vw !important;
+			max-height: 80vh !important;
+			overflow-y: auto !important;
+			left: 2.5vw !important;
+			top: 10vh !important;
+			padding-bottom: 20px !important;
+		}
+		body.spkmod-mobile-view .spkmod-settings-grid, body.spkmod-mobile-view .spkmod-panel-cat {
+			display: flex !important;
+			flex-wrap: wrap !important;
+			justify-content: space-between !important;
+		}
+		body.spkmod-mobile-view .spkmod-panel-btn {
+			padding: 8px !important;
+			font-size: 13px !important;
+			flex: 1 1 45% !important;
+			margin: 2px !important;
+		}
+		.spkmod-drag-handle {
+			touch-action: none;
+		}
 		body.spkmod-ui-hidden #spkmod-hud,
 		body.spkmod-ui-hidden #spkmod-pq,
 		body.spkmod-ui-hidden #spkmod-settings-modal,
@@ -2624,6 +2672,14 @@ document.head.appendChild(buildElement(
 	}
 ));
 
+window.lunMobileMode = (window.localStorage && localStorage.getItem("spkmod-mobile-mode") === "true") || false;
+if (!window.localStorage || localStorage.getItem("spkmod-mobile-mode") === null) {
+	if (/Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent) || window.innerWidth <= 800) {
+		window.lunMobileMode = true;
+	}
+}
+if (window.lunMobileMode) document.body.classList.add("spkmod-mobile-view");
+
 document.body.classList.remove("spkmod-ui-hidden");
 lunHudElements.lowHpOverlay = buildElement("div", { id: "spkmod-low-hp-overlay" });
 document.body.appendChild(lunHudElements.lowHpOverlay);
@@ -2637,6 +2693,41 @@ document.body.appendChild(
 			id: "spkmod-main"
 		}, [
 			buildElement("div", { id: "spkmod-header-row", style: "cursor: move; user-select: none; touch-action: none;" }, [
+				lunPanelElements.minimizeBtn = buildElement("button", {
+					innerText: "-",
+					style: "flex: 0 0 20px; width: 20px; height: 20px; padding: 0; font-size: 12px; cursor: pointer; border-radius: 4px; background: rgba(255,255,255,0.2); border: 1px solid #777; color: #FFF; line-height: 1; margin-right: 5px;",
+					title: "Minimize HUD",
+					onclick: (e) => {
+						e.stopPropagation();
+						lunMenuFoldingLevel = (lunMenuFoldingLevel === 2) ? 0 : 2;
+						switch (lunMenuFoldingLevel) {
+							case 0:
+								document.querySelector("#spkmod-panel").style.display = "";
+								if (lunHudElements.channelTracker) lunHudElements.channelTracker.style.display = "";
+								if (lunHudElements.expTrackerL1) lunHudElements.expTrackerL1.style.display = "";
+								if (lunHudElements.expTrackerL2) lunHudElements.expTrackerL2.style.display = "";
+								if (lunHudElements.currencyTracker) lunHudElements.currencyTracker.style.display = lunCurrencyTrackerEnabled ? "" : "none";
+								if (lunHudElements.playersNearby) lunHudElements.playersNearby.style.display = "";
+								if (lunHudElements.zoneId) lunHudElements.zoneId.style.display = "";
+								if (lunHudElements.sessionGoldTracker) lunHudElements.sessionGoldTracker.style.display = lunSessionGoldTrackerEnabled ? "" : "none";
+								if (lunHudElements.fpsPingTracker) lunHudElements.fpsPingTracker.style.display = "";
+								e.target.innerText = "-";
+								break;
+							case 2:
+								document.querySelector("#spkmod-panel").style.display = "none";
+								if (lunHudElements.channelTracker) lunHudElements.channelTracker.style.display = "none";
+								if (lunHudElements.expTrackerL1) lunHudElements.expTrackerL1.style.display = "none";
+								if (lunHudElements.expTrackerL2) lunHudElements.expTrackerL2.style.display = "none";
+								if (lunHudElements.currencyTracker) lunHudElements.currencyTracker.style.display = "none";
+								if (lunHudElements.playersNearby) lunHudElements.playersNearby.style.display = "none";
+								if (lunHudElements.zoneId) lunHudElements.zoneId.style.display = "none";
+								if (lunHudElements.sessionGoldTracker) lunHudElements.sessionGoldTracker.style.display = "none";
+								if (lunHudElements.fpsPingTracker) lunHudElements.fpsPingTracker.style.display = "none";
+								e.target.innerText = "+";
+								break;
+						}
+					}
+				}),
 				lunPanelElements.headerBtn = buildElement("span", {
 					id: "spkmod-header",
 					innerText: t("header"),
@@ -3474,6 +3565,24 @@ document.body.appendChild(
 					innerText: t("settingsHeader"),
 					style: "font-weight: bold;"
 				}),
+				lunPanelElements.mobileToggleBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					style: "padding: 2px 6px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;",
+					innerText: t(window.lunMobileMode ? "mobileUiOn" : "mobileUiOff", window.lunMobileMode ? "📱 Mobile View: ON" : "💻 Mobile View: OFF"),
+					title: "Toggle Mobile Responsive Layout",
+					onclick: (e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						window.lunMobileMode = !window.lunMobileMode;
+						if (window.localStorage) localStorage.setItem("spkmod-mobile-mode", window.lunMobileMode);
+						if (window.lunMobileMode) {
+							document.body.classList.add("spkmod-mobile-view");
+						} else {
+							document.body.classList.remove("spkmod-mobile-view");
+						}
+						e.target.innerText = t(window.lunMobileMode ? "mobileUiOn" : "mobileUiOff", window.lunMobileMode ? "📱 Mobile View: ON" : "💻 Mobile View: OFF");
+					}
+				}),
 				buildElement("button", {
 					id: "spkmod-settings-accounts-btn",
 					className: "spkmod-panel-btn",
@@ -3678,6 +3787,10 @@ document.body.appendChild(
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.currencyTrackerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("currencyTrackerToggleLabel") }),
 					lunPanelElements.currencyTrackerToggleInput = buildElement("input", { type: "checkbox", checked: lunCurrencyTrackerEnabled, onchange: e => setCurrencyTrackerEnabled(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.panelLeftLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("panelLeftToggleLabel") }),
+					lunPanelElements.panelLeftToggleInput = buildElement("input", { type: "checkbox", checked: lunPanelLeft, onchange: e => setPanelLeft(e.target.checked) })
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.sessionGoldLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("sessionGoldToggleLabel") }),
@@ -6072,7 +6185,9 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.turntableBtn, t(window.TurntableActive === 1 ? "turntableOn" : (window.TurntableActive === 2 ? "turntableHalf" : "turntableOff")));
 	setText(lunHudElements.discordBtn, t("discordBtn"));
 	setText(lunPanelElements.autoJumpBtn, t(window.AutoJumpActive ? "autoJumpOn" : "autoJumpOff"));
+	if (lunPanelElements.mobileToggleBtn) setText(lunPanelElements.mobileToggleBtn, t(window.lunMobileMode ? "mobileUiOn" : "mobileUiOff", window.lunMobileMode ? "📱 Mobile View: ON" : "💻 Mobile View: OFF"));
 	setText(lunPanelElements.speedLabel, t("speedLabel"));
+	if (lunPanelElements.panelLeftLabel) setText(lunPanelElements.panelLeftLabel, t("panelLeftToggleLabel"));
 	setText(lunPanelElements.turnToCameraBtn, t("turnToCamera"));
 
 	setText(lunPanelElements.resetCameraBtn, t("resetCamera"));
