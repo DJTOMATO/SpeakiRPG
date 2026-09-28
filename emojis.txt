@@ -97,3 +97,4 @@ dash,https://i.imgur.com/qKapHJN.png
 end,https://i.imgur.com/xhxN1it.jpeg
 glow,https://i.imgur.com/Phj6j4r.png
 SPK_66,https://i.imgur.com/aCcDsLS.gif
+SPK_67,https://i.imgur.com/dV1U8KA.gif
