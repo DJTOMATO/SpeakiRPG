@@ -7167,10 +7167,11 @@ function hookGameStateOnce() {
 
 			if (filteredMsg && filteredMsg.trim()) {
 				observeNextChatNode(filteredMsg, (bodyText, rowNode) => {
-					if (typeof lunCustomEmojis !== "undefined" && Object.keys(lunCustomEmojis).length > 0) {
+					const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {})};
+					if (Object.keys(spkmodAllEmojis).length > 0) {
 						let html = bodyText.innerHTML;
 						let changed = false;
-						for (const [ename, eurl] of Object.entries(lunCustomEmojis)) {
+						for (const [ename, eurl] of Object.entries(spkmodAllEmojis)) {
 							const tag = ":" + ename + ":";
 							if (html.includes(tag)) {
 								html = html.split(tag).join(`<span class="spkmod-custom-emoji" data-url="${eurl}" title="${tag}"><img src="${eurl}" style="height: 1.6em; vertical-align: middle; padding: 0 1px; display: inline-block;"></span>`);
@@ -7242,10 +7243,11 @@ function appendColoredChatLine(id, name, text) {
 	observeNextChatNode(text, (bodyText) => {
 		bodyText.classList.add("spkmod-translated-line");
 		
-		if (typeof lunCustomEmojis !== "undefined" && Object.keys(lunCustomEmojis).length > 0) {
+		const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {})};
+		if (Object.keys(spkmodAllEmojis).length > 0) {
 			let html = bodyText.innerHTML;
 			let changed = false;
-			for (const [ename, eurl] of Object.entries(lunCustomEmojis)) {
+			for (const [ename, eurl] of Object.entries(spkmodAllEmojis)) {
 				const tag = ":" + ename + ":";
 				if (html.includes(tag)) {
 					html = html.split(tag).join(`<span class="spkmod-custom-emoji" data-url="${eurl}" title="${tag}"><img src="${eurl}" style="height: 1.6em; vertical-align: middle; padding: 0 1px; display: inline-block;"></span>`);
