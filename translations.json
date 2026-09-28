@@ -361,6 +361,7 @@
     "emojiCooldownStripped": "Emojis removed from message (on cooldown).",
     "emojiWarning": "⚠️ Please don’t abuse this feature, or you might get sent to the weekend farm.",
     "emojiTabTrickcal": "Trickcal"
+      },
   "ja": {
     "langName": "日本語",
     "header": "SpeakiMod+ v1.9.6",
@@ -439,8 +440,8 @@
     "reversebeybladeDeactivatedMsg": "ｽﾋﾟｷは「くるりん」を終えました。",
     "autoJumpActivatedMsg": "ｽﾋﾟｷが「ぴょんぴょん」を始めました！",
     "autoJumpDeactivatedMsg": "ｽﾋﾟｷは「ぴょんぴょん」を終えました。",
-    "autoHeartsActivatedMsg": "ｽﾋﾟｷが「継続ハート」を始めました！",
-    "autoHeartsDeactivatedMsg": "ｽﾋﾟｷは「継続ハート」を終えました。",
+    "autoHeartsActivatedMsg": "ｽﾋﾟｷが「ずっとハート」を始めました！",
+    "autoHeartsDeactivatedMsg": "ｽﾋﾟｷは「ずっとハート」を終えました。",
     "ritualActivatedMsg": "ｽﾋﾟｷが舞い始めました！",
     "ritualDeactivatedMsg": "ｽﾋﾟｷは舞い終わりました。",
     "turntableActivatedMsg": "カメラの自動回転を開始しました！",
