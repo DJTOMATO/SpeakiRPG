@@ -3881,7 +3881,6 @@ fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/emoj
     txt.split("\n").forEach(l => {
         const line = l.trim();
         if (!line) return;
-        // Uses comma separator format: name,url
         const parts = line.split(",");
         if (parts.length >= 2) {
             const name = parts[0].replace(/:/g, "").trim();
@@ -3893,6 +3892,24 @@ fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/emoj
     });
 }).catch(err => {
     console.warn("[SpeakiMod+] Failed to load custom emojis:", err);
+});
+
+var lunTrickcalEmojis = {};
+fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis2.txt").then(res => res.text()).then(txt => {
+    txt.split("\n").forEach(l => {
+        const line = l.trim();
+        if (!line) return;
+        const parts = line.split(",");
+        if (parts.length >= 2) {
+            const name = parts[0].replace(/:/g, "").trim();
+            const url = parts.slice(1).join(",").trim();
+            if (name && url) {
+                lunTrickcalEmojis[name] = url;
+            }
+        }
+    });
+}).catch(err => {
+    console.warn("[SpeakiMod+] Failed to load trickcal emojis:", err);
 });
 
 function getSortedEmojis() {
@@ -3952,8 +3969,14 @@ function renderEmojiGrid() {
     btnCus.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'custom' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
     btnCus.onclick = (e) => { e.stopPropagation(); lunEmojiTab = 'custom'; renderEmojiGrid(); };
     
+    const btnTrickcal = document.createElement("button");
+    btnTrickcal.innerText = "🍀 " + t("emojiTabTrickcal", "Trickcal");
+    btnTrickcal.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'trickcal' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
+    btnTrickcal.onclick = (e) => { e.stopPropagation(); lunEmojiTab = 'trickcal'; renderEmojiGrid(); };
+    
     header.appendChild(btnStd);
     header.appendChild(btnCus);
+    header.appendChild(btnTrickcal);
     lunEmojiPickerPanel.appendChild(header);
 
     // Grid Container
@@ -3978,7 +4001,8 @@ function renderEmojiGrid() {
             grid.appendChild(btn);
         });
     } else {
-        Object.entries(lunCustomEmojis).forEach(([name, url]) => {
+        const targetEmojis = lunEmojiTab === 'trickcal' ? lunTrickcalEmojis : lunCustomEmojis;
+        Object.entries(targetEmojis).forEach(([name, url]) => {
             const btn = document.createElement("button");
             btn.title = `:${name}:`;
             btn.className = "spkmod-custom-emoji";
@@ -7856,7 +7880,7 @@ document.addEventListener("keydown", (e) => {
             let hasCustomEmoji = false;
             for (const match of matches) {
                 const name = match.slice(1, -1);
-                if (lunCustomEmojis[name]) {
+                if (lunCustomEmojis[name] || (typeof lunTrickcalEmojis !== 'undefined' && lunTrickcalEmojis[name])) {
                     hasCustomEmoji = true;
                     break;
                 }
@@ -7870,6 +7894,11 @@ document.addEventListener("keydown", (e) => {
                     // Cooldown ACTIVE
                     for (const name of Object.keys(lunCustomEmojis)) {
                         val = val.split(`:${name}:`).join("");
+                    }
+                    if (typeof lunTrickcalEmojis !== 'undefined') {
+                        for (const name of Object.keys(lunTrickcalEmojis)) {
+                            val = val.split(`:${name}:`).join("");
+                        }
                     }
                     val = val.replace(/\s+/g, " ").trim();
                     
