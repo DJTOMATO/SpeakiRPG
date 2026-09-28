@@ -7974,6 +7974,15 @@ function startEmojiCooldownUI() {
     }, 500);
 }
 
+// Emoji Picker Language Mutator
+if (typeof spkmodI18nRenderers !== 'undefined') {
+    spkmodI18nRenderers.push(() => {
+        if (typeof lunEmojiPickerPanel !== 'undefined' && lunEmojiPickerPanel && typeof renderEmojiGrid === 'function') {
+            renderEmojiGrid();
+        }
+    });
+}
+
 const SPKMOD_ACCOUNTS_KEY = "spkmod-saved-accounts";
 const SPKMOD_DISMISS_KEY = "spkmod-dismiss-ql-prompt";
 
