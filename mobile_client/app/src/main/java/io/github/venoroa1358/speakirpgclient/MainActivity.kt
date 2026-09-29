@@ -39,6 +39,10 @@ class MainActivity : AppCompatActivity() {
         // enable LocalStorage on the WebView
         webView.settings.domStorageEnabled = true
 
+        // enable Caching for game assets
+        webView.settings.databaseEnabled = true
+        webView.settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+
         // Cookie
         val cookieManager = CookieManager.getInstance()
         cookieManager.setAcceptCookie(true)

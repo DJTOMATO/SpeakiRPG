@@ -1939,7 +1939,7 @@ function setGamepadRumbleEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-gamepad-rumble", lunGamepadRumbleEnabled ? "true" : "false");
 }
 
-var lunUiScale = (window.localStorage && localStorage.getItem("spkmod-ui-scale")) || ((typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android/i.test(navigator.userAgent))) ? "0.65" : "1.0");
+var lunUiScale = (window.localStorage && localStorage.getItem("spkmod-ui-scale")) || ((typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android/i.test(navigator.userAgent))) ? "0.55" : "1.0");
 var lunChannelTrackerEnabled = window.localStorage ? (localStorage.getItem("spkmod-channel-tracker") !== "false") : true;
 if (typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android/i.test(navigator.userAgent))) {
     lunChannelTrackerEnabled = window.localStorage && localStorage.getItem("spkmod-channel-tracker") === "true"; // default false on mobile
@@ -2350,6 +2350,10 @@ document.head.appendChild(buildElement(
 			color: #FFF;
 			left: 10px;
 			top: 10px;
+			pointer-events: none;
+		}
+		#spkmod-hud > * {
+			pointer-events: auto;
 		}
 		.sr-chatbox__body-text.spkmod-translated-line { color: #ffd54a !important; -webkit-text-fill-color: #ffd54a !important;  }
 		.sr-chatbox__row.spkmod-mention-line {
@@ -3788,7 +3792,7 @@ document.body.appendChild(
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.uiScaleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("uiScaleLabel") }),
-					lunPanelElements.uiScaleSlider = buildElement("input", { type: "range", min: "0.4", max: "1.3", step: "0.05", value: lunUiScale, style: "width: 70px;", onchange: e => { lunUiScale = e.target.value; updateDynamicStyles(); } })
+					lunPanelElements.uiScaleSlider = buildElement("input", { type: "range", min: "0.4", max: "1.3", step: "0.05", value: lunUiScale, style: "width: 70px;", onchange: e => { lunUiScale = e.target.value; if (window.localStorage) localStorage.setItem("spkmod-ui-scale", lunUiScale); updateDynamicStyles(); } })
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.cameraEffectLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("cameraEffectLabel") || "Camera Effect" }),
