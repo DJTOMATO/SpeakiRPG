@@ -2760,6 +2760,7 @@ document.body.appendChild(
 				id: "spkmod-discord-btn",
 				innerText: t("discordBtn"),
 				value: "",
+				style: (typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android/i.test(navigator.userAgent))) ? "display: none !important;" : "",
 				onclick: _ => {
 					const discordUrl = "https://discord.gg/bruZhcwqRx";
 					navigator.clipboard.writeText(discordUrl).then(() => {
@@ -3998,9 +3999,15 @@ function toggleEmojiPicker(anchorBtn) {
     lunEmojiPickerPanel.style.cssText = `position: fixed; width: ${defaultW}; height: ${defaultH}; max-width: 90vw; max-height: 60vh; min-width: 200px; min-height: 150px; resize: both; overflow: hidden; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;`;
     
     if (!(window.localStorage && localStorage.getItem("spkmod-pos-spkmod-emoji-picker-v2"))) {
-        const btnRect = anchorBtn.getBoundingClientRect();
-        lunEmojiPickerPanel.style.left = (btnRect.right + 10) + "px";
-        lunEmojiPickerPanel.style.bottom = (window.innerHeight - btnRect.bottom) + "px";
+        if (isMobile) {
+            lunEmojiPickerPanel.style.left = Math.max(10, (window.innerWidth / 2) - 140) + "px";
+            lunEmojiPickerPanel.style.top = Math.max(10, (window.innerHeight / 2) - 100) + "px";
+            lunEmojiPickerPanel.style.bottom = "auto";
+        } else {
+            const btnRect = anchorBtn.getBoundingClientRect();
+            lunEmojiPickerPanel.style.left = (btnRect.right + 10) + "px";
+            lunEmojiPickerPanel.style.bottom = (window.innerHeight - btnRect.bottom) + "px";
+        }
     }
     
     // Prevent clicks inside the panel from stealing chat input focus (which breaks cursor position)
