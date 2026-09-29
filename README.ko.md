@@ -19,6 +19,7 @@
 - [9. 기여하고 싶으신가요?](#9-want-to-collaborate)
 - [10. 자주 묻는 질문](#faq)
 - [11. 크레딧](#credits)
+- [📱 SpeakiRPG 모바일 (Android)](#-speakirpg-모바일-android)
 
 ![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
 ---
@@ -285,6 +286,17 @@ UI 배경으로 작품 사용을 허락해주신 아티스트 분들께 특별�
 - **다운로드:** [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) 페이지에서 최신 `.apk`를 확인하거나 [Actions 탭](https://github.com/DJTOMATO/SpeakiRPG/actions)에서 자동 빌드를 확인하세요.
 - **기능:** 최적화된 모바일 레이아웃, 네이티브 성능 및 자동 모드 업데이트.
 - **크레딧:** Android 클라이언트를 개발해주신 [venoroa1358](https://github.com/venoroa1358/) 님께 특별한 감사를 전합니다!
+
+### 요구 사항
+- Android 8.0 이상
+- 알 수 없는 출처의 앱(APK) 설치 허용
+
+### 문제 해결
+- **앱을 실행했지만 모드가 시작되지 않습니다.**
+  - 앱을 강제 종료한 후 다시 시작해 주세요.
+- **UI가 숨겨져 있어 사용할 수 없습니다.**
+  - 스마트폰을 회전해 보세요. 가려져 있던 UI 요소에 접근할 수 있습니다.
+  - 모드 옵션을 열고 UI 크기를 가장 작은 값으로 설정해 주세요。
 
 ## 서드파티 구성요소
 

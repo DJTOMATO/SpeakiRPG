@@ -24,6 +24,7 @@
 - [9. 想要一起協作？](#9-want-to-collaborate)
 - [10. 常見問題 (FAQ)](#faq)
 - [11. 致謝名單](#credits)
+- [📱 SpeakiRPG 手機版 (Android)](#-speakirpg-手機版-android)
 
 ![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
 ---
@@ -288,6 +289,17 @@ npm start
 - **下載:** 請前往 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) 頁面獲取最新的 `.apk`，或在 [Actions 標籤](https://github.com/DJTOMATO/SpeakiRPG/actions) 查看自動構建版本。
 - **功能:** 最佳化的行動端版面、原生效能表現以及自動 Mod 更新。
 - **致謝:** 特別感謝 [venoroa1358](https://github.com/venoroa1358/) 開發了 Android 客戶端！
+
+### 系統需求
+- Android 8.0 或更高版本
+- 允許安裝未知來源的 APK 檔案
+
+### 常見問題與排解
+- **我啟動了應用程式，但 Mod 沒有執行。**
+  - 請強制退出應用程式，然後重新啟動。
+- **UI 被遮擋，無法使用。**
+  - 嘗試旋轉您的智慧型手機，這可能會讓您存取之前被遮擋的 UI 元素。
+  - 開啟 Mod 選項，並將 UI 縮放比例調整為最低。
 
 ## 第三方元件
 

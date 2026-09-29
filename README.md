@@ -24,6 +24,7 @@
 - [9. Want to Collaborate?](#9-want-to-collaborate)
 - [10. FAQ](#faq)
 - [11. Credits](#credits)
+- [📱 SpeakiRPG Mobile (Android)](#-speakirpg-mobile-android)
 
 ![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
 ---
@@ -298,6 +299,17 @@ A community-developed Android client is now officially supported! You can play S
 - **Download:** Check the [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) page for the latest `.apk` or the [Actions tab](https://github.com/DJTOMATO/SpeakiRPG/actions) for automatic builds.
 - **Features:** Optimized mobile layout, native performance, and automatic mod updates.
 - **Credits:** Special thanks to [venoroa1358](https://github.com/venoroa1358/) for developing the Android client!
+
+### Requirements
+- Android 8.0 or later
+- The ability to install APK files from unknown sources
+
+### Troubleshooting
+- **I launched the app, but the mod didn't start.**
+  - Please force quit the app and then restart it.
+- **The UI is hidden, so I can't use it.**
+  - Try rotating your smartphone. You may be able to access UI elements that were previously hidden.
+  - Open the mod's options and set the UI Scale to the lowest value.
 
 ## Third-Party Components
 
