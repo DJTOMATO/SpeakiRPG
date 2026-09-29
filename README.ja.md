@@ -279,6 +279,12 @@ UI背景への作品使用を許可してくださったアーティストの皆
 
 ---
 
+
+## 📱 SpeakiRPG モバイル (Android)
+コミュニティが開発した Android クライアントが公式にサポートされました！Android デバイスで SpeakiMod+ を内蔵した SpeakiRPG をプレイできます。
+- **ダウンロード:** [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) ページから最新の `.apk` を確認するか、[Actions タブ](https://github.com/DJTOMATO/SpeakiRPG/actions) から自動ビルドを入手してください。
+- **機能:** 最適化されたモバイルレイアウト、ネイティブパフォーマンス、自動 Mod アップデート。
+
 ## サードパーティコンポーネント
 
 * **speakimod.js** – [BSD 3条項ライセンス](https://opensource.org/licenses/BSD-3-Clause)の下、[Alluseri による SpeakiMod](https://github.com/Alluseri/SpeakiMod) から派生しています。

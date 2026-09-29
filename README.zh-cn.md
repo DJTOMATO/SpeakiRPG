@@ -282,6 +282,12 @@ npm start
 
 ---
 
+
+## 📱 SpeakiRPG 手机版 (Android)
+官方现已支持由社区开发的 Android 客户端！您可以在 Android 设备上游玩内置了 SpeakiMod+ 的 SpeakiRPG。
+- **下载:** 请前往 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) 页面获取最新的 `.apk`，或在 [Actions 标签](https://github.com/DJTOMATO/SpeakiRPG/actions) 查看自动构建版本。
+- **功能:** 优化的移动端布局、原生性能表现以及自动 Mod 更新。
+
 ## 第三方元件
 
 * **speakimod.js** – 衍生自 [Alluseri 开发的 SpeakiMod](https://github.com/Alluseri/SpeakiMod)，采用 [BSD 3-Clause 授权条款](https://opensource.org/licenses/BSD-3-Clause)。

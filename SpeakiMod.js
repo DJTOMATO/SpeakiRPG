@@ -29,7 +29,8 @@ if (window.speakiMod)
 	throw "Duplicate injection";
 
 const isElectronEnv = typeof window.electronAPI !== "undefined" || (typeof navigator !== "undefined" && /electron/i.test(navigator.userAgent || ""));
-if (!isElectronEnv) {
+const isSpeakiMobile = typeof window.speakiMobile !== "undefined";
+if (!isElectronEnv && !isSpeakiMobile) {
 	if (document.body) {
 		const acTranslations = {
 			en: { title: "⚠️ Unauthorized Client Detected", body: "SpeakiMod+ is designed exclusively for the SpeakiRPG Client.<br><br>To prevent cheating and server abuse, running this mod via third-party browser extensions (like Tampermonkey) is strictly prohibited.", btn: "Download SpeakiRPG Client" },

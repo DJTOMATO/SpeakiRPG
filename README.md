@@ -292,6 +292,12 @@ A special thanks to the artists who kindly authorized the use of their artwork f
 
 ---
 
+
+## 📱 SpeakiRPG Mobile (Android)
+A community-developed Android client is now officially supported! You can play SpeakiRPG on your Android device with SpeakiMod+ built right in.
+- **Download:** Check the [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) page for the latest `.apk` or the [Actions tab](https://github.com/DJTOMATO/SpeakiRPG/actions) for automatic builds.
+- **Features:** Optimized mobile layout, native performance, and automatic mod updates.
+
 ## Third-Party Components
 
 * **speakimod.js** – Derived from [SpeakiMod by Alluseri](https://github.com/Alluseri/SpeakiMod), licensed under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause).
