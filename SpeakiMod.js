@@ -1067,7 +1067,7 @@ function fetchFriendsList(force = false) {
 	});
 }
 
-const lunKnownBotNames = ["toufufuton", "uhu", "clay79", "key7catace", "6air9dog5", "53lake", "1sealace", "2wave0bay1", "19owlfern", "red17wave", "nekomaru2", "king9SPK5", "ash6mist7", "takutaku8", "스핔이3984","SPKtree21", "SPKleaf37", "3clayowl5", "3bayhero9", "99duckdog", "cow6SPK2", "fire8SPK7","Takutaku3", "Takutaku4", "kutakuta", "0birdice2", "wind2SPK8", "SPKbay23", "3sky8king", "star2bat04", "map3kite4","FrznTeardrop", "sun9SPK0", "5SPKsnow2", "SPKclay15", "frogfox40", "5air7moon", "SPKair00", "SPKblue88", "moss4ant36", "9gem4wind", "SPKjade05", "SPKfin06", "SPKdeer69","OO0OOOOO72", "llIlIIll62", "lIllIIIl39", "IIlIIIlI45", "00OO0OO099","sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", "OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", "OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63","SPKecho98","OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", "llIIllll38", "takutaku6", "kutakuta2", "takutaku7"];
+const lunKnownBotNames = ["GniloeAlo3", "Gniloe41o3", "Gniloe41oe", "GniloeA1oe", "GniloeA1o3", "GniloeA103", "toufufuton", "uhu", "clay79", "key7catace", "6air9dog5", "53lake", "1sealace", "2wave0bay1", "19owlfern", "red17wave", "nekomaru2", "king9SPK5", "ash6mist7", "takutaku8", "스핔이3984", "SPKtree21", "SPKleaf37", "3clayowl5", "3bayhero9", "99duckdog", "cow6SPK2", "fire8SPK7", "Takutaku3", "Takutaku4", "kutakuta", "0birdice2", "wind2SPK8", "SPKbay23", "3sky8king", "star2bat04", "map3kite4", "FrznTeardrop", "sun9SPK0", "5SPKsnow2", "SPKclay15", "frogfox40", "5air7moon", "SPKair00", "SPKblue88", "moss4ant36", "9gem4wind", "SPKjade05", "SPKfin06", "SPKdeer69", "OO0OOOOO72", "llIlIIll62", "lIllIIIl39", "IIlIIIlI45", "00OO0OO099", "sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", "OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", "OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63", "SPKecho98", "OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", "llIIllll38", "takutaku6", "kutakuta2", "takutaku7", "GniloeAlo3", "Gniloe4103", "Gniloe41o3", "GniloeAl03", "Gniloe41oe", "GniloeA1o3", "Gniloe41o3", "GniloeAlo3", "GniloeAl03", "Gniloe41oe", "GniloeAloe"];
 
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
@@ -1112,36 +1112,55 @@ function setHideKnownBotsEnabled(enabled) {
 }
 
 var lunAutoBannedLevel1s = new Set();
+var lunActiveBotWaveMinId = Infinity;
 
-function isKnownBotName(name, level) {
+function isKnownBotName(name, level, accountId) {
 	if (typeof name !== "string") return false;
 	const normalizedName = name.trim();
 	const lowerName = normalizedName.toLocaleLowerCase();
 	
+	let isBot = false;
+	const parsedLevel = typeof level === "number" ? level : parseInt(level);
+	
 	if (lunKnownBotNames.some(botName => botName.trim().toLocaleLowerCase() === lowerName)) {
+		isBot = true;
+	} else if (!isNaN(parsedLevel)) {
+		if (parsedLevel === 1 && lunAutoBannedLevel1s.has(lowerName)) {
+			isBot = true;
+		}
+		if (!isBot && parsedLevel <= 2) {
+			if (/^[Il]{6,10}[0-9]{2}$/.test(normalizedName)) isBot = true;
+			if (/^[O0]{6,10}[0-9]{2}$/.test(normalizedName)) isBot = true;
+		}
+		if (!isBot && parsedLevel === 1) {
+			if (lowerName.includes("spk") || lowerName.includes("스핔이")) isBot = true;
+			else if (/^[a-z]+\d+[a-z]+\d+$/i.test(normalizedName)) isBot = true;
+			else if (/^\d+[a-z]+\d+$/i.test(normalizedName)) isBot = true;
+			else if (/^\d+[a-z]+\d+[a-z]+$/i.test(normalizedName)) isBot = true;
+			else if (/^\d{1,2}[a-z]+$/i.test(normalizedName)) isBot = true;
+			else if (/^[a-z]+\d{1,2}[a-z]+$/i.test(normalizedName)) isBot = true;
+			else if (/^\d+[a-z]+\d+[a-z]+\d+$/i.test(normalizedName)) isBot = true;
+		}
+	}
+	
+	const accountIdNum = parseInt(accountId) || 0;
+	
+	if (isBot) {
+		if (accountIdNum > 0) {
+			lunActiveBotWaveMinId = Math.min(lunActiveBotWaveMinId, accountIdNum);
+		}
 		return true;
 	}
 	
-	const parsedLevel = typeof level === "number" ? level : parseInt(level);
-	if (!isNaN(parsedLevel)) {
-		if (parsedLevel === 1 && lunAutoBannedLevel1s.has(lowerName)) {
+	// Dynamic Strict Net with Loose Name Matching
+	if (accountIdNum > 0 && accountIdNum >= lunActiveBotWaveMinId && parsedLevel === 1) {
+		const letters = lowerName.replace(/[^a-z]/g, '');
+		const isLooseMatch = lunKnownBotNames.some(b => {
+			const p = b.toLowerCase().replace(/[^a-z]/g, '').substring(0, 5);
+			return p.length >= 4 && letters.includes(p);
+		});
+		if (isLooseMatch) {
 			return true;
-		}
-
-		if (parsedLevel <= 2) {
-			if (/^[Il]{6,10}[0-9]{2}$/.test(normalizedName)) return true;
-			if (/^[O0]{6,10}[0-9]{2}$/.test(normalizedName)) return true;
-		}
-		
-		if (parsedLevel === 1) {
-			if (lowerName.includes("spk") || lowerName.includes("스핔이")) return true;
-			
-			if (/^[a-z]+\d+[a-z]+\d+$/i.test(normalizedName)) return true;
-			if (/^\d+[a-z]+\d+$/i.test(normalizedName)) return true;
-			if (/^\d+[a-z]+\d+[a-z]+$/i.test(normalizedName)) return true;
-			if (/^\d{1,2}[a-z]+$/i.test(normalizedName)) return true;
-			if (/^[a-z]+\d{1,2}[a-z]+$/i.test(normalizedName)) return true;
-			if (/^\d+[a-z]+\d+[a-z]+\d+$/i.test(normalizedName)) return true;
 		}
 	}
 	
@@ -1152,7 +1171,8 @@ function updateKnownBotVisibility() {
 	if (!gameState?.remotePlayers?.remotePlayers) return;
 	gameState.remotePlayers.remotePlayers.forEach(player => {
 		if (player?.container) {
-			player.container.visible = !lunHideKnownBotsEnabled || !isKnownBotName(player.info?.name, player.info?.level);
+			const accId = player.info?.userId || player.info?.id || player.info?.playerId;
+			player.container.visible = !lunHideKnownBotsEnabled || !isKnownBotName(player.info?.name, player.info?.level, accId);
 		}
 	});
 }
@@ -1173,12 +1193,13 @@ function isKnownBotContainer(container) {
 function isKnownBotBubbleSource(source) {
 	if (!source || !gameState?.remotePlayers?.remotePlayers) return false;
 	if (isKnownBotContainer(source) || isKnownBotContainer(source.container)) return true;
-	if (isKnownBotName(source.info?.name, source.info?.level) || isKnownBotName(source.name, source.level)) return true;
+	if (isKnownBotName(source.info?.name, source.info?.level, source.info?.userId || source.info?.id || source.info?.playerId)) return true;
+	if (isKnownBotName(source.name, source.level, source.userId || source.id || source.playerId)) return true;
 
 	for (const player of gameState.remotePlayers.remotePlayers.values()) {
 		const playerInfo = player?.info;
 		if (playerInfo && (source === playerInfo.playerId || source === playerInfo.id || source === playerInfo.userId)) {
-			return isKnownBotName(playerInfo.name, playerInfo.level);
+			return isKnownBotName(playerInfo.name, playerInfo.level, playerInfo.userId || playerInfo.id || playerInfo.playerId);
 		}
 	}
 	return false;
@@ -4542,6 +4563,9 @@ function findBotsRadar(auto = false) {
 		const lowerName = (b.name || "").trim().toLowerCase();
 		if (lowerName && typeof lunAutoBannedLevel1s !== "undefined" && !lunAutoBannedLevel1s.has(lowerName)) {
 			lunAutoBannedLevel1s.add(lowerName);
+			if (typeof lunActiveBotWaveMinId !== "undefined" && b.id > 0) {
+				lunActiveBotWaveMinId = Math.min(lunActiveBotWaveMinId, b.id);
+			}
 			addedCount++;
 		}
 	});
@@ -7134,6 +7158,11 @@ function hookGameStateOnce() {
 						break;
 					case "findbots":
 						if (typeof findBotsRadar === "function") findBotsRadar();
+						break;
+					case "botdebug":
+						if (typeof lunActiveBotWaveMinId !== "undefined") {
+							chatLog("[Bot Debug] Active Wave Cutoff ID: " + (lunActiveBotWaveMinId === Infinity ? "None" : lunActiveBotWaveMinId));
+						}
 						break;
 
 					case "pos":
