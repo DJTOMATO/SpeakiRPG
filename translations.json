@@ -1,7 +1,7 @@
 {
   "en": {
     "langName": "English",
-    "header": "SpeakiMod+ v1.9.18",
+    "header": "SpeakiMod+ v1.9.19",
     "playersNearby": "Speaki nearby: {0}",
     "zoneId": "Zone ID: {0}",
     "expPerMinute": "{0} EXP/min",
@@ -362,11 +362,12 @@
     "emojiWarning": "⚠️ Please don’t abuse this feature, or you might get sent to the weekend farm.",
     "emojiTabTrickcal": "Trickcal",
     "panelLeftToggleLabel": "HUD Buttons on Left",
-    "mentionPingToggleLabel": "Mention Ping Sound"
+    "mentionPingToggleLabel": "Mention Ping Sound",
+    "channelTrackerToggleLabel": "Show Channel Player Counts"
   },
   "ja": {
     "langName": "日本語",
-    "header": "SpeakiMod+ v1.9.18",
+    "header": "SpeakiMod+ v1.9.19",
     "playersNearby": "近くのｽﾋﾟｷ数: {0}",
     "zoneId": "エリアID: {0}",
     "expPerMinute": "{0} 経験値/分",
@@ -727,11 +728,12 @@
     "emojiWarning": "⚠️ この機能を悪用しないでください。週末農場送りにされるかもしれません。",
     "emojiTabTrickcal": "Trickcal",
     "panelLeftToggleLabel": "HUDボタンを左側に表示",
-    "mentionPingToggleLabel": "メンション通知音"
+    "mentionPingToggleLabel": "メンション通知音",
+    "channelTrackerToggleLabel": "チャンネルのプレイヤー数を表示"
   },
   "ko": {
     "langName": "한국어",
-    "header": "SpeakiMod+ v1.9.18",
+    "header": "SpeakiMod+ v1.9.19",
     "playersNearby": "근처 스피키: {0}",
     "zoneId": "존 ID: {0}",
     "expPerMinute": "{0} EXP/분",
@@ -1092,11 +1094,12 @@
     "emojiWarning": "⚠️ 이 기능을 악용하지 마세요. 주말 농장으로 보내질 수 있습니다.",
     "emojiTabTrickcal": "트릭컬",
     "panelLeftToggleLabel": "HUD 버튼 왼쪽 배치",
-    "mentionPingToggleLabel": "멘션 알림음"
+    "mentionPingToggleLabel": "멘션 알림음",
+    "channelTrackerToggleLabel": "채널 플레이어 수 표시"
   },
   "zh-TW": {
     "langName": "繁體中文",
-    "header": "SpeakiMod+ v1.9.18",
+    "header": "SpeakiMod+ v1.9.19",
     "playersNearby": "附近的斯皮奇: {0}",
     "zoneId": "區域 ID: {0}",
     "expPerMinute": "{0} 經驗值/每分鐘",
@@ -1457,11 +1460,12 @@
     "emojiWarning": "⚠️ 請勿濫用此功能，否則你可能會被送到週末農場。",
     "emojiTabTrickcal": "Trickcal",
     "panelLeftToggleLabel": "HUD 按鈕靠左顯示",
-    "mentionPingToggleLabel": "提及提示音"
+    "mentionPingToggleLabel": "提及提示音",
+    "channelTrackerToggleLabel": "Show Channel Player Counts"
   },
   "es-419": {
     "langName": "Español",
-    "header": "SpeakiMod+ v1.9.18",
+    "header": "SpeakiMod+ v1.9.19",
     "playersNearby": "Speaki cercanos: {0}",
     "zoneId": "ID de zona: {0}",
     "expPerMinute": "{0} EXP/min",
@@ -1822,11 +1826,12 @@
     "emojiWarning": "⚠️ Por favor no abuses de esta función, o podrías terminar en la granja de fin de semana.",
     "emojiTabTrickcal": "Trickcal",
     "panelLeftToggleLabel": "Botones del HUD a la Izquierda",
-    "mentionPingToggleLabel": "Sonido de Mención"
+    "mentionPingToggleLabel": "Sonido de Mención",
+    "channelTrackerToggleLabel": "Show Channel Player Counts"
   },
   "zh-CN": {
     "langName": "简体中文",
-    "header": "SpeakiMod+ v1.9.18",
+    "header": "SpeakiMod+ v1.9.19",
     "playersNearby": "附近的斯皮奇: {0}",
     "zoneId": "区域 ID: {0}",
     "expPerMinute": "{0} 经验值/每分钟",
@@ -2187,6 +2192,7 @@
     "emojiWarning": "⚠️ 请勿滥用此功能，否则你可能会被送到周末农场。",
     "emojiTabTrickcal": "Trickcal",
     "panelLeftToggleLabel": "HUD 按钮靠左显示",
-    "mentionPingToggleLabel": "提及提示音"
+    "mentionPingToggleLabel": "提及提示音",
+    "channelTrackerToggleLabel": "Show Channel Player Counts"
   }
 }

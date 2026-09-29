@@ -1940,6 +1940,10 @@ function setGamepadRumbleEnabled(enabled) {
 }
 
 var lunUiScale = (window.localStorage && localStorage.getItem("spkmod-ui-scale")) || ((typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android/i.test(navigator.userAgent))) ? "0.65" : "1.0");
+var lunChannelTrackerEnabled = window.localStorage ? (localStorage.getItem("spkmod-channel-tracker") !== "false") : true;
+if (typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android/i.test(navigator.userAgent))) {
+    lunChannelTrackerEnabled = window.localStorage && localStorage.getItem("spkmod-channel-tracker") === "true"; // default false on mobile
+}
 var lunGameUiScale = (window.localStorage && localStorage.getItem("spkmod-uiscale")) || "1.0";
 var lunCameraEffect = (window.localStorage && localStorage.getItem("spkmod-camera-effect")) || "none";
 var lunDroneSpeed = window.lunDroneSpeed = (window.localStorage && parseFloat(localStorage.getItem("spkmod-drone-speed"))) || 0.10;
@@ -2737,7 +2741,8 @@ document.body.appendChild(
 				style: lunSessionGoldTrackerEnabled ? "" : "display: none;"
 			}),
 			lunHudElements.channelTracker = buildElement("span", {
-				innerText: "..."
+				innerText: "...",
+				style: lunChannelTrackerEnabled ? "" : "none"
 			}),
 			lunHudElements.fpsPingTracker = buildElement("span", {
 				innerText: t("fpsPingText", "--", "--"),
@@ -3762,6 +3767,15 @@ document.body.appendChild(
 					lunPanelElements.minigameTrackerLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("minigameTrackerToggleLabel") }),
 					lunPanelElements.minigameTrackerToggleInput = buildElement("input", { type: "checkbox", checked: lunMinigameTrackerEnabled, onchange: e => setMinigameTrackerEnabled(e.target.checked) })
 				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.channelTrackerToggleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("channelTrackerToggleLabel") }),
+					lunPanelElements.channelTrackerToggleInput = buildElement("input", { type: "checkbox", checked: lunChannelTrackerEnabled, onchange: e => {
+						lunChannelTrackerEnabled = e.target.checked;
+						if (window.localStorage) localStorage.setItem("spkmod-channel-tracker", lunChannelTrackerEnabled);
+						if (lunHudElements.channelTracker) lunHudElements.channelTracker.style.display = lunChannelTrackerEnabled ? "" : "none";
+					} })
+				]),
+
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.expRateUnitLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("expRateUnitToggleLabel") }),
 					buildElement("input", { type: "checkbox", checked: lunExpRatePerHour, onchange: e => setExpRatePerHour(e.target.checked) })
@@ -6665,7 +6679,7 @@ function tick() {
 	setText(lunHudElements.expTrackerL1, expTrackerL1);
 	setText(lunHudElements.expTrackerL2, expTrackerL2);
 
-	if (lunMenuFoldingLevel < 2 && lunTickCount >= lunChannelTrackerNextTicks) {
+	if (lunChannelTrackerEnabled && lunMenuFoldingLevel < 2 && lunTickCount >= lunChannelTrackerNextTicks) {
 		const token = getAuthToken();
 		if (!token) {
 			lunChannelTrackerNextTicks = lunTickCount + (5000 / lunTPS);
