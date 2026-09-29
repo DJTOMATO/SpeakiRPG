@@ -1086,6 +1086,23 @@ function setMentionAlertEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-mention-enabled", lunMentionAlertEnabled ? "true" : "false");
 }
 
+var lunMentionPingEnabled = (window.localStorage && localStorage.getItem("spkmod-mention-ping")) !== "false";
+function setMentionPingEnabled(enabled) {
+	lunMentionPingEnabled = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-mention-ping", lunMentionPingEnabled ? "true" : "false");
+}
+
+function playPingSound() {
+    // Use the native game audio URL for the mention ping
+    try {
+        const pingAudio = new window.Audio("https://speakirpg.overture.io.kr/audio/voice/speaki/No.mp3");
+        pingAudio.volume = 0.6;
+        pingAudio.play().catch(e => {
+            console.warn("[SpeakiMod+] Failed to play ping sound", e);
+        });
+    } catch (e) {}
+}
+
 function setHideKnownBotsEnabled(enabled) {
 	lunHideKnownBotsEnabled = !!enabled;
 	if (window.localStorage) localStorage.setItem("spkmod-hide-known-bots", lunHideKnownBotsEnabled ? "true" : "false");
@@ -2330,6 +2347,15 @@ document.head.appendChild(buildElement(
 			top: 10px;
 		}
 		.sr-chatbox__body-text.spkmod-translated-line { color: #ffd54a !important; -webkit-text-fill-color: #ffd54a !important;  }
+		.sr-chatbox__row.spkmod-mention-line {
+			background: rgba(255, 200, 0, 0.15) !important;
+			border-left: 3px solid #ffcc00 !important;
+		}
+		.sr-chatbox__row.spkmod-mention-line .sr-chatbox__body-text {
+			font-weight: bold !important;
+			color: #fffacd !important;
+			text-shadow: 1px 1px 2px #000, 0 0 4px #ffaa00 !important;
+		}
 		.sr-chatbox__body-text.spkmod-gmdt-line { font-weight: 800 !important; color: #ffa726 !important; -webkit-text-fill-color: #ffa726 !important; text-shadow: 0 0 6px rgba(255, 167, 38, 0.45) !important; }
 		.sr-chatbox__sender.spkmod-friend-sender { color: #4dd0e1 !important; -webkit-text-fill-color: #4dd0e1 !important; font-weight: bold !important; text-shadow: 0 0 6px rgba(77, 208, 225, 0.45) !important; }
 		.sr-chatbox__body-text.spkmod-clickable-line { cursor: pointer !important; pointer-events: auto !important;}
@@ -3591,6 +3617,19 @@ document.body.appendChild(
 						checked: lunMentionAlertEnabled,
 						onchange: e => {
 							setMentionAlertEnabled(e.target.checked);
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.mentionPingToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("mentionPingToggleLabel")
+					}),
+					lunPanelElements.mentionPingToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunMentionPingEnabled,
+						onchange: e => {
+							setMentionPingEnabled(e.target.checked);
 						}
 					})
 				]),
@@ -6155,6 +6194,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.gmChatToggleLabel) setText(lunPanelElements.gmChatToggleLabel, t("gmChatToggleLabel"));
 	if (lunPanelElements.friendChatToggleLabel) setText(lunPanelElements.friendChatToggleLabel, t("friendChatToggleLabel"));
 	if (lunPanelElements.mentionAlertToggleLabel) setText(lunPanelElements.mentionAlertToggleLabel, t("mentionAlertToggleLabel"));
+	if (lunPanelElements.mentionPingToggleLabel) setText(lunPanelElements.mentionPingToggleLabel, t("mentionPingToggleLabel"));
 	if (lunPanelElements.hideKnownBotsLabel) setText(lunPanelElements.hideKnownBotsLabel, t("hideKnownBotsToggleLabel"));
 	if (lunPanelElements.chatTimestampLabel) setText(lunPanelElements.chatTimestampLabel, t("chatTimestampToggleLabel"));
 	if (lunPanelElements.fpPitchLabel) setText(lunPanelElements.fpPitchLabel, t("firstPersonPitchLabel"));
@@ -7223,12 +7263,20 @@ function hookGameStateOnce() {
 			const filteredMsg = filterName(msg);
 
 			const myName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
-			if (lunMentionAlertEnabled && myName && filteredMsg && filteredMsg.toLowerCase().includes(myName.toLowerCase()) && id !== -1337 && id !== -1338) {
-				chatLog(t("mentionAlertMsg", filteredName, filteredMsg));
+			let isMention = false;
+			if (myName && filteredMsg && filteredMsg.toLowerCase().includes(myName.toLowerCase()) && id !== -1337 && id !== -1338) {
+				isMention = true;
+				if (lunMentionAlertEnabled) chatLog(t("mentionAlertMsg", filteredName, filteredMsg));
+				if (typeof lunMentionPingEnabled !== 'undefined' && lunMentionPingEnabled) {
+					if (typeof playPingSound === 'function') playPingSound();
+				}
 			}
 
 			if (filteredMsg && filteredMsg.trim()) {
 				observeNextChatNode(filteredMsg, (bodyText, rowNode) => {
+					if (isMention) {
+						rowNode.classList.add("spkmod-mention-line");
+					}
 					const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {})};
 					if (Object.keys(spkmodAllEmojis).length > 0) {
 						let html = bodyText.innerHTML;
