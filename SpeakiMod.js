@@ -1067,7 +1067,7 @@ function fetchFriendsList(force = false) {
 	});
 }
 
-const lunKnownBotNames = ["GniloeAlo3", "Gniloe41o3", "Gniloe41oe", "GniloeA1oe", "GniloeA1o3", "GniloeA103", "toufufuton", "uhu", "clay79", "key7catace", "6air9dog5", "53lake", "1sealace", "2wave0bay1", "19owlfern", "red17wave", "nekomaru2", "king9SPK5", "ash6mist7", "takutaku8", "스핔이3984", "SPKtree21", "SPKleaf37", "3clayowl5", "3bayhero9", "99duckdog", "cow6SPK2", "fire8SPK7", "Takutaku3", "Takutaku4", "kutakuta", "0birdice2", "wind2SPK8", "SPKbay23", "3sky8king", "star2bat04", "map3kite4", "FrznTeardrop", "sun9SPK0", "5SPKsnow2", "SPKclay15", "frogfox40", "5air7moon", "SPKair00", "SPKblue88", "moss4ant36", "9gem4wind", "SPKjade05", "SPKfin06", "SPKdeer69", "OO0OOOOO72", "llIlIIll62", "lIllIIIl39", "IIlIIIlI45", "00OO0OO099", "sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", "OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", "OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63", "SPKecho98", "OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", "llIIllll38", "takutaku6", "kutakuta2", "takutaku7", "GniloeAlo3", "Gniloe4103", "Gniloe41o3", "GniloeAl03", "Gniloe41oe", "GniloeA1o3", "Gniloe41o3", "GniloeAlo3", "GniloeAl03", "Gniloe41oe", "GniloeAloe"];
+const lunKnownBotNames = ["GniloeAlo3", "Gniloe41o3", "Gniloe41oe", "GniloeA1oe", "GniloeA1o3", "GniloeA103", "toufufuton", "uhu", "clay79", "key7catace", "6air9dog5", "53lake", "1sealace", "2wave0bay1", "19owlfern", "red17wave", "nekomaru2", "king9SPK5", "ash6mist7", "takutaku8", "스핔이3984", "SPKtree21", "SPKleaf37", "3clayowl5", "3bayhero9", "99duckdog", "cow6SPK2", "fire8SPK7", "Takutaku3", "Takutaku4", "kutakuta", "0birdice2", "wind2SPK8", "SPKbay23", "3sky8king", "star2bat04", "map3kite4", "FrznTeardrop", "sun9SPK0", "5SPKsnow2", "SPKclay15", "frogfox40", "5air7moon", "SPKair00", "SPKblue88", "moss4ant36", "9gem4wind", "SPKjade05", "SPKfin06", "SPKdeer69", "OO0OOOOO72", "llIlIIll62", "lIllIIIl39", "IIlIIIlI45", "00OO0OO099", "sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", "OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", "OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63", "SPKecho98", "OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", "llIIllll38", "takutaku6", "kutakuta2", "takutaku7", "GniloeAlo3", "Gniloe4103", "Gniloe41o3", "GniloeAl03", "Gniloe41oe", "GniloeA1o3", "Gniloe41o3", "GniloeAlo3", "GniloeAl03", "Gniloe41oe"];
 
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
@@ -2265,9 +2265,9 @@ function updateDynamicStyles() {
 		}
 				#app { filter: ${filterRule}; }
 		#app > *:not(:has(canvas)):not(canvas) { zoom: ${lunGameUiScale} !important; }
-		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-stats-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
+		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-effects-modal, #spkmod-stats-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
-		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-stats-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
+		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-effects-modal, #spkmod-stats-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
 			background: var(--spkmod-bg) !important;
 			backdrop-filter: var(--spkmod-blur) !important;
 			border-color: var(--spkmod-accent) !important;
@@ -2582,7 +2582,7 @@ document.head.appendChild(buildElement(
 			border-radius: 8px;
 			padding: 6px;
 		}
-		#spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-stats-modal {
+		#spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-effects-modal, #spkmod-stats-modal {
 			display: flex;
 			flex-direction: column;
 			position: fixed;
@@ -2616,6 +2616,10 @@ document.head.appendChild(buildElement(
 		}
 		#spkmod-patchnotes-modal {
 			width: 380px;
+			max-width: 95vw;
+		}
+		#spkmod-effects-modal {
+			width: 260px;
 			max-width: 95vw;
 		}
 		#spkmod-stats-modal {
@@ -3553,6 +3557,18 @@ document.body.appendChild(
 				lunPanelElements.settingsHeader = buildElement("span", {
 					innerText: t("settingsHeader"),
 					style: "font-weight: bold;"
+				}),
+				lunPanelElements.localEffectsBtn = buildElement("button", {
+					id: "spkmod-settings-localeffects-btn",
+					className: "spkmod-panel-btn",
+					style: "padding: 2px 6px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;",
+					innerText: t("localEffectsBtn"),
+					onclick: (e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						lunHudElements.settingsModal.classList.add("hidden");
+						lunHudElements.effectsModal.classList.remove("hidden");
+					}
 				}),
 				buildElement("button", {
 					id: "spkmod-settings-accounts-btn",
@@ -4805,6 +4821,136 @@ function executeGamepadAction(actionName) {
 }
 
 
+
+// --- SpeakiMod+ Local Effects (Code by Chan, adapted) ---
+const lunDeathControllerStates = new WeakMap();
+const lunDeathLocks = new WeakSet();
+
+function spkmodPatchControllerForDeath(controller) {
+	if (!controller || typeof controller !== 'object') return;
+	let state = lunDeathControllerStates.get(controller);
+	if (!state) {
+		const originalSetLocomotion = controller.setLocomotion;
+		if (typeof originalSetLocomotion !== 'function') return;
+		state = { originalSetLocomotion };
+		lunDeathControllerStates.set(controller, state);
+		controller.setLocomotion = function (...args) {
+			if (lunDeathLocks.has(this)) return;
+			return originalSetLocomotion.apply(this, args);
+		};
+	}
+}
+
+function spkmodPlayDeath(targetController, targetName) {
+	if (!targetController || typeof targetController.playDeath !== 'function') {
+		console.warn("[SpeakiMod+ Local Effects] Target does not have a valid controller or playDeath function.", targetName);
+		return false;
+	}
+	try {
+		spkmodPatchControllerForDeath(targetController);
+		lunDeathLocks.add(targetController);
+		targetController.playDeath();
+		console.log(`[SpeakiMod+ Local Effects] "${targetName}" DEATH animation played.`);
+		return true;
+	} catch (err) {
+		console.error("[SpeakiMod+ Local Effects] playDeath error:", err);
+		lunDeathLocks.delete(targetController);
+		return false;
+	}
+}
+
+window.spkmodTriggerDeathSelf = function() {
+	if (typeof gameState !== "undefined" && gameState.myPlayerController) {
+		spkmodPlayDeath(gameState.myPlayerController, "Self");
+	}
+};
+
+window.spkmodTriggerDeathEveryone = function() {
+	let count = 0;
+	if (typeof gameState !== "undefined") {
+		if (gameState.myPlayerController) {
+			if (spkmodPlayDeath(gameState.myPlayerController, "Self")) count++;
+		}
+		if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+			for (const player of gameState.remotePlayers.remotePlayers.values()) {
+				const ctrl = player?.avatar?.animationController || player?.container?.controller;
+				if (ctrl && spkmodPlayDeath(ctrl, player.info?.name || "Unknown")) count++;
+			}
+		}
+	}
+	console.log(`[SpeakiMod+ Local Effects] Killed ${count} players.`);
+};
+
+window.spkmodTriggerDeathAllButSelf = function() {
+	let count = 0;
+	if (typeof gameState !== "undefined") {
+		if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+			for (const player of gameState.remotePlayers.remotePlayers.values()) {
+				const ctrl = player?.avatar?.animationController || player?.container?.controller;
+				if (ctrl && spkmodPlayDeath(ctrl, player.info?.name || "Unknown")) count++;
+			}
+		}
+	}
+	console.log(`[SpeakiMod+ Local Effects] Killed ${count} remote players.`);
+};
+
+window.spkmodTriggerDeathTarget = function(name) {
+	if (!name || typeof gameState === "undefined") return;
+	const lowerTarget = name.trim().toLowerCase();
+	let found = false;
+	
+	const myName = (gameState.myPlayerName || gameState.myStat?.name || "").toLowerCase();
+	if (myName === lowerTarget && gameState.myPlayerController) {
+		spkmodPlayDeath(gameState.myPlayerController, "Self");
+		found = true;
+	}
+	
+	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+		for (const player of gameState.remotePlayers.remotePlayers.values()) {
+			const pName = (player.info?.name || "").toLowerCase();
+			if (pName.includes(lowerTarget)) {
+				const ctrl = player?.avatar?.animationController || player?.container?.controller;
+				if (ctrl && spkmodPlayDeath(ctrl, player.info?.name)) found = true;
+			}
+		}
+	}
+	if (!found) {
+		chatLog("[Local Effects] Player not found: " + name);
+	}
+};
+
+window.spkmodReviveAll = function() {
+	let count = 0;
+	
+	const reviveCtrl = (controller) => {
+		if (!controller || !lunDeathLocks.has(controller)) return;
+		lunDeathLocks.delete(controller);
+		try {
+			if (typeof controller.setAlive === 'function') controller.setAlive();
+			else if (typeof controller.revive === 'function') controller.revive();
+			else if (typeof controller.reset === 'function') controller.reset();
+			
+			const state = lunDeathControllerStates.get(controller);
+			if (state && typeof state.originalSetLocomotion === 'function') {
+				state.originalSetLocomotion.call(controller, false);
+			}
+			count++;
+		} catch (e) {
+			console.error("[SpeakiMod+ Local Effects] revive error:", e);
+		}
+	};
+
+	if (typeof gameState !== "undefined") {
+		if (gameState.myPlayerController) reviveCtrl(gameState.myPlayerController);
+		if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+			for (const player of gameState.remotePlayers.remotePlayers.values()) {
+				const ctrl = player?.avatar?.animationController || player?.container?.controller;
+				if (ctrl) reviveCtrl(ctrl);
+			}
+		}
+	}
+	console.log(`[SpeakiMod+ Local Effects] Revived ${count} players.`);
+};
 const mapModalElements = {};
 let mapUpdateFrame = null;
 
@@ -5083,6 +5229,76 @@ setTimeout(() => {
 		makeDraggable(lunHudElements.eventModal, [eventModalElements.headerTitle]);
 	}
 }, 500);
+
+document.body.appendChild(
+	lunHudElements.effectsModal = buildElement("div", {
+		id: "spkmod-effects-modal",
+		className: "hidden"
+	}, [
+		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
+			lunPanelElements.effectsModalTitle = buildElement("span", {
+				innerText: t("localEffectsTitle"),
+				style: "font-weight: bold; font-size: 12px; cursor: move; user-select: none; touch-action: none; padding: 6px 0; min-height: 24px; display: inline-block; width: 100%;"
+			}),
+			buildElement("span", {
+				innerText: "✕",
+				style: "cursor: pointer; padding: 0 4px; font-size: 14px;",
+				onclick: _ => lunHudElements.effectsModal.classList.add("hidden")
+			})
+		]),
+		buildElement("div", { style: "display: flex; flex-direction: column; gap: 8px; max-height: 70vh; overflow-y: auto; padding: 4px;" }, [
+			lunPanelElements.effectsWarning = buildElement("div", {
+				innerText: t("localEffectsWarning"),
+				style: "color: #ff9999; font-size: 10px; text-align: center; border-bottom: 1px solid #555; padding-bottom: 6px; margin-bottom: 4px; white-space: pre-line;"
+			}),
+			lunPanelElements.killSelfBtn = buildElement("button", {
+				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+				innerText: t("killSelfBtn"),
+				onclick: () => window.spkmodTriggerDeathSelf && window.spkmodTriggerDeathSelf()
+			}),
+			lunPanelElements.killEveryoneBtn = buildElement("button", {
+				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+				innerText: t("killEveryoneBtn"),
+				onclick: () => window.spkmodTriggerDeathEveryone && window.spkmodTriggerDeathEveryone()
+			}),
+			lunPanelElements.killAllButSelfBtn = buildElement("button", {
+				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+				innerText: t("killAllButSelfBtn"),
+				onclick: () => window.spkmodTriggerDeathAllButSelf && window.spkmodTriggerDeathAllButSelf()
+			}),
+			buildElement("div", { style: "display: flex; gap: 4px; margin-top: 4px;" }, [
+				lunPanelElements.killTargetInput = buildElement("input", {
+					type: "text", placeholder: t("targetPlaceholder"),
+					style: "flex: 1; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;"
+				}),
+				lunPanelElements.killTargetBtn = buildElement("button", {
+					className: "spkmod-panel-btn", style: "padding: 4px 8px; font-size: 11px;",
+					innerText: t("killTargetBtn"),
+					onclick: () => {
+						if (window.spkmodTriggerDeathTarget) {
+							window.spkmodTriggerDeathTarget(lunPanelElements.killTargetInput.value);
+							lunPanelElements.killTargetInput.value = "";
+						}
+					}
+				})
+			]),
+			lunPanelElements.reviveAllBtn = buildElement("button", {
+				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 8px; border-color: #55ff55 !important;",
+				innerText: t("reviveAllBtn"),
+				onclick: () => window.spkmodReviveAll && window.spkmodReviveAll()
+			})
+		])
+	])
+);
+setTimeout(() => {
+	if (typeof makeDraggable === 'function' && lunHudElements.effectsModal && lunPanelElements.effectsModalTitle) {
+		const modalW = 260, modalH = 280;
+		lunHudElements.effectsModal.style.left = Math.max(10, (window.innerWidth / 2) - (modalW / 2)) + "px";
+		lunHudElements.effectsModal.style.top = Math.max(10, window.innerHeight * 0.15) + "px";
+		makeDraggable(lunHudElements.effectsModal, [lunPanelElements.effectsModalTitle]);
+	}
+}, 500);
+
 
 document.body.appendChild(
 	lunHudElements.patchNotesModal = buildElement("div", {
@@ -6224,7 +6440,16 @@ spkmodI18nRenderers.push(() => {
 
 spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.headerBtn, t("header"));
-	setText(lunPanelElements.danceBtn, t("dance"));
+	if (lunPanelElements.localEffectsBtn) setText(lunPanelElements.localEffectsBtn, t("localEffectsBtn"));
+	if (lunPanelElements.effectsModalTitle) setText(lunPanelElements.effectsModalTitle, t("localEffectsTitle"));
+	if (lunPanelElements.effectsWarning) setText(lunPanelElements.effectsWarning, t("localEffectsWarning"));
+	if (lunPanelElements.killSelfBtn) setText(lunPanelElements.killSelfBtn, t("killSelfBtn"));
+	if (lunPanelElements.killEveryoneBtn) setText(lunPanelElements.killEveryoneBtn, t("killEveryoneBtn"));
+	if (lunPanelElements.killAllButSelfBtn) setText(lunPanelElements.killAllButSelfBtn, t("killAllButSelfBtn"));
+	if (lunPanelElements.killTargetBtn) setText(lunPanelElements.killTargetBtn, t("killTargetBtn"));
+	if (lunPanelElements.reviveAllBtn) setText(lunPanelElements.reviveAllBtn, t("reviveAllBtn"));
+	if (lunPanelElements.killTargetInput) lunPanelElements.killTargetInput.placeholder = t("targetPlaceholder");
+		setText(lunPanelElements.danceBtn, t("dance"));
 	setText(lunPanelElements.chowayoBtn, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
 	setText(lunPanelElements.heartsBtn, t("hearts"));
 	setText(lunPanelElements.autoHeartsBtn, t(window.AutoHeartsActive ? "autoHeartsOn" : "autoHeartsOff"));
