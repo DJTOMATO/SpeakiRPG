@@ -3950,7 +3950,11 @@ function toggleEmojiPicker(anchorBtn) {
     }
     
     lunEmojiPickerPanel = document.createElement("div");
+    lunEmojiPickerPanel.id = "spkmod-emoji-picker";
     lunEmojiPickerPanel.style.cssText = "position: absolute; bottom: 0px; left: calc(100% + 10px); width: 340px; height: 300px; min-width: 200px; min-height: 150px; resize: both; overflow: hidden; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;";
+    if (window.localStorage && localStorage.getItem("spkmod-pos-spkmod-emoji-picker")) {
+        lunEmojiPickerPanel.style.bottom = "auto";
+    }
     
     // Prevent clicks inside the panel from stealing chat input focus (which breaks cursor position)
     lunEmojiPickerPanel.onmousedown = (e) => { e.preventDefault(); };
@@ -3973,17 +3977,48 @@ function toggleEmojiPicker(anchorBtn) {
 
 function renderEmojiGrid() {
     if (!lunEmojiPickerPanel) return;
-    lunEmojiPickerPanel.innerHTML = "";
     
-    // Warning Banner
-    const warningBanner = document.createElement("div");
-    warningBanner.innerText = t("emojiWarning", "⚠️ Please don’t abuse this feature, or you might get sent to the weekend farm.");
-    warningBanner.style.cssText = "color: #ffaa00; font-size: 11px; text-align: center; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px dashed #555; font-weight: bold; font-family: sans-serif;";
-    lunEmojiPickerPanel.appendChild(warningBanner);
+    let headerWrap = lunEmojiPickerPanel.querySelector(".spkmod-emoji-header");
+    let header = lunEmojiPickerPanel.querySelector("#spkmod-emoji-tabs");
+    let grid = lunEmojiPickerPanel.querySelector("#spkmod-emoji-grid");
+    
+    if (!headerWrap) {
+        lunEmojiPickerPanel.innerHTML = "";
+        
+        headerWrap = document.createElement("div");
+        headerWrap.className = "spkmod-emoji-header";
+        headerWrap.style.cssText = "cursor: move; user-select: none; touch-action: none;";
+        
+        const warningBanner = document.createElement("div");
+        warningBanner.innerText = t("emojiWarning", "⚠️ Please don’t abuse this feature, or you might get sent to the weekend farm.");
+        warningBanner.style.cssText = "color: #ffaa00; font-size: 11px; text-align: center; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px dashed #555; font-weight: bold; font-family: sans-serif;";
+        headerWrap.appendChild(warningBanner);
 
-    // Header Tabs
-    const header = document.createElement("div");
-    header.style.cssText = "display: flex; gap: 4px; margin-bottom: 4px; border-bottom: 1px solid #444; padding-bottom: 4px;";
+        header = document.createElement("div");
+        header.id = "spkmod-emoji-tabs";
+        header.style.cssText = "display: flex; gap: 4px; margin-bottom: 4px; border-bottom: 1px solid #444; padding-bottom: 4px;";
+        headerWrap.appendChild(header);
+        
+        lunEmojiPickerPanel.appendChild(headerWrap);
+
+        grid = document.createElement("div");
+        grid.id = "spkmod-emoji-grid";
+        grid.style.cssText = "display: flex; flex-wrap: wrap; gap: 4px; flex-grow: 1; overflow-y: auto; align-content: flex-start;";
+        lunEmojiPickerPanel.appendChild(grid);
+        
+        headerWrap.addEventListener("mousedown", () => {
+            lunEmojiPickerPanel.style.bottom = "auto";
+        });
+        headerWrap.addEventListener("touchstart", () => {
+            lunEmojiPickerPanel.style.bottom = "auto";
+        }, { passive: true });
+
+        if (typeof makeDraggable === 'function') {
+            makeDraggable(lunEmojiPickerPanel, [headerWrap]);
+        }
+    }
+    
+    header.innerHTML = "";
     
     const btnStd = document.createElement("button");
     btnStd.innerText = "😀 " + t("emojiTabStandard", "Standard");
@@ -4003,11 +4038,8 @@ function renderEmojiGrid() {
     header.appendChild(btnStd);
     header.appendChild(btnCus);
     header.appendChild(btnTrickcal);
-    lunEmojiPickerPanel.appendChild(header);
 
-    // Grid Container
-    const grid = document.createElement("div");
-    grid.style.cssText = "display: flex; flex-wrap: wrap; gap: 4px; flex-grow: 1; overflow-y: auto; align-content: flex-start;";
+    grid.innerHTML = "";
     
     if (lunEmojiTab === 'standard') {
         const sorted = getSortedEmojis();
