@@ -297,6 +297,7 @@ A special thanks to the artists who kindly authorized the use of their artwork f
 A community-developed Android client is now officially supported! You can play SpeakiRPG on your Android device with SpeakiMod+ built right in.
 - **Download:** Check the [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) page for the latest `.apk` or the [Actions tab](https://github.com/DJTOMATO/SpeakiRPG/actions) for automatic builds.
 - **Features:** Optimized mobile layout, native performance, and automatic mod updates.
+- **Credits:** Special thanks to [venoroa1358](https://github.com/venoroa1358/) for developing the Android client!
 
 ## Third-Party Components
 

@@ -287,6 +287,7 @@ npm start
 官方现已支持由社区开发的 Android 客户端！您可以在 Android 设备上游玩内置了 SpeakiMod+ 的 SpeakiRPG。
 - **下载:** 请前往 [Releases](https://github.com/DJTOMATO/SpeakiRPG/releases) 页面获取最新的 `.apk`，或在 [Actions 标签](https://github.com/DJTOMATO/SpeakiRPG/actions) 查看自动构建版本。
 - **功能:** 优化的移动端布局、原生性能表现以及自动 Mod 更新。
+- **致谢:** 特别感谢 [venoroa1358](https://github.com/venoroa1358/) 开发了 Android 客户端！
 
 ## 第三方元件
 
