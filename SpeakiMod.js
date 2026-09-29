@@ -8263,9 +8263,19 @@ function ensureQuickLoginStyles() {
 				top: auto !important;
 				bottom: 16px !important;
 				transform: translateX(-50%) !important;
-				width: calc(100vw - 32px) !important;
-				max-width: 440px !important;
+				width: 90vw !important;
+				max-width: 320px !important;
 				max-height: 45vh !important;
+			}
+		}
+		@media (max-width: 960px) and (orientation: landscape) {
+			#spkmod-quick-login-box {
+				left: auto !important;
+				right: 16px !important;
+				top: 50% !important;
+				bottom: auto !important;
+				transform: translateY(-50%) !important;
+				max-height: 85vh !important;
 			}
 		}
 		.spkmod-ql-card {
