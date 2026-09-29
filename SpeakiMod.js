@@ -3950,17 +3950,20 @@ function toggleEmojiPicker(anchorBtn) {
     }
     
     lunEmojiPickerPanel = document.createElement("div");
-    lunEmojiPickerPanel.id = "spkmod-emoji-picker";
-    lunEmojiPickerPanel.style.cssText = "position: absolute; bottom: 0px; left: calc(100% + 10px); width: 340px; height: 300px; min-width: 200px; min-height: 150px; resize: both; overflow: hidden; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;";
-    if (window.localStorage && localStorage.getItem("spkmod-pos-spkmod-emoji-picker")) {
-        lunEmojiPickerPanel.style.bottom = "auto";
+    lunEmojiPickerPanel.id = "spkmod-emoji-picker-v2";
+    lunEmojiPickerPanel.style.cssText = "position: fixed; width: 340px; height: 300px; min-width: 200px; min-height: 150px; resize: both; overflow: hidden; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;";
+    
+    if (!(window.localStorage && localStorage.getItem("spkmod-pos-spkmod-emoji-picker-v2"))) {
+        const btnRect = anchorBtn.getBoundingClientRect();
+        lunEmojiPickerPanel.style.left = (btnRect.right + 10) + "px";
+        lunEmojiPickerPanel.style.bottom = (window.innerHeight - btnRect.bottom) + "px";
     }
     
     // Prevent clicks inside the panel from stealing chat input focus (which breaks cursor position)
     lunEmojiPickerPanel.onmousedown = (e) => { e.preventDefault(); };
 
     renderEmojiGrid();
-    anchorBtn.parentElement.appendChild(lunEmojiPickerPanel);
+    document.body.appendChild(lunEmojiPickerPanel);
     
     const closeHandler = (e) => {
         if (!lunEmojiPickerPanel) return;
