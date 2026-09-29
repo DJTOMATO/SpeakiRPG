@@ -46,3 +46,8 @@ t_45,https://i.imgur.com/KatqjCA.gif
 t_46,https://i.imgur.com/etWdzLn.png
 t_47,https://i.imgur.com/h26XmZA.gif
 t_48,https://i.imgur.com/WyQhqwQ.gif
+t_49,https://i.imgur.com/LfYU6G6.png
+t_50,https://i.imgur.com/FZUwRoq.png
+t_51,https://i.imgur.com/91pUQBR.png
+t_52,https://i.imgur.com/n1w6jFv.png
+t_53,https://i.imgur.com/KW79yrk.png
