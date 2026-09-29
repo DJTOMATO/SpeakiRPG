@@ -3773,7 +3773,7 @@ document.body.appendChild(
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.uiScaleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("uiScaleLabel") }),
-					lunPanelElements.uiScaleSlider = buildElement("input", { type: "range", min: "0.8", max: "1.3", step: "0.05", value: lunUiScale, style: "width: 70px;", onchange: e => { lunUiScale = e.target.value; updateDynamicStyles(); } })
+					lunPanelElements.uiScaleSlider = buildElement("input", { type: "range", min: "0.4", max: "1.3", step: "0.05", value: lunUiScale, style: "width: 70px;", onchange: e => { lunUiScale = e.target.value; updateDynamicStyles(); } })
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.cameraEffectLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("cameraEffectLabel") || "Camera Effect" }),
@@ -3788,7 +3788,7 @@ document.body.appendChild(
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.gameUiScaleLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("gameUiScaleLabel") || "Game UI Scale" }),
-					lunPanelElements.gameUiScaleSlider = buildElement("input", { type: "range", min: "0.5", max: "2", step: "0.05", value: lunGameUiScale, style: "width: 70px;", onchange: e => { 
+					lunPanelElements.gameUiScaleSlider = buildElement("input", { type: "range", min: "0.4", max: "2", step: "0.05", value: lunGameUiScale, style: "width: 70px;", onchange: e => { 
 						lunGameUiScale = e.target.value; 
 						if (window.localStorage) localStorage.setItem("spkmod-uiscale", lunGameUiScale);
 						const appEl = document.getElementById("app");
@@ -3991,7 +3991,11 @@ function toggleEmojiPicker(anchorBtn) {
     
     lunEmojiPickerPanel = document.createElement("div");
     lunEmojiPickerPanel.id = "spkmod-emoji-picker-v2";
-    lunEmojiPickerPanel.style.cssText = "position: fixed; width: 340px; height: 300px; min-width: 200px; min-height: 150px; resize: both; overflow: hidden; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;";
+    
+    const isMobile = typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android/i.test(navigator.userAgent));
+    const defaultW = isMobile ? "280px" : "340px";
+    const defaultH = isMobile ? "200px" : "300px";
+    lunEmojiPickerPanel.style.cssText = `position: fixed; width: ${defaultW}; height: ${defaultH}; max-width: 90vw; max-height: 60vh; min-width: 200px; min-height: 150px; resize: both; overflow: hidden; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;`;
     
     if (!(window.localStorage && localStorage.getItem("spkmod-pos-spkmod-emoji-picker-v2"))) {
         const btnRect = anchorBtn.getBoundingClientRect();
@@ -4007,15 +4011,23 @@ function toggleEmojiPicker(anchorBtn) {
     
     const closeHandler = (e) => {
         if (!lunEmojiPickerPanel) return;
+        // if the target is detached from document (e.g. tab button replaced by renderEmojiGrid), do not close
+        if (e.target && !document.contains(e.target)) return;
+        
         const path = e.composedPath ? e.composedPath() : [];
         const isInside = path.includes(lunEmojiPickerPanel) || path.includes(anchorBtn);
+        
         if (!isInside) {
             lunEmojiPickerPanel.remove();
             lunEmojiPickerPanel = null;
             document.removeEventListener("mousedown", closeHandler);
+            document.removeEventListener("touchstart", closeHandler);
         }
     };
-    setTimeout(() => document.addEventListener("mousedown", closeHandler), 10);
+    setTimeout(() => {
+        document.addEventListener("mousedown", closeHandler);
+        document.addEventListener("touchstart", closeHandler, {passive: true});
+    }, 10);
 }
 
 function renderEmojiGrid() {
