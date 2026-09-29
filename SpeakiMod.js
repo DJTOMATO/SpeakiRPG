@@ -5251,19 +5251,9 @@ document.body.appendChild(
 				innerText: t("localEffectsWarning"),
 				style: "color: #ff9999; font-size: 10px; text-align: center; border-bottom: 1px solid #555; padding-bottom: 6px; margin-bottom: 4px; white-space: pre-line;"
 			}),
-			lunPanelElements.killSelfBtn = buildElement("button", {
-				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
-				innerText: t("killSelfBtn"),
-				onclick: () => window.spkmodTriggerDeathSelf && window.spkmodTriggerDeathSelf()
-			}),
 			lunPanelElements.killEveryoneBtn = buildElement("button", {
 				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
 				innerText: t("killEveryoneBtn"),
-				onclick: () => window.spkmodTriggerDeathEveryone && window.spkmodTriggerDeathEveryone()
-			}),
-			lunPanelElements.killAllButSelfBtn = buildElement("button", {
-				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
-				innerText: t("killAllButSelfBtn"),
 				onclick: () => window.spkmodTriggerDeathAllButSelf && window.spkmodTriggerDeathAllButSelf()
 			}),
 			buildElement("div", { style: "display: flex; gap: 4px; margin-top: 4px;" }, [
