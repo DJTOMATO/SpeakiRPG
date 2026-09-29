@@ -1939,7 +1939,7 @@ function setGamepadRumbleEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-gamepad-rumble", lunGamepadRumbleEnabled ? "true" : "false");
 }
 
-var lunUiScale = (window.localStorage && localStorage.getItem("spkmod-ui-scale")) || "1.0";
+var lunUiScale = (window.localStorage && localStorage.getItem("spkmod-ui-scale")) || ((typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android/i.test(navigator.userAgent))) ? "0.65" : "1.0");
 var lunGameUiScale = (window.localStorage && localStorage.getItem("spkmod-uiscale")) || "1.0";
 var lunCameraEffect = (window.localStorage && localStorage.getItem("spkmod-camera-effect")) || "none";
 var lunDroneSpeed = window.lunDroneSpeed = (window.localStorage && parseFloat(localStorage.getItem("spkmod-drone-speed"))) || 0.10;
@@ -8361,6 +8361,8 @@ function ensureQuickLoginStyles() {
 	document.head.appendChild(style);
 }
 
+let lunQuickLoginCollapsed = typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android/i.test(navigator.userAgent));
+
 function renderQuickLoginBox(gateEl) {
 	if (!gateEl || !gateEl.isConnected) return;
 	ensureQuickLoginStyles();
@@ -8376,11 +8378,15 @@ function renderQuickLoginBox(gateEl) {
 	box.replaceChildren();
 
 	const header = document.createElement("div");
-	header.style.cssText = "display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;";
+	header.style.cssText = "display: flex; align-items: center; justify-content: space-between; border-bottom: " + (lunQuickLoginCollapsed ? "none" : "1px solid rgba(255,255,255,0.1)") + "; padding-bottom: " + (lunQuickLoginCollapsed ? "0" : "8px") + "; cursor: pointer;";
+	header.onclick = () => {
+		lunQuickLoginCollapsed = !lunQuickLoginCollapsed;
+		renderQuickLoginBox(gateEl);
+	};
 	
 	const title = document.createElement("div");
 	title.style.cssText = "font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 6px;";
-	title.innerText = "🔑 " + t("quickLoginTitle");
+	title.innerText = "🔑 " + t("quickLoginTitle") + (lunQuickLoginCollapsed ? " (Click to open)" : "");
 	
 	const countBadge = document.createElement("span");
 	countBadge.style.cssText = "font-size: 11px; color: #94a3b8; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px;";
@@ -8389,6 +8395,10 @@ function renderQuickLoginBox(gateEl) {
 	header.appendChild(title);
 	header.appendChild(countBadge);
 	box.appendChild(header);
+
+	if (lunQuickLoginCollapsed) {
+		return;
+	}
 
 	if (accounts.length > 0) {
 		const subTitle = document.createElement("div");
