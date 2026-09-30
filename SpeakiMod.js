@@ -799,7 +799,7 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 
 (async function() {
 	try {
-		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/translations.json");
+		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/translations.json?v=1.9.41");
 		if (res.ok) {
 			const data = await res.json();
 			if (data && data.en) {
@@ -5677,7 +5677,7 @@ document.body.appendChild(
 				onclick: _ => lunHudElements.effectsModal.classList.add("hidden")
 			})
 		]),
-		buildElement("div", { style: "display: flex; flex-direction: row; gap: 10px; max-height: 70vh; overflow-y: auto; overflow-x: hidden; padding: 4px;" }, [
+		buildElement("div", { style: "display: flex; flex-direction: row; gap: 10px; max-height: 70vh; overflow-y: auto; overflow-x: hidden; padding: 4px; box-sizing: border-box;" }, [
 			buildElement("div", { style: "display: flex; flex-direction: column; gap: 8px; flex: 1;" }, [
 				lunPanelElements.effectsWarning = buildElement("div", {
 					innerText: t("localEffectsWarning"),
