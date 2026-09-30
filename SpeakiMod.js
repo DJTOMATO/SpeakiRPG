@@ -799,7 +799,7 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 
 (async function() {
 	try {
-		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/translations.json?t=" + Date.now());
+		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/translations.json");
 		if (res.ok) {
 			const data = await res.json();
 			if (data && data.en) {
