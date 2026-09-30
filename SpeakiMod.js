@@ -3456,7 +3456,7 @@ document.body.appendChild(
 				lunPanelElements.invisibleBtn = buildElement("button", {
 					id: "spkmod-invisible-ghost-btn",
 					className: "spkmod-panel-btn",
-					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;" + (window.lunInvisibilityActive ? " background: #5a2e2e;" : ""),
+					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;" + (window.lunInvisibilityActive ? " background: #5a2e2e !important;" : ""),
 					innerText: "👻",
 					title: t("invisibleBtn") || "Invisible Self",
 					onclick: _ => {
@@ -5258,7 +5258,11 @@ window.spkmodToggleInvisibility = function() {
 	}
 	
 	if (lunPanelElements.invisibleBtn) {
-		lunPanelElements.invisibleBtn.style.background = window.lunInvisibilityActive ? "#5a2e2e" : "";
+				if (window.lunInvisibilityActive) {
+			lunPanelElements.invisibleBtn.style.setProperty("background", "#5a2e2e", "important");
+		} else {
+			lunPanelElements.invisibleBtn.style.removeProperty("background");
+		}
 	}
 };
 
