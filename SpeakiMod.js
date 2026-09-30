@@ -4870,14 +4870,14 @@ window.spkmodTriggerDeathSelf = function() {
 };
 
 function spkmodPlayDance(targetController, targetName) {
-	if (!targetController || typeof targetController.playEmote !== 'function') {
-		console.warn("[SpeakiMod+ Local Effects] Target does not have a valid controller or playEmote function.", targetName);
+	if (!targetController || typeof targetController.playStageDance !== 'function') {
+		console.warn("[SpeakiMod+ Local Effects] Target does not have a valid controller or playStageDance function.", targetName);
 		return false;
 	}
 	try {
 		spkmodPatchControllerForDeath(targetController);
 		lunDeathLocks.add(targetController);
-		targetController.playEmote(8);
+		targetController.playStageDance();
 		console.log(`[SpeakiMod+ Local Effects] "${targetName}" DANCE animation played.`);
 		return true;
 	} catch (err) {
@@ -4888,6 +4888,24 @@ function spkmodPlayDance(targetController, targetName) {
 }
 
 function spkmodPlayFarm(targetController, targetName) {
+	if (!targetController || typeof targetController.playGatherAnim !== 'function') {
+		console.warn("[SpeakiMod+ Local Effects] Target does not have a valid controller or playGatherAnim function.", targetName);
+		return false;
+	}
+	try {
+		spkmodPatchControllerForDeath(targetController);
+		lunDeathLocks.add(targetController);
+		targetController.playGatherAnim();
+		console.log(`[SpeakiMod+ Local Effects] "${targetName}" FARM animation played.`);
+		return true;
+	} catch (err) {
+		console.error("[SpeakiMod+ Local Effects] playFarm error:", err);
+		lunDeathLocks.delete(targetController);
+		return false;
+	}
+}
+
+function spkmodPlayHobagi(targetController, targetName) {
 	if (!targetController || typeof targetController.playEmote !== 'function') {
 		console.warn("[SpeakiMod+ Local Effects] Target does not have a valid controller or playEmote function.", targetName);
 		return false;
@@ -4895,11 +4913,11 @@ function spkmodPlayFarm(targetController, targetName) {
 	try {
 		spkmodPatchControllerForDeath(targetController);
 		lunDeathLocks.add(targetController);
-		targetController.playEmote(3);
-		console.log(`[SpeakiMod+ Local Effects] "${targetName}" FARM animation played.`);
+		targetController.playEmote(8);
+		console.log(`[SpeakiMod+ Local Effects] "${targetName}" HOBAGI animation played.`);
 		return true;
 	} catch (err) {
-		console.error("[SpeakiMod+ Local Effects] playFarm error:", err);
+		console.error("[SpeakiMod+ Local Effects] playHobagi error:", err);
 		lunDeathLocks.delete(targetController);
 		return false;
 	}
@@ -4935,6 +4953,22 @@ window.spkmodTriggerFarmEveryone = function() {
 		}
 	}
 	console.log(`[SpeakiMod+ Local Effects] Forced ${count} players to farm.`);
+};
+
+window.spkmodTriggerHobagiEveryone = function() {
+	let count = 0;
+	if (typeof gameState !== "undefined") {
+		if (gameState.localAvatar?.animationController) {
+			if (spkmodPlayHobagi(gameState.localAvatar?.animationController, "Self")) count++;
+		}
+		if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+			for (const player of gameState.remotePlayers.remotePlayers.values()) {
+				const ctrl = player?.avatar?.animationController || player?.container?.controller;
+				if (ctrl && spkmodPlayHobagi(ctrl, player.info?.name || "Unknown")) count++;
+			}
+		}
+	}
+	console.log(`[SpeakiMod+ Local Effects] Forced ${count} players to hobagi.`);
 };
 
 window.spkmodTriggerDeathEveryone = function() {
@@ -5337,6 +5371,11 @@ document.body.appendChild(
 				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
 				innerText: t("farmEveryoneBtn"),
 				onclick: () => window.spkmodTriggerFarmEveryone && window.spkmodTriggerFarmEveryone()
+			}),
+			lunPanelElements.hobagiEveryoneBtn = buildElement("button", {
+				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+				innerText: t("hobagiEveryoneBtn"),
+				onclick: () => window.spkmodTriggerHobagiEveryone && window.spkmodTriggerHobagiEveryone()
 			}),
 			buildElement("div", { style: "display: flex; gap: 4px; margin-top: 4px;" }, [
 				lunPanelElements.killTargetInput = buildElement("input", {
@@ -6519,6 +6558,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.killEveryoneBtn) setText(lunPanelElements.killEveryoneBtn, t("killEveryoneBtn"));
 	if (lunPanelElements.danceEveryoneBtn) setText(lunPanelElements.danceEveryoneBtn, t("danceEveryoneBtn"));
 	if (lunPanelElements.farmEveryoneBtn) setText(lunPanelElements.farmEveryoneBtn, t("farmEveryoneBtn"));
+	if (lunPanelElements.hobagiEveryoneBtn) setText(lunPanelElements.hobagiEveryoneBtn, t("hobagiEveryoneBtn"));
 	if (lunPanelElements.killAllButSelfBtn) setText(lunPanelElements.killAllButSelfBtn, t("killAllButSelfBtn"));
 	if (lunPanelElements.killTargetBtn) setText(lunPanelElements.killTargetBtn, t("killTargetBtn"));
 	if (lunPanelElements.reviveAllBtn) setText(lunPanelElements.reviveAllBtn, t("reviveAllBtn"));
