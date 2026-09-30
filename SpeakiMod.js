@@ -799,7 +799,7 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 
 (async function() {
 	try {
-		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/translations.json");
+		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/translations.json?t=" + Date.now());
 		if (res.ok) {
 			const data = await res.json();
 			if (data && data.en) {
@@ -7018,6 +7018,10 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.renameBtn) setText(lunPanelElements.renameBtn, t("renameBtn"));
 	if (lunPanelElements.replaceAllValueInput) lunPanelElements.replaceAllValueInput.placeholder = t("newNameAllPlaceholder");
 	if (lunPanelElements.replaceAllBtn) setText(lunPanelElements.replaceAllBtn, t("replaceAllBtn"));
+	if (lunPanelElements.resetNamesBtn) setText(lunPanelElements.resetNamesBtn, t("resetNamesBtn"));
+	if (lunPanelElements.savePresetBtn) setText(lunPanelElements.savePresetBtn, t("savePresetBtn"));
+	if (lunPanelElements.delPresetBtn) setText(lunPanelElements.delPresetBtn, t("delPresetBtn"));
+	if (lunPanelElements.applyPresetsBtn) setText(lunPanelElements.applyPresetsBtn, t("applyPresetsBtn"));
 	if (lunPanelElements.killAllButSelfBtn) setText(lunPanelElements.killAllButSelfBtn, t("killAllButSelfBtn"));
 	if (lunPanelElements.killTargetBtn) setText(lunPanelElements.killTargetBtn, t("killTargetBtn"));
 	if (lunPanelElements.reviveAllBtn) setText(lunPanelElements.reviveAllBtn, t("reviveAllBtn"));
