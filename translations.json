@@ -391,7 +391,14 @@
     "for_memo_jp_12": "",
     "for_memo_jp_13": "",
     "for_memo_jp_14": "",
-    "for_memo_jp_15": ""
+    "for_memo_jp_15": "",
+    "invisibleBtn": "👻 Invisible Self",
+    "renameHeader": "🏷️ Rename Name Tags",
+    "originalNamePlaceholder": "Original Name",
+    "newNamePlaceholder": "New Name",
+    "renameBtn": "Replace Target Name",
+    "newNameAllPlaceholder": "New Name for Everyone",
+    "replaceAllBtn": "Replace ALL Names"
   },
   "ja": {
     "for_memo_jp_1": "",
@@ -785,7 +792,14 @@
     "danceEveryoneBtn": "💃 全員で踊る",
     "farmEveryoneBtn": "⛏️ 全員で農作業",
     "hobagiEveryoneBtn": "🎃 全員ホバギ",
-    "flyEveryoneBtn": "☄️ 全員吹き飛ぶ"
+    "flyEveryoneBtn": "☄️ 全員吹き飛ぶ",
+    "invisibleBtn": "👻 自分を透明にする",
+    "renameHeader": "🏷️ ネームタグの変更",
+    "originalNamePlaceholder": "元の名前",
+    "newNamePlaceholder": "新しい名前",
+    "renameBtn": "名前を置換",
+    "newNameAllPlaceholder": "全員の新しい名前",
+    "replaceAllBtn": "全員の名前を置換"
   },
   "ko": {
     "langName": "한국어",
@@ -1179,7 +1193,14 @@
     "for_memo_jp_12": "",
     "for_memo_jp_13": "",
     "for_memo_jp_14": "",
-    "for_memo_jp_15": ""
+    "for_memo_jp_15": "",
+    "invisibleBtn": "👻 나 자신 숨기기",
+    "renameHeader": "🏷️ 이름표 변경",
+    "originalNamePlaceholder": "원래 이름",
+    "newNamePlaceholder": "새 이름",
+    "renameBtn": "이름 변경",
+    "newNameAllPlaceholder": "모두에게 적용할 새 이름",
+    "replaceAllBtn": "모든 이름 변경"
   },
   "zh-TW": {
     "langName": "繁體中文",
@@ -1573,7 +1594,14 @@
     "for_memo_jp_12": "",
     "for_memo_jp_13": "",
     "for_memo_jp_14": "",
-    "for_memo_jp_15": ""
+    "for_memo_jp_15": "",
+    "invisibleBtn": "👻 隱身",
+    "renameHeader": "🏷️ 重命名銘牌",
+    "originalNamePlaceholder": "原名",
+    "newNamePlaceholder": "新名",
+    "renameBtn": "替換名字",
+    "newNameAllPlaceholder": "所有人的新名",
+    "replaceAllBtn": "替換所有名字"
   },
   "es-419": {
     "langName": "Español",
@@ -1967,7 +1995,14 @@
     "for_memo_jp_12": "",
     "for_memo_jp_13": "",
     "for_memo_jp_14": "",
-    "for_memo_jp_15": ""
+    "for_memo_jp_15": "",
+    "invisibleBtn": "👻 Yo Invisible",
+    "renameHeader": "🏷️ Renombrar Etiquetas",
+    "originalNamePlaceholder": "Nombre Original",
+    "newNamePlaceholder": "Nuevo Nombre",
+    "renameBtn": "Reemplazar Nombre",
+    "newNameAllPlaceholder": "Nuevo Nombre para Todos",
+    "replaceAllBtn": "Reemplazar TODOS"
   },
   "zh-CN": {
     "langName": "简体中文",
@@ -2361,6 +2396,13 @@
     "for_memo_jp_12": "",
     "for_memo_jp_13": "",
     "for_memo_jp_14": "",
-    "for_memo_jp_15": ""
+    "for_memo_jp_15": "",
+    "invisibleBtn": "👻 隐身",
+    "renameHeader": "🏷️ 重命名铭牌",
+    "originalNamePlaceholder": "原名",
+    "newNamePlaceholder": "新名",
+    "renameBtn": "替换名字",
+    "newNameAllPlaceholder": "所有人的新名",
+    "replaceAllBtn": "替换所有名字"
   }
 }

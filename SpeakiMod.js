@@ -5005,59 +5005,53 @@ window.spkmodTriggerHobagiEveryone = function() {
 	console.log(`[SpeakiMod+ Local Effects] Forced ${count} players to hobagi.`);
 };
 
-window.spkmodTriggerDeathEveryone = function() {
-	let count = 0;
-	if (typeof gameState !== "undefined") {
+window.lunEffectStates = { death: 0, farm: 0, dance: 0, hobagi: 0, fly: 0 };
+window.lunEffectIntervals = {};
+
+window.spkmodCycleEffect = function(effectName, playFunc, btnElem, btnLabelKey) {
+	window.lunEffectStates[effectName] = ((window.lunEffectStates[effectName] || 0) + 1) % 3;
+	const state = window.lunEffectStates[effectName];
+	
+	if (window.lunEffectIntervals[effectName]) {
+		clearInterval(window.lunEffectIntervals[effectName]);
+		window.lunEffectIntervals[effectName] = null;
+	}
+	
+	const baseText = typeof t === 'function' ? t(btnLabelKey) : btnLabelKey;
+	if (btnElem) {
+		if (state === 1) btnElem.innerText = baseText + " (Single)";
+		else if (state === 2) btnElem.innerText = baseText + " (Loop)";
+		else btnElem.innerText = baseText;
+	}
+	
+	const applyToAll = () => {
+		if (typeof gameState === "undefined") return;
 		if (gameState.localAvatar?.animationController) {
-			if (spkmodPlayDeath(gameState.localAvatar?.animationController, "Self")) count++;
+			playFunc(gameState.localAvatar.animationController, "Self");
 		}
 		if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
 			for (const player of gameState.remotePlayers.remotePlayers.values()) {
 				const ctrl = player?.avatar?.animationController || player?.container?.controller;
-				if (ctrl && spkmodPlayDeath(ctrl, player.info?.name || "Unknown")) count++;
+				if (ctrl) playFunc(ctrl, player.info?.name || "Unknown");
 			}
 		}
+	};
+	
+	if (state === 1) {
+		applyToAll();
+	} else if (state === 2) {
+		applyToAll();
+		window.lunEffectIntervals[effectName] = setInterval(applyToAll, 1000);
+	} else if (state === 0) {
+		window.spkmodReviveAll && window.spkmodReviveAll();
 	}
-	console.log(`[SpeakiMod+ Local Effects] Killed ${count} players.`);
 };
 
-window.spkmodTriggerDeathAllButSelf = function() {
-	let count = 0;
-	if (typeof gameState !== "undefined") {
-		if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
-			for (const player of gameState.remotePlayers.remotePlayers.values()) {
-				const ctrl = player?.avatar?.animationController || player?.container?.controller;
-				if (ctrl && spkmodPlayDeath(ctrl, player.info?.name || "Unknown")) count++;
-			}
-		}
-	}
-	console.log(`[SpeakiMod+ Local Effects] Killed ${count} remote players.`);
-};
-
-window.spkmodTriggerDeathTarget = function(name) {
-	if (!name || typeof gameState === "undefined") return;
-	const lowerTarget = name.trim().toLowerCase();
-	let found = false;
-	
-	const myName = (gameState.myPlayerName || gameState.myStat?.name || "").toLowerCase();
-	if (myName === lowerTarget && gameState.localAvatar?.animationController) {
-		spkmodPlayDeath(gameState.localAvatar?.animationController, "Self");
-		found = true;
-	}
-	
-	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
-		for (const player of gameState.remotePlayers.remotePlayers.values()) {
-			const pName = (player.info?.name || "").toLowerCase();
-			if (pName.includes(lowerTarget)) {
-				const ctrl = player?.avatar?.animationController || player?.container?.controller;
-				if (ctrl && spkmodPlayDeath(ctrl, player.info?.name)) found = true;
-			}
-		}
-	}
-	if (!found) {
-		chatLog("[Local Effects] Player not found: " + name);
-	}
-};
+window.spkmodTriggerDeathEveryone = () => window.spkmodCycleEffect('death', spkmodPlayDeath, lunPanelElements.killEveryoneBtn, 'killEveryoneBtn');
+window.spkmodTriggerFarmEveryone = () => window.spkmodCycleEffect('farm', spkmodPlayFarm, lunPanelElements.farmEveryoneBtn, 'farmEveryoneBtn');
+window.spkmodTriggerDanceEveryone = () => window.spkmodCycleEffect('dance', spkmodPlayDance, lunPanelElements.danceEveryoneBtn, 'danceEveryoneBtn');
+window.spkmodTriggerHobagiEveryone = () => window.spkmodCycleEffect('hobagi', spkmodPlayHobagi, lunPanelElements.hobagiEveryoneBtn, 'hobagiEveryoneBtn');
+window.spkmodTriggerFlyEveryone = () => window.spkmodCycleEffect('fly', spkmodPlayFly, lunPanelElements.flyEveryoneBtn, 'flyEveryoneBtn');
 
 window.spkmodReviveAll = function() {
 	let count = 0;
@@ -5090,6 +5084,70 @@ window.spkmodReviveAll = function() {
 		}
 	}
 	console.log(`[SpeakiMod+ Local Effects] Revived ${count} players.`);
+};
+
+
+window.lunInvisibilityActive = false;
+window.lunInvisibilityInterval = null;
+window.spkmodToggleInvisibility = function() {
+	window.lunInvisibilityActive = !window.lunInvisibilityActive;
+	
+	if (window.lunInvisibilityInterval) {
+		clearInterval(window.lunInvisibilityInterval);
+		window.lunInvisibilityInterval = null;
+	}
+	
+	const applyInv = () => {
+		if (typeof gameState !== 'undefined' && gameState.playerContainer) {
+			gameState.playerContainer.visible = !window.lunInvisibilityActive;
+		}
+	};
+	
+	if (window.lunInvisibilityActive) {
+		window.lunInvisibilityInterval = setInterval(applyInv, 100);
+	} else {
+		applyInv(); // restore immediately
+	}
+	
+	if (lunPanelElements.invisibleBtn) {
+		const base = typeof t === 'function' ? t('invisibleBtn') : 'Invisible Self';
+		lunPanelElements.invisibleBtn.innerText = base + (window.lunInvisibilityActive ? " (ON)" : " (OFF)");
+	}
+};
+
+window.spkmodRenamePlayer = function(oldName, newName) {
+	if (!oldName || !newName || typeof gameState === 'undefined') return;
+	const oldLower = oldName.toLowerCase().trim();
+	let count = 0;
+	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+		for (const player of gameState.remotePlayers.remotePlayers.values()) {
+			if (player.info && player.info.name && player.info.name.toLowerCase().trim() === oldLower) {
+				player.info.name = newName;
+				if (player.avatar && typeof player.avatar.setLabel === 'function') {
+					player.avatar.setLabel(newName);
+				}
+				count++;
+			}
+		}
+	}
+	console.log(`[SpeakiMod+] Renamed ${count} players to ${newName}`);
+};
+
+window.spkmodRenameAll = function(newName) {
+	if (!newName || typeof gameState === 'undefined') return;
+	let count = 0;
+	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+		for (const player of gameState.remotePlayers.remotePlayers.values()) {
+			if (player.info) {
+				player.info.name = newName;
+				if (player.avatar && typeof player.avatar.setLabel === 'function') {
+					player.avatar.setLabel(newName);
+				}
+				count++;
+			}
+		}
+	}
+	console.log(`[SpeakiMod+] Renamed ALL ${count} remote players to ${newName}`);
 };
 const mapModalElements = {};
 let mapUpdateFrame = null;
@@ -5415,6 +5473,26 @@ document.body.appendChild(
 				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
 				innerText: t("flyEveryoneBtn"),
 				onclick: () => window.spkmodTriggerFlyEveryone && window.spkmodTriggerFlyEveryone()
+			}),
+			lunPanelElements.invisibleBtn = buildElement("button", {
+				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+				innerText: t("invisibleBtn"),
+				onclick: () => window.spkmodToggleInvisibility && window.spkmodToggleInvisibility()
+			}),
+			buildElement("div", { className: "spkmod-panel-cat-header", innerText: t("renameHeader") || "Rename Name Tags", style: "margin-top: 10px;" }),
+			lunPanelElements.renameTargetInput = buildElement("input", { type: "text", className: "spkmod-panel-input", placeholder: t("originalNamePlaceholder") || "Original Name", style: "width: 45%; margin-right: 5%;" }),
+			lunPanelElements.renameValueInput = buildElement("input", { type: "text", className: "spkmod-panel-input", placeholder: t("newNamePlaceholder") || "New Name", style: "width: 50%;" }),
+			lunPanelElements.renameBtn = buildElement("button", {
+				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 5px;",
+				innerText: t("renameBtn") || "Replace Name",
+				onclick: () => window.spkmodRenamePlayer && window.spkmodRenamePlayer(lunPanelElements.renameTargetInput.value, lunPanelElements.renameValueInput.value)
+			}),
+			buildElement("div", { style: "height: 5px;" }),
+			lunPanelElements.replaceAllValueInput = buildElement("input", { type: "text", className: "spkmod-panel-input", placeholder: t("newNameAllPlaceholder") || "New Name for All", style: "width: 100%;" }),
+			lunPanelElements.replaceAllBtn = buildElement("button", {
+				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 5px;",
+				innerText: t("replaceAllBtn") || "Replace All",
+				onclick: () => window.spkmodRenameAll && window.spkmodRenameAll(lunPanelElements.replaceAllValueInput.value)
 			}),
 			buildElement("div", { style: "display: flex; gap: 4px; margin-top: 4px;" }, [
 				lunPanelElements.killTargetInput = buildElement("input", {
@@ -6599,6 +6677,12 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.farmEveryoneBtn) setText(lunPanelElements.farmEveryoneBtn, t("farmEveryoneBtn"));
 	if (lunPanelElements.hobagiEveryoneBtn) setText(lunPanelElements.hobagiEveryoneBtn, t("hobagiEveryoneBtn"));
 	if (lunPanelElements.flyEveryoneBtn) setText(lunPanelElements.flyEveryoneBtn, t("flyEveryoneBtn"));
+	if (lunPanelElements.invisibleBtn) setText(lunPanelElements.invisibleBtn, t("invisibleBtn") + (window.lunInvisibilityActive ? " (ON)" : " (OFF)"));
+	if (lunPanelElements.renameTargetInput) lunPanelElements.renameTargetInput.placeholder = t("originalNamePlaceholder");
+	if (lunPanelElements.renameValueInput) lunPanelElements.renameValueInput.placeholder = t("newNamePlaceholder");
+	if (lunPanelElements.renameBtn) setText(lunPanelElements.renameBtn, t("renameBtn"));
+	if (lunPanelElements.replaceAllValueInput) lunPanelElements.replaceAllValueInput.placeholder = t("newNameAllPlaceholder");
+	if (lunPanelElements.replaceAllBtn) setText(lunPanelElements.replaceAllBtn, t("replaceAllBtn"));
 	if (lunPanelElements.killAllButSelfBtn) setText(lunPanelElements.killAllButSelfBtn, t("killAllButSelfBtn"));
 	if (lunPanelElements.killTargetBtn) setText(lunPanelElements.killTargetBtn, t("killTargetBtn"));
 	if (lunPanelElements.reviveAllBtn) setText(lunPanelElements.reviveAllBtn, t("reviveAllBtn"));
