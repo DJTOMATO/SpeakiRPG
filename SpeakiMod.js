@@ -7583,7 +7583,19 @@ function hookGameStateOnce() {
 					if (id !== -1337 && id !== -1338) {
 						bodyText.classList.add("spkmod-clickable-line");
 						bodyText.title = t("clickToTranslateTooltip");
-						bodyText.addEventListener("click", () => forceTranslateMessage(name, filteredMsg));
+						bodyText.addEventListener("click", (e) => {
+							const emojiEl = e.target.closest('.spkmod-custom-emoji');
+							if (emojiEl) {
+								e.stopPropagation();
+								e.preventDefault();
+								const tag = emojiEl.getAttribute('title');
+								if (tag && typeof insertEmojiIntoChat === 'function') {
+									insertEmojiIntoChat(tag);
+								}
+							} else {
+								forceTranslateMessage(name, filteredMsg);
+							}
+						});
 						
 						const senderEl = rowNode.classList?.contains("sr-chatbox__sender") ? rowNode : rowNode.querySelector?.(".sr-chatbox__sender");
 						if (senderEl) {
