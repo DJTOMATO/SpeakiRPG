@@ -5251,6 +5251,55 @@ window.spkmodToggleInvisibility = function() {
 	}
 };
 
+function findNametagSprite(container) {
+	if (!container) return null;
+	const direct = container.children?.[0]?.children?.[0]?.children?.[1];
+	if (direct && direct.isSprite) return direct;
+	let sprite = null;
+	if (typeof container.traverse === "function") {
+		container.traverse(obj => {
+			if (!sprite && obj && obj.isSprite) sprite = obj;
+		});
+	}
+	return sprite;
+}
+
+function hijackAndRename(player, newName) {
+	if (!player || !player.container) return false;
+	const sprite = findNametagSprite(player.container);
+	if (!sprite || !sprite.material || !sprite.material.map || !sprite.material.map.image) return false;
+	
+	const cvs = sprite.material.map.image;
+	const ctx = cvs.getContext('2d');
+	if (!ctx) return false;
+	
+	if (!cvs.__spkmodHijacked) {
+		cvs.__spkmodHijacked = true;
+		const origFillText = ctx.fillText;
+		const origStrokeText = ctx.strokeText;
+		
+		ctx.fillText = function(text, x, y, maxW) {
+			if (player.info && player.info.__spkmodRename) text = player.info.__spkmodRename;
+			origFillText.call(this, text, x, y, maxW);
+		};
+		ctx.strokeText = function(text, x, y, maxW) {
+			if (player.info && player.info.__spkmodRename) text = player.info.__spkmodRename;
+			origStrokeText.call(this, text, x, y, maxW);
+		};
+	}
+	
+	if (player.info) {
+		player.info.__spkmodRename = newName;
+		player.info.name = newName;
+	}
+	
+	if (player.avatar && typeof player.avatar.setLabel === 'function') {
+		player.avatar.setLabel(""); // Trigger redraw
+		sprite.material.map.needsUpdate = true;
+	}
+	return true;
+}
+
 window.spkmodRenamePlayer = function(oldName, newName) {
 	if (!oldName || !newName || typeof gameState === 'undefined') return;
 	const oldLower = oldName.toLowerCase().trim();
@@ -5258,11 +5307,7 @@ window.spkmodRenamePlayer = function(oldName, newName) {
 	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
 		for (const player of gameState.remotePlayers.remotePlayers.values()) {
 			if (player.info && player.info.name && player.info.name.toLowerCase().trim() === oldLower) {
-				player.info.name = newName;
-				if (player.avatar && typeof player.avatar.setLabel === 'function') {
-					player.avatar.setLabel(newName);
-				}
-				count++;
+				if (hijackAndRename(player, newName)) count++;
 			}
 		}
 	}
@@ -5274,13 +5319,7 @@ window.spkmodRenameAll = function(newName) {
 	let count = 0;
 	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
 		for (const player of gameState.remotePlayers.remotePlayers.values()) {
-			if (player.info) {
-				player.info.name = newName;
-				if (player.avatar && typeof player.avatar.setLabel === 'function') {
-					player.avatar.setLabel(newName);
-				}
-				count++;
-			}
+			if (hijackAndRename(player, newName)) count++;
 		}
 	}
 	console.log(`[SpeakiMod+] Renamed ALL ${count} remote players to ${newName}`);
@@ -5580,77 +5619,84 @@ document.body.appendChild(
 				onclick: _ => lunHudElements.effectsModal.classList.add("hidden")
 			})
 		]),
-		buildElement("div", { style: "display: flex; flex-direction: column; gap: 8px; max-height: 70vh; overflow-y: auto; padding: 4px;" }, [
-			lunPanelElements.effectsWarning = buildElement("div", {
-				innerText: t("localEffectsWarning"),
-				style: "color: #ff9999; font-size: 10px; text-align: center; border-bottom: 1px solid #555; padding-bottom: 6px; margin-bottom: 4px; white-space: pre-line;"
-			}),
-			lunPanelElements.killEveryoneBtn = buildElement("button", {
-				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
-				innerText: t("killEveryoneBtn"),
-				onclick: () => window.spkmodTriggerDeathEveryone && window.spkmodTriggerDeathEveryone()
-			}),
-			lunPanelElements.danceEveryoneBtn = buildElement("button", {
-				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
-				innerText: t("danceEveryoneBtn"),
-				onclick: () => window.spkmodTriggerDanceEveryone && window.spkmodTriggerDanceEveryone()
-			}),
-			lunPanelElements.farmEveryoneBtn = buildElement("button", {
-				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
-				innerText: t("farmEveryoneBtn"),
-				onclick: () => window.spkmodTriggerFarmEveryone && window.spkmodTriggerFarmEveryone()
-			}),
-			lunPanelElements.hobagiEveryoneBtn = buildElement("button", {
-				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
-				innerText: t("hobagiEveryoneBtn"),
-				onclick: () => window.spkmodTriggerHobagiEveryone && window.spkmodTriggerHobagiEveryone()
-			}),
-			lunPanelElements.flyEveryoneBtn = buildElement("button", {
-				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
-				innerText: t("flyEveryoneBtn"),
-				onclick: () => window.spkmodTriggerFlyEveryone && window.spkmodTriggerFlyEveryone()
-			}),
-			lunPanelElements.invisibleBtn = buildElement("button", {
-				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
-				innerText: t("invisibleBtn"),
-				onclick: () => window.spkmodToggleInvisibility && window.spkmodToggleInvisibility()
-			}),
-			buildElement("div", { className: "spkmod-panel-cat-header", innerText: t("renameHeader") || "Rename Name Tags", style: "margin-top: 10px;" }),
-			lunPanelElements.renameTargetInput = buildElement("input", { type: "text", className: "spkmod-panel-input", placeholder: t("originalNamePlaceholder") || "Original Name", style: "width: 45%; margin-right: 5%;" }),
-			lunPanelElements.renameValueInput = buildElement("input", { type: "text", className: "spkmod-panel-input", placeholder: t("newNamePlaceholder") || "New Name", style: "width: 50%;" }),
-			lunPanelElements.renameBtn = buildElement("button", {
-				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 5px;",
-				innerText: t("renameBtn") || "Replace Name",
-				onclick: () => window.spkmodRenamePlayer && window.spkmodRenamePlayer(lunPanelElements.renameTargetInput.value, lunPanelElements.renameValueInput.value)
-			}),
-			buildElement("div", { style: "height: 5px;" }),
-			lunPanelElements.replaceAllValueInput = buildElement("input", { type: "text", className: "spkmod-panel-input", placeholder: t("newNameAllPlaceholder") || "New Name for All", style: "width: 100%;" }),
-			lunPanelElements.replaceAllBtn = buildElement("button", {
-				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 5px;",
-				innerText: t("replaceAllBtn") || "Replace All",
-				onclick: () => window.spkmodRenameAll && window.spkmodRenameAll(lunPanelElements.replaceAllValueInput.value)
-			}),
-			buildElement("div", { style: "display: flex; gap: 4px; margin-top: 4px;" }, [
-				lunPanelElements.killTargetInput = buildElement("input", {
-					type: "text", placeholder: t("targetPlaceholder"),
-					style: "flex: 1; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;"
+		buildElement("div", { style: "display: flex; flex-direction: row; gap: 10px; max-height: 70vh; overflow-y: auto; padding: 4px;" }, [
+			buildElement("div", { style: "display: flex; flex-direction: column; gap: 8px; flex: 1;" }, [
+				lunPanelElements.effectsWarning = buildElement("div", {
+					innerText: t("localEffectsWarning"),
+					style: "color: #ff9999; font-size: 10px; text-align: center; border-bottom: 1px solid #555; padding-bottom: 6px; margin-bottom: 4px; white-space: pre-line;"
 				}),
-				lunPanelElements.killTargetBtn = buildElement("button", {
-					className: "spkmod-panel-btn", style: "padding: 4px 8px; font-size: 11px;",
-					innerText: t("killTargetBtn"),
-					onclick: () => {
-						if (window.spkmodTriggerDeathTarget) {
-							window.spkmodTriggerDeathTarget(lunPanelElements.killTargetInput.value);
-							lunPanelElements.killTargetInput.value = "";
-						}
-					}
+				lunPanelElements.killEveryoneBtn = buildElement("button", {
+					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+					innerText: t("killEveryoneBtn"),
+					onclick: () => window.spkmodTriggerDeathEveryone && window.spkmodTriggerDeathEveryone()
+				}),
+				lunPanelElements.danceEveryoneBtn = buildElement("button", {
+					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+					innerText: t("danceEveryoneBtn"),
+					onclick: () => window.spkmodTriggerDanceEveryone && window.spkmodTriggerDanceEveryone()
+				}),
+				lunPanelElements.farmEveryoneBtn = buildElement("button", {
+					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+					innerText: t("farmEveryoneBtn"),
+					onclick: () => window.spkmodTriggerFarmEveryone && window.spkmodTriggerFarmEveryone()
+				}),
+				lunPanelElements.hobagiEveryoneBtn = buildElement("button", {
+					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+					innerText: t("hobagiEveryoneBtn"),
+					onclick: () => window.spkmodTriggerHobagiEveryone && window.spkmodTriggerHobagiEveryone()
+				}),
+				lunPanelElements.flyEveryoneBtn = buildElement("button", {
+					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+					innerText: t("flyEveryoneBtn"),
+					onclick: () => window.spkmodTriggerFlyEveryone && window.spkmodTriggerFlyEveryone()
+				}),
+				lunPanelElements.invisibleBtn = buildElement("button", {
+					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+					innerText: t("invisibleBtn") + (window.lunInvisibilityActive ? " (ON)" : " (OFF)"),
+					onclick: () => window.spkmodToggleInvisibility && window.spkmodToggleInvisibility()
 				})
 			]),
-			lunPanelElements.reviveAllBtn = buildElement("button", {
-				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 8px; border-color: #55ff55 !important;",
-				innerText: t("reviveAllBtn"),
-				onclick: () => window.spkmodReviveAll && window.spkmodReviveAll()
-			})
+			buildElement("div", { style: "display: flex; flex-direction: column; gap: 8px; flex: 1; border-left: 1px solid #555; padding-left: 10px;" }, [
+				buildElement("div", { className: "spkmod-panel-cat-header", innerText: t("renameHeader") || "Rename Name Tags", style: "margin-top: 0px;" }),
+				buildElement("div", { style: "display: flex; gap: 4px;" }, [
+					lunPanelElements.renameTargetInput = buildElement("input", { type: "text", className: "spkmod-panel-input", placeholder: t("originalNamePlaceholder") || "Original Name", style: "flex: 1; min-width: 10px;" }),
+					lunPanelElements.renameValueInput = buildElement("input", { type: "text", className: "spkmod-panel-input", placeholder: t("newNamePlaceholder") || "New Name", style: "flex: 1; min-width: 10px;" })
+				]),
+				lunPanelElements.renameBtn = buildElement("button", {
+					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+					innerText: t("renameBtn") || "Replace Name",
+					onclick: () => window.spkmodRenamePlayer && window.spkmodRenamePlayer(lunPanelElements.renameTargetInput.value, lunPanelElements.renameValueInput.value)
+				}),
+				buildElement("div", { style: "height: 5px;" }),
+				lunPanelElements.replaceAllValueInput = buildElement("input", { type: "text", className: "spkmod-panel-input", placeholder: t("newNameAllPlaceholder") || "New Name for All", style: "width: 100%;" }),
+				lunPanelElements.replaceAllBtn = buildElement("button", {
+					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+					innerText: t("replaceAllBtn") || "Replace All",
+					onclick: () => window.spkmodRenameAll && window.spkmodRenameAll(lunPanelElements.replaceAllValueInput.value)
+				}),
+				buildElement("div", { style: "display: flex; gap: 4px; margin-top: 4px;" }, [
+					lunPanelElements.killTargetInput = buildElement("input", {
+						type: "text", placeholder: t("targetPlaceholder"),
+						style: "flex: 1; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; min-width: 10px;"
+					}),
+					lunPanelElements.killTargetBtn = buildElement("button", {
+						className: "spkmod-panel-btn", style: "padding: 4px 8px; font-size: 11px;",
+						innerText: t("killTargetBtn"),
+						onclick: () => {
+							if (window.spkmodTriggerDeathTarget) {
+								window.spkmodTriggerDeathTarget(lunPanelElements.killTargetInput.value);
+								lunPanelElements.killTargetInput.value = "";
+							}
+						}
+					})
+				]),
+				buildElement("div", { style: "flex: 1;" }),
+				lunPanelElements.reviveAllBtn = buildElement("button", {
+					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 8px; border-color: #55ff55 !important;",
+					innerText: t("reviveAllBtn"),
+					onclick: () => window.spkmodReviveAll && window.spkmodReviveAll()
+				})
+			])
 		])
 	])
 );
