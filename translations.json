@@ -658,7 +658,7 @@
     "targetPlaceholder": "プレイヤー名...",
     "danceEveryoneBtn": "💃 全員で踊る",
     "farmEveryoneBtn": "⛏️ 全員で農作業",
-    "hobagiEveryoneBtn": "🎃 全員ホバギ"
+    "hobagiEveryoneBtn": "🎃 全員ホバギ",
     "flyEveryoneBtn": "☄️ 全員吹き飛ぶ",
     "invisibleBtn": "👻 自分を透明にする",
     "renameHeader": "🏷️ ネームタグの変更",
@@ -666,7 +666,7 @@
     "newNamePlaceholder": "新しい名前",
     "renameBtn": "名前を置換",
     "newNameAllPlaceholder": "全員の新しい名前",
-    "replaceAllBtn": "全員の名前を置換"
+    "replaceAllBtn": "全員の名前を置換",
     "goTo": "移動する",
     "stopWalking": "移動中止",
     "walkingToMsg": "ｽﾋﾟｷが {0} ({1}) へ移動中です！",
@@ -799,7 +799,7 @@
     "hkDescDroneAscend": "ドローンモード: 上昇",
     "hkDescDroneDescend": "ドローンモード: 下降",
     "hkDescDroneSpeedUp": "ドローンモード: 速度アップ",
-    "hkDescDroneSpeedDown": "ドローンモード: 速度ダウン",
+    "hkDescDroneSpeedDown": "ドローンモード: 速度ダウン"
   },
   "ko": {
     "langName": "한국어",
