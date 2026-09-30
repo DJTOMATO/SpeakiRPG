@@ -4870,22 +4870,36 @@ window.spkmodTriggerDeathSelf = function() {
 };
 
 function spkmodPlayDance(targetController, targetName) {
-	if (!targetController || (typeof targetController.playDance !== 'function' && typeof targetController.playEmote !== 'function')) {
+	if (!targetController || typeof targetController.playEmote !== 'function') {
+		console.warn("[SpeakiMod+ Local Effects] Target does not have a valid controller or playEmote function.", targetName);
+		return false;
+	}
+	try {
+		spkmodPatchControllerForDeath(targetController);
+		lunDeathLocks.add(targetController);
+		targetController.playEmote(8);
+		console.log(`[SpeakiMod+ Local Effects] "${targetName}" DANCE animation played.`);
+		return true;
+	} catch (err) {
+		console.error("[SpeakiMod+ Local Effects] playDance error:", err);
+		lunDeathLocks.delete(targetController);
+		return false;
+	}
+}
+
+function spkmodPlayFarm(targetController, targetName) {
+	if (!targetController || typeof targetController.playDance !== 'function') {
 		console.warn("[SpeakiMod+ Local Effects] Target does not have a valid controller or playDance function.", targetName);
 		return false;
 	}
 	try {
 		spkmodPatchControllerForDeath(targetController);
 		lunDeathLocks.add(targetController);
-		if (typeof targetController.playDance === 'function') {
-			targetController.playDance();
-		} else if (typeof targetController.playEmote === 'function') {
-			targetController.playEmote(8);
-		}
-		console.log(`[SpeakiMod+ Local Effects] "${targetName}" DANCE animation played.`);
+		targetController.playDance(); // The game's native playDance actually plays the farming animation!
+		console.log(`[SpeakiMod+ Local Effects] "${targetName}" FARM animation played.`);
 		return true;
 	} catch (err) {
-		console.error("[SpeakiMod+ Local Effects] playDance error:", err);
+		console.error("[SpeakiMod+ Local Effects] playFarm error:", err);
 		lunDeathLocks.delete(targetController);
 		return false;
 	}
@@ -4905,6 +4919,22 @@ window.spkmodTriggerDanceEveryone = function() {
 		}
 	}
 	console.log(`[SpeakiMod+ Local Effects] Forced ${count} players to dance.`);
+};
+
+window.spkmodTriggerFarmEveryone = function() {
+	let count = 0;
+	if (typeof gameState !== "undefined") {
+		if (gameState.myPlayerController) {
+			if (spkmodPlayFarm(gameState.myPlayerController, "Self")) count++;
+		}
+		if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+			for (const player of gameState.remotePlayers.remotePlayers.values()) {
+				const ctrl = player?.avatar?.animationController || player?.container?.controller;
+				if (ctrl && spkmodPlayFarm(ctrl, player.info?.name || "Unknown")) count++;
+			}
+		}
+	}
+	console.log(`[SpeakiMod+ Local Effects] Forced ${count} players to farm.`);
 };
 
 window.spkmodTriggerDeathEveryone = function() {
@@ -5302,6 +5332,11 @@ document.body.appendChild(
 				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
 				innerText: t("danceEveryoneBtn"),
 				onclick: () => window.spkmodTriggerDanceEveryone && window.spkmodTriggerDanceEveryone()
+			}),
+			lunPanelElements.farmEveryoneBtn = buildElement("button", {
+				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+				innerText: t("farmEveryoneBtn"),
+				onclick: () => window.spkmodTriggerFarmEveryone && window.spkmodTriggerFarmEveryone()
 			}),
 			buildElement("div", { style: "display: flex; gap: 4px; margin-top: 4px;" }, [
 				lunPanelElements.killTargetInput = buildElement("input", {
@@ -6483,6 +6518,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.killSelfBtn) setText(lunPanelElements.killSelfBtn, t("killSelfBtn"));
 	if (lunPanelElements.killEveryoneBtn) setText(lunPanelElements.killEveryoneBtn, t("killEveryoneBtn"));
 	if (lunPanelElements.danceEveryoneBtn) setText(lunPanelElements.danceEveryoneBtn, t("danceEveryoneBtn"));
+	if (lunPanelElements.farmEveryoneBtn) setText(lunPanelElements.farmEveryoneBtn, t("farmEveryoneBtn"));
 	if (lunPanelElements.killAllButSelfBtn) setText(lunPanelElements.killAllButSelfBtn, t("killAllButSelfBtn"));
 	if (lunPanelElements.killTargetBtn) setText(lunPanelElements.killTargetBtn, t("killTargetBtn"));
 	if (lunPanelElements.reviveAllBtn) setText(lunPanelElements.reviveAllBtn, t("reviveAllBtn"));
