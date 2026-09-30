@@ -384,7 +384,11 @@
         "renameBtn": "Replace Target Name",
         "newNameAllPlaceholder": "New Name for Everyone",
         "replaceAllBtn": "Replace ALL Names",
-        "resetNamesBtn": "Reset All Names"
+        "resetNamesBtn": "Reset All Names",
+        "savePresetBtn": "Save Replacement",
+        "delPresetBtn": "Delete Replacement",
+        "applyPresetsBtn": "Apply Saved Replacements",
+        "presetNeedBoth": "Need both Original and New name!"
     },
     "ja": {
         "langName": "日本語",
@@ -800,7 +804,11 @@
         "for_memo_jp_27": "🔽",
         "for_memo_jp_28": "🔽",
         "for_memo_jp_29": "🔽",
-        "resetNamesBtn": "すべての名前をリセット"
+        "resetNamesBtn": "すべての名前をリセット",
+        "savePresetBtn": "置換を保存",
+        "delPresetBtn": "保存した置換を削除",
+        "applyPresetsBtn": "保存した置換を適用",
+        "presetNeedBoth": "元の名前と新しい名前の両方が必要です！"
     },
     "ko": {
         "langName": "한국어",
@@ -1187,7 +1195,11 @@
         "renameBtn": "이름 변경",
         "newNameAllPlaceholder": "모두에게 적용할 새 이름",
         "replaceAllBtn": "모든 이름 변경",
-        "resetNamesBtn": "모든 이름 초기화"
+        "resetNamesBtn": "모든 이름 초기화",
+        "savePresetBtn": "교체 저장",
+        "delPresetBtn": "저장된 교체 삭제",
+        "applyPresetsBtn": "저장된 교체 적용",
+        "presetNeedBoth": "기존 이름과 새 이름이 모두 필요합니다!"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -1574,7 +1586,11 @@
         "renameBtn": "替換名字",
         "newNameAllPlaceholder": "所有人的新名",
         "replaceAllBtn": "替換所有名字",
-        "resetNamesBtn": "Reset All Names"
+        "resetNamesBtn": "Reset All Names",
+        "savePresetBtn": "Save Replacement",
+        "delPresetBtn": "Delete Replacement",
+        "applyPresetsBtn": "Apply Saved Replacements",
+        "presetNeedBoth": "Need both Original and New name!"
     },
     "es-419": {
         "langName": "Español",
@@ -1961,7 +1977,11 @@
         "renameBtn": "Reemplazar Nombre",
         "newNameAllPlaceholder": "Nuevo Nombre para Todos",
         "replaceAllBtn": "Reemplazar TODOS",
-        "resetNamesBtn": "Reset All Names"
+        "resetNamesBtn": "Reset All Names",
+        "savePresetBtn": "Save Replacement",
+        "delPresetBtn": "Delete Replacement",
+        "applyPresetsBtn": "Apply Saved Replacements",
+        "presetNeedBoth": "Need both Original and New name!"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -2348,6 +2368,10 @@
         "renameBtn": "替换名字",
         "newNameAllPlaceholder": "所有人的新名",
         "replaceAllBtn": "替换所有名字",
-        "resetNamesBtn": "Reset All Names"
+        "resetNamesBtn": "Reset All Names",
+        "savePresetBtn": "Save Replacement",
+        "delPresetBtn": "Delete Replacement",
+        "applyPresetsBtn": "Apply Saved Replacements",
+        "presetNeedBoth": "Need both Original and New name!"
     }
 }

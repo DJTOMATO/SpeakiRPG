@@ -5404,6 +5404,61 @@ window.spkmodResetNames = function() {
 	if (gameState.remoteDroneCoreRegistry) processMap(gameState.remoteDroneCoreRegistry);
 	console.log(`[SpeakiMod+] Reset ${count} names to their original values`);
 };
+
+
+window.spkmodSaveNamePreset = function(origName, newName) {
+    if (!origName || !newName) {
+        if (typeof chatLog !== 'undefined') chatLog(typeof t !== 'undefined' ? t("presetNeedBoth") || "Need both Original and New name!" : "Need both names!");
+        return;
+    }
+    let presets = JSON.parse(localStorage.getItem('spkmod-name-presets') || '{}');
+    presets[origName.toLowerCase().trim()] = newName;
+    localStorage.setItem('spkmod-name-presets', JSON.stringify(presets));
+    if (typeof chatLog !== 'undefined') chatLog(`Saved name preset: ${origName} -> ${newName}`);
+};
+
+window.spkmodDeleteNamePreset = function(origName, newName) {
+    let presets = JSON.parse(localStorage.getItem('spkmod-name-presets') || '{}');
+    let deleted = false;
+    
+    if (origName && presets[origName.toLowerCase().trim()]) {
+        delete presets[origName.toLowerCase().trim()];
+        deleted = true;
+    }
+    
+    if (!deleted && newName) {
+        let lowerNew = newName.toLowerCase().trim();
+        for (let k in presets) {
+            if (presets[k].toLowerCase().trim() === lowerNew) {
+                delete presets[k];
+                deleted = true;
+            }
+        }
+    }
+    
+    if (deleted) {
+        localStorage.setItem('spkmod-name-presets', JSON.stringify(presets));
+        if (typeof chatLog !== 'undefined') chatLog(`Deleted name preset.`);
+    } else {
+        if (typeof chatLog !== 'undefined') chatLog(`No preset found to delete.`);
+    }
+};
+
+window.spkmodApplyNamePresets = function() {
+    let presets = JSON.parse(localStorage.getItem('spkmod-name-presets') || '{}');
+    let keys = Object.keys(presets);
+    if (keys.length === 0) {
+        if (typeof chatLog !== 'undefined') chatLog("No name presets saved!");
+        return;
+    }
+    
+    let count = 0;
+    for (let orig of keys) {
+        window.spkmodRenamePlayer(orig, presets[orig]);
+        count++;
+    }
+    if (typeof chatLog !== 'undefined') chatLog(`Applied ${count} name presets.`);
+};
 const mapModalElements = {};
 let mapUpdateFrame = null;
 
@@ -5742,6 +5797,23 @@ document.body.appendChild(
 					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 4px;",
 					innerText: t("renameBtn") || "Replace Name",
 					onclick: () => window.spkmodRenamePlayer && window.spkmodRenamePlayer(lunPanelElements.renameTargetInput.value, lunPanelElements.renameValueInput.value)
+				}),
+				buildElement("div", { style: "display: flex; gap: 4px; margin-top: 4px;" }, [
+					lunPanelElements.savePresetBtn = buildElement("button", {
+						className: "spkmod-panel-btn", style: "flex: 1; padding: 6px; font-size: 11px;",
+						innerText: t("savePresetBtn") || "Save Replacement",
+						onclick: () => window.spkmodSaveNamePreset && window.spkmodSaveNamePreset(lunPanelElements.renameTargetInput.value, lunPanelElements.renameValueInput.value)
+					}),
+					lunPanelElements.delPresetBtn = buildElement("button", {
+						className: "spkmod-panel-btn", style: "flex: 1; padding: 6px; font-size: 11px; background: #5a2e2e;",
+						innerText: t("delPresetBtn") || "Delete Replacement",
+						onclick: () => window.spkmodDeleteNamePreset && window.spkmodDeleteNamePreset(lunPanelElements.renameTargetInput.value, lunPanelElements.renameValueInput.value)
+					})
+				]),
+				lunPanelElements.applyPresetsBtn = buildElement("button", {
+					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 4px;",
+					innerText: t("applyPresetsBtn") || "Apply Saved Replacements",
+					onclick: () => window.spkmodApplyNamePresets && window.spkmodApplyNamePresets()
 				}),
 				buildElement("div", { style: "height: 5px;" }),
 				lunPanelElements.replaceAllValueInput = buildElement("input", { type: "text", placeholder: t("newNameAllPlaceholder") || "New Name for All", style: "width: 100%; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;" }),
