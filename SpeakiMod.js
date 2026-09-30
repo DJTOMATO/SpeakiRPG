@@ -5251,18 +5251,7 @@ window.spkmodToggleInvisibility = function() {
 	}
 };
 
-function findNametagSprite(container) {
-	if (!container) return null;
-	const direct = container.children?.[0]?.children?.[0]?.children?.[1];
-	if (direct && direct.isSprite) return direct;
-	let sprite = null;
-	if (typeof container.traverse === "function") {
-		container.traverse(obj => {
-			if (!sprite && obj && obj.isSprite) sprite = obj;
-		});
-	}
-	return sprite;
-}
+
 
 function hijackAndRename(player, newName) {
 	if (!player || !player.container) return false;
