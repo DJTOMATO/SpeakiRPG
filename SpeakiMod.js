@@ -2710,6 +2710,22 @@ document.body.classList.remove("spkmod-ui-hidden");
 lunHudElements.lowHpOverlay = buildElement("div", { id: "spkmod-low-hp-overlay" });
 document.body.appendChild(lunHudElements.lowHpOverlay);
 
+	const mobileUiBtn = document.createElement("button");
+	mobileUiBtn.id = "spkmod-mobile-ui-toggle";
+	mobileUiBtn.innerText = "👁️";
+	mobileUiBtn.style.cssText = "position: fixed; bottom: 20px; left: 20px; width: 36px; height: 36px; z-index: 999999; border-radius: 50%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; user-select: none; opacity: 0.6; touch-action: none;";
+	mobileUiBtn.onclick = (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		const isHidden = document.body.classList.toggle("spkmod-ui-hidden");
+		if (typeof chatLog !== 'undefined' && typeof t !== 'undefined') {
+			chatLog(t(isHidden ? "uiHiddenMsg" : "uiShownMsg") || (isHidden ? "Mod UI Hidden" : "Mod UI Shown"));
+		}
+	};
+	document.body.appendChild(mobileUiBtn);
+
+
+
 document.body.appendChild(
 	lunHudElements.hud = buildElement("div", {
 		id: "spkmod-hud",
