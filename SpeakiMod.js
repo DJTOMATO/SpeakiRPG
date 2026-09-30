@@ -3399,6 +3399,18 @@ document.body.appendChild(
 					}
 				})
 			]),
+			buildElement("div", { className: "spkmod-panel-cat" }, [
+				lunPanelElements.localEffectsBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					style: "padding: 6px; font-size: 11px; width: 100%; text-align: center; font-weight: bold; cursor: pointer;",
+					innerText: t("localEffectsBtn"),
+					onclick: (e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						if (lunHudElements.effectsModal) lunHudElements.effectsModal.classList.remove("hidden");
+					}
+				})
+			]),
 			buildElement("div", {
 				className: "spkmod-panel-cat"
 			}, [
@@ -3441,6 +3453,16 @@ document.body.appendChild(
 					innerText: spkmodTranslations[code].langName,
 					selected: code === spkmodLang
 				}))),
+				lunPanelElements.invisibleBtn = buildElement("button", {
+					id: "spkmod-invisible-ghost-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;" + (window.lunInvisibilityActive ? " background: #5a2e2e;" : ""),
+					innerText: "👻",
+					title: t("invisibleBtn") || "Invisible Self",
+					onclick: _ => {
+						if (window.spkmodToggleInvisibility) window.spkmodToggleInvisibility();
+					}
+				}),
 				lunPanelElements.settingsBtn = buildElement("button", {
 					id: "spkmod-settings-btn",
 					className: "spkmod-panel-btn",
@@ -3558,18 +3580,7 @@ document.body.appendChild(
 					innerText: t("settingsHeader"),
 					style: "font-weight: bold;"
 				}),
-				lunPanelElements.localEffectsBtn = buildElement("button", {
-					id: "spkmod-settings-localeffects-btn",
-					className: "spkmod-panel-btn",
-					style: "padding: 2px 6px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;",
-					innerText: t("localEffectsBtn"),
-					onclick: (e) => {
-						e.preventDefault();
-						e.stopPropagation();
-						lunHudElements.settingsModal.classList.add("hidden");
-						lunHudElements.effectsModal.classList.remove("hidden");
-					}
-				}),
+
 				buildElement("button", {
 					id: "spkmod-settings-accounts-btn",
 					className: "spkmod-panel-btn",
@@ -5247,8 +5258,7 @@ window.spkmodToggleInvisibility = function() {
 	}
 	
 	if (lunPanelElements.invisibleBtn) {
-		const base = typeof t === 'function' ? t('invisibleBtn') : 'Invisible Self';
-		lunPanelElements.invisibleBtn.innerText = base + (window.lunInvisibilityActive ? " (ON)" : " (OFF)");
+		lunPanelElements.invisibleBtn.style.background = window.lunInvisibilityActive ? "#5a2e2e" : "";
 	}
 };
 
@@ -5697,11 +5707,6 @@ document.body.appendChild(
 					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
 					innerText: t("flyEveryoneBtn"),
 					onclick: () => window.spkmodTriggerFlyEveryone && window.spkmodTriggerFlyEveryone()
-				}),
-				lunPanelElements.invisibleBtn = buildElement("button", {
-					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
-					innerText: t("invisibleBtn") + (window.lunInvisibilityActive ? " (ON)" : " (OFF)"),
-					onclick: () => window.spkmodToggleInvisibility && window.spkmodToggleInvisibility()
 				})
 			]),
 			buildElement("div", { style: "display: flex; flex-direction: column; gap: 8px; flex: 1; border-left: 1px solid #555; padding-left: 10px;" }, [
@@ -6912,7 +6917,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.farmEveryoneBtn) setText(lunPanelElements.farmEveryoneBtn, t("farmEveryoneBtn"));
 	if (lunPanelElements.hobagiEveryoneBtn) setText(lunPanelElements.hobagiEveryoneBtn, t("hobagiEveryoneBtn"));
 	if (lunPanelElements.flyEveryoneBtn) setText(lunPanelElements.flyEveryoneBtn, t("flyEveryoneBtn"));
-	if (lunPanelElements.invisibleBtn) setText(lunPanelElements.invisibleBtn, t("invisibleBtn") + (window.lunInvisibilityActive ? " (ON)" : " (OFF)"));
+	if (lunPanelElements.invisibleBtn) lunPanelElements.invisibleBtn.title = t("invisibleBtn");
 	if (lunPanelElements.renameTargetInput) lunPanelElements.renameTargetInput.placeholder = t("originalNamePlaceholder");
 	if (lunPanelElements.renameValueInput) lunPanelElements.renameValueInput.placeholder = t("newNamePlaceholder");
 	if (lunPanelElements.renameBtn) setText(lunPanelElements.renameBtn, t("renameBtn"));
