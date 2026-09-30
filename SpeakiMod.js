@@ -4066,7 +4066,7 @@ function toggleEmojiPicker(anchorBtn) {
     }
     
     // Prevent clicks inside the panel from stealing chat input focus (which breaks cursor position)
-    lunEmojiPickerPanel.onmousedown = (e) => { e.preventDefault(); };
+    // lunEmojiPickerPanel.onmousedown removed to fix click bug
     
     // Prevent scrolling inside the panel from zooming the game camera
     lunEmojiPickerPanel.addEventListener("wheel", (e) => { e.stopPropagation(); }, { passive: true });
@@ -4943,6 +4943,28 @@ function spkmodPlayHobagi(targetController, targetName) {
 
 window.spkmodTriggerDanceEveryone = function() {
 	let count = 0;
+	// Clear all loops and reset states/buttons
+	if (window.lunEffectIntervals) {
+		for (const key of Object.keys(window.lunEffectIntervals)) {
+			if (window.lunEffectIntervals[key]) {
+				clearInterval(window.lunEffectIntervals[key]);
+				window.lunEffectIntervals[key] = null;
+			}
+			window.lunEffectStates[key] = 0;
+			
+			if (typeof lunPanelElements !== 'undefined') {
+				let otherBtn = null;
+				let otherBase = "";
+				if (key === 'death') { otherBtn = lunPanelElements.killEveryoneBtn; otherBase = typeof t === 'function' ? t('killEveryoneBtn') : 'killEveryoneBtn'; }
+				else if (key === 'farm') { otherBtn = lunPanelElements.farmEveryoneBtn; otherBase = typeof t === 'function' ? t('farmEveryoneBtn') : 'farmEveryoneBtn'; }
+				else if (key === 'dance') { otherBtn = lunPanelElements.danceEveryoneBtn; otherBase = typeof t === 'function' ? t('danceEveryoneBtn') : 'danceEveryoneBtn'; }
+				else if (key === 'hobagi') { otherBtn = lunPanelElements.hobagiEveryoneBtn; otherBase = typeof t === 'function' ? t('hobagiEveryoneBtn') : 'hobagiEveryoneBtn'; }
+				else if (key === 'fly') { otherBtn = lunPanelElements.flyEveryoneBtn; otherBase = typeof t === 'function' ? t('flyEveryoneBtn') : 'flyEveryoneBtn'; }
+				if (otherBtn) otherBtn.innerText = otherBase;
+			}
+		}
+	}
+
 	if (typeof gameState !== "undefined") {
 		if (gameState.localAvatar?.animationController) {
 			if (spkmodPlayDance(gameState.localAvatar?.animationController, "Self")) count++;
@@ -4959,6 +4981,28 @@ window.spkmodTriggerDanceEveryone = function() {
 
 window.spkmodTriggerFarmEveryone = function() {
 	let count = 0;
+	// Clear all loops and reset states/buttons
+	if (window.lunEffectIntervals) {
+		for (const key of Object.keys(window.lunEffectIntervals)) {
+			if (window.lunEffectIntervals[key]) {
+				clearInterval(window.lunEffectIntervals[key]);
+				window.lunEffectIntervals[key] = null;
+			}
+			window.lunEffectStates[key] = 0;
+			
+			if (typeof lunPanelElements !== 'undefined') {
+				let otherBtn = null;
+				let otherBase = "";
+				if (key === 'death') { otherBtn = lunPanelElements.killEveryoneBtn; otherBase = typeof t === 'function' ? t('killEveryoneBtn') : 'killEveryoneBtn'; }
+				else if (key === 'farm') { otherBtn = lunPanelElements.farmEveryoneBtn; otherBase = typeof t === 'function' ? t('farmEveryoneBtn') : 'farmEveryoneBtn'; }
+				else if (key === 'dance') { otherBtn = lunPanelElements.danceEveryoneBtn; otherBase = typeof t === 'function' ? t('danceEveryoneBtn') : 'danceEveryoneBtn'; }
+				else if (key === 'hobagi') { otherBtn = lunPanelElements.hobagiEveryoneBtn; otherBase = typeof t === 'function' ? t('hobagiEveryoneBtn') : 'hobagiEveryoneBtn'; }
+				else if (key === 'fly') { otherBtn = lunPanelElements.flyEveryoneBtn; otherBase = typeof t === 'function' ? t('flyEveryoneBtn') : 'flyEveryoneBtn'; }
+				if (otherBtn) otherBtn.innerText = otherBase;
+			}
+		}
+	}
+
 	if (typeof gameState !== "undefined") {
 		if (gameState.localAvatar?.animationController) {
 			if (spkmodPlayFarm(gameState.localAvatar?.animationController, "Self")) count++;
@@ -4975,6 +5019,28 @@ window.spkmodTriggerFarmEveryone = function() {
 
 window.spkmodTriggerFlyEveryone = function() {
 	let count = 0;
+	// Clear all loops and reset states/buttons
+	if (window.lunEffectIntervals) {
+		for (const key of Object.keys(window.lunEffectIntervals)) {
+			if (window.lunEffectIntervals[key]) {
+				clearInterval(window.lunEffectIntervals[key]);
+				window.lunEffectIntervals[key] = null;
+			}
+			window.lunEffectStates[key] = 0;
+			
+			if (typeof lunPanelElements !== 'undefined') {
+				let otherBtn = null;
+				let otherBase = "";
+				if (key === 'death') { otherBtn = lunPanelElements.killEveryoneBtn; otherBase = typeof t === 'function' ? t('killEveryoneBtn') : 'killEveryoneBtn'; }
+				else if (key === 'farm') { otherBtn = lunPanelElements.farmEveryoneBtn; otherBase = typeof t === 'function' ? t('farmEveryoneBtn') : 'farmEveryoneBtn'; }
+				else if (key === 'dance') { otherBtn = lunPanelElements.danceEveryoneBtn; otherBase = typeof t === 'function' ? t('danceEveryoneBtn') : 'danceEveryoneBtn'; }
+				else if (key === 'hobagi') { otherBtn = lunPanelElements.hobagiEveryoneBtn; otherBase = typeof t === 'function' ? t('hobagiEveryoneBtn') : 'hobagiEveryoneBtn'; }
+				else if (key === 'fly') { otherBtn = lunPanelElements.flyEveryoneBtn; otherBase = typeof t === 'function' ? t('flyEveryoneBtn') : 'flyEveryoneBtn'; }
+				if (otherBtn) otherBtn.innerText = otherBase;
+			}
+		}
+	}
+
 	if (typeof gameState !== "undefined") {
 		if (gameState.localAvatar?.animationController) {
 			if (spkmodPlayFly(gameState.localAvatar?.animationController, "Self")) count++;
@@ -4991,6 +5057,28 @@ window.spkmodTriggerFlyEveryone = function() {
 
 window.spkmodTriggerHobagiEveryone = function() {
 	let count = 0;
+	// Clear all loops and reset states/buttons
+	if (window.lunEffectIntervals) {
+		for (const key of Object.keys(window.lunEffectIntervals)) {
+			if (window.lunEffectIntervals[key]) {
+				clearInterval(window.lunEffectIntervals[key]);
+				window.lunEffectIntervals[key] = null;
+			}
+			window.lunEffectStates[key] = 0;
+			
+			if (typeof lunPanelElements !== 'undefined') {
+				let otherBtn = null;
+				let otherBase = "";
+				if (key === 'death') { otherBtn = lunPanelElements.killEveryoneBtn; otherBase = typeof t === 'function' ? t('killEveryoneBtn') : 'killEveryoneBtn'; }
+				else if (key === 'farm') { otherBtn = lunPanelElements.farmEveryoneBtn; otherBase = typeof t === 'function' ? t('farmEveryoneBtn') : 'farmEveryoneBtn'; }
+				else if (key === 'dance') { otherBtn = lunPanelElements.danceEveryoneBtn; otherBase = typeof t === 'function' ? t('danceEveryoneBtn') : 'danceEveryoneBtn'; }
+				else if (key === 'hobagi') { otherBtn = lunPanelElements.hobagiEveryoneBtn; otherBase = typeof t === 'function' ? t('hobagiEveryoneBtn') : 'hobagiEveryoneBtn'; }
+				else if (key === 'fly') { otherBtn = lunPanelElements.flyEveryoneBtn; otherBase = typeof t === 'function' ? t('flyEveryoneBtn') : 'flyEveryoneBtn'; }
+				if (otherBtn) otherBtn.innerText = otherBase;
+			}
+		}
+	}
+
 	if (typeof gameState !== "undefined") {
 		if (gameState.localAvatar?.animationController) {
 			if (spkmodPlayHobagi(gameState.localAvatar?.animationController, "Self")) count++;
@@ -5009,6 +5097,32 @@ window.lunEffectStates = { death: 0, farm: 0, dance: 0, hobagi: 0, fly: 0 };
 window.lunEffectIntervals = {};
 
 window.spkmodCycleEffect = function(effectName, playFunc, btnElem, btnLabelKey) {
+	const wasOff = (window.lunEffectStates[effectName] || 0) === 0;
+	
+	// If it was off, we are turning it on, so reset ALL other effects first
+	if (wasOff) {
+		window.spkmodReviveAll && window.spkmodReviveAll(); // Clean slate
+		for (const key of Object.keys(window.lunEffectIntervals)) {
+			if (window.lunEffectIntervals[key]) {
+				clearInterval(window.lunEffectIntervals[key]);
+				window.lunEffectIntervals[key] = null;
+			}
+			window.lunEffectStates[key] = 0;
+			
+			// Reset button texts of others
+			if (key !== effectName) {
+				let otherBtn = null;
+				let otherBase = "";
+				if (key === 'death') { otherBtn = lunPanelElements.killEveryoneBtn; otherBase = t('killEveryoneBtn'); }
+				else if (key === 'farm') { otherBtn = lunPanelElements.farmEveryoneBtn; otherBase = t('farmEveryoneBtn'); }
+				else if (key === 'dance') { otherBtn = lunPanelElements.danceEveryoneBtn; otherBase = t('danceEveryoneBtn'); }
+				else if (key === 'hobagi') { otherBtn = lunPanelElements.hobagiEveryoneBtn; otherBase = t('hobagiEveryoneBtn'); }
+				else if (key === 'fly') { otherBtn = lunPanelElements.flyEveryoneBtn; otherBase = t('flyEveryoneBtn'); }
+				if (otherBtn) otherBtn.innerText = otherBase;
+			}
+		}
+	}
+	
 	window.lunEffectStates[effectName] = ((window.lunEffectStates[effectName] || 0) + 1) % 3;
 	const state = window.lunEffectStates[effectName];
 	
@@ -5073,6 +5187,28 @@ window.spkmodReviveAll = function() {
 			console.error("[SpeakiMod+ Local Effects] revive error:", e);
 		}
 	};
+
+	// Clear all loops and reset states/buttons
+	if (window.lunEffectIntervals) {
+		for (const key of Object.keys(window.lunEffectIntervals)) {
+			if (window.lunEffectIntervals[key]) {
+				clearInterval(window.lunEffectIntervals[key]);
+				window.lunEffectIntervals[key] = null;
+			}
+			window.lunEffectStates[key] = 0;
+			
+			if (typeof lunPanelElements !== 'undefined') {
+				let otherBtn = null;
+				let otherBase = "";
+				if (key === 'death') { otherBtn = lunPanelElements.killEveryoneBtn; otherBase = typeof t === 'function' ? t('killEveryoneBtn') : 'killEveryoneBtn'; }
+				else if (key === 'farm') { otherBtn = lunPanelElements.farmEveryoneBtn; otherBase = typeof t === 'function' ? t('farmEveryoneBtn') : 'farmEveryoneBtn'; }
+				else if (key === 'dance') { otherBtn = lunPanelElements.danceEveryoneBtn; otherBase = typeof t === 'function' ? t('danceEveryoneBtn') : 'danceEveryoneBtn'; }
+				else if (key === 'hobagi') { otherBtn = lunPanelElements.hobagiEveryoneBtn; otherBase = typeof t === 'function' ? t('hobagiEveryoneBtn') : 'hobagiEveryoneBtn'; }
+				else if (key === 'fly') { otherBtn = lunPanelElements.flyEveryoneBtn; otherBase = typeof t === 'function' ? t('flyEveryoneBtn') : 'flyEveryoneBtn'; }
+				if (otherBtn) otherBtn.innerText = otherBase;
+			}
+		}
+	}
 
 	if (typeof gameState !== "undefined") {
 		if (gameState.localAvatar?.animationController) reviveCtrl(gameState.localAvatar?.animationController);
