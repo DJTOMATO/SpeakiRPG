@@ -3407,7 +3407,7 @@ document.body.appendChild(
 					onclick: (e) => {
 						e.preventDefault();
 						e.stopPropagation();
-						if (lunHudElements.effectsModal) lunHudElements.effectsModal.classList.remove("hidden");
+						if (lunHudElements.effectsModal) lunHudElements.effectsModal.classList.toggle("hidden");
 					}
 				})
 			]),
