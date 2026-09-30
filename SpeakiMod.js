@@ -5259,6 +5259,9 @@ function hijackAndRename(player, newName) {
 	
 	// Update internal name so hover/party features know the new name
 	if (player.info) {
+		if (typeof player.info.__spkmodOrigName === 'undefined') {
+			player.info.__spkmodOrigName = player.info.name;
+		}
 		player.info.name = newName;
 	}
 	
@@ -5327,12 +5330,46 @@ window.spkmodTriggerDeathTarget = function(name) {
 	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
 		for (const player of gameState.remotePlayers.remotePlayers.values()) {
 			if (player.info && player.info.name && player.info.name.toLowerCase().trim() === lowerName) {
-				if (player.avatar && typeof player.avatar.applyAnimState === 'function') {
-					player.avatar.applyAnimState("death");
+				if (player.avatar && player.avatar.animationController) {
+					spkmodPlayDeath(player.avatar.animationController, player.info.name);
 				}
 			}
 		}
 	}
+};
+
+window.spkmodResetNames = function() {
+	if (typeof gameState === 'undefined') return;
+	let count = 0;
+	function processMap(map) {
+		if (!map || typeof map.values !== 'function') return;
+		for (const entity of map.values()) {
+			if (entity.info && typeof entity.info.__spkmodOrigName !== 'undefined') {
+				const origName = entity.info.__spkmodOrigName;
+				entity.info.name = origName;
+				delete entity.info.__spkmodOrigName;
+				
+				if (entity.avatar && typeof entity.avatar.setLabel === 'function') {
+					let lvl = (entity.info && entity.info.level) ? entity.info.level : 1;
+					
+					if (entity.container) {
+						entity.container.traverse(obj => {
+							if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+								obj.material.map.dispose();
+							}
+						});
+					}
+					
+					entity.avatar.setLabel("LV" + lvl + " " + origName);
+					count++;
+				}
+			}
+		}
+	}
+	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) processMap(gameState.remotePlayers.remotePlayers);
+	if (gameState.remotePetRegistry) processMap(gameState.remotePetRegistry);
+	if (gameState.remoteDroneCoreRegistry) processMap(gameState.remoteDroneCoreRegistry);
+	console.log(`[SpeakiMod+] Reset ${count} names to their original values`);
 };
 const mapModalElements = {};
 let mapUpdateFrame = null;
@@ -5684,6 +5721,11 @@ document.body.appendChild(
 					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
 					innerText: t("replaceAllBtn") || "Replace All",
 					onclick: () => window.spkmodRenameAll && window.spkmodRenameAll(lunPanelElements.replaceAllValueInput.value)
+				}),
+				lunPanelElements.resetNamesBtn = buildElement("button", {
+					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 4px; background: #5a2e2e;",
+					innerText: t("resetNamesBtn") || "Reset All Names",
+					onclick: () => window.spkmodResetNames && window.spkmodResetNames()
 				}),
 				buildElement("div", { style: "display: flex; gap: 4px; margin-top: 4px;" }, [
 					lunPanelElements.killTargetInput = buildElement("input", {

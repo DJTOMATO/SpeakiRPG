@@ -398,7 +398,8 @@
         "newNamePlaceholder": "New Name",
         "renameBtn": "Replace Target Name",
         "newNameAllPlaceholder": "New Name for Everyone",
-        "replaceAllBtn": "Replace ALL Names"
+        "replaceAllBtn": "Replace ALL Names",
+        "resetNamesBtn": "Reset All Names"
     },
     "ja": {
         "for_memo_jp_1": "",
@@ -799,7 +800,8 @@
         "hkDescDroneAscend": "ドローンモード: 上昇",
         "hkDescDroneDescend": "ドローンモード: 下降",
         "hkDescDroneSpeedUp": "ドローンモード: 速度アップ",
-        "hkDescDroneSpeedDown": "ドローンモード: 速度ダウン"
+        "hkDescDroneSpeedDown": "ドローンモード: 速度ダウン",
+        "resetNamesBtn": "すべての名前をリセット"
     },
     "ko": {
         "langName": "한국어",
@@ -1213,7 +1215,8 @@
         "newNamePlaceholder": "새 이름",
         "renameBtn": "이름 변경",
         "newNameAllPlaceholder": "모두에게 적용할 새 이름",
-        "replaceAllBtn": "모든 이름 변경"
+        "replaceAllBtn": "모든 이름 변경",
+        "resetNamesBtn": "모든 이름 초기화"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -1614,7 +1617,8 @@
         "newNamePlaceholder": "新名",
         "renameBtn": "替換名字",
         "newNameAllPlaceholder": "所有人的新名",
-        "replaceAllBtn": "替換所有名字"
+        "replaceAllBtn": "替換所有名字",
+        "resetNamesBtn": "Reset All Names"
     },
     "es-419": {
         "langName": "Español",
@@ -2015,7 +2019,8 @@
         "newNamePlaceholder": "Nuevo Nombre",
         "renameBtn": "Reemplazar Nombre",
         "newNameAllPlaceholder": "Nuevo Nombre para Todos",
-        "replaceAllBtn": "Reemplazar TODOS"
+        "replaceAllBtn": "Reemplazar TODOS",
+        "resetNamesBtn": "Reset All Names"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -2416,6 +2421,7 @@
         "newNamePlaceholder": "新名",
         "renameBtn": "替换名字",
         "newNameAllPlaceholder": "所有人的新名",
-        "replaceAllBtn": "替换所有名字"
+        "replaceAllBtn": "替换所有名字",
+        "resetNamesBtn": "Reset All Names"
     }
 }
