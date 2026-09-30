@@ -5425,8 +5425,34 @@ window.spkmodUpdatePresetListUI = function() {
     
     for (let orig of keys) {
         let row = document.createElement("div");
-        row.style.cssText = "display: flex; justify-content: space-between; background: #333; padding: 2px 4px; border-radius: 2px;";
-        row.innerText = `${orig} ➔ ${presets[orig]}`;
+        row.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: #333; padding: 2px 4px; border-radius: 2px; cursor: pointer; user-select: none;";
+        
+        let textSpan = document.createElement("span");
+        textSpan.style.flex = "1";
+        textSpan.innerText = `${orig} ➔ ${presets[orig]}`;
+        textSpan.title = "Click to autofill";
+        textSpan.onclick = () => {
+            if (typeof lunPanelElements !== 'undefined') {
+                if (lunPanelElements.renameTargetInput) lunPanelElements.renameTargetInput.value = orig;
+                if (lunPanelElements.renameValueInput) lunPanelElements.renameValueInput.value = presets[orig];
+            }
+        };
+        
+        let delSpan = document.createElement("span");
+        delSpan.innerText = "✖";
+        delSpan.style.cssText = "color: #ff5555; cursor: pointer; padding: 0 4px; font-weight: bold;";
+        delSpan.title = "Delete";
+        delSpan.onclick = (e) => {
+            e.stopPropagation();
+            if (window.spkmodDeleteNamePreset) window.spkmodDeleteNamePreset(orig, "");
+        };
+        
+        row.appendChild(textSpan);
+        row.appendChild(delSpan);
+        
+        row.onmouseenter = () => row.style.background = "#444";
+        row.onmouseleave = () => row.style.background = "#333";
+        
         lunPanelElements.presetList.appendChild(row);
     }
 };
