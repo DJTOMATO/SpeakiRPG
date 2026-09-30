@@ -388,7 +388,8 @@
         "savePresetBtn": "Save Replacement",
         "delPresetBtn": "Delete Replacement",
         "applyPresetsBtn": "Apply Saved Replacements",
-        "presetNeedBoth": "Need both Original and New name!"
+        "presetNeedBoth": "Need both Original and New name!",
+        "noPresetsSaved": "No presets saved."
     },
     "ja": {
         "langName": "日本語",
@@ -808,7 +809,8 @@
         "savePresetBtn": "置換を保存",
         "delPresetBtn": "保存した置換を削除",
         "applyPresetsBtn": "保存した置換を適用",
-        "presetNeedBoth": "元の名前と新しい名前の両方が必要です！"
+        "presetNeedBoth": "元の名前と新しい名前の両方が必要です！",
+        "noPresetsSaved": "保存されたプリセットはありません。"
     },
     "ko": {
         "langName": "한국어",
@@ -1199,7 +1201,8 @@
         "savePresetBtn": "교체 저장",
         "delPresetBtn": "저장된 교체 삭제",
         "applyPresetsBtn": "저장된 교체 적용",
-        "presetNeedBoth": "기존 이름과 새 이름이 모두 필요합니다!"
+        "presetNeedBoth": "기존 이름과 새 이름이 모두 필요합니다!",
+        "noPresetsSaved": "저장된 프리셋이 없습니다."
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -1590,7 +1593,8 @@
         "savePresetBtn": "Save Replacement",
         "delPresetBtn": "Delete Replacement",
         "applyPresetsBtn": "Apply Saved Replacements",
-        "presetNeedBoth": "Need both Original and New name!"
+        "presetNeedBoth": "Need both Original and New name!",
+        "noPresetsSaved": "No presets saved."
     },
     "es-419": {
         "langName": "Español",
@@ -1981,7 +1985,8 @@
         "savePresetBtn": "Save Replacement",
         "delPresetBtn": "Delete Replacement",
         "applyPresetsBtn": "Apply Saved Replacements",
-        "presetNeedBoth": "Need both Original and New name!"
+        "presetNeedBoth": "Need both Original and New name!",
+        "noPresetsSaved": "No presets saved."
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -2372,6 +2377,7 @@
         "savePresetBtn": "Save Replacement",
         "delPresetBtn": "Delete Replacement",
         "applyPresetsBtn": "Apply Saved Replacements",
-        "presetNeedBoth": "Need both Original and New name!"
+        "presetNeedBoth": "Need both Original and New name!",
+        "noPresetsSaved": "No presets saved."
     }
 }

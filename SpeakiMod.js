@@ -5406,6 +5406,31 @@ window.spkmodResetNames = function() {
 };
 
 
+
+window.spkmodUpdatePresetListUI = function() {
+    if (typeof lunPanelElements === 'undefined' || !lunPanelElements.presetList) return;
+    let presets = JSON.parse(localStorage.getItem('spkmod-name-presets') || '{}');
+    lunPanelElements.presetList.innerHTML = '';
+    
+    let keys = Object.keys(presets);
+    if (keys.length === 0) {
+        lunPanelElements.presetList.innerText = typeof t !== 'undefined' ? (t("noPresetsSaved") || "No presets saved.") : "No presets saved.";
+        lunPanelElements.presetList.style.color = "#aaa";
+        lunPanelElements.presetList.style.textAlign = "center";
+        return;
+    }
+    
+    lunPanelElements.presetList.style.color = "#fff";
+    lunPanelElements.presetList.style.textAlign = "left";
+    
+    for (let orig of keys) {
+        let row = document.createElement("div");
+        row.style.cssText = "display: flex; justify-content: space-between; background: #333; padding: 2px 4px; border-radius: 2px;";
+        row.innerText = `${orig} ➔ ${presets[orig]}`;
+        lunPanelElements.presetList.appendChild(row);
+    }
+};
+
 window.spkmodSaveNamePreset = function(origName, newName) {
     if (!origName || !newName) {
         if (typeof chatLog !== 'undefined') chatLog(typeof t !== 'undefined' ? t("presetNeedBoth") || "Need both Original and New name!" : "Need both names!");
@@ -5415,6 +5440,7 @@ window.spkmodSaveNamePreset = function(origName, newName) {
     presets[origName.toLowerCase().trim()] = newName;
     localStorage.setItem('spkmod-name-presets', JSON.stringify(presets));
     if (typeof chatLog !== 'undefined') chatLog(`Saved name preset: ${origName} -> ${newName}`);
+    if (window.spkmodUpdatePresetListUI) window.spkmodUpdatePresetListUI();
 };
 
 window.spkmodDeleteNamePreset = function(origName, newName) {
@@ -5439,6 +5465,7 @@ window.spkmodDeleteNamePreset = function(origName, newName) {
     if (deleted) {
         localStorage.setItem('spkmod-name-presets', JSON.stringify(presets));
         if (typeof chatLog !== 'undefined') chatLog(`Deleted name preset.`);
+        if (window.spkmodUpdatePresetListUI) window.spkmodUpdatePresetListUI();
     } else {
         if (typeof chatLog !== 'undefined') chatLog(`No preset found to delete.`);
     }
@@ -5810,6 +5837,9 @@ document.body.appendChild(
 						onclick: () => window.spkmodDeleteNamePreset && window.spkmodDeleteNamePreset(lunPanelElements.renameTargetInput.value, lunPanelElements.renameValueInput.value)
 					})
 				]),
+				lunPanelElements.presetList = buildElement("div", {
+					style: "max-height: 80px; overflow-y: auto; background: rgba(0,0,0,0.5); border: 1px solid #555; border-radius: 4px; margin-top: 4px; padding: 4px; font-size: 10px; display: flex; flex-direction: column; gap: 2px;"
+				}),
 				lunPanelElements.applyPresetsBtn = buildElement("button", {
 					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 4px;",
 					innerText: t("applyPresetsBtn") || "Apply Saved Replacements",
@@ -6521,6 +6551,8 @@ if (typeof spkmodI18nRenderers !== "undefined") {
 		}
 	});
 }
+
+if (typeof window.spkmodUpdatePresetListUI === 'function') window.spkmodUpdatePresetListUI();
 function updateBeyBladeButtonText() {
 	const mainBtn = document.querySelector("#spkmod-beyblade-main-btn");
 	if (!mainBtn) return;
