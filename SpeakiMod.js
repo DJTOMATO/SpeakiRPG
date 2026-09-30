@@ -5255,39 +5255,19 @@ window.spkmodToggleInvisibility = function() {
 
 function hijackAndRename(player, newName) {
 	if (!player || !player.container) return false;
-	const sprite = findNametagSprite(player.container);
-	if (!sprite || !sprite.material || !sprite.material.map || !sprite.material.map.image) return false;
 	
-	const cvs = sprite.material.map.image;
-	const ctx = cvs.getContext('2d');
-	if (!ctx) return false;
-	
-	if (!cvs.__spkmodHijacked) {
-		cvs.__spkmodHijacked = true;
-		const origFillText = ctx.fillText;
-		const origStrokeText = ctx.strokeText;
-		
-		ctx.fillText = function(text, x, y, maxW) {
-			if (player.info && player.info.__spkmodRename) text = player.info.__spkmodRename;
-			if (arguments.length > 3 && maxW !== undefined) origFillText.call(this, text, x, y, maxW);
-			else origFillText.call(this, text, x, y);
-		};
-		ctx.strokeText = function(text, x, y, maxW) {
-			if (player.info && player.info.__spkmodRename) text = player.info.__spkmodRename;
-			if (arguments.length > 3 && maxW !== undefined) origStrokeText.call(this, text, x, y, maxW);
-			else origStrokeText.call(this, text, x, y);
-		};
-	}
-	
+	// Update internal name so hover/party features know the new name
 	if (player.info) {
-		player.info.__spkmodRename = newName;
 		player.info.name = newName;
 	}
 	
+	// The game engine's setLabel function natively parses a string formatted as "LV<level> <name>".
+	// It extracts the level, draws it in yellow, and draws the rest of the string in white perfectly scaled.
 	if (player.avatar && typeof player.avatar.setLabel === 'function') {
-		player.avatar.setLabel(""); // Trigger redraw
-		sprite.material.map.needsUpdate = true;
+		let lvl = (player.info && player.info.level) ? player.info.level : 1;
+		player.avatar.setLabel("LV" + lvl + " " + newName);
 	}
+	
 	return true;
 }
 
@@ -5295,25 +5275,39 @@ window.spkmodRenamePlayer = function(oldName, newName) {
 	if (!oldName || !newName || typeof gameState === 'undefined') return;
 	const oldLower = oldName.toLowerCase().trim();
 	let count = 0;
-	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
-		for (const player of gameState.remotePlayers.remotePlayers.values()) {
-			if (player.info && player.info.name && player.info.name.toLowerCase().trim() === oldLower) {
-				if (hijackAndRename(player, newName)) count++;
+	
+	function processMap(map) {
+		if (!map || typeof map.values !== 'function') return;
+		for (const entity of map.values()) {
+			if (entity.info && entity.info.name && entity.info.name.toLowerCase().trim() === oldLower) {
+				if (hijackAndRename(entity, newName)) count++;
 			}
 		}
 	}
-	console.log(`[SpeakiMod+] Renamed ${count} players to ${newName}`);
+	
+	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) processMap(gameState.remotePlayers.remotePlayers);
+	if (gameState.remotePetRegistry) processMap(gameState.remotePetRegistry);
+	if (gameState.remoteDroneCoreRegistry) processMap(gameState.remoteDroneCoreRegistry);
+	
+	console.log(`[SpeakiMod+] Renamed ${count} entities to ${newName}`);
 };
 
 window.spkmodRenameAll = function(newName) {
 	if (!newName || typeof gameState === 'undefined') return;
 	let count = 0;
-	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
-		for (const player of gameState.remotePlayers.remotePlayers.values()) {
-			if (hijackAndRename(player, newName)) count++;
+	
+	function processMap(map) {
+		if (!map || typeof map.values !== 'function') return;
+		for (const entity of map.values()) {
+			if (hijackAndRename(entity, newName)) count++;
 		}
 	}
-	console.log(`[SpeakiMod+] Renamed ALL ${count} remote players to ${newName}`);
+	
+	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) processMap(gameState.remotePlayers.remotePlayers);
+	if (gameState.remotePetRegistry) processMap(gameState.remotePetRegistry);
+	if (gameState.remoteDroneCoreRegistry) processMap(gameState.remoteDroneCoreRegistry);
+	
+	console.log(`[SpeakiMod+] Renamed ALL ${count} remote entities to ${newName}`);
 };
 const mapModalElements = {};
 let mapUpdateFrame = null;
