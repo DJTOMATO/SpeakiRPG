@@ -4864,8 +4864,8 @@ function spkmodPlayDeath(targetController, targetName) {
 }
 
 window.spkmodTriggerDeathSelf = function() {
-	if (typeof gameState !== "undefined" && (gameState.playerContainer?.avatar?.animationController || gameState.playerContainer?.controller)) {
-		spkmodPlayDeath((gameState.playerContainer?.avatar?.animationController || gameState.playerContainer?.controller), "Self");
+	if (typeof gameState !== "undefined" && gameState.localAvatar?.animationController) {
+		spkmodPlayDeath(gameState.localAvatar?.animationController, "Self");
 	}
 };
 
@@ -4908,8 +4908,8 @@ function spkmodPlayFarm(targetController, targetName) {
 window.spkmodTriggerDanceEveryone = function() {
 	let count = 0;
 	if (typeof gameState !== "undefined") {
-		if ((gameState.playerContainer?.avatar?.animationController || gameState.playerContainer?.controller)) {
-			if (spkmodPlayDance((gameState.playerContainer?.avatar?.animationController || gameState.playerContainer?.controller), "Self")) count++;
+		if (gameState.localAvatar?.animationController) {
+			if (spkmodPlayDance(gameState.localAvatar?.animationController, "Self")) count++;
 		}
 		if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
 			for (const player of gameState.remotePlayers.remotePlayers.values()) {
@@ -4924,8 +4924,8 @@ window.spkmodTriggerDanceEveryone = function() {
 window.spkmodTriggerFarmEveryone = function() {
 	let count = 0;
 	if (typeof gameState !== "undefined") {
-		if ((gameState.playerContainer?.avatar?.animationController || gameState.playerContainer?.controller)) {
-			if (spkmodPlayFarm((gameState.playerContainer?.avatar?.animationController || gameState.playerContainer?.controller), "Self")) count++;
+		if (gameState.localAvatar?.animationController) {
+			if (spkmodPlayFarm(gameState.localAvatar?.animationController, "Self")) count++;
 		}
 		if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
 			for (const player of gameState.remotePlayers.remotePlayers.values()) {
@@ -4940,8 +4940,8 @@ window.spkmodTriggerFarmEveryone = function() {
 window.spkmodTriggerDeathEveryone = function() {
 	let count = 0;
 	if (typeof gameState !== "undefined") {
-		if ((gameState.playerContainer?.avatar?.animationController || gameState.playerContainer?.controller)) {
-			if (spkmodPlayDeath((gameState.playerContainer?.avatar?.animationController || gameState.playerContainer?.controller), "Self")) count++;
+		if (gameState.localAvatar?.animationController) {
+			if (spkmodPlayDeath(gameState.localAvatar?.animationController, "Self")) count++;
 		}
 		if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
 			for (const player of gameState.remotePlayers.remotePlayers.values()) {
@@ -4972,8 +4972,8 @@ window.spkmodTriggerDeathTarget = function(name) {
 	let found = false;
 	
 	const myName = (gameState.myPlayerName || gameState.myStat?.name || "").toLowerCase();
-	if (myName === lowerTarget && (gameState.playerContainer?.avatar?.animationController || gameState.playerContainer?.controller)) {
-		spkmodPlayDeath((gameState.playerContainer?.avatar?.animationController || gameState.playerContainer?.controller), "Self");
+	if (myName === lowerTarget && gameState.localAvatar?.animationController) {
+		spkmodPlayDeath(gameState.localAvatar?.animationController, "Self");
 		found = true;
 	}
 	
@@ -5013,7 +5013,7 @@ window.spkmodReviveAll = function() {
 	};
 
 	if (typeof gameState !== "undefined") {
-		if ((gameState.playerContainer?.avatar?.animationController || gameState.playerContainer?.controller)) reviveCtrl((gameState.playerContainer?.avatar?.animationController || gameState.playerContainer?.controller));
+		if (gameState.localAvatar?.animationController) reviveCtrl(gameState.localAvatar?.animationController);
 		if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
 			for (const player of gameState.remotePlayers.remotePlayers.values()) {
 				const ctrl = player?.avatar?.animationController || player?.container?.controller;
