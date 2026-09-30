@@ -3814,6 +3814,7 @@ document.body.appendChild(
 						lunChannelTrackerEnabled = e.target.checked;
 						if (window.localStorage) localStorage.setItem("spkmod-channel-tracker", lunChannelTrackerEnabled);
 						if (lunHudElements.channelTracker) lunHudElements.channelTracker.style.display = lunChannelTrackerEnabled ? "" : "none";
+						if (typeof lunChannelTrackerNextTicks !== 'undefined') lunChannelTrackerNextTicks = 0;
 					} })
 				]),
 
@@ -5318,6 +5319,21 @@ window.spkmodRenameAll = function(newName) {
 	
 	console.log(`[SpeakiMod+] Renamed ALL ${count} remote entities to ${newName}`);
 };
+
+
+window.spkmodTriggerDeathTarget = function(name) {
+	if (!name || typeof gameState === 'undefined') return;
+	const lowerName = name.toLowerCase().trim();
+	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+		for (const player of gameState.remotePlayers.remotePlayers.values()) {
+			if (player.info && player.info.name && player.info.name.toLowerCase().trim() === lowerName) {
+				if (player.avatar && typeof player.avatar.applyAnimState === 'function') {
+					player.avatar.applyAnimState("death");
+				}
+			}
+		}
+	}
+};
 const mapModalElements = {};
 let mapUpdateFrame = null;
 
@@ -5601,7 +5617,7 @@ document.body.appendChild(
 	lunHudElements.effectsModal = buildElement("div", {
 		id: "spkmod-effects-modal",
 		className: "hidden",
-		style: "width: 490px; min-width: 450px; max-width: 90vw; overflow-x: hidden;"
+		style: "width: 550px; max-width: 95vw; min-width: 450px; max-width: 90vw; overflow-x: hidden;"
 	}, [
 		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
 			lunPanelElements.effectsModalTitle = buildElement("span", {
