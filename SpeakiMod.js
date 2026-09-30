@@ -5598,7 +5598,7 @@ document.body.appendChild(
 	lunHudElements.effectsModal = buildElement("div", {
 		id: "spkmod-effects-modal",
 		className: "hidden",
-		style: "width: 480px; min-width: 450px; max-width: 90vw;"
+		style: "width: 490px; min-width: 450px; max-width: 90vw; overflow-x: hidden;"
 	}, [
 		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
 			lunPanelElements.effectsModalTitle = buildElement("span", {
