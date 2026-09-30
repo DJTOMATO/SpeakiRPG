@@ -4905,6 +4905,24 @@ function spkmodPlayFarm(targetController, targetName) {
 	}
 }
 
+function spkmodPlayFly(targetController, targetName) {
+	if (!targetController || typeof targetController.enterKnockbackPose !== 'function') {
+		console.warn("[SpeakiMod+ Local Effects] Target does not have a valid controller or enterKnockbackPose function.", targetName);
+		return false;
+	}
+	try {
+		spkmodPatchControllerForDeath(targetController);
+		lunDeathLocks.add(targetController);
+		targetController.enterKnockbackPose();
+		console.log(`[SpeakiMod+ Local Effects] "${targetName}" FLY animation played.`);
+		return true;
+	} catch (err) {
+		console.error("[SpeakiMod+ Local Effects] playFly error:", err);
+		lunDeathLocks.delete(targetController);
+		return false;
+	}
+}
+
 function spkmodPlayHobagi(targetController, targetName) {
 	if (!targetController || typeof targetController.playEmote !== 'function') {
 		console.warn("[SpeakiMod+ Local Effects] Target does not have a valid controller or playEmote function.", targetName);
@@ -4953,6 +4971,22 @@ window.spkmodTriggerFarmEveryone = function() {
 		}
 	}
 	console.log(`[SpeakiMod+ Local Effects] Forced ${count} players to farm.`);
+};
+
+window.spkmodTriggerFlyEveryone = function() {
+	let count = 0;
+	if (typeof gameState !== "undefined") {
+		if (gameState.localAvatar?.animationController) {
+			if (spkmodPlayFly(gameState.localAvatar?.animationController, "Self")) count++;
+		}
+		if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+			for (const player of gameState.remotePlayers.remotePlayers.values()) {
+				const ctrl = player?.avatar?.animationController || player?.container?.controller;
+				if (ctrl && spkmodPlayFly(ctrl, player.info?.name || "Unknown")) count++;
+			}
+		}
+	}
+	console.log(`[SpeakiMod+ Local Effects] Forced ${count} players to fly.`);
 };
 
 window.spkmodTriggerHobagiEveryone = function() {
@@ -5376,6 +5410,11 @@ document.body.appendChild(
 				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
 				innerText: t("hobagiEveryoneBtn"),
 				onclick: () => window.spkmodTriggerHobagiEveryone && window.spkmodTriggerHobagiEveryone()
+			}),
+			lunPanelElements.flyEveryoneBtn = buildElement("button", {
+				className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
+				innerText: t("flyEveryoneBtn"),
+				onclick: () => window.spkmodTriggerFlyEveryone && window.spkmodTriggerFlyEveryone()
 			}),
 			buildElement("div", { style: "display: flex; gap: 4px; margin-top: 4px;" }, [
 				lunPanelElements.killTargetInput = buildElement("input", {
@@ -6559,6 +6598,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.danceEveryoneBtn) setText(lunPanelElements.danceEveryoneBtn, t("danceEveryoneBtn"));
 	if (lunPanelElements.farmEveryoneBtn) setText(lunPanelElements.farmEveryoneBtn, t("farmEveryoneBtn"));
 	if (lunPanelElements.hobagiEveryoneBtn) setText(lunPanelElements.hobagiEveryoneBtn, t("hobagiEveryoneBtn"));
+	if (lunPanelElements.flyEveryoneBtn) setText(lunPanelElements.flyEveryoneBtn, t("flyEveryoneBtn"));
 	if (lunPanelElements.killAllButSelfBtn) setText(lunPanelElements.killAllButSelfBtn, t("killAllButSelfBtn"));
 	if (lunPanelElements.killTargetBtn) setText(lunPanelElements.killTargetBtn, t("killTargetBtn"));
 	if (lunPanelElements.reviveAllBtn) setText(lunPanelElements.reviveAllBtn, t("reviveAllBtn"));
