@@ -5476,7 +5476,17 @@ window.spkmodReviveAll = function() {
 			}
 		}
 	}
-	console.log(`[SpeakiMod+ Local Effects] Revived ${count} players.`);
+	if (typeof gameState !== 'undefined' && gameState && gameState.remotePlayers && typeof gameState.applyVisualState === 'function') {
+		for (const player of gameState.remotePlayers.values()) {
+			try {
+				if (player && player.avatar) {
+					gameState.applyVisualState(player);
+				}
+			} catch(e) {}
+		}
+	}
+
+	console.log(`[SpeakiMod+ Local Effects] Revived ${count} players and restored native animStates.`);
 };
 
 

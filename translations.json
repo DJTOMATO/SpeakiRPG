@@ -1,7 +1,7 @@
 {
     "en": {
         "langName": "English",
-        "header": "SpeakiMod+ v1.9.60",
+        "header": "SpeakiMod+ v1.9.61",
         "playersNearby": "Speaki nearby: {0}",
         "zoneId": "Zone ID: {0}",
         "expPerMinute": "{0} EXP/min",
@@ -391,12 +391,12 @@
         "presetNeedBoth": "Need both Original and New name!",
         "noPresetsSaved": "No presets saved.",
         "faintOn": "Faint",
-        "aFaintOn": "A-Faint: ⏸️",
-        "aFaintOff": "A-Faint: ▶️"
+        "aFaintOn": "Situps: ⏸️",
+        "aFaintOff": "Situps: ▶️"
     },
     "ja": {
         "langName": "日本語",
-        "header": "SpeakiMod+ v1.9.60",
+        "header": "SpeakiMod+ v1.9.61",
         "credits": "• 原作ゲーム: EPID Games\n• Speaki MMO 開発: GMDT\n• クライアント＆SpeakiMod+コーディング: Glas\n• SpeakiMod原作者: Alluseri\n• 日本語翻訳: JPN_健全なエルフ名15T\n\n使用ファンアート：\nUI背景への作品使用を許可してくださったアーティストの皆様に心より感謝申し上げます！\n- 느그 유노(Yuno)",
         "for_memo_jp_1": "🔽window_main",
         "playersNearby": "近くのｽﾋﾟｷ数: {0}",
@@ -583,8 +583,8 @@
         "hearts": "ハート",
         "pet": "なでなでハート",
         "faintOn": "どこでも倒れる",
-        "aFaintOn": "上体起こし: ⏸️",
-        "aFaintOff": "上体起こし: ▶️",
+        "aFaintOn": "腹筋: ⏸️",
+        "aFaintOff": "腹筋: ▶️",
         "for_memo_jp_11": "🔽e_w_msg",
         "autoJumpOn": "ぴょんぴょん: ⏸️",
         "autoJumpOff": "ぴょんぴょん: ▶️",
@@ -820,7 +820,7 @@
     },
     "ko": {
         "langName": "한국어",
-        "header": "SpeakiMod+ v1.9.60",
+        "header": "SpeakiMod+ v1.9.61",
         "playersNearby": "근처 스피키: {0}",
         "zoneId": "존 ID: {0}",
         "expPerMinute": "{0} EXP/분",
@@ -1210,12 +1210,12 @@
         "presetNeedBoth": "기존 이름과 새 이름이 모두 필요합니다!",
         "noPresetsSaved": "저장된 프리셋이 없습니다.",
         "faintOn": "기절",
-        "aFaintOn": "A-기절: ⏸️",
-        "aFaintOff": "A-기절: ▶️"
+        "aFaintOn": "윗몸일으키기: ⏸️",
+        "aFaintOff": "윗몸일으키기: ▶️"
     },
     "zh-TW": {
         "langName": "繁體中文",
-        "header": "SpeakiMod+ v1.9.60",
+        "header": "SpeakiMod+ v1.9.61",
         "playersNearby": "附近的斯皮奇: {0}",
         "zoneId": "區域 ID: {0}",
         "expPerMinute": "{0} 經驗值/每分鐘",
@@ -1605,12 +1605,12 @@
         "presetNeedBoth": "Need both Original and New name!",
         "noPresetsSaved": "No presets saved.",
         "faintOn": "Faint",
-        "aFaintOn": "A-Faint: ⏸️",
-        "aFaintOff": "A-Faint: ▶️"
+        "aFaintOn": "Situps: ⏸️",
+        "aFaintOff": "Situps: ▶️"
     },
     "es-419": {
         "langName": "Español",
-        "header": "SpeakiMod+ v1.9.60",
+        "header": "SpeakiMod+ v1.9.61",
         "playersNearby": "Speaki cercanos: {0}",
         "zoneId": "ID de zona: {0}",
         "expPerMinute": "{0} EXP/min",
@@ -2000,12 +2000,12 @@
         "presetNeedBoth": "Need both Original and New name!",
         "noPresetsSaved": "No presets saved.",
         "faintOn": "Faint",
-        "aFaintOn": "A-Faint: ⏸️",
-        "aFaintOff": "A-Faint: ▶️"
+        "aFaintOn": "Situps: ⏸️",
+        "aFaintOff": "Situps: ▶️"
     },
     "zh-CN": {
         "langName": "简体中文",
-        "header": "SpeakiMod+ v1.9.60",
+        "header": "SpeakiMod+ v1.9.61",
         "playersNearby": "附近的斯皮奇: {0}",
         "zoneId": "区域 ID: {0}",
         "expPerMinute": "{0} 经验值/每分钟",
@@ -2395,7 +2395,7 @@
         "presetNeedBoth": "Need both Original and New name!",
         "noPresetsSaved": "No presets saved.",
         "faintOn": "Faint",
-        "aFaintOn": "A-Faint: ⏸️",
-        "aFaintOff": "A-Faint: ▶️"
+        "aFaintOn": "Situps: ⏸️",
+        "aFaintOff": "Situps: ▶️"
     }
 }
