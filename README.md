@@ -89,32 +89,32 @@
 - Gamemaster talks highlight (Visually highlights and bolds GM/developer messages in chat; toggleable in settings)
 - Chat mention notifications (Optional notification when someone calls your name in chat)
 - Chat command shortcuts (`!dance`, `!hearts`, `!pat`, `!chowayo`, `!follow`, `!players`, `!zoom`, `!fppitch`)
-- **[NEW]** Outgoing Quick-Translate Commands (`.j`/`.ja`/`.jp <msg>`, `.k`/`.ko <msg>`, `.zh`/`.cn <msg>`, `.en <msg>`, `.es <msg>`, etc. - auto-translates and sends your chat message)
-- **[NEW]** Chat Timestamps (Toggleable `[HH:MM:SS]` prefix in chat)
-- **[NEW]** Free-Cam / Drone Photo Mode (Requires Gamepad, detaches camera for cinematic shots)
-- **[NEW]** True First-Person POV Mode (Locked horizontal eye-level camera with configurable pitch)
-- **[NEW]** HUD Customization: UI Scale Slider (80% - 130%), Glassmorphism/Opacity Slider, & Accent Color Picker
-- **[NEW]** HUD Backgrounds (Unlocks progressively from Level 10 to Level 50)
-- **[NEW]** Session Gold & Elif Tracker (Real-time tracking of currency earned in current session)
-- **[NEW]** FPS & Network Latency Counter
-- **[NEW]** Daily Reset Timer (Shows time remaining until 00:00 KST)
-- **[NEW]** Low HP Critical Warning (Pulsing red screen vignette)
-- **[NEW]** Gamepad Haptic Vibration / Rumble on Damage
-- **[NEW]** Export / Import Settings to JSON
-- **[NEW]** Hide Known Bots (Toggle to completely hide and mute emote spammers automatically)
-- **[NEW]** **Dynamic Autowalk Pathfinding**
-- **[NEW]**  **Accurate Quest Locks**
-- **[NEW]**  **World Map**
-- **[NEW]** Minigame Tracker & Event Info (Tracks daily remaining plays and event details)
-- **[NEW]** Toggle Mod UI Visibility (Press P to hide or show all mod overlays)
-- **[NEW]** Official Patch Notes Newsletter (View translated game update notes in-game via 📰 button)
-- **[NEW]** Session & Performance Stats Window (Real-time session clock, EXP/hr, time to level, Gold & Elif gains, and network ping via ⏱️ button)
-- **[NEW]** Quick Login & Account Manager (Open via 🔑 on HUD or press F2 to securely save, view, and copy your recovery code; stored strictly locally and never shared)
-- **[NEW]** Update & News Bulletin Window (Delivers client update notices and changelogs directly in-game)
-- **Stealth Blocklist (Radar)**: A completely new UI in the local effects menu allows you to track specific players, hide them from your screen, and receive directional arrows pointing to their location on the map.
-- **Local Effects Studio Enhancements**: Added Dance, Farm, and Knockout visual states to the Local Effects panel, and ensured characters smoothly restore their true server animation when deactivated.
-- **Sit-up Macro & Faint**: Added a fun new "Situps" macro button near the health bar that alternates the faint and joayo emotes at lightning speed for a hilarious workout effect, alongside a standalone "Faint" button.
-- **Stare Toggle**: The 'Stare' player interaction button now acts as a toggle, allowing you to easily stop staring by pressing the button again.
+- Outgoing Quick-Translate Commands (`.j`/`.ja`/`.jp <msg>`, `.k`/`.ko <msg>`, `.zh`/`.cn <msg>`, `.en <msg>`, `.es <msg>`, etc. - auto-translates and sends your chat message)
+- Chat Timestamps (Toggleable `[HH:MM:SS]` prefix in chat)
+- Free-Cam / Drone Photo Mode (Requires Gamepad, detaches camera for cinematic shots)
+- True First-Person POV Mode (Locked horizontal eye-level camera with configurable pitch)
+- HUD Customization: UI Scale Slider (80% - 130%), Glassmorphism/Opacity Slider, & Accent Color Picker
+- HUD Backgrounds (Unlocks progressively from Level 10 to Level 50)
+- Session Gold & Elif Tracker (Real-time tracking of currency earned in current session)
+- FPS & Network Latency Counter
+- Daily Reset Timer (Shows time remaining until 00:00 KST)
+- Low HP Critical Warning (Pulsing red screen vignette)
+- Gamepad Haptic Vibration / Rumble on Damage
+- Export / Import Settings to JSON
+- Hide Known Bots (Toggle to completely hide and mute emote spammers automatically)
+- Dynamic Autowalk Pathfinding
+- Accurate Quest Locks
+- World Map
+- Minigame Tracker & Event Info (Tracks daily remaining plays and event details)
+- Toggle Mod UI Visibility (Press P to hide or show all mod overlays)
+- Official Patch Notes Newsletter (View translated game update notes in-game via 📰 button)
+- Session & Performance Stats Window (Real-time session clock, EXP/hr, time to level, Gold & Elif gains, and network ping via ⏱️ button)
+- Quick Login & Account Manager (Open via 🔑 on HUD or press F2 to securely save, view, and copy your recovery code; stored strictly locally and never shared)
+- Update & News Bulletin Window (Delivers client update notices and changelogs directly in-game)
+- **[NEW]** **Stealth Blocklist (Radar)**: A completely new UI in the local effects menu allows you to track specific players, hide them from your screen, and receive directional arrows pointing to their location on the map.
+- **[NEW]** **Local Effects Studio Enhancements**: Added Dance, Farm, and Knockout visual states to the Local Effects panel, and ensured characters smoothly restore their true server animation when deactivated.
+- **[NEW]** **Sit-up Macro & Faint**: Added a fun new "Situps" macro button near the health bar that alternates the faint and joayo emotes at lightning speed for a hilarious workout effect, alongside a standalone "Faint" button.
+- **[NEW]** **Stare Toggle**: The 'Stare' player interaction button now acts as a toggle, allowing you to easily stop staring by pressing the button again.
 
 <img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
 
