@@ -4499,9 +4499,13 @@ const lunJumpAnimMs = 500;
 
 const lunFaintAnimMs = 1200;
 function autoFaintLoop() {
-	if (!window.AutoFaintActive) return;
+	if (!window.AutoFaintActive) {
+		window.__autoFaintPhase = false;
+		return;
+	}
 	if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
-		gameState.sendEmoteNow(15);
+		window.__autoFaintPhase = !window.__autoFaintPhase;
+		gameState.sendEmoteNow(window.__autoFaintPhase ? (typeof Emotes !== "undefined" ? Emotes.MinigameJoayo || 3 : 3) : 15);
 	}
 	window.__autoFaintTimeoutId = setTimeout(autoFaintLoop, lunFaintAnimMs);
 }
