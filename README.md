@@ -11,6 +11,8 @@
 
 **Speaki RPG Desktop** is a custom desktop app and launcher for the browser MMORPG **Speaki RPG**. It brings the game out of your browser tab and adds awesome Discord integration plus extra fun features so your friends can see your grinding progress in real time!
 
+**Disclaimer**: This client and mod do not accept monetization or donations. The game itself does not accept donations or generate revenue. Anyone asking you for money is an impersonator!
+
 <h2 id="table-of-contents">Table of Contents</h2>
 
 - [1. What Makes It Awesome?](#1-what-makes-it-awesome)
@@ -109,6 +111,10 @@
 - **[NEW]** Session & Performance Stats Window (Real-time session clock, EXP/hr, time to level, Gold & Elif gains, and network ping via ⏱️ button)
 - **[NEW]** Quick Login & Account Manager (Open via 🔑 on HUD or press F2 to securely save, view, and copy your recovery code; stored strictly locally and never shared)
 - **[NEW]** Update & News Bulletin Window (Delivers client update notices and changelogs directly in-game)
+- **Stealth Blocklist (Radar)**: A completely new UI in the local effects menu allows you to track specific players, hide them from your screen, and receive directional arrows pointing to their location on the map.
+- **Local Effects Studio Enhancements**: Added Dance, Farm, and Knockout visual states to the Local Effects panel, and ensured characters smoothly restore their true server animation when deactivated.
+- **Sit-up Macro & Faint**: Added a fun new "Situps" macro button near the health bar that alternates the faint and joayo emotes at lightning speed for a hilarious workout effect, alongside a standalone "Faint" button.
+- **Stare Toggle**: The 'Stare' player interaction button now acts as a toggle, allowing you to easily stop staring by pressing the button again.
 
 <img width="320" height="130" alt="image" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
 
