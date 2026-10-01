@@ -4491,7 +4491,7 @@ function hookChatEmojiButton() {
 }
 const lunJumpAnimMs = 500;
 
-const lunFaintAnimMs = 4000;
+const lunFaintAnimMs = 1200;
 function autoFaintLoop() {
 	if (window.FaintState !== 2) return;
 	if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
