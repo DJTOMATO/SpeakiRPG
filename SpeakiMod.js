@@ -1223,6 +1223,7 @@ window.fetch = async function(...args) {
 const origOpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url) {
     this._spkUrl = url;
+    this._spkMethod = method;
     return origOpen.apply(this, arguments);
 };
 const origSend = XMLHttpRequest.prototype.send;
@@ -1242,6 +1243,9 @@ XMLHttpRequest.prototype.send = function() {
                     if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
                 }
             } catch(e) {}
+            if (this._spkMethod && typeof this._spkMethod === 'string' && this._spkMethod.toUpperCase() === 'DELETE') {
+                setTimeout(spkmodFetchBlocklist, 500);
+            }
         }
     });
     return origSend.apply(this, arguments);
