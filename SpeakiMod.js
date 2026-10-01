@@ -1168,6 +1168,7 @@ function isKnownBotName(name, level, accountId) {
 }
 
 var cachedBlockedNames = new Set();
+var cachedBlockIds = new Map();
 async function spkmodFetchBlocklist() {
     try {
         const res = await window.fetch("https://sr1.overture.io.kr/api/block", {
@@ -1179,8 +1180,13 @@ async function spkmodFetchBlocklist() {
             const data = await res.json();
             if (data && data.blocks) {
                 cachedBlockedNames.clear();
+                cachedBlockIds.clear();
                 data.blocks.forEach(b => {
-                    if (b.nickname) cachedBlockedNames.add(b.nickname.trim().toLocaleLowerCase());
+                    if (b.nickname) {
+                        let n = b.nickname.trim().toLocaleLowerCase();
+                        cachedBlockedNames.add(n);
+                        if (b.blockId) cachedBlockIds.set(String(b.blockId), n);
+                    }
                 });
                 if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
             }
@@ -1202,18 +1208,34 @@ window.fetch = async function(...args) {
             response.clone().json().then(data => {
                 if (data && data.blocks) {
                     cachedBlockedNames.clear();
+                    cachedBlockIds.clear();
                     data.blocks.forEach(b => {
-                        if (b.nickname) cachedBlockedNames.add(b.nickname.trim().toLocaleLowerCase());
+                        if (b.nickname) {
+                            let n = b.nickname.trim().toLocaleLowerCase();
+                            cachedBlockedNames.add(n);
+                            if (b.blockId) cachedBlockIds.set(String(b.blockId), n);
+                        }
                     });
                     if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
                 } else if (data && data.nickname) {
-                    cachedBlockedNames.add(data.nickname.trim().toLocaleLowerCase());
+                    let n = data.nickname.trim().toLocaleLowerCase();
+                    cachedBlockedNames.add(n);
+                    if (data.blockId) cachedBlockIds.set(String(data.blockId), n);
                     if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
                 }
             }).catch(() => {});
         }
         if (url.includes('/api/block') && args[1] && typeof args[1].method === 'string' && args[1].method.toUpperCase() === 'DELETE') {
-            setTimeout(spkmodFetchBlocklist, 500);
+            try {
+                let parts = url.split('/');
+                let bId = parts[parts.length - 1];
+                if (bId && cachedBlockIds.has(bId)) {
+                    cachedBlockedNames.delete(cachedBlockIds.get(bId));
+                    cachedBlockIds.delete(bId);
+                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
+                }
+            } catch(e) {}
+            setTimeout(spkmodFetchBlocklist, 1500);
         }
     } catch (e) {}
     return response;
@@ -1234,17 +1256,33 @@ XMLHttpRequest.prototype.send = function() {
                 const data = JSON.parse(this.responseText);
                 if (data && data.blocks) {
                     cachedBlockedNames.clear();
+                    cachedBlockIds.clear();
                     data.blocks.forEach(b => {
-                        if (b.nickname) cachedBlockedNames.add(b.nickname.trim().toLocaleLowerCase());
+                        if (b.nickname) {
+                            let n = b.nickname.trim().toLocaleLowerCase();
+                            cachedBlockedNames.add(n);
+                            if (b.blockId) cachedBlockIds.set(String(b.blockId), n);
+                        }
                     });
                     if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
                 } else if (data && data.nickname) {
-                    cachedBlockedNames.add(data.nickname.trim().toLocaleLowerCase());
+                    let n = data.nickname.trim().toLocaleLowerCase();
+                    cachedBlockedNames.add(n);
+                    if (data.blockId) cachedBlockIds.set(String(data.blockId), n);
                     if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
                 }
             } catch(e) {}
             if (this._spkMethod && typeof this._spkMethod === 'string' && this._spkMethod.toUpperCase() === 'DELETE') {
-                setTimeout(spkmodFetchBlocklist, 500);
+                try {
+                    let parts = this._spkUrl.split('/');
+                    let bId = parts[parts.length - 1];
+                    if (bId && cachedBlockIds.has(bId)) {
+                        cachedBlockedNames.delete(cachedBlockIds.get(bId));
+                        cachedBlockIds.delete(bId);
+                        if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
+                    }
+                } catch(e) {}
+                setTimeout(spkmodFetchBlocklist, 1500);
             }
         }
     });
