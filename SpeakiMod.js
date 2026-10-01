@@ -1168,6 +1168,60 @@ function isKnownBotName(name, level, accountId) {
 }
 
 var cachedBlockedNames = new Set();
+
+// Intercept window.fetch
+const lunBlocklistFetchOrig = window.fetch;
+window.fetch = async function(...args) {
+    const response = await lunBlocklistFetchOrig.apply(this, args);
+    try {
+        const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+        if (url.includes('/api/block')) {
+            response.clone().json().then(data => {
+                if (data && data.blocks) {
+                    cachedBlockedNames.clear();
+                    data.blocks.forEach(b => {
+                        if (b.nickname) cachedBlockedNames.add(b.nickname.trim().toLocaleLowerCase());
+                    });
+                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
+                } else if (data && data.nickname) {
+                    cachedBlockedNames.add(data.nickname.trim().toLocaleLowerCase());
+                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
+                }
+            }).catch(() => {});
+        }
+    } catch (e) {}
+    return response;
+};
+
+// Intercept XMLHttpRequest
+const origOpen = XMLHttpRequest.prototype.open;
+XMLHttpRequest.prototype.open = function(method, url) {
+    this._spkUrl = url;
+    return origOpen.apply(this, arguments);
+};
+const origSend = XMLHttpRequest.prototype.send;
+XMLHttpRequest.prototype.send = function() {
+    this.addEventListener('load', function() {
+        if (this._spkUrl && typeof this._spkUrl === 'string' && this._spkUrl.includes('/api/block')) {
+            try {
+                const data = JSON.parse(this.responseText);
+                if (data && data.blocks) {
+                    cachedBlockedNames.clear();
+                    data.blocks.forEach(b => {
+                        if (b.nickname) cachedBlockedNames.add(b.nickname.trim().toLocaleLowerCase());
+                    });
+                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
+                } else if (data && data.nickname) {
+                    cachedBlockedNames.add(data.nickname.trim().toLocaleLowerCase());
+                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
+                }
+            } catch(e) {}
+        }
+    });
+    return origSend.apply(this, arguments);
+};
+
+// Fallback DOM scraper for unblocking sync
 setInterval(() => {
     const list = document.querySelector('.sr-settings__blocklist');
     if (list) {
@@ -1180,7 +1234,6 @@ setInterval(() => {
             if (!cachedBlockedNames.has(n)) didChange = true;
         });
         if (newSet.size !== beforeCount) didChange = true;
-        
         if (didChange) {
             cachedBlockedNames = newSet;
             if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
