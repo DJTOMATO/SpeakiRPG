@@ -3030,20 +3030,11 @@ document.body.appendChild(
 					}
 				}),
 								lunPanelElements.faintBtn = buildElement("button", {
-					id: "spkmod-faint-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.FaintState === 2 ? "faintOff" : (window.FaintState === 1 ? "faintRepeat" : "faintOn")),
+					innerText: t("faintOn"),
 					value: "",
-					onclick: e => {
-						window.FaintState = ((window.FaintState || 0) + 1) % 3;
-						setText(e.target, t(window.FaintState === 2 ? "faintOff" : (window.FaintState === 1 ? "faintRepeat" : "faintOn")));
-						if (window.FaintState === 1) {
-							if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) gameState.sendEmoteNow(15);
-						} else if (window.FaintState === 2) {
-							if (typeof autoFaintLoop === "function") autoFaintLoop();
-						} else {
-							clearTimeout(window.__autoFaintTimeoutId);
-						}
+					onclick: _ => {
+						if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) gameState.sendEmoteNow(15);
 					}
 				}),
 				lunPanelElements.autoJumpBtn = buildElement("button", {
@@ -3071,6 +3062,21 @@ document.body.appendChild(
 					value: "",
 					onclick: _ => {
 						triggerHearts();
+					}
+				}),
+				lunPanelElements.autoFaintBtn = buildElement("button", {
+					id: "spkmod-autofaint-btn",
+					className: "spkmod-panel-btn",
+					innerText: t(window.AutoFaintActive ? "aFaintOn" : "aFaintOff"),
+					value: "",
+					onclick: e => {
+						window.AutoFaintActive = !window.AutoFaintActive;
+						setText(e.target, t(window.AutoFaintActive ? "aFaintOn" : "aFaintOff"));
+						if (window.AutoFaintActive) {
+							if (typeof autoFaintLoop === "function") autoFaintLoop();
+						} else {
+							clearTimeout(window.__autoFaintTimeoutId);
+						}
 					}
 				}),
 				lunPanelElements.autoHeartsBtn = buildElement("button", {
@@ -4493,7 +4499,7 @@ const lunJumpAnimMs = 500;
 
 const lunFaintAnimMs = 1200;
 function autoFaintLoop() {
-	if (window.FaintState !== 2) return;
+	if (!window.AutoFaintActive) return;
 	if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
 		gameState.sendEmoteNow(15);
 	}
@@ -7301,7 +7307,8 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.reviveAllBtn) setText(lunPanelElements.reviveAllBtn, t("reviveAllBtn"));
 	if (lunPanelElements.killTargetInput) lunPanelElements.killTargetInput.placeholder = t("targetPlaceholder");
 		setText(lunPanelElements.danceBtn, t("dance"));
-	if (lunPanelElements.faintBtn) setText(lunPanelElements.faintBtn, t(window.FaintState === 2 ? "faintOff" : (window.FaintState === 1 ? "faintRepeat" : "faintOn")));
+	if (lunPanelElements.faintBtn) setText(lunPanelElements.faintBtn, t("faintOn"));
+	if (lunPanelElements.autoFaintBtn) setText(lunPanelElements.autoFaintBtn, t(window.AutoFaintActive ? "aFaintOn" : "aFaintOff"));
 	setText(lunPanelElements.chowayoBtn, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
 	setText(lunPanelElements.heartsBtn, t("hearts"));
 	setText(lunPanelElements.autoHeartsBtn, t(window.AutoHeartsActive ? "autoHeartsOn" : "autoHeartsOff"));
