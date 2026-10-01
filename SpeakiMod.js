@@ -1167,12 +1167,40 @@ function isKnownBotName(name, level, accountId) {
 	return false;
 }
 
+var cachedBlockedNames = new Set();
+setInterval(() => {
+    const list = document.querySelector('.sr-settings__blocklist');
+    if (list) {
+        let beforeCount = cachedBlockedNames.size;
+        let didChange = false;
+        let newSet = new Set();
+        Array.from(list.querySelectorAll('.sr-panel__row span')).forEach(s => {
+            let n = s.innerText.trim().toLocaleLowerCase();
+            newSet.add(n);
+            if (!cachedBlockedNames.has(n)) didChange = true;
+        });
+        if (newSet.size !== beforeCount) didChange = true;
+        
+        if (didChange) {
+            cachedBlockedNames = newSet;
+            if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
+        }
+    }
+}, 2000);
+
+function isBlockedUser(name) {
+    if (typeof name !== "string") return false;
+    return cachedBlockedNames.has(name.trim().toLocaleLowerCase());
+}
+
 function updateKnownBotVisibility() {
 	if (!gameState?.remotePlayers?.remotePlayers) return;
 	gameState.remotePlayers.remotePlayers.forEach(player => {
 		if (player?.container) {
 			const accId = player.info?.userId || player.info?.id || player.info?.playerId;
-			player.container.visible = !lunHideKnownBotsEnabled || !isKnownBotName(player.info?.name, player.info?.level, accId);
+			const isBot = lunHideKnownBotsEnabled && isKnownBotName(player.info?.name, player.info?.level, accId);
+            const isBlocked = isBlockedUser(player.info?.name);
+			player.container.visible = !(isBot || isBlocked);
 		}
 	});
 }
@@ -1184,6 +1212,19 @@ function isKnownBotContainer(container) {
 	while (current) {
 		for (const player of gameState.remotePlayers.remotePlayers.values()) {
 			if (player?.container === current) return isKnownBotName(player.info?.name, player.info?.level);
+		}
+		current = current.parent;
+	}
+	return false;
+}
+
+function isBlockedUserContainer(container) {
+	if (!container || !gameState?.remotePlayers?.remotePlayers) return false;
+	
+	let current = container;
+	while (current) {
+		for (const player of gameState.remotePlayers.remotePlayers.values()) {
+			if (player?.container === current) return isBlockedUser(player.info?.name);
 		}
 		current = current.parent;
 	}
@@ -1205,6 +1246,21 @@ function isKnownBotBubbleSource(source) {
 	return false;
 }
 
+function isBlockedUserBubbleSource(source) {
+	if (!source || !gameState?.remotePlayers?.remotePlayers) return false;
+	if (isBlockedUserContainer(source) || isBlockedUserContainer(source.container)) return true;
+	if (isBlockedUser(source.info?.name)) return true;
+	if (isBlockedUser(source.name)) return true;
+
+	for (const player of gameState.remotePlayers.remotePlayers.values()) {
+		const playerInfo = player?.info;
+		if (playerInfo && (source === playerInfo.playerId || source === playerInfo.id || source === playerInfo.userId)) {
+			return isBlockedUser(playerInfo.name);
+		}
+	}
+	return false;
+}
+
 function hookKnownBotHeartEmotes() {
 	const bloomEffects = gameState?.bloomEffects;
 	if (!bloomEffects || typeof bloomEffects.spawnHearts !== "function" || bloomEffects.__speakiKnownBotHooked) return;
@@ -1212,6 +1268,7 @@ function hookKnownBotHeartEmotes() {
 	const originalSpawnHearts = bloomEffects.spawnHearts.bind(bloomEffects);
 	bloomEffects.spawnHearts = function(container, ...args) {
 		if (lunHideKnownBotsEnabled && isKnownBotContainer(container)) return;
+		if (isBlockedUserContainer(container)) return;
 		return originalSpawnHearts(container, ...args);
 	};
 	bloomEffects.__speakiKnownBotHooked = true;
@@ -7394,6 +7451,7 @@ function tick() {
 		var hkChatBubblesShow = gameState.chatBubbles.show.bind(gameState.chatBubbles);
 		gameState.chatBubbles.show = (e, t, n) => {
 			if (lunHideKnownBotsEnabled && isKnownBotBubbleSource(e)) return;
+			if (typeof isBlockedUserBubbleSource === 'function' && isBlockedUserBubbleSource(e)) return;
 			return hkChatBubblesShow(e, t, filterName(n));
 		};
 		gameState.chatBubbles.__speakiHooked = true; // 
