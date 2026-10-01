@@ -7142,6 +7142,10 @@ function stareAtPlayer(targetName) {
 		stopStare();
 		return;
 	}
+	if (window._stareActive && window._stareTargetName === targetName) {
+		stopStare();
+		return;
+	}
 	if (window._stareAnim) {
 		cancelAnimationFrame(window._stareAnim);
 		window._stareAnim = null;
