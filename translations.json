@@ -418,7 +418,7 @@
         "resetTimerText": "日付変更: {0}時間 {1}分 {2}秒",
         "minigameTrackerText": "ミニゲーム残りプレイ回数: {0}/{1}",
         "minigameTrackerInactive": "ミニゲーム: 終了",
-        "footerMsg": "github.com/DJTOMATO/SpeakiRPG\n\nこのMODはSpeakiMMOまたは\nOverture.io.krとは一切関係ありません",
+        "footerMsg": "github.com/DJTOMATO/SpeakiRPG\n\nこのMODはSpeakiMMOまたは\nOverture.io.krとは一切関係ありません\n\n本クライアントならびにMODは\n収益化および寄付を受け付けておりません。",
         "discordBtn": "Discordに参加",
         "discordCopiedMsg": "Discordの招待リンクをコピーしました！ブラウザに貼り付けてください。",
         "for_memo_jp_2": "🔽w_setting1🔽",
