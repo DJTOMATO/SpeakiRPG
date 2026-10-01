@@ -4325,7 +4325,21 @@ function toggleEmojiPicker(anchorBtn) {
         if (e.target && !document.contains(e.target)) return;
         
         const path = e.composedPath ? e.composedPath() : [];
-        const isInside = path.includes(lunEmojiPickerPanel) || path.includes(anchorBtn);
+        let isInside = false;
+        if (path.length > 0) {
+            isInside = path.includes(lunEmojiPickerPanel) || path.includes(anchorBtn);
+        }
+        
+        if (!isInside) {
+            let el = e.target;
+            while (el) {
+                if (el === lunEmojiPickerPanel || el === anchorBtn) {
+                    isInside = true;
+                    break;
+                }
+                el = el.parentElement;
+            }
+        }
         
         if (!isInside) {
             lunEmojiPickerPanel.remove();
