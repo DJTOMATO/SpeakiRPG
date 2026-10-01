@@ -1167,14 +1167,22 @@ function isKnownBotName(name, level, accountId) {
 	return false;
 }
 
+var lunSpkAuthToken = "";
 var cachedBlockedNames = new Set();
 var cachedBlockIds = new Map();
 async function spkmodFetchBlocklist() {
+    if (!lunSpkAuthToken) {
+        setTimeout(spkmodFetchBlocklist, 1000); // Retry until we steal the token
+        return;
+    }
     try {
         const res = await window.fetch("https://sr1.overture.io.kr/api/block", {
             method: "GET",
             credentials: "include",
-            cache: "no-store"
+            cache: "no-store",
+            headers: {
+                "Authorization": lunSpkAuthToken
+            }
         });
         if (res.ok) {
             const data = await res.json();
@@ -1196,14 +1204,28 @@ async function spkmodFetchBlocklist() {
     }
 }
 // Run it once on load
-setTimeout(spkmodFetchBlocklist, 1000);
-
 // Intercept window.fetch
 const lunBlocklistFetchOrig = window.fetch;
 window.fetch = async function(...args) {
+    try {
+        let auth = "";
+        if (args[1] && args[1].headers && args[1].headers.Authorization) auth = args[1].headers.Authorization;
+        else if (args[1] && args[1].headers && typeof args[1].headers.get === 'function') auth = args[1].headers.get('Authorization') || "";
+        else if (args[0] && args[0].headers && typeof args[0].headers.get === 'function') auth = args[0].headers.get('Authorization') || "";
+        
+        if (auth && auth.startsWith("Bearer ") && lunSpkAuthToken !== auth) {
+            lunSpkAuthToken = auth;
+            setTimeout(spkmodFetchBlocklist, 100);
+        }
+    } catch(e) {}
     const response = await lunBlocklistFetchOrig.apply(this, args);
     try {
         const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+        let method = 'GET';
+        if (args[1] && args[1].method) method = args[1].method;
+        else if (args[0] && args[0].method) method = args[0].method;
+        method = method.toUpperCase();
+
         if (url.includes('/api/block')) {
             response.clone().json().then(data => {
                 if (data && data.blocks) {
@@ -1225,7 +1247,7 @@ window.fetch = async function(...args) {
                 }
             }).catch(() => {});
         }
-        if (url.includes('/api/block') && args[1] && typeof args[1].method === 'string' && args[1].method.toUpperCase() === 'DELETE') {
+        if (url.includes('/api/block') && method === 'DELETE') {
             try {
                 let parts = url.split('/');
                 let bId = parts[parts.length - 1];
@@ -1247,6 +1269,14 @@ XMLHttpRequest.prototype.open = function(method, url) {
     this._spkUrl = url;
     this._spkMethod = method;
     return origOpen.apply(this, arguments);
+};
+const origSetReqHeader = XMLHttpRequest.prototype.setRequestHeader;
+XMLHttpRequest.prototype.setRequestHeader = function(header, value) {
+    if (header.toLowerCase() === 'authorization' && value && value.startsWith('Bearer ') && lunSpkAuthToken !== value) {
+        lunSpkAuthToken = value;
+        setTimeout(spkmodFetchBlocklist, 100);
+    }
+    return origSetReqHeader.apply(this, arguments);
 };
 const origSend = XMLHttpRequest.prototype.send;
 XMLHttpRequest.prototype.send = function() {
