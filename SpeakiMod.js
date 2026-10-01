@@ -1168,6 +1168,29 @@ function isKnownBotName(name, level, accountId) {
 }
 
 var cachedBlockedNames = new Set();
+async function spkmodFetchBlocklist() {
+    try {
+        const res = await window.fetch("https://sr1.overture.io.kr/api/block", {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store"
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.blocks) {
+                cachedBlockedNames.clear();
+                data.blocks.forEach(b => {
+                    if (b.nickname) cachedBlockedNames.add(b.nickname.trim().toLocaleLowerCase());
+                });
+                if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
+            }
+        }
+    } catch (e) {
+        console.warn("[SpeakiMod+] Failed to fetch native blocklist:", e);
+    }
+}
+// Run it once on load
+setTimeout(spkmodFetchBlocklist, 1000);
 
 // Intercept window.fetch
 const lunBlocklistFetchOrig = window.fetch;
@@ -1188,6 +1211,9 @@ window.fetch = async function(...args) {
                     if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
                 }
             }).catch(() => {});
+        }
+        if (url.includes('/api/block') && args[1] && typeof args[1].method === 'string' && args[1].method.toUpperCase() === 'DELETE') {
+            setTimeout(spkmodFetchBlocklist, 500);
         }
     } catch (e) {}
     return response;
@@ -1221,25 +1247,7 @@ XMLHttpRequest.prototype.send = function() {
     return origSend.apply(this, arguments);
 };
 
-// Fallback DOM scraper for unblocking sync
-setInterval(() => {
-    const list = document.querySelector('.sr-settings__blocklist');
-    if (list) {
-        let beforeCount = cachedBlockedNames.size;
-        let didChange = false;
-        let newSet = new Set();
-        Array.from(list.querySelectorAll('.sr-panel__row span')).forEach(s => {
-            let n = s.innerText.trim().toLocaleLowerCase();
-            newSet.add(n);
-            if (!cachedBlockedNames.has(n)) didChange = true;
-        });
-        if (newSet.size !== beforeCount) didChange = true;
-        if (didChange) {
-            cachedBlockedNames = newSet;
-            if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
-        }
-    }
-}, 2000);
+
 
 function isBlockedUser(name) {
     if (typeof name !== "string") return false;
