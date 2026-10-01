@@ -5,7 +5,9 @@
 # [ダウンロード](https://github.com/DJTOMATO/SpeakiRPG/releases) | [Discordに参加](https://discord.gg/bruZhcwqRx)
 
 【**Speaki RPG デスクトップクライアント**】は、ブラウザMMORPG **Speaki RPG**専用のカスタムデスクトップアプリ兼ランチャーです。  
-ゲームをブラウザタブからデスクトップに拡張し、Discordのフレンドと進捗状況を共有するなど、たくさんの機能を追加します。
+ゲームをブラウザタブからデスクトップに拡張し、Discordのフレンドと進捗状況を共有するなど、たくさんの機能を追加します。  
+  
+本クライアントならびにMODは、収益化および寄付を受け付けておりません。
 
 ![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
 
@@ -249,7 +251,8 @@ npm start
 - いいえ。 ソースコードは完全に公開されており、このリポジトリで誰でも実際の動作内容を確認できます。ビルド済みのリリース版を信用できない場合は、[セルフコンパイルクイックスタートガイド](#6-self-compile-quick-start-guide)を参照して、ソースからご自身でビルドしてください。
 
 **寄付を受け付けていますか？**
-- いいえ、これは無料プロジェクトであり、今後も無料であり続けます。
+- 本クライアントならびにMODは、収益化および寄付を受け付けておりません。
+- 今後も収益化および寄付の受付をしません。
 
 **Best使徒は？**
 - ルポです、異論は認めない。<img width="32" height="32" alt="image" src="https://github.com/user-attachments/assets/c30f8b97-c0e3-4bd1-bc77-742a2f9dd21f" /> BestだけにBeast……。　　
