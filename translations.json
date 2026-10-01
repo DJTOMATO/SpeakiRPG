@@ -584,7 +584,7 @@
         "pet": "なでなでハート",
         "faintOn": "どこでも倒れる",
         "aFaintOn": "上体起こし: ⏸️",
-        "aFaintOff": "上体起こし: ▶️"
+        "aFaintOff": "上体起こし: ▶️",
         "for_memo_jp_11": "🔽e_w_msg",
         "autoJumpOn": "ぴょんぴょん: ⏸️",
         "autoJumpOff": "ぴょんぴょん: ▶️",
@@ -816,7 +816,7 @@
         "for_memo_jp_26": "🔽",
         "for_memo_jp_27": "🔽",
         "for_memo_jp_28": "🔽",
-        "for_memo_jp_29": "🔽",
+        "for_memo_jp_29": "🔽"
     },
     "ko": {
         "langName": "한국어",
