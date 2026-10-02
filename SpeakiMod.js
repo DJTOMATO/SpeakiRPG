@@ -7480,6 +7480,8 @@ spkmodI18nRenderers.push(() => {
 
 spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.headerBtn, t("header"));
+	const sepHeaderSpan = document.querySelector("#spkmod-sep-header-row > span");
+	if (sepHeaderSpan) setText(sepHeaderSpan, "≡ " + (t("header") || "SpeakiMod+ Actions"));
 	if (lunPanelElements.localEffectsBtn) setText(lunPanelElements.localEffectsBtn, t("localEffectsBtn"));
 	if (lunPanelElements.effectsModalTitle) setText(lunPanelElements.effectsModalTitle, t("localEffectsTitle"));
 	if (lunPanelElements.effectsWarning) setText(lunPanelElements.effectsWarning, t("localEffectsWarning"));
