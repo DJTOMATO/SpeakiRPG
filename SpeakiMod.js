@@ -1471,6 +1471,20 @@ function setPanelLeft(enabled) {
 	}
 }
 
+
+let isMobileEnv = (typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android/i.test(navigator.userAgent)));
+var lunSeparatePanel = isMobileEnv; 
+if (window.localStorage && localStorage.getItem("spkmod-separate-panel") !== null) {
+	lunSeparatePanel = localStorage.getItem("spkmod-separate-panel") === "true";
+}
+function setSeparatePanel(enabled) {
+	lunSeparatePanel = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-separate-panel", lunSeparatePanel ? "true" : "false");
+	if (typeof applySeparatePanel === "function") {
+		applySeparatePanel();
+	}
+}
+
 // Ensure the class is added early on load
 if (typeof document !== "undefined" && lunPanelLeft) {
     document.body.classList.add("spkmod-panel-left-mode");
@@ -4036,6 +4050,10 @@ document.body.appendChild(
 					lunPanelElements.panelLeftToggleInput = buildElement("input", { type: "checkbox", checked: lunPanelLeft, onchange: e => setPanelLeft(e.target.checked) })
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.separatePanelLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("separatePanel") || "Separate Action Panel (Mobile)" }),
+					lunPanelElements.separatePanelToggleInput = buildElement("input", { type: "checkbox", checked: lunSeparatePanel, onchange: e => setSeparatePanel(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.sessionGoldLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("sessionGoldToggleLabel") }),
 					lunPanelElements.sessionGoldToggleInput = buildElement("input", { type: "checkbox", checked: lunSessionGoldTrackerEnabled, onchange: e => setSessionGoldTrackerEnabled(e.target.checked) })
 				]),
@@ -4508,6 +4526,86 @@ function hookChatEmojiButton() {
         
         chatInput.style.paddingRight = "30px";
     }
+}
+
+
+window.applySeparatePanel = function() {
+	const panel = document.getElementById("spkmod-panel");
+	const hud = document.getElementById("spkmod-hud");
+	if (!panel || !hud) return;
+
+	let sepHeader = document.getElementById("spkmod-sep-header-row");
+
+	if (lunSeparatePanel) {
+		if (panel.parentElement !== document.body) {
+			document.body.appendChild(panel);
+		}
+		panel.style.position = "absolute";
+		panel.style.zIndex = "600000";
+		
+		if (!sepHeader) {
+			sepHeader = buildElement("div", { id: "spkmod-sep-header-row", className: "spkmod-panel-cat", style: "cursor: move; user-select: none; touch-action: none; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px; margin-bottom: 2px;" }, [
+				buildElement("span", {
+					innerText: "≡ " + (t("header") || "SpeakiMod+ Actions"),
+					style: "font-weight: bold; flex-grow: 1; font-size: 11px; color: #ffd54a;"
+				}),
+				buildElement("button", {
+					innerText: "−",
+					className: "spkmod-panel-btn-small",
+					style: "padding: 0px 6px; font-size: 14px; line-height: 14px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px;",
+					onclick: e => {
+						const isHidden = panel.dataset.minimized === "true";
+						if (isHidden) {
+							panel.dataset.minimized = "false";
+							e.target.innerText = "−";
+							Array.from(panel.children).forEach(c => {
+								if (c.id !== "spkmod-sep-header-row") c.style.display = "";
+							});
+						} else {
+							panel.dataset.minimized = "true";
+							e.target.innerText = "+";
+							Array.from(panel.children).forEach(c => {
+								if (c.id !== "spkmod-sep-header-row") c.style.display = "none";
+							});
+						}
+					}
+				})
+			]);
+			panel.insertBefore(sepHeader, panel.firstChild);
+			makeDraggable(panel, [sepHeader]);
+		}
+		
+		if (!panel.dataset.userDragged) {
+            panel.style.right = "10px";
+            panel.style.top = "60px";
+            panel.style.left = "auto";
+        }
+	} else {
+		if (panel.parentElement !== hud) {
+			hud.appendChild(panel);
+		}
+		panel.style.position = "";
+		panel.style.zIndex = "";
+		panel.style.right = "";
+		panel.style.top = "";
+		panel.style.left = "";
+		
+		if (sepHeader) {
+			panel.removeChild(sepHeader);
+		}
+		
+		if (panel.dataset.minimized === "true") {
+			panel.dataset.minimized = "false";
+			Array.from(panel.children).forEach(c => {
+				c.style.display = "";
+			});
+		}
+	}
+};
+
+// Apply it immediately if HUD is already built
+if (document.getElementById("spkmod-panel")) {
+    window.applySeparatePanel();
 }
 const lunJumpAnimMs = 500;
 
