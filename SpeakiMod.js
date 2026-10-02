@@ -8101,23 +8101,24 @@ function hookAvatarLabel(avatar) {
 			}
 		}
 		
-		// Attempt to dispose the map if available to fix WebGL remnant bug
 		try {
-			// Find the parent container or traverse it. Usually avatar is attached to the player container.
-			// If we have `gameState`, we could just traverse the whole scene but that's slow.
-			// Let's just find the sprite in the avatar object itself if it has children.
+			const clearSpriteCanvas = (obj) => {
+				if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+					obj.material.map.dispose();
+					if (obj.material.map.image && typeof obj.material.map.image.getContext === 'function') {
+						const ctx = obj.material.map.image.getContext('2d');
+						ctx.clearRect(0, 0, obj.material.map.image.width, obj.material.map.image.height);
+					}
+				}
+			};
 			if (this.parent && this.parent.traverse) {
-				this.parent.traverse(obj => {
-					if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
-						obj.material.map.dispose();
-					}
-				});
+				this.parent.traverse(clearSpriteCanvas);
+			} else if (typeof this.traverse === 'function') {
+				this.traverse(clearSpriteCanvas);
 			} else if (this.children) {
-				this.children.forEach(obj => {
-					if (obj && obj.isSprite && obj.material && obj.material.map) {
-						obj.material.map.dispose();
-					}
-				});
+				this.children.forEach(clearSpriteCanvas);
+			} else {
+				clearSpriteCanvas(this);
 			}
 		} catch(e) {}
 
