@@ -1176,9 +1176,9 @@ async function spkmodFetchBlocklist() {
         return;
     }
     try {
-        const res = await window.fetch("https://sr1.overture.io.kr/api/block", {
+        const apiUrl = (typeof window.lunActiveApiEndpoint !== 'undefined' ? window.lunActiveApiEndpoint : "https://sr1.overture.io.kr") + "/api/block";
+        const res = await window.fetch(apiUrl, {
             method: "GET",
-            credentials: "include",
             cache: "no-store",
             headers: {
                 "Authorization": lunSpkAuthToken
@@ -8949,6 +8949,7 @@ const originalFetch = window.fetch;
 
 // We dynamically track which endpoint the game is using by snooping on fetch requests
 let lunActivePingEndpoint = "https://sr1.overture.io.kr";
+window.lunActiveApiEndpoint = lunActivePingEndpoint;
 
 window.fetch = async function(...args) {
 	const url = typeof args[0] === "string" ? args[0] : (args[0] && args[0].url ? args[0].url : "");
@@ -8956,8 +8957,10 @@ window.fetch = async function(...args) {
 	// If the game is fetching from the relay API, switch our ping target to the relay
 	if (url.includes("relay.overture.io.kr/api/")) {
 		lunActivePingEndpoint = "https://relay.overture.io.kr";
+        window.lunActiveApiEndpoint = lunActivePingEndpoint;
 	} else if (url.includes("sr1.overture.io.kr/api/")) {
 		lunActivePingEndpoint = "https://sr1.overture.io.kr";
+        window.lunActiveApiEndpoint = lunActivePingEndpoint;
 	}
 	
 	return originalFetch.apply(this, args);
