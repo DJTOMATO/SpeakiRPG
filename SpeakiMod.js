@@ -2932,19 +2932,49 @@ document.body.appendChild(lunHudElements.lowHpOverlay);
 
 	const isMobileDevice = typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent));
 	if (isMobileDevice) {
-		const mobileUiBtn = document.createElement("button");
-		mobileUiBtn.id = "spkmod-mobile-ui-toggle";
-		mobileUiBtn.innerText = "👁️";
-		mobileUiBtn.style.cssText = "position: fixed; bottom: 20px; left: 20px; width: 36px; height: 36px; z-index: 999999; border-radius: 50%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; user-select: none; opacity: 0.6; touch-action: none;";
-		mobileUiBtn.onclick = (e) => {
-			e.preventDefault();
-			e.stopPropagation();
+		const mobileBtnContainer = document.createElement("div");
+		mobileBtnContainer.id = "spkmod-mobile-btn-container";
+		mobileBtnContainer.style.cssText = "position: fixed; bottom: 20px; left: 20px; z-index: 999999; display: flex; gap: 8px;";
+		
+		const createToggleBtn = (id, icon, onClick) => {
+			const btn = document.createElement("button");
+			btn.id = id;
+			btn.innerText = icon;
+			btn.style.cssText = "width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; user-select: none; opacity: 0.6; touch-action: none;";
+			btn.onclick = onClick;
+			return btn;
+		};
+
+		const eyeBtn = createToggleBtn("spkmod-mobile-ui-toggle", "👁️", (e) => {
+			e.preventDefault(); e.stopPropagation();
 			const isHidden = document.body.classList.toggle("spkmod-ui-hidden");
 			if (typeof chatLog !== 'undefined' && typeof t !== 'undefined') {
 				chatLog(t(isHidden ? "uiHiddenMsg" : "uiShownMsg") || (isHidden ? "Mod UI Hidden" : "Mod UI Shown"));
 			}
-		};
-		document.body.appendChild(mobileUiBtn);
+		});
+
+		const settingsBtn = createToggleBtn("spkmod-mobile-settings-toggle", "⚙️", (e) => {
+			e.preventDefault(); e.stopPropagation();
+			if (lunHudElements.settingsModal) {
+				const isHidden = lunHudElements.settingsModal.classList.toggle("hidden");
+				if (!isHidden && typeof updateHudBgDropdown === 'function') {
+					updateHudBgDropdown();
+				}
+			}
+		});
+
+		const panelBtn = createToggleBtn("spkmod-mobile-panel-toggle", "🔘", (e) => {
+			e.preventDefault(); e.stopPropagation();
+			const panel = document.getElementById("spkmod-panel");
+			if (panel) {
+				panel.classList.toggle("hidden");
+			}
+		});
+
+		mobileBtnContainer.appendChild(eyeBtn);
+		mobileBtnContainer.appendChild(settingsBtn);
+		mobileBtnContainer.appendChild(panelBtn);
+		document.body.appendChild(mobileBtnContainer);
 	}
 
 
