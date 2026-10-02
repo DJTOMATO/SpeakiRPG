@@ -8924,18 +8924,8 @@ function updatePingMeasurement(sampleMs) {
 }
 
 const originalFetch = window.fetch;
-window.fetch = async function(...args) {
-	const start = performance.now();
-	try {
-		const response = await originalFetch.apply(this, args);
-		if (args[0] && typeof args[0] === "string" && args[0].includes("api/")) {
-			updatePingMeasurement(performance.now() - start);
-		}
-		return response;
-	} catch (e) {
-		throw e;
-	}
-};
+// We no longer override window.fetch to measure ping because the browser's 
+// CORS preflight (OPTIONS) requests double the measured time for authenticated API calls.
 
 async function performActivePing() {
 	const now = performance.now();
