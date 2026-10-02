@@ -8944,6 +8944,23 @@ function updatePingMeasurement(sampleMs) {
 }
 
 const originalFetch = window.fetch;
+
+// We dynamically track which endpoint the game is using by snooping on fetch requests
+let lunActivePingEndpoint = "https://sr1.overture.io.kr";
+
+window.fetch = async function(...args) {
+	const url = typeof args[0] === "string" ? args[0] : (args[0] && args[0].url ? args[0].url : "");
+	
+	// If the game is fetching from the relay API, switch our ping target to the relay
+	if (url.includes("relay.overture.io.kr/api/")) {
+		lunActivePingEndpoint = "https://relay.overture.io.kr";
+	} else if (url.includes("sr1.overture.io.kr/api/")) {
+		lunActivePingEndpoint = "https://sr1.overture.io.kr";
+	}
+	
+	return originalFetch.apply(this, args);
+};
+
 // We no longer override window.fetch to measure ping because the browser's 
 // CORS preflight (OPTIONS) requests double the measured time for authenticated API calls.
 
@@ -8964,7 +8981,7 @@ async function performActivePing() {
 	const start = performance.now();
 
 	try {
-		const res = await originalFetch("https://sr1.overture.io.kr/api/notices/latest", {
+		const res = await originalFetch(`${lunActivePingEndpoint}/health/live`, {
 			method: "GET",
 			cache: "no-store",
 			signal: controller ? controller.signal : undefined
