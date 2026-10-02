@@ -2480,7 +2480,7 @@ function updateDynamicStyles() {
 				#app { filter: ${filterRule}; }
 		#app > *:not(:has(canvas)):not(canvas) { zoom: ${lunGameUiScale} !important; }
 		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-effects-modal, #spkmod-stats-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
-		#spkmod-pq { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
+		#spkmod-pq, body > #spkmod-panel { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
 		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-effects-modal, #spkmod-stats-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
 			background: var(--spkmod-bg) !important;
 			backdrop-filter: var(--spkmod-blur) !important;
@@ -2641,7 +2641,13 @@ document.head.appendChild(buildElement(
 			width: max-content;
 			min-width: 220px;
 			box-sizing: border-box;
+			max-height: calc(100vh / var(--spkmod-scale) - 80px);
+			overflow-y: auto;
+			overflow-x: hidden;
 		}
+		#spkmod-panel::-webkit-scrollbar { width: 4px; }
+		#spkmod-panel::-webkit-scrollbar-track { background: transparent; }
+		#spkmod-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
 		#spkmod-header-row, #spkmod-texpb, #spkmod-pq-header {
 			border-bottom: 1px solid #DDD;
 			margin-bottom: 4px;
