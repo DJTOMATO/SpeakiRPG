@@ -8095,8 +8095,10 @@ window.spkmodForceNametagRedraw = function() {
     }
 };
 
-function hookAvatarLabel(avatar) {
-	if (!avatar || typeof avatar.setLabel !== 'function' || avatar.__spkmodLabelPatched) return;
+function hookAvatarLabel(entity) {
+	if (!entity || !entity.avatar) return;
+	const avatar = entity.avatar;
+	if (typeof avatar.setLabel !== 'function' || avatar.__spkmodLabelPatched) return;
 	
 	const origSetLabel = avatar.setLabel;
 	avatar.setLabel = function(text, ...args) {
@@ -8109,8 +8111,13 @@ function hookAvatarLabel(avatar) {
 		
 		try {
 			const clearSpriteCanvas = (obj) => {
-				if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+				if (obj && obj.isSprite && obj.material && obj.material.map) {
+					// We must dispose the map so three.js deletes the old GPU texture buffer entirely.
+					// Otherwise, if the new canvas is smaller, three.js uses glTexSubImage2D,
+					// leaving the old right-edge pixels in the buffer, which squishes and ghosts the text!
 					obj.material.map.dispose();
+					
+					// Also forcefully clear the 2D canvas context just to be absolutely sure.
 					if (obj.material.map.image && typeof obj.material.map.image.getContext === 'function') {
 						const ctx = obj.material.map.image.getContext('2d');
 						ctx.clearRect(0, 0, obj.material.map.image.width, obj.material.map.image.height);
@@ -8133,8 +8140,15 @@ function hookAvatarLabel(avatar) {
 	avatar.__spkmodLabelPatched = true;
 	
 	// Force redraw with current text if setting is on to apply immediately
-	if (lunHidePlayerLevels && avatar.label && avatar.label.text) {
-		avatar.setLabel(avatar.label.text);
+	if (lunHidePlayerLevels) {
+		if (entity.info && entity.info.name) {
+			const lvl = entity.info.__spkmodOrigLevel || entity.info.level || 1;
+			avatar.setLabel("LV" + lvl + " " + entity.info.name);
+		} else if (entity === gameState.playerContainer) {
+			const lvl = (gameState.myStat && gameState.myStat.level) ? gameState.myStat.level : 1;
+			const name = (gameState.myPlayerName || (gameState.myStat && gameState.myStat.name)) || "";
+			if (name) avatar.setLabel("LV" + lvl + " " + name);
+		}
 	}
 }
 
@@ -8156,12 +8170,12 @@ function hookAvatarLabel(avatar) {
 	}
 
 	if (gameState.playerContainer && gameState.playerContainer.avatar) {
-		hookAvatarLabel(gameState.playerContainer.avatar);
+		hookAvatarLabel(gameState.playerContainer);
 	}
 
 	let partyNames = null;
 	gameState.remotePlayers.remotePlayers.forEach(t => {
-		if (t.avatar) hookAvatarLabel(t.avatar);
+		if (t.avatar) hookAvatarLabel(t);
 		const sprite = findNametagSprite(t.container);
 		if (sprite) {
 			if (lunNametagMode === 0) {
