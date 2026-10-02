@@ -6212,28 +6212,19 @@ document.body.appendChild(
 			buildElement("div", { style: "display: flex; flex-direction: column; gap: 8px; flex: 1; border-left: 1px solid #555; padding-left: 10px;" }, [
 				buildElement("div", { className: "spkmod-panel-cat-header", innerText: t("renameHeader") || "Rename Name Tags", style: "margin-top: 0px;" }),
 				(function() {
-					let isVip = false;
-					const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
-					if (playerName) {
-						const n = playerName.toLowerCase();
-						isVip = n === "glas" || n === "sp1cky" || n === "gmdt" || n === "peiyu";
-					}
-					
 					const inputs = [
-						lunPanelElements.renameTargetInput = buildElement("input", { type: "text", placeholder: t("originalNamePlaceholder") || "Original Name", style: "flex: 1; min-width: 10px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;" }),
-						lunPanelElements.renameValueInput = buildElement("input", { type: "text", placeholder: t("newNamePlaceholder") || "New Name", style: "flex: 1; min-width: 10px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;" })
+						lunPanelElements.renameTargetInput = buildElement("input", { type: "text", placeholder: t("originalNamePlaceholder") || "Original Name", style: "width: 0; flex: 1; min-width: 0; box-sizing: border-box; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;" }),
+						lunPanelElements.renameValueInput = buildElement("input", { type: "text", placeholder: t("newNamePlaceholder") || "New Name", style: "width: 0; flex: 1; min-width: 0; box-sizing: border-box; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;" })
 					];
 					
-					if (isVip) {
-						inputs.push(lunPanelElements.renameLevelInput = buildElement("input", { type: "number", placeholder: "LV", style: "width: 40px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;" }));
-					}
+					inputs.push(lunPanelElements.renameLevelInput = buildElement("input", { id: "spkmod-rename-level-input", type: "number", placeholder: "LV", style: "display: none; width: 40px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;" }));
 					
 					return buildElement("div", { style: "display: flex; flex-direction: column;" }, [
 						buildElement("div", { style: "display: flex; gap: 4px;" }, inputs),
 						lunPanelElements.renameBtn = buildElement("button", {
 							className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 8px;",
 							innerText: t("renameBtn") || "Replace Name",
-							onclick: () => window.spkmodRenamePlayer && window.spkmodRenamePlayer(lunPanelElements.renameTargetInput.value, lunPanelElements.renameValueInput.value, lunPanelElements.renameLevelInput ? lunPanelElements.renameLevelInput.value : undefined)
+							onclick: () => window.spkmodRenamePlayer && window.spkmodRenamePlayer(lunPanelElements.renameTargetInput.value, lunPanelElements.renameValueInput.value, lunPanelElements.renameLevelInput.style.display !== "none" ? lunPanelElements.renameLevelInput.value : undefined)
 						})
 					]);
 				})(),
@@ -8139,6 +8130,19 @@ function hookAvatarLabel(avatar) {
 		avatar.setLabel(avatar.label.text);
 	}
 }
+
+
+	if (lunPanelElements.renameLevelInput && lunPanelElements.renameLevelInput.style.display === "none") {
+		let isVip = false;
+		const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
+		if (playerName) {
+			const n = playerName.toLowerCase();
+			isVip = n === "glas" || n === "sp1cky" || n === "gmdt" || n === "peiyu";
+			if (isVip) {
+				lunPanelElements.renameLevelInput.style.display = "";
+			}
+		}
+	}
 
 	if (lunNametagMode === 2 || lunFriendChatHighlightEnabled) {
 		fetchFriendsList();
