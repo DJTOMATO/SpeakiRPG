@@ -8110,28 +8110,18 @@ function hookAvatarLabel(entity) {
 		}
 		
 		try {
-			const clearSpriteCanvas = (obj) => {
-				if (obj && obj.isSprite && obj.material && obj.material.map) {
-					// We must dispose the map so three.js deletes the old GPU texture buffer entirely.
-					// Otherwise, if the new canvas is smaller, three.js uses glTexSubImage2D,
-					// leaving the old right-edge pixels in the buffer, which squishes and ghosts the text!
-					obj.material.map.dispose();
-					
-					// Also forcefully clear the 2D canvas context just to be absolutely sure.
-					if (obj.material.map.image && typeof obj.material.map.image.getContext === 'function') {
-						const ctx = obj.material.map.image.getContext('2d');
-						ctx.clearRect(0, 0, obj.material.map.image.width, obj.material.map.image.height);
+			if (entity && entity.container && typeof entity.container.traverse === 'function') {
+				entity.container.traverse(obj => {
+					// Position check ensures we only hit the floating nametag sprite above the player
+					if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+						obj.material.map.dispose();
+						
+						if (obj.material.map.image && typeof obj.material.map.image.getContext === 'function') {
+							const ctx = obj.material.map.image.getContext('2d');
+							ctx.clearRect(0, 0, obj.material.map.image.width, obj.material.map.image.height);
+						}
 					}
-				}
-			};
-			if (this.parent && this.parent.traverse) {
-				this.parent.traverse(clearSpriteCanvas);
-			} else if (typeof this.traverse === 'function') {
-				this.traverse(clearSpriteCanvas);
-			} else if (this.children) {
-				this.children.forEach(clearSpriteCanvas);
-			} else {
-				clearSpriteCanvas(this);
+				});
 			}
 		} catch(e) {}
 
