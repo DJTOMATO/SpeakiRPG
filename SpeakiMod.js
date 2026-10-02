@@ -4383,6 +4383,8 @@ function toggleEmojiPicker(anchorBtn) {
     // Prevent scrolling inside the panel from zooming the game camera
     lunEmojiPickerPanel.addEventListener("wheel", (e) => { e.stopPropagation(); }, { passive: true });
     lunEmojiPickerPanel.addEventListener("touchmove", (e) => { e.stopPropagation(); }, { passive: true });
+    lunEmojiPickerPanel.addEventListener("mousedown", (e) => { e.stopPropagation(); });
+    lunEmojiPickerPanel.addEventListener("touchstart", (e) => { e.stopPropagation(); }, { passive: true });
 
     renderEmojiGrid();
     document.body.appendChild(lunEmojiPickerPanel);
