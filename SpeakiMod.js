@@ -1485,6 +1485,16 @@ function setSeparatePanel(enabled) {
 	}
 }
 
+
+var lunHidePlayerLevels = (window.localStorage && localStorage.getItem("spkmod-hide-player-levels")) === "true";
+function setHidePlayerLevels(enabled) {
+	lunHidePlayerLevels = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-hide-player-levels", lunHidePlayerLevels ? "true" : "false");
+	if (typeof window.spkmodForceNametagRedraw === "function") {
+		window.spkmodForceNametagRedraw();
+	}
+}
+
 // Ensure the class is added early on load
 if (typeof document !== "undefined" && lunPanelLeft) {
     document.body.classList.add("spkmod-panel-left-mode");
@@ -4054,6 +4064,10 @@ document.body.appendChild(
 					lunPanelElements.separatePanelToggleInput = buildElement("input", { type: "checkbox", checked: lunSeparatePanel, onchange: e => setSeparatePanel(e.target.checked) })
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.hidePlayerLevelsLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("hidePlayerLevelsLabel") }),
+					lunPanelElements.hidePlayerLevelsToggleInput = buildElement("input", { type: "checkbox", checked: lunHidePlayerLevels, onchange: e => setHidePlayerLevels(e.target.checked) })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.sessionGoldLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("sessionGoldToggleLabel") }),
 					lunPanelElements.sessionGoldToggleInput = buildElement("input", { type: "checkbox", checked: lunSessionGoldTrackerEnabled, onchange: e => setSessionGoldTrackerEnabled(e.target.checked) })
 				]),
@@ -5635,7 +5649,7 @@ window.spkmodToggleInvisibility = function() {
 
 
 
-function hijackAndRename(player, newName) {
+function hijackAndRename(player, newName, newLevel) {
 	if (!player || !player.container) return false;
 	
 	// Update internal name so hover/party features know the new name
@@ -5644,6 +5658,13 @@ function hijackAndRename(player, newName) {
 			player.info.__spkmodOrigName = player.info.name;
 		}
 		player.info.name = newName;
+		
+		if (newLevel) {
+			if (typeof player.info.__spkmodOrigLevel === 'undefined') {
+				player.info.__spkmodOrigLevel = player.info.level;
+			}
+			player.info.level = parseInt(newLevel, 10);
+		}
 	}
 	
 	if (player.avatar && typeof player.avatar.setLabel === 'function') {
@@ -5665,7 +5686,7 @@ function hijackAndRename(player, newName) {
 	return true;
 }
 
-window.spkmodRenamePlayer = function(oldName, newName) {
+window.spkmodRenamePlayer = function(oldName, newName, newLevel) {
 	if (!oldName || !newName || typeof gameState === 'undefined') return;
 	const oldLower = oldName.toLowerCase().trim();
 	let count = 0;
@@ -5674,7 +5695,7 @@ window.spkmodRenamePlayer = function(oldName, newName) {
 		if (!map || typeof map.values !== 'function') return;
 		for (const entity of map.values()) {
 			if (entity.info && entity.info.name && entity.info.name.toLowerCase().trim() === oldLower) {
-				if (hijackAndRename(entity, newName)) count++;
+				if (hijackAndRename(entity, newName, newLevel)) count++;
 			}
 		}
 	}
@@ -6190,15 +6211,32 @@ document.body.appendChild(
 			]),
 			buildElement("div", { style: "display: flex; flex-direction: column; gap: 8px; flex: 1; border-left: 1px solid #555; padding-left: 10px;" }, [
 				buildElement("div", { className: "spkmod-panel-cat-header", innerText: t("renameHeader") || "Rename Name Tags", style: "margin-top: 0px;" }),
-				buildElement("div", { style: "display: flex; gap: 4px;" }, [
-					lunPanelElements.renameTargetInput = buildElement("input", { type: "text", placeholder: t("originalNamePlaceholder") || "Original Name", style: "flex: 1; min-width: 10px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;" }),
-					lunPanelElements.renameValueInput = buildElement("input", { type: "text", placeholder: t("newNamePlaceholder") || "New Name", style: "flex: 1; min-width: 10px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;" })
-				]),
-				lunPanelElements.renameBtn = buildElement("button", {
-					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 4px;",
-					innerText: t("renameBtn") || "Replace Name",
-					onclick: () => window.spkmodRenamePlayer && window.spkmodRenamePlayer(lunPanelElements.renameTargetInput.value, lunPanelElements.renameValueInput.value)
-				}),
+				(function() {
+					let isVip = false;
+					const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
+					if (playerName) {
+						const n = playerName.toLowerCase();
+						isVip = n === "glas" || n === "sp1cky" || n === "gmdt" || n === "peiyu";
+					}
+					
+					const inputs = [
+						lunPanelElements.renameTargetInput = buildElement("input", { type: "text", placeholder: t("originalNamePlaceholder") || "Original Name", style: "flex: 1; min-width: 10px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;" }),
+						lunPanelElements.renameValueInput = buildElement("input", { type: "text", placeholder: t("newNamePlaceholder") || "New Name", style: "flex: 1; min-width: 10px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;" })
+					];
+					
+					if (isVip) {
+						inputs.push(lunPanelElements.renameLevelInput = buildElement("input", { type: "number", placeholder: "LV", style: "width: 40px; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;" }));
+					}
+					
+					return buildElement("div", { style: "display: flex; flex-direction: column;" }, [
+						buildElement("div", { style: "display: flex; gap: 4px;" }, inputs),
+						lunPanelElements.renameBtn = buildElement("button", {
+							className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 8px;",
+							innerText: t("renameBtn") || "Replace Name",
+							onclick: () => window.spkmodRenamePlayer && window.spkmodRenamePlayer(lunPanelElements.renameTargetInput.value, lunPanelElements.renameValueInput.value, lunPanelElements.renameLevelInput ? lunPanelElements.renameLevelInput.value : undefined)
+						})
+					]);
+				})(),
 				buildElement("div", { style: "display: flex; gap: 4px; margin-top: 4px;" }, [
 					lunPanelElements.savePresetBtn = buildElement("button", {
 						className: "spkmod-panel-btn", style: "flex: 1; padding: 6px; font-size: 11px;",
@@ -8037,12 +8075,61 @@ function tick() {
 		lunMinigameTrackerNextTicks = lunTickCount + lunMinigameTrackerWindow;
 	}
 
+
+window.spkmodForceNametagRedraw = function() {
+    if (typeof gameState === 'undefined' || !gameState) return;
+    
+    const redrawAvatar = (entity) => {
+        if (entity && entity.avatar && typeof entity.avatar.setLabel === 'function' && entity.info) {
+			const lvl = entity.info.__spkmodOrigLevel || entity.info.level || 1;
+            entity.avatar.setLabel("LV" + lvl + " " + (entity.info.name || ""));
+        }
+    };
+    
+    if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+        gameState.remotePlayers.remotePlayers.forEach(redrawAvatar);
+    }
+    if (gameState.playerContainer) {
+        const lvl = (gameState.myStat && gameState.myStat.level) ? gameState.myStat.level : 1;
+        const name = (gameState.myPlayerName || (gameState.myStat && gameState.myStat.name)) || "";
+        if (gameState.playerContainer.avatar && typeof gameState.playerContainer.avatar.setLabel === 'function') {
+            gameState.playerContainer.avatar.setLabel("LV" + lvl + " " + name);
+        }
+    }
+};
+
+function hookAvatarLabel(avatar) {
+	if (!avatar || typeof avatar.setLabel !== 'function' || avatar.__spkmodLabelPatched) return;
+	
+	const origSetLabel = avatar.setLabel;
+	avatar.setLabel = function(text, ...args) {
+		if (window.lunHidePlayerLevels && typeof text === 'string' && text.startsWith("LV")) {
+			const spaceIdx = text.indexOf(" ");
+			if (spaceIdx !== -1) {
+				text = text.substring(spaceIdx + 1); // remove "LVxxx "
+			}
+		}
+		return origSetLabel.call(this, text, ...args);
+	};
+	avatar.__spkmodLabelPatched = true;
+	
+	// Force redraw with current text if setting is on to apply immediately
+	if (window.lunHidePlayerLevels && avatar.label && avatar.label.text) {
+		avatar.setLabel(avatar.label.text);
+	}
+}
+
 	if (lunNametagMode === 2 || lunFriendChatHighlightEnabled) {
 		fetchFriendsList();
 	}
 
+	if (gameState.playerContainer && gameState.playerContainer.avatar) {
+		hookAvatarLabel(gameState.playerContainer.avatar);
+	}
+
 	let partyNames = null;
 	gameState.remotePlayers.remotePlayers.forEach(t => {
+		if (t.avatar) hookAvatarLabel(t.avatar);
 		const sprite = findNametagSprite(t.container);
 		if (sprite) {
 			if (lunNametagMode === 0) {
