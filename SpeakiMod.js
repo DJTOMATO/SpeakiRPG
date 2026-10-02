@@ -8109,6 +8109,27 @@ function hookAvatarLabel(avatar) {
 				text = text.substring(spaceIdx + 1); // remove "LVxxx "
 			}
 		}
+		
+		// Attempt to dispose the map if available to fix WebGL remnant bug
+		try {
+			// Find the parent container or traverse it. Usually avatar is attached to the player container.
+			// If we have `gameState`, we could just traverse the whole scene but that's slow.
+			// Let's just find the sprite in the avatar object itself if it has children.
+			if (this.parent && this.parent.traverse) {
+				this.parent.traverse(obj => {
+					if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+						obj.material.map.dispose();
+					}
+				});
+			} else if (this.children) {
+				this.children.forEach(obj => {
+					if (obj && obj.isSprite && obj.material && obj.material.map) {
+						obj.material.map.dispose();
+					}
+				});
+			}
+		} catch(e) {}
+
 		return origSetLabel.call(this, text, ...args);
 	};
 	avatar.__spkmodLabelPatched = true;
