@@ -8103,7 +8103,7 @@ function hookAvatarLabel(avatar) {
 	
 	const origSetLabel = avatar.setLabel;
 	avatar.setLabel = function(text, ...args) {
-		if (window.lunHidePlayerLevels && typeof text === 'string' && text.startsWith("LV")) {
+		if (lunHidePlayerLevels && typeof text === 'string' && text.startsWith("LV")) {
 			const spaceIdx = text.indexOf(" ");
 			if (spaceIdx !== -1) {
 				text = text.substring(spaceIdx + 1); // remove "LVxxx "
@@ -8114,7 +8114,7 @@ function hookAvatarLabel(avatar) {
 	avatar.__spkmodLabelPatched = true;
 	
 	// Force redraw with current text if setting is on to apply immediately
-	if (window.lunHidePlayerLevels && avatar.label && avatar.label.text) {
+	if (lunHidePlayerLevels && avatar.label && avatar.label.text) {
 		avatar.setLabel(avatar.label.text);
 	}
 }
