@@ -2556,6 +2556,7 @@ var lunSessionStartElif = null;
 var lunDroneModeActive = false;
 window.spkmodDroneKeys = { up: false, down: false, w: false, a: false, s: false, d: false };
 var lunFirstPersonActive = false;
+var lunTopCameraActive = false;
 
 const spkmodBorderWidth = "1.5px";
 
@@ -2933,6 +2934,7 @@ document.body.appendChild(lunHudElements.lowHpOverlay);
 	const isMobileDevice = typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent));
 	if (isMobileDevice) {
 		const mobileBtnContainer = document.createElement("div");
+		lunHudElements.mobileBtnContainer = mobileBtnContainer;
 		mobileBtnContainer.id = "spkmod-mobile-btn-container";
 		mobileBtnContainer.style.cssText = "position: fixed; bottom: 80px; left: 10px; z-index: 999999; display: flex; flex-direction: column; gap: 8px;";
 		
@@ -3074,7 +3076,7 @@ document.body.appendChild(
 				}
 			})
 		]),
-		buildElement("div", {
+		lunHudElements.panel = buildElement("div", {
 			id: "spkmod-panel"
 		}, [
 			buildElement("div", { className: "spkmod-panel-cat" }, [
@@ -3504,6 +3506,25 @@ document.body.appendChild(
 				}
 			}),
 			buildElement("div", { className: "spkmod-panel-cat", id: "spkmod-camera-modes-cat" }, [
+				lunPanelElements.topCameraBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					innerText: t("topCameraOff") || "Top Cam: OFF",
+					onclick: e => {
+						lunTopCameraActive = !lunTopCameraActive;
+						setText(e.target, t(lunTopCameraActive ? "topCameraOn" : "topCameraOff") || (lunTopCameraActive ? "Top Cam: ON" : "Top Cam: OFF"));
+						if (lunTopCameraActive) {
+							lunDroneModeActive = false;
+							lunFirstPersonActive = false;
+							if (lunPanelElements.freeCamBtn) setText(lunPanelElements.freeCamBtn, t("freeCamOff") || "Free Cam: OFF");
+							if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t("firstPersonOff") || "First Person: OFF");
+						} else {
+							if (typeof gameState !== "undefined" && gameState.cameraController) {
+								gameState.cameraController.cameraZoomDistance = 8;
+								gameState.cameraController.cameraPitch = 0.5;
+							}
+						}
+					}
+				}),
 				lunPanelElements.firstPersonBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
 					innerText: t("firstPersonOff"),
@@ -7544,6 +7565,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.chatTimestampLabel) setText(lunPanelElements.chatTimestampLabel, t("chatTimestampToggleLabel"));
 	if (lunPanelElements.fpPitchLabel) setText(lunPanelElements.fpPitchLabel, t("firstPersonPitchLabel"));
 	if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t(lunFirstPersonActive ? "firstPersonOn" : "firstPersonOff"));
+	if (lunPanelElements.topCameraBtn) setText(lunPanelElements.topCameraBtn, t(typeof lunTopCameraActive !== "undefined" && lunTopCameraActive ? "topCameraOn" : "topCameraOff"));
 	if (lunPanelElements.freeCamBtn) setText(lunPanelElements.freeCamBtn, t(lunDroneModeActive ? "freeCamOn" : "freeCamOff"));
 	if (lunPanelElements.lowHpLabel) setText(lunPanelElements.lowHpLabel, t("lowHpWarningToggleLabel"));
 	if (lunPanelElements.sessionGoldLabel) setText(lunPanelElements.sessionGoldLabel, t("sessionGoldToggleLabel"));
@@ -7748,6 +7770,27 @@ if (!window.__beyBladeLoopRunning) {
 
 
 function tick() {
+	if (lunHudElements.hud && lunHudElements.hud.parentElement !== document.body && !lunSeparatePanel) {
+		document.body.appendChild(lunHudElements.hud);
+	} else if (lunHudElements.hud && lunSeparatePanel && lunHudElements.hud.parentElement !== document.body) {
+        document.body.appendChild(lunHudElements.hud);
+    }
+    
+    if (lunSeparatePanel) {
+        const panel = lunHudElements.panel || document.getElementById("spkmod-panel");
+        if (panel && panel.parentElement !== document.body) {
+            document.body.appendChild(panel);
+        }
+    }
+    
+    if (lunHudElements.lowHpOverlay && lunHudElements.lowHpOverlay.parentElement !== document.body) {
+        document.body.appendChild(lunHudElements.lowHpOverlay);
+    }
+    
+    if (lunHudElements.mobileBtnContainer && lunHudElements.mobileBtnContainer.parentElement !== document.body) {
+        document.body.appendChild(lunHudElements.mobileBtnContainer);
+    }
+
 	if (!window.__gameStateHooked && typeof gameState !== "undefined" && gameState) {
 		if (typeof hookGameStateOnce === "function") {
 			hookGameStateOnce();
@@ -7775,15 +7818,9 @@ function tick() {
 		if (lunFirstPersonActive && gameState.cameraController) {
 			gameState.cameraController.cameraZoomDistance = 3;
 			gameState.cameraController.cameraPitch = lunFirstPersonPitch;
-			if (lunTickCount % 50 === 0) {
-				console.log("[SpeakiMod+] First Person Camera Info:", {
-					pitch: gameState.cameraController.cameraPitch,
-					zoom: gameState.cameraController.cameraZoomDistance,
-					yaw: gameState.cameraController.cameraYaw,
-					targetY: gameState.cameraController.target?.position?.y,
-					camY: gameState.cameraController.camera?.position?.y
-				});
-			}
+		} else if (typeof lunTopCameraActive !== "undefined" && lunTopCameraActive && gameState.cameraController) {
+			gameState.cameraController.cameraZoomDistance = 50; // Increased zoom for top-down
+			gameState.cameraController.cameraPitch = 1.5; // Almost 90 degrees down
 		}
 
 		if (lunLowHpWarningEnabled) {
