@@ -1895,6 +1895,64 @@ function positionModalNicely(modal) {
 }
 
 let lastToggleSettingsTime = 0;
+// Only portable preferences belong in settings files. Never include account
+// recovery codes, translation email, caches, or unknown future storage keys.
+// Keep export and import on the same explicit allowlist.
+const SPKMOD_SETTINGS_KEYS = new Set([
+	"spkmod-accent-color",
+	"spkmod-beyblade-speed",
+	"spkmod-bg-opacity",
+	"spkmod-camera-effect",
+	"spkmod-channel-tracker",
+	"spkmod-chat-timestamps",
+	"spkmod-currency-tracker",
+	"spkmod-custom-hud-bg",
+	"spkmod-custom-hud-unlocked",
+	"spkmod-drone-speed",
+	"spkmod-exp-interval-minutes",
+	"spkmod-exp-per-hour",
+	"spkmod-filter-enabled",
+	"spkmod-fp-pitch",
+	"spkmod-fps-ping",
+	"spkmod-friend-highlight-enabled",
+	"spkmod-gamepad-config",
+	"spkmod-gamepad-rumble",
+	"spkmod-gamepad-unlocked",
+	"spkmod-gmchat-enabled",
+	"spkmod-hide-known-bots",
+	"spkmod-hide-player-levels",
+	"spkmod-hide-verbose-chat",
+	"spkmod-hud-bg",
+	"spkmod-hud-locked",
+	"spkmod-lang",
+	"spkmod-low-hp-warning",
+	"spkmod-mention-enabled",
+	"spkmod-mention-ping",
+	"spkmod-name-presets",
+	"spkmod-outgoing-source-lang",
+	"spkmod-panel-left",
+	"spkmod-pos-spkmod-effects-modal",
+	"spkmod-pos-spkmod-emoji-picker-v2",
+	"spkmod-pos-spkmod-event-modal",
+	"spkmod-pos-spkmod-gamepad-modal",
+	"spkmod-pos-spkmod-hotkeys-modal",
+	"spkmod-pos-spkmod-hud",
+	"spkmod-pos-spkmod-map-modal",
+	"spkmod-pos-spkmod-panel",
+	"spkmod-pos-spkmod-patchnotes-modal",
+	"spkmod-pos-spkmod-settings-modal",
+	"spkmod-pos-spkmod-stats-modal",
+	"spkmod-pumpkin-tracker",
+	"spkmod-reset-timer",
+	"spkmod-separate-panel",
+	"spkmod-session-gold",
+	"spkmod-translate-enabled",
+	"spkmod-translate-target",
+	"spkmod-ui-scale",
+	"spkmod-uiscale",
+	"spkmod-window-pos"
+]);
+
 function toggleSettingsModal() {
 	const now = Date.now();
 	if (now - lastToggleSettingsTime < 250) return;
@@ -4220,9 +4278,11 @@ document.body.appendChild(
 
 		buildElement("div", { className: "spkmod-panel-cat", style: "gap: 4px; margin-top: 4px;" }, [
 			lunPanelElements.exportSettingsBtn = buildElement("button", { className: "spkmod-panel-btn", style: "flex: 1;", innerText: t("exportSettingsBtn"), onclick: () => {
-				const keys = Object.keys(localStorage).filter(k => k.startsWith("spkmod-"));
 				const exportData = {};
-				keys.forEach(k => exportData[k] = localStorage.getItem(k));
+				SPKMOD_SETTINGS_KEYS.forEach(k => {
+					const value = localStorage.getItem(k);
+					if (value !== null) exportData[k] = value;
+				});
 				const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
 				const url = URL.createObjectURL(blob);
 				const a = document.createElement("a");
@@ -4242,9 +4302,15 @@ document.body.appendChild(
 						reader.onload = e2 => {
 							try {
 								const data = JSON.parse(e2.target.result);
-								Object.keys(data).forEach(k => {
-									if (k.startsWith("spkmod-")) localStorage.setItem(k, data[k]);
-								});
+								if (!data || typeof data !== "object" || Array.isArray(data)) {
+									throw new Error("Settings must be a JSON object");
+								}
+								const entries = Object.entries(data).filter(([k]) => SPKMOD_SETTINGS_KEYS.has(k));
+								// Validate before writing so malformed files do not partially apply.
+								if (entries.some(([, value]) => typeof value !== "string")) {
+									throw new Error("Settings values must be strings");
+								}
+								entries.forEach(([k, value]) => localStorage.setItem(k, value));
 								alert(t("settingsImportSuccess"));
 								location.reload();
 							} catch (err) { alert(t("settingsImportInvalid")); }

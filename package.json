@@ -4,6 +4,7 @@
   "description": "Speaki RPG with Discord Rich Presence integration",
   "main": "main.js",
   "scripts": {
+    "test": "node --test",
     "start": "electron .",
     "build": "electron-builder",
     "build:win": "electron-builder --win --publish never",
