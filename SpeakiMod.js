@@ -153,6 +153,8 @@ const Emotes = {
 	Dance: 8
 };
 
+
+
 const Portals = {
 	1: { 2: { portalId: 1, requiredQuestCode: null, pos: { x: 95, z: 50 } } },
 	2: {
@@ -593,6 +595,8 @@ const Waypoints = {
 		}
 	]
 };
+
+
 
 function buildElement(tag, characteristics, inner, callback) {
 	var elem = document.createElement(tag);
@@ -2395,6 +2399,8 @@ function updateStatsModalLive() {
 	}
 }
 
+
+
 function updateDynamicStyles() {
 	let bgRule = "rgba(0, 0, 0, 0.75)";
 	let blurRule = "blur(4px)";
@@ -2581,7 +2587,7 @@ document.head.appendChild(buildElement(
 			align-items: flex-start;
 			gap: 4px;
 			position: absolute;
-			z-index: 600000;
+			z-index: 2147483600;
 			min-width: 140px;
 			color: #FFF;
 			left: 10px;
@@ -2672,7 +2678,7 @@ document.head.appendChild(buildElement(
 			display: flex;
 			flex-direction: column;
 			position: fixed;
-			z-index: 600000;
+			z-index: 2147483600;
 			width: 480px;
 			max-width: 95vw;
 			max-height: 85vh;
@@ -2794,7 +2800,7 @@ document.head.appendChild(buildElement(
 			flex-direction: column;
 			position: absolute;
 			right: 220px;
-			z-index: 600000;
+			z-index: 2147483600;
 			width: 20%;
 			color: #FFF;
 			top: 18px;
@@ -2807,7 +2813,7 @@ document.head.appendChild(buildElement(
 			display: flex;
 			flex-direction: column;
 			position: fixed;
-			z-index: 600000;
+			z-index: 2147483600;
 			color: #FFF;
 			background: rgba(10, 10, 10, 0.95);
 			border: ${spkmodBorderWidth} solid #DDD;
@@ -2908,7 +2914,7 @@ document.head.appendChild(buildElement(
 			position: fixed;
 			top: 0; left: 0; right: 0; bottom: 0;
 			pointer-events: none;
-			z-index: 500000;
+			z-index: 2147483000;
 			box-shadow: inset 0 0 150px rgba(255, 0, 0, 0.6);
 			opacity: 0;
 			transition: opacity 0.5s ease-in-out;
@@ -2936,7 +2942,7 @@ document.body.appendChild(lunHudElements.lowHpOverlay);
 		const mobileBtnContainer = document.createElement("div");
 		lunHudElements.mobileBtnContainer = mobileBtnContainer;
 		mobileBtnContainer.id = "spkmod-mobile-btn-container";
-		mobileBtnContainer.style.cssText = "position: fixed; bottom: 80px; left: 10px; z-index: 999999; display: flex; flex-direction: column; gap: 8px;";
+		mobileBtnContainer.style.cssText = "position: fixed; bottom: 80px; left: 10px; z-index: 2147483647; display: flex; flex-direction: column; gap: 8px;";
 		
 		const createToggleBtn = (id, icon, onClick) => {
 			const btn = document.createElement("button");
@@ -4384,7 +4390,7 @@ function toggleEmojiPicker(anchorBtn) {
     const isMobile = typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android/i.test(navigator.userAgent));
     const defaultW = isMobile ? "280px" : "340px";
     const defaultH = isMobile ? "200px" : "300px";
-    lunEmojiPickerPanel.style.cssText = `position: fixed; width: ${defaultW}; height: ${defaultH}; max-width: 90vw; max-height: 60vh; min-width: 200px; min-height: 150px; resize: both; overflow: hidden; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;`;
+    lunEmojiPickerPanel.style.cssText = `position: fixed; width: ${defaultW}; height: ${defaultH}; max-width: 90vw; max-height: 60vh; min-width: 200px; min-height: 150px; resize: both; overflow: hidden; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 2147483647; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;`;
     
     if (!(window.localStorage && localStorage.getItem("spkmod-pos-spkmod-emoji-picker-v2"))) {
         if (isMobile) {
@@ -4585,7 +4591,7 @@ function hookChatEmojiButton() {
         btn.id = "spkmod-emoji-btn";
         btn.innerText = "😀";
         btn.title = "Emojis";
-        btn.style.cssText = "position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: transparent; border: none; cursor: pointer; z-index: 9999; font-size: 16px; display: flex; align-items: center; justify-content: center; filter: grayscale(100%); transition: filter 0.2s; pointer-events: auto; user-select: none;";
+        btn.style.cssText = "position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: transparent; border: none; cursor: pointer; z-index: 2147483647; font-size: 16px; display: flex; align-items: center; justify-content: center; filter: grayscale(100%); transition: filter 0.2s; pointer-events: auto; user-select: none;";
         btn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); }; // Prevent input from stealing focus
         btn.onmouseenter = () => btn.style.filter = "none";
         btn.onmouseleave = () => btn.style.filter = "grayscale(100%)";
@@ -4614,7 +4620,7 @@ window.applySeparatePanel = function() {
 			document.body.appendChild(panel);
 		}
 		panel.style.position = "absolute";
-		panel.style.zIndex = "600000";
+		panel.style.zIndex = "2147483600";
 		
 		if (!sepHeader) {
 			sepHeader = buildElement("div", { id: "spkmod-sep-header-row", className: "spkmod-panel-cat", style: "cursor: move; user-select: none; touch-action: none; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px; margin-bottom: 2px;" }, [
@@ -4680,6 +4686,8 @@ window.applySeparatePanel = function() {
 if (document.getElementById("spkmod-panel")) {
     window.applySeparatePanel();
 }
+
+
 const lunJumpAnimMs = 500;
 
 const lunFaintAnimMs = 1200;
@@ -5940,6 +5948,8 @@ window.spkmodApplyNamePresets = function() {
     }
     if (typeof chatLog !== 'undefined') chatLog(`Applied ${count} name presets.`);
 };
+
+
 const mapModalElements = {};
 let mapUpdateFrame = null;
 
@@ -7015,6 +7025,8 @@ if (typeof spkmodI18nRenderers !== "undefined") {
 }
 
 if (typeof window.spkmodUpdatePresetListUI === 'function') window.spkmodUpdatePresetListUI();
+
+
 function updateBeyBladeButtonText() {
 	const mainBtn = document.querySelector("#spkmod-beyblade-main-btn");
 	if (!mainBtn) return;
@@ -9591,6 +9603,8 @@ if (typeof spkmodI18nRenderers !== 'undefined') {
     });
 }
 
+
+
 const SPKMOD_ACCOUNTS_KEY = "spkmod-saved-accounts";
 const SPKMOD_DISMISS_KEY = "spkmod-dismiss-ql-prompt";
 
@@ -10467,6 +10481,8 @@ setTimeout(() => {
 		if (typeof updateDynamicStyles === "function") updateDynamicStyles();
 	}
 }, 1000);
+
+
 
 
 
