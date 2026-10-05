@@ -1668,7 +1668,7 @@ function updateMinigameUI() {
 	updateStatsModalLive();
 }
 
-var spkmodTopZIndex = 600000;
+var spkmodTopZIndex = 2147483600;
 
 function bringToFront(element) {
 	if (!element) return;
