@@ -1985,8 +1985,45 @@ function toggleEventModal() {
 		positionModalNicely(lunHudElements.eventModal);
 		lunHudElements.eventModal.classList.remove("hidden");
 		fetchMinigameStatus();
+		populateMinigameList();
 	} else {
 		lunHudElements.eventModal.classList.add("hidden");
+	}
+}
+
+function populateMinigameList() {
+	if (typeof lunPanelElements === 'undefined' || !lunPanelElements.minigameList) return;
+	const listContainer = lunPanelElements.minigameList;
+	listContainer.replaceChildren();
+
+	const panels = Array.from(document.querySelectorAll('.sr-minigame-entry-dialog'));
+	if (!panels.length) {
+		listContainer.appendChild(buildElement("div", { innerText: "No minigames found.", style: "color: #94a3b8; font-size: 9pt; text-align: center;" }));
+	} else {
+		panels.forEach(panel => {
+			let titleEl = panel.querySelector('.sr-panel__title, .sr-minigame-entry__greeting-name');
+			let title = titleEl ? titleEl.textContent.trim() : "Unknown Minigame";
+			listContainer.appendChild(buildElement("button", {
+				className: "spkmod-panel-btn",
+				innerText: "🎮 " + title,
+				style: "margin-bottom: 4px;",
+				onclick: () => {
+					lunHudElements.eventModal.classList.add("hidden");
+					document.querySelectorAll('.sr-minigame-entry-dialog').forEach(p => {
+						p.style.display = 'none';
+						p.classList.remove('sr-panel--open');
+					});
+					panel.style.display = 'flex';
+					panel.classList.add('sr-panel--open');
+					panel.hidden = false;
+					panel.removeAttribute('aria-hidden');
+					panel.querySelectorAll('[class*="guide"], .sr-minigame-entry__guide').forEach(g => g.style.display = 'none');
+					const actions = Array.from(panel.querySelectorAll('.sr-minigame-entry__actions'));
+					if (actions[0]) actions[0].style.display = 'flex';
+					if (actions[1]) actions[1].style.display = 'none';
+				}
+			}));
+		});
 	}
 }
 
@@ -3568,7 +3605,25 @@ document.body.appendChild(
 				}
 			}),
 			buildElement("div", { className: "spkmod-panel-cat", id: "spkmod-camera-modes-cat" }, [
-
+				lunPanelElements.topCameraBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					innerText: t("topCameraOff") || "Top Cam: OFF",
+					onclick: e => {
+						lunTopCameraActive = !lunTopCameraActive;
+						setText(e.target, t(lunTopCameraActive ? "topCameraOn" : "topCameraOff") || (lunTopCameraActive ? "Top Cam: ON" : "Top Cam: OFF"));
+						if (lunTopCameraActive) {
+							lunDroneModeActive = false;
+							lunFirstPersonActive = false;
+							if (lunPanelElements.freeCamBtn) setText(lunPanelElements.freeCamBtn, t("freeCamOff") || "Free Cam: OFF");
+							if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t("firstPersonOff") || "First Person: OFF");
+						} else {
+							if (typeof gameState !== "undefined" && gameState.cameraController) {
+								gameState.cameraController.cameraZoomDistance = 8;
+								gameState.cameraController.cameraPitch = 0.5;
+							}
+						}
+					}
+				}),
 				lunPanelElements.firstPersonBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
 					innerText: t("firstPersonOff"),
@@ -3854,7 +3909,7 @@ document.body.appendChild(
 					id: "spkmod-event-btn",
 					className: "spkmod-panel-btn",
 					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
-					innerText: "🎉",
+					innerText: "🎮",
 					title: t("eventInfoBtnTooltip"),
 					onclick: _ => {
 						toggleEventModal();
@@ -6268,7 +6323,8 @@ document.body.appendChild(
 			innerText: "🔄 " + t("refreshBtn"),
 			onclick: () => fetchMinigameStatus()
 		})
-		])
+		]),
+		lunPanelElements.minigameList = buildElement("div", { style: "display: flex; flex-direction: column; gap: 8px; margin-top: 10px;" })
 	])
 );
 setTimeout(() => {
@@ -7625,7 +7681,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.chatTimestampLabel) setText(lunPanelElements.chatTimestampLabel, t("chatTimestampToggleLabel"));
 	if (lunPanelElements.fpPitchLabel) setText(lunPanelElements.fpPitchLabel, t("firstPersonPitchLabel"));
 	if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t(lunFirstPersonActive ? "firstPersonOn" : "firstPersonOff"));
-
+	if (lunPanelElements.topCameraBtn) setText(lunPanelElements.topCameraBtn, t(typeof lunTopCameraActive !== "undefined" && lunTopCameraActive ? "topCameraOn" : "topCameraOff"));
 	if (lunPanelElements.freeCamBtn) setText(lunPanelElements.freeCamBtn, t(lunDroneModeActive ? "freeCamOn" : "freeCamOff"));
 	if (lunPanelElements.lowHpLabel) setText(lunPanelElements.lowHpLabel, t("lowHpWarningToggleLabel"));
 	if (lunPanelElements.sessionGoldLabel) setText(lunPanelElements.sessionGoldLabel, t("sessionGoldToggleLabel"));
