@@ -19,7 +19,7 @@
   "author": "Glas",
   "license": "ISC",
   "dependencies": {
-    "axios": "^1.4.0",
+    "axios": "^1.20.0",
     "discord-rpc": "*"
   },
   "devDependencies": {
@@ -28,7 +28,6 @@
   },
   "build": {
     "appId": "com.glas.speakirpg",
-
     "win": {
       "target": "nsis",
       "icon": "icon.ico"
