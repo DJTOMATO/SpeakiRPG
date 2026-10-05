@@ -1899,6 +1899,64 @@ function positionModalNicely(modal) {
 }
 
 let lastToggleSettingsTime = 0;
+// Only portable preferences belong in settings files. Never include account
+// recovery codes, translation email, caches, or unknown future storage keys.
+// Keep export and import on the same explicit allowlist.
+const SPKMOD_SETTINGS_KEYS = new Set([
+	"spkmod-accent-color",
+	"spkmod-beyblade-speed",
+	"spkmod-bg-opacity",
+	"spkmod-camera-effect",
+	"spkmod-channel-tracker",
+	"spkmod-chat-timestamps",
+	"spkmod-currency-tracker",
+	"spkmod-custom-hud-bg",
+	"spkmod-custom-hud-unlocked",
+	"spkmod-drone-speed",
+	"spkmod-exp-interval-minutes",
+	"spkmod-exp-per-hour",
+	"spkmod-filter-enabled",
+	"spkmod-fp-pitch",
+	"spkmod-fps-ping",
+	"spkmod-friend-highlight-enabled",
+	"spkmod-gamepad-config",
+	"spkmod-gamepad-rumble",
+	"spkmod-gamepad-unlocked",
+	"spkmod-gmchat-enabled",
+	"spkmod-hide-known-bots",
+	"spkmod-hide-player-levels",
+	"spkmod-hide-verbose-chat",
+	"spkmod-hud-bg",
+	"spkmod-hud-locked",
+	"spkmod-lang",
+	"spkmod-low-hp-warning",
+	"spkmod-mention-enabled",
+	"spkmod-mention-ping",
+	"spkmod-name-presets",
+	"spkmod-outgoing-source-lang",
+	"spkmod-panel-left",
+	"spkmod-pos-spkmod-effects-modal",
+	"spkmod-pos-spkmod-emoji-picker-v2",
+	"spkmod-pos-spkmod-event-modal",
+	"spkmod-pos-spkmod-gamepad-modal",
+	"spkmod-pos-spkmod-hotkeys-modal",
+	"spkmod-pos-spkmod-hud",
+	"spkmod-pos-spkmod-map-modal",
+	"spkmod-pos-spkmod-panel",
+	"spkmod-pos-spkmod-patchnotes-modal",
+	"spkmod-pos-spkmod-settings-modal",
+	"spkmod-pos-spkmod-stats-modal",
+	"spkmod-pumpkin-tracker",
+	"spkmod-reset-timer",
+	"spkmod-separate-panel",
+	"spkmod-session-gold",
+	"spkmod-translate-enabled",
+	"spkmod-translate-target",
+	"spkmod-ui-scale",
+	"spkmod-uiscale",
+	"spkmod-window-pos"
+]);
+
 function toggleSettingsModal() {
 	const now = Date.now();
 	if (now - lastToggleSettingsTime < 250) return;
@@ -2954,7 +3012,7 @@ document.body.appendChild(lunHudElements.lowHpOverlay);
 		};
 
 		const eyeBtn = createToggleBtn("spkmod-mobile-ui-toggle", "👁️", (e) => {
-			e.preventDefault(); e.stopPropagation();
+			e.preventDefault(); 
 			const isHidden = document.body.classList.toggle("spkmod-ui-hidden");
 			if (typeof chatLog !== 'undefined' && typeof t !== 'undefined') {
 				chatLog(t(isHidden ? "uiHiddenMsg" : "uiShownMsg") || (isHidden ? "Mod UI Hidden" : "Mod UI Shown"));
@@ -2962,7 +3020,7 @@ document.body.appendChild(lunHudElements.lowHpOverlay);
 		});
 
 		const settingsBtn = createToggleBtn("spkmod-mobile-settings-toggle", "⚙️", (e) => {
-			e.preventDefault(); e.stopPropagation();
+			e.preventDefault(); 
 			if (lunHudElements.settingsModal) {
 				const isHidden = lunHudElements.settingsModal.classList.toggle("hidden");
 				if (!isHidden && typeof updateHudBgDropdown === 'function') {
@@ -2972,7 +3030,7 @@ document.body.appendChild(lunHudElements.lowHpOverlay);
 		});
 
 		const panelBtn = createToggleBtn("spkmod-mobile-panel-toggle", "🔘", (e) => {
-			e.preventDefault(); e.stopPropagation();
+			e.preventDefault(); 
 			const panel = document.getElementById("spkmod-panel");
 			if (panel) {
 				panel.classList.toggle("hidden");
@@ -3725,7 +3783,7 @@ document.body.appendChild(
 					innerText: t("localEffectsBtn"),
 					onclick: (e) => {
 						e.preventDefault();
-						e.stopPropagation();
+						
 						if (lunHudElements.effectsModal) lunHudElements.effectsModal.classList.toggle("hidden");
 					}
 				})
@@ -3908,7 +3966,7 @@ document.body.appendChild(
 					title: t("accountMgrBtnTooltip"),
 					onclick: (e) => {
 						e.preventDefault();
-						e.stopPropagation();
+						
 						if (typeof toggleQuickLoginSettings === "function") {
 							toggleQuickLoginSettings();
 						}
@@ -4247,9 +4305,11 @@ document.body.appendChild(
 
 		buildElement("div", { className: "spkmod-panel-cat", style: "gap: 4px; margin-top: 4px;" }, [
 			lunPanelElements.exportSettingsBtn = buildElement("button", { className: "spkmod-panel-btn", style: "flex: 1;", innerText: t("exportSettingsBtn"), onclick: () => {
-				const keys = Object.keys(localStorage).filter(k => k.startsWith("spkmod-"));
 				const exportData = {};
-				keys.forEach(k => exportData[k] = localStorage.getItem(k));
+				SPKMOD_SETTINGS_KEYS.forEach(k => {
+					const value = localStorage.getItem(k);
+					if (value !== null) exportData[k] = value;
+				});
 				const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
 				const url = URL.createObjectURL(blob);
 				const a = document.createElement("a");
@@ -4269,9 +4329,15 @@ document.body.appendChild(
 						reader.onload = e2 => {
 							try {
 								const data = JSON.parse(e2.target.result);
-								Object.keys(data).forEach(k => {
-									if (k.startsWith("spkmod-")) localStorage.setItem(k, data[k]);
-								});
+								if (!data || typeof data !== "object" || Array.isArray(data)) {
+									throw new Error("Settings must be a JSON object");
+								}
+								const entries = Object.entries(data).filter(([k]) => SPKMOD_SETTINGS_KEYS.has(k));
+								// Validate before writing so malformed files do not partially apply.
+								if (entries.some(([, value]) => typeof value !== "string")) {
+									throw new Error("Settings values must be strings");
+								}
+								entries.forEach(([k, value]) => localStorage.setItem(k, value));
 								alert(t("settingsImportSuccess"));
 								location.reload();
 							} catch (err) { alert(t("settingsImportInvalid")); }
@@ -4408,10 +4474,10 @@ function toggleEmojiPicker(anchorBtn) {
     // lunEmojiPickerPanel.onmousedown removed to fix click bug
     
     // Prevent scrolling inside the panel from zooming the game camera
-    lunEmojiPickerPanel.addEventListener("wheel", (e) => { e.stopPropagation(); }, { passive: true });
-    lunEmojiPickerPanel.addEventListener("touchmove", (e) => { e.stopPropagation(); }, { passive: true });
-    lunEmojiPickerPanel.addEventListener("mousedown", (e) => { e.stopPropagation(); });
-    lunEmojiPickerPanel.addEventListener("touchstart", (e) => { e.stopPropagation(); }, { passive: true });
+    lunEmojiPickerPanel.addEventListener("wheel", (e) => {  }, { passive: true });
+    lunEmojiPickerPanel.addEventListener("touchmove", (e) => {  }, { passive: true });
+    lunEmojiPickerPanel.addEventListener("mousedown", (e) => {  });
+    lunEmojiPickerPanel.addEventListener("touchstart", (e) => {  }, { passive: true });
 
     renderEmojiGrid();
     document.body.appendChild(lunEmojiPickerPanel);
@@ -4482,12 +4548,14 @@ function renderEmojiGrid() {
         grid.style.cssText = "display: flex; flex-wrap: wrap; gap: 4px; flex-grow: 1; overflow-y: auto; align-content: flex-start;";
         lunEmojiPickerPanel.appendChild(grid);
         
-        headerWrap.addEventListener("mousedown", () => {
-            lunEmojiPickerPanel.style.bottom = "auto";
-        });
-        headerWrap.addEventListener("touchstart", () => {
-            lunEmojiPickerPanel.style.bottom = "auto";
-        }, { passive: true });
+        const fixEmojiPanelPos = () => {
+            if (lunEmojiPickerPanel.style.bottom !== "auto") {
+                lunEmojiPickerPanel.style.top = lunEmojiPickerPanel.getBoundingClientRect().top + "px";
+                lunEmojiPickerPanel.style.bottom = "auto";
+            }
+        };
+        headerWrap.addEventListener("mousedown", fixEmojiPanelPos);
+        headerWrap.addEventListener("touchstart", fixEmojiPanelPos, { passive: true });
 
         if (typeof makeDraggable === 'function') {
             makeDraggable(lunEmojiPickerPanel, [headerWrap]);
@@ -4499,17 +4567,17 @@ function renderEmojiGrid() {
     const btnStd = document.createElement("button");
     btnStd.innerText = "😀 " + t("emojiTabStandard", "Standard");
     btnStd.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'standard' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
-    btnStd.onclick = (e) => { e.stopPropagation(); lunEmojiTab = 'standard'; renderEmojiGrid(); };
+    btnStd.onclick = (e) => {  lunEmojiTab = 'standard'; renderEmojiGrid(); };
     
     const btnCus = document.createElement("button");
     btnCus.innerText = "⭐ " + t("emojiTabCustom", "Custom");
     btnCus.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'custom' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
-    btnCus.onclick = (e) => { e.stopPropagation(); lunEmojiTab = 'custom'; renderEmojiGrid(); };
+    btnCus.onclick = (e) => {  lunEmojiTab = 'custom'; renderEmojiGrid(); };
     
     const btnTrickcal = document.createElement("button");
     btnTrickcal.innerText = "🍀 " + t("emojiTabTrickcal", "Trickcal");
     btnTrickcal.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'trickcal' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
-    btnTrickcal.onclick = (e) => { e.stopPropagation(); lunEmojiTab = 'trickcal'; renderEmojiGrid(); };
+    btnTrickcal.onclick = (e) => {  lunEmojiTab = 'trickcal'; renderEmojiGrid(); };
     
     header.appendChild(btnStd);
     header.appendChild(btnCus);
@@ -4526,7 +4594,7 @@ function renderEmojiGrid() {
             btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
             btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
             btn.onclick = (e) => {
-                e.stopPropagation();
+                
                 lunEmojiFreq[emoji] = (lunEmojiFreq[emoji]||0) + 1;
                 if (window.localStorage) localStorage.setItem("spkmod-emoji-freq", JSON.stringify(lunEmojiFreq));
                 renderEmojiGrid();
@@ -4551,7 +4619,7 @@ function renderEmojiGrid() {
             btn.appendChild(img);
             
             btn.onclick = (e) => {
-                e.stopPropagation();
+                
                 insertEmojiIntoChat(`:${name}: `);
             };
             grid.appendChild(btn);
@@ -4597,7 +4665,7 @@ function hookChatEmojiButton() {
         btn.onmouseleave = () => btn.style.filter = "grayscale(100%)";
         btn.onclick = (e) => {
             e.preventDefault();
-            e.stopPropagation();
+            
             toggleEmojiPicker(btn);
         };
         container.style.position = "relative";
@@ -7835,22 +7903,19 @@ function tick() {
 			gameState.cameraController.cameraPitch = 1.5; // Almost 90 degrees down
 		}
 
-		if (lunLowHpWarningEnabled) {
-			if (hpRatio < 0.25 && hp > 0) {
+	if (lunLowHpWarningEnabled) {
+		if (hpRatio <= 0.3) {
+			if (lunHudElements.lowHpOverlay.style.opacity !== "1") {
+				lunHudElements.lowHpOverlay.style.opacity = "1";
 				if (!lunHudElements.lowHpOverlay.classList.contains("spkmod-low-hp-pulse")) {
 					lunHudElements.lowHpOverlay.classList.add("spkmod-low-hp-pulse");
-					lunHudElements.lowHpOverlay.style.opacity = "1";
-				}
-			} else {
-				if (lunHudElements.lowHpOverlay.classList.contains("spkmod-low-hp-pulse")) {
-					lunHudElements.lowHpOverlay.classList.remove("spkmod-low-hp-pulse");
-					lunHudElements.lowHpOverlay.style.opacity = "0";
 				}
 			}
 		} else if (lunHudElements.lowHpOverlay.style.opacity !== "0") {
 			lunHudElements.lowHpOverlay.classList.remove("spkmod-low-hp-pulse");
 			lunHudElements.lowHpOverlay.style.opacity = "0";
 		}
+	}
 
 		window._lunLastHp = window._lunLastHp || hp;
 		if (lunGamepadRumbleEnabled && hp < window._lunLastHp && (window._lunLastHp - hp) > (maxHp * 0.05)) {
