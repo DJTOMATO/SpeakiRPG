@@ -2000,7 +2000,19 @@ function populateMinigameList() {
 	if (!panels.length) {
 		listContainer.appendChild(buildElement("div", { innerText: "No minigames found.", style: "color: #94a3b8; font-size: 9pt; text-align: center;" }));
 	} else {
-		panels.forEach(panel => {
+        let activeIndex = -1;
+        if (typeof ACTIVE_MINIGAME_ID !== 'undefined' && ACTIVE_MINIGAME_ID && typeof gameState !== 'undefined' && gameState.minigameEntryDialogs) {
+            activeIndex = gameState.minigameEntryDialogs.findIndex(d => d.def && d.def.gameKey === ACTIVE_MINIGAME_ID);
+        }
+
+        if (activeIndex === -1) {
+            listContainer.appendChild(buildElement("div", { innerText: "Loading event data...", style: "color: #94a3b8; font-size: 9pt; text-align: center;" }));
+            return;
+        }
+
+		panels.forEach((panel, idx) => {
+            if (idx !== activeIndex) return; // Only show active
+
 			let titleEl = panel.querySelector('.sr-panel__title, .sr-minigame-entry__greeting-name');
 			let title = titleEl ? titleEl.textContent.trim() : "Unknown Minigame";
 			listContainer.appendChild(buildElement("button", {
@@ -2061,6 +2073,8 @@ function updateEventModalContent() {
 	}
 
 	if (eventModalElements.refreshBtn) setText(eventModalElements.refreshBtn, "🔄 " + t("refreshBtn"));
+
+	populateMinigameList();
 }
 
 var lunPatchNotesData = (() => {
@@ -3605,25 +3619,6 @@ document.body.appendChild(
 				}
 			}),
 			buildElement("div", { className: "spkmod-panel-cat", id: "spkmod-camera-modes-cat" }, [
-				lunPanelElements.topCameraBtn = buildElement("button", {
-					className: "spkmod-panel-btn",
-					innerText: t("topCameraOff") || "Top Cam: OFF",
-					onclick: e => {
-						lunTopCameraActive = !lunTopCameraActive;
-						setText(e.target, t(lunTopCameraActive ? "topCameraOn" : "topCameraOff") || (lunTopCameraActive ? "Top Cam: ON" : "Top Cam: OFF"));
-						if (lunTopCameraActive) {
-							lunDroneModeActive = false;
-							lunFirstPersonActive = false;
-							if (lunPanelElements.freeCamBtn) setText(lunPanelElements.freeCamBtn, t("freeCamOff") || "Free Cam: OFF");
-							if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t("firstPersonOff") || "First Person: OFF");
-						} else {
-							if (typeof gameState !== "undefined" && gameState.cameraController) {
-								gameState.cameraController.cameraZoomDistance = 8;
-								gameState.cameraController.cameraPitch = 0.5;
-							}
-						}
-					}
-				}),
 				lunPanelElements.firstPersonBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
 					innerText: t("firstPersonOff"),
@@ -7681,7 +7676,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.chatTimestampLabel) setText(lunPanelElements.chatTimestampLabel, t("chatTimestampToggleLabel"));
 	if (lunPanelElements.fpPitchLabel) setText(lunPanelElements.fpPitchLabel, t("firstPersonPitchLabel"));
 	if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t(lunFirstPersonActive ? "firstPersonOn" : "firstPersonOff"));
-	if (lunPanelElements.topCameraBtn) setText(lunPanelElements.topCameraBtn, t(typeof lunTopCameraActive !== "undefined" && lunTopCameraActive ? "topCameraOn" : "topCameraOff"));
+
 	if (lunPanelElements.freeCamBtn) setText(lunPanelElements.freeCamBtn, t(lunDroneModeActive ? "freeCamOn" : "freeCamOff"));
 	if (lunPanelElements.lowHpLabel) setText(lunPanelElements.lowHpLabel, t("lowHpWarningToggleLabel"));
 	if (lunPanelElements.sessionGoldLabel) setText(lunPanelElements.sessionGoldLabel, t("sessionGoldToggleLabel"));
