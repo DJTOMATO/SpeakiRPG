@@ -7916,6 +7916,10 @@ function tick() {
 		findBotsRadar(true);
 	}
 
+	if (typeof checkRemoteCaliforniaDance === "function") {
+		checkRemoteCaliforniaDance();
+	}
+
 	const hp = gameState.myStat.hp || 0;
 	const maxHp = gameState.myStat.maxHp || 1;
 	const hpRatio = hp / maxHp;
@@ -8517,6 +8521,17 @@ function hookGameStateOnce() {
 	if (window.__gameStateHooked) return true;
 	window.__gameStateHooked = true;
 	if (window.spkmodDebug) spkmodDebug.log("Initializing in-game GameState hooks...");
+
+	if (typeof gameState.sendEmoteNow === "function" && !gameState.__californiaHooked) {
+		const origSendEmoteNow = gameState.sendEmoteNow.bind(gameState);
+		gameState.sendEmoteNow = function(emoteId) {
+			if (emoteId === 555) {
+				if (typeof window.playCaliforniaDance === "function") window.playCaliforniaDance();
+			}
+			return origSendEmoteNow(emoteId);
+		};
+		gameState.__californiaHooked = true;
+	}
 
 	if (gameState.combatAssist && typeof gameState.combatAssist.update === "function" && !gameState.combatAssist.__speakiHooked) {
 		const origCombatAssistUpdate = gameState.combatAssist.update.bind(gameState.combatAssist);
@@ -9704,6 +9719,52 @@ if (typeof spkmodI18nRenderers !== 'undefined') {
             renderEmojiGrid();
         }
     });
+}
+
+// --- California Girls Emote Audio (ID 555 placeholder) ---
+const californiaAudio = new Audio('https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/audio/girls.mp3');
+californiaAudio.volume = 0.5;
+window.isCaliforniaPlaying = false;
+
+californiaAudio.addEventListener('ended', () => {
+    window.isCaliforniaPlaying = false;
+});
+californiaAudio.addEventListener('pause', () => {
+	// Fallback if paused externally
+	if (californiaAudio.currentTime === californiaAudio.duration) {
+    	window.isCaliforniaPlaying = false;
+	}
+});
+
+window.playCaliforniaDance = function() {
+    if (!window.isCaliforniaPlaying) {
+        window.isCaliforniaPlaying = true;
+        californiaAudio.currentTime = 0;
+        californiaAudio.play().catch(e => {
+            console.warn("[SpeakiMod+] California Girls audio play failed (autoplay blocked?):", e);
+            window.isCaliforniaPlaying = false;
+        });
+    }
+};
+
+window.californiaRemoteAnimStates = new Map();
+
+function checkRemoteCaliforniaDance() {
+	if (!gameState || !gameState.remotePlayers || !gameState.remotePlayers.remotePlayers) return;
+	
+	gameState.remotePlayers.remotePlayers.forEach((player, id) => {
+		const currentAnim = player.animState;
+		const lastAnim = window.californiaRemoteAnimStates.get(id);
+		
+		if (currentAnim !== lastAnim) {
+			window.californiaRemoteAnimStates.set(id, currentAnim);
+			
+			// Placeholder ID 555 for California Girls dance
+			if (currentAnim === 555) {
+				window.playCaliforniaDance();
+			}
+		}
+	});
 }
 
 
