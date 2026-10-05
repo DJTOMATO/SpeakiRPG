@@ -4513,6 +4513,24 @@ fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis2.txt").t
     console.warn("[SpeakiMod+] Failed to load trickcal emojis:", err);
 });
 
+var lunTrickcal2Emojis = {};
+fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis3.txt").then(res => res.text()).then(txt => {
+    txt.split("\n").forEach(l => {
+        const line = l.trim();
+        if (!line) return;
+        const parts = line.split(",");
+        if (parts.length >= 2) {
+            const name = parts[0].replace(/:/g, "").trim();
+            const url = parts.slice(1).join(",").trim();
+            if (name && url) {
+                lunTrickcal2Emojis[name] = url;
+            }
+        }
+    });
+}).catch(err => {
+    console.warn("[SpeakiMod+] Failed to load trickcal 2 emojis:", err);
+});
+
 function getSortedEmojis() {
     return [...LUN_EMOJIS].sort((a,b) => (lunEmojiFreq[b]||0) - (lunEmojiFreq[a]||0));
 }
@@ -4652,10 +4670,16 @@ function renderEmojiGrid() {
     btnTrickcal.innerText = "🍀 " + t("emojiTabTrickcal", "Trickcal");
     btnTrickcal.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'trickcal' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
     btnTrickcal.onclick = (e) => {  lunEmojiTab = 'trickcal'; renderEmojiGrid(); };
+
+    const btnTrickcal2 = document.createElement("button");
+    btnTrickcal2.innerText = "🍀 " + t("emojiTabTrickcal2", "Trickcal 2");
+    btnTrickcal2.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'trickcal2' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
+    btnTrickcal2.onclick = (e) => {  lunEmojiTab = 'trickcal2'; renderEmojiGrid(); };
     
     header.appendChild(btnStd);
     header.appendChild(btnCus);
     header.appendChild(btnTrickcal);
+    header.appendChild(btnTrickcal2);
 
     grid.innerHTML = "";
     
@@ -4677,7 +4701,7 @@ function renderEmojiGrid() {
             grid.appendChild(btn);
         });
     } else {
-        const targetEmojis = lunEmojiTab === 'trickcal' ? lunTrickcalEmojis : lunCustomEmojis;
+        const targetEmojis = lunEmojiTab === 'trickcal' ? lunTrickcalEmojis : (lunEmojiTab === 'trickcal2' ? lunTrickcal2Emojis : lunCustomEmojis);
         Object.entries(targetEmojis).forEach(([name, url]) => {
             const btn = document.createElement("button");
             btn.title = `:${name}:`;
@@ -8934,7 +8958,7 @@ function hookGameStateOnce() {
 					if (isMention) {
 						rowNode.classList.add("spkmod-mention-line");
 					}
-					const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {})};
+					const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {})};
 					if (Object.keys(spkmodAllEmojis).length > 0) {
 						let html = bodyText.innerHTML;
 						let changed = false;
@@ -9022,7 +9046,7 @@ function appendColoredChatLine(id, name, text) {
 	observeNextChatNode(text, (bodyText) => {
 		bodyText.classList.add("spkmod-translated-line");
 		
-		const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {})};
+		const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {})};
 		if (Object.keys(spkmodAllEmojis).length > 0) {
 			let html = bodyText.innerHTML;
 			let changed = false;
@@ -9671,7 +9695,7 @@ document.addEventListener("keydown", (e) => {
             let hasCustomEmoji = false;
             for (const match of matches) {
                 const name = match.slice(1, -1);
-                if (lunCustomEmojis[name] || (typeof lunTrickcalEmojis !== 'undefined' && lunTrickcalEmojis[name])) {
+                if (lunCustomEmojis[name] || (typeof lunTrickcalEmojis !== 'undefined' && lunTrickcalEmojis[name]) || (typeof lunTrickcal2Emojis !== 'undefined' && lunTrickcal2Emojis[name])) {
                     hasCustomEmoji = true;
                     break;
                 }
@@ -9688,6 +9712,11 @@ document.addEventListener("keydown", (e) => {
                     }
                     if (typeof lunTrickcalEmojis !== 'undefined') {
                         for (const name of Object.keys(lunTrickcalEmojis)) {
+                            val = val.split(`:${name}:`).join("");
+                        }
+                    }
+                    if (typeof lunTrickcal2Emojis !== 'undefined') {
+                        for (const name of Object.keys(lunTrickcal2Emojis)) {
                             val = val.split(`:${name}:`).join("");
                         }
                     }
@@ -9774,7 +9803,7 @@ if (typeof spkmodI18nRenderers !== 'undefined') {
 
 // --- California Girls Emote Audio (ID 555 placeholder) ---
 const californiaAudio = new Audio('https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/audio/girls.mp3');
-californiaAudio.volume = 0.5;
+californiaAudio.volume = 0.25;
 window.isCaliforniaPlaying = false;
 
 window.__speakiGameAudioFaded = false;

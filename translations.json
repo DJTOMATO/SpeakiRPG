@@ -1,7 +1,7 @@
 {
     "en": {
         "langName": "English",
-        "header": "SpeakiMod+ v1.9.82",
+        "header": "SpeakiMod+ v1.9.83",
         "playersNearby": "Speaki nearby: {0}",
         "zoneId": "Zone ID: {0}",
         "expPerMinute": "{0} EXP/min",
@@ -357,7 +357,7 @@
         "turntableHalfMsg": "Camera half-rotation activated!",
         "statsSpkCoinGained": "Speaki Coin Gained",
         "emojiTabStandard": "Standard",
-        "emojiTabCustom": "Custom",
+        "emojiTabCustom": "MMO",
         "emojiCooldownWait": "Please wait {0}s before sending another emoji.",
         "emojiCooldownStripped": "Emojis removed from message (on cooldown).",
         "emojiWarning": "⚠️ Please don’t abuse this feature, or you might get sent to the weekend farm.",
@@ -395,11 +395,12 @@
         "aFaintOn": "Situps: ⏸️",
         "aFaintOff": "Situps: ▶️",
         "separatePanel": "Separate Action Panel (Mobile)",
-        "hidePlayerLevelsLabel": "Hide Player Levels"
+        "hidePlayerLevelsLabel": "Hide Player Levels",
+        "emojiTabTrickcal2": "Trickcal 2"
     },
     "ja": {
         "langName": "日本語",
-        "header": "SpeakiMod+ v1.9.82",
+        "header": "SpeakiMod+ v1.9.83",
         "credits": "• 原作ゲーム: EPID Games\n• Speaki MMO 開発: GMDT\n• クライアント＆SpeakiMod+コーディング: Glas\n• SpeakiMod原作者: Alluseri\n• 日本語翻訳: JPN_健全なエルフ名15T\n\n使用ファンアート：\nUI背景への作品使用を許可してくださったアーティストの皆様に心より感謝申し上げます！\n- 느그 유노(Yuno)",
         "for_memo_jp_1": "🔽window_main🔽",
         "playersNearby": "近くのｽﾋﾟｷ数: {0}",
@@ -726,7 +727,7 @@
         "translateFailedMsg": "翻訳に失敗しました。または、メッセージは既に翻訳先の言語で表示されています。",
         "outgoingTranslateFailed": "メッセージの翻訳に失敗しました: {0}",
         "emojiTabStandard": "標準",
-        "emojiTabCustom": "カスタム",
+        "emojiTabCustom": "MMO",
         "emojiTabTrickcal": "Trickcal",
         "emojiCooldownWait": "次の絵文字を送信するまで {0} 秒お待ちください。",
         "emojiCooldownStripped": "クールダウン中のため、メッセージから絵文字が削除されました。",
@@ -822,11 +823,12 @@
         "for_memo_jp_29": "⏩コンマ要確認⏩",
         "separatePanel": "アクションパネルを分離 (モバイル)",
         "hidePlayerLevelsLabel": "プレイヤーレベルを非表示",
-        "streamerModeToggleLabel": "ストリーマーモード (モッドの音楽を無効化)"
+        "streamerModeToggleLabel": "ストリーマーモード (モッドの音楽を無効化)",
+        "emojiTabTrickcal2": "Trickcal 2"
     },
     "ko": {
         "langName": "한국어",
-        "header": "SpeakiMod+ v1.9.82",
+        "header": "SpeakiMod+ v1.9.83",
         "playersNearby": "근처 스피키: {0}",
         "zoneId": "존 ID: {0}",
         "expPerMinute": "{0} EXP/분",
@@ -1181,7 +1183,7 @@
         "turntableHalfMsg": "카메라 반회전을 켰습니다!",
         "statsSpkCoinGained": "스피키 코인 획득량",
         "emojiTabStandard": "기본",
-        "emojiTabCustom": "커스텀",
+        "emojiTabCustom": "MMO",
         "emojiCooldownWait": "다음 이모티콘을 보내려면 {0}초 기다려주세요.",
         "emojiCooldownStripped": "재사용 대기시간으로 인해 메시지에서 이모티콘이 제거되었습니다.",
         "emojiWarning": "⚠️ 이 기능을 악용하지 마세요. 주말 농장으로 보내질 수 있습니다.",
@@ -1220,11 +1222,12 @@
         "aFaintOff": "윗몸일으키기: ▶️",
         "separatePanel": "액션 패널 분리 (모바일)",
         "hidePlayerLevelsLabel": "플레이어 레벨 숨기기",
-        "streamerModeToggleLabel": "스트리머 모드 (모드 음악 비활성화)"
+        "streamerModeToggleLabel": "스트리머 모드 (모드 음악 비활성화)",
+        "emojiTabTrickcal2": "Trickcal 2"
     },
     "zh-TW": {
         "langName": "繁體中文",
-        "header": "SpeakiMod+ v1.9.82",
+        "header": "SpeakiMod+ v1.9.83",
         "playersNearby": "附近的斯皮奇: {0}",
         "zoneId": "區域 ID: {0}",
         "expPerMinute": "{0} 經驗值/每分鐘",
@@ -1579,7 +1582,7 @@
         "turntableHalfMsg": "相機半旋轉已開啟！",
         "statsSpkCoinGained": "获得的Speaki硬币",
         "emojiTabStandard": "Standard",
-        "emojiTabCustom": "Custom",
+        "emojiTabCustom": "MMO",
         "emojiCooldownWait": "請等待 {0} 秒後再發送表情。",
         "emojiCooldownStripped": "由於冷卻時間，已從訊息中移除表情。",
         "emojiWarning": "⚠️ 請勿濫用此功能，否則你可能會被送到週末農場。",
@@ -1618,11 +1621,12 @@
         "aFaintOff": "Situps: ▶️",
         "separatePanel": "分離動作面板 (手機)",
         "hidePlayerLevelsLabel": "隱藏玩家等級",
-        "streamerModeToggleLabel": "實況主模式 (停用模組音樂)"
+        "streamerModeToggleLabel": "實況主模式 (停用模組音樂)",
+        "emojiTabTrickcal2": "Trickcal 2"
     },
     "es-419": {
         "langName": "Español",
-        "header": "SpeakiMod+ v1.9.82",
+        "header": "SpeakiMod+ v1.9.83",
         "playersNearby": "Speaki cercanos: {0}",
         "zoneId": "ID de zona: {0}",
         "expPerMinute": "{0} EXP/min",
@@ -1977,7 +1981,7 @@
         "turntableHalfMsg": "¡Medio giro de cámara activado!",
         "statsSpkCoinGained": "Moneda Speaki Obtenida",
         "emojiTabStandard": "Standard",
-        "emojiTabCustom": "Custom",
+        "emojiTabCustom": "MMO",
         "emojiCooldownWait": "Por favor espera {0}s antes de enviar otro emoji.",
         "emojiCooldownStripped": "Emojis eliminados del mensaje (en enfriamiento).",
         "emojiWarning": "⚠️ Por favor no abuses de esta función, o podrías terminar en la granja de fin de semana.",
@@ -2016,11 +2020,12 @@
         "aFaintOff": "Situps: ▶️",
         "separatePanel": "Separar Panel de Acciones (Móvil)",
         "hidePlayerLevelsLabel": "Ocultar Niveles de Jugadores",
-        "streamerModeToggleLabel": "Modo Streamer (Desactivar Música del Mod)"
+        "streamerModeToggleLabel": "Modo Streamer (Desactivar Música del Mod)",
+        "emojiTabTrickcal2": "Trickcal 2"
     },
     "zh-CN": {
         "langName": "简体中文",
-        "header": "SpeakiMod+ v1.9.82",
+        "header": "SpeakiMod+ v1.9.83",
         "playersNearby": "附近的斯皮奇: {0}",
         "zoneId": "区域 ID: {0}",
         "expPerMinute": "{0} 经验值/每分钟",
@@ -2375,7 +2380,7 @@
         "turntableHalfMsg": "相机半旋转已开启！",
         "statsSpkCoinGained": "获得的Speaki硬币",
         "emojiTabStandard": "Standard",
-        "emojiTabCustom": "Custom",
+        "emojiTabCustom": "MMO",
         "emojiCooldownWait": "请等待 {0} 秒后再发送表情。",
         "emojiCooldownStripped": "由于冷却时间，已从消息中移除表情。",
         "emojiWarning": "⚠️ 请勿滥用此功能，否则你可能会被送到周末农场。",
@@ -2414,6 +2419,7 @@
         "aFaintOff": "Situps: ▶️",
         "separatePanel": "分离动作面板 (手机)",
         "hidePlayerLevelsLabel": "隐藏玩家等级",
-        "streamerModeToggleLabel": "主播模式 (禁用模组音乐)"
+        "streamerModeToggleLabel": "主播模式 (禁用模组音乐)",
+        "emojiTabTrickcal2": "Trickcal 2"
     }
 }
