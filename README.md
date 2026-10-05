@@ -202,6 +202,26 @@ npm install
 npm start
 ```
 
+**Local emoji avatars:** in game, click your round portrait, choose an emoji,
+check the circular preview, and click **Apply**. Static images and animated GIFs
+are supported, with centered cropping. **Use initials** followed by **Apply**
+restores the original portrait. The level badge stays visible. Choices are saved
+per character name on this device only; friends cannot see them. Reconnecting
+with a different in-world player ID preserves the selection. Renaming a character
+requires selecting the avatar again. Missing images
+fall back to the original initials. Per-player avatar choices are kept separate
+from the general settings export.
+
+On desktop, Apply writes to `emoji-avatars.json` in the application's user-data
+directory before confirming the selection. Clients without the desktop bridge
+use local browser storage.
+The avatar storage adapter has async `get(identity)` and `set(identity, emoji)`
+methods so a future authenticated service can replace local storage; this version
+does not provide a synchronization service.
+
+The MMO emoji `:jeremy:` is a 96×96 animated GIF with the full 35.96-second loop
+and transparency.
+
 ---
 
 *Want a standalone installer? Run `npm run build` using electron-builder!*

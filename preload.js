@@ -4,7 +4,11 @@ const path = require('path');
 
 // Maintain your existing IPC bridge
 contextBridge.exposeInMainWorld('electronAPI', {
-    loadSite: (url) => ipcRenderer.send('load-site', url)
+    loadSite: (url) => ipcRenderer.send('load-site', url),
+    avatars: {
+        get: identity => ipcRenderer.invoke('avatar-get', identity),
+        set: (identity, emoji) => ipcRenderer.invoke('avatar-set', identity, emoji)
+    }
 });
 
 // Expose client build version from package.json
