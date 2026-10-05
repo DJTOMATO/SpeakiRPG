@@ -1668,7 +1668,7 @@ function updateMinigameUI() {
 	updateStatsModalLive();
 }
 
-var spkmodTopZIndex = 2147483600;
+var spkmodTopZIndex = 600000;
 
 function bringToFront(element) {
 	if (!element) return;
@@ -2620,7 +2620,6 @@ var lunSessionStartElif = null;
 var lunDroneModeActive = false;
 window.spkmodDroneKeys = { up: false, down: false, w: false, a: false, s: false, d: false };
 var lunFirstPersonActive = false;
-var lunTopCameraActive = false;
 
 const spkmodBorderWidth = "1.5px";
 
@@ -2645,7 +2644,7 @@ document.head.appendChild(buildElement(
 			align-items: flex-start;
 			gap: 4px;
 			position: absolute;
-			z-index: 2147483600;
+			z-index: 600000;
 			min-width: 140px;
 			color: #FFF;
 			left: 10px;
@@ -2736,7 +2735,7 @@ document.head.appendChild(buildElement(
 			display: flex;
 			flex-direction: column;
 			position: fixed;
-			z-index: 2147483600;
+			z-index: 600000;
 			width: 480px;
 			max-width: 95vw;
 			max-height: 85vh;
@@ -2858,7 +2857,7 @@ document.head.appendChild(buildElement(
 			flex-direction: column;
 			position: absolute;
 			right: 220px;
-			z-index: 2147483600;
+			z-index: 600000;
 			width: 20%;
 			color: #FFF;
 			top: 18px;
@@ -2871,7 +2870,7 @@ document.head.appendChild(buildElement(
 			display: flex;
 			flex-direction: column;
 			position: fixed;
-			z-index: 2147483600;
+			z-index: 600000;
 			color: #FFF;
 			background: rgba(10, 10, 10, 0.95);
 			border: ${spkmodBorderWidth} solid #DDD;
@@ -2972,7 +2971,7 @@ document.head.appendChild(buildElement(
 			position: fixed;
 			top: 0; left: 0; right: 0; bottom: 0;
 			pointer-events: none;
-			z-index: 2147483000;
+			z-index: 500000;
 			box-shadow: inset 0 0 150px rgba(255, 0, 0, 0.6);
 			opacity: 0;
 			transition: opacity 0.5s ease-in-out;
@@ -2998,9 +2997,8 @@ document.body.appendChild(lunHudElements.lowHpOverlay);
 	const isMobileDevice = typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent));
 	if (isMobileDevice) {
 		const mobileBtnContainer = document.createElement("div");
-		lunHudElements.mobileBtnContainer = mobileBtnContainer;
-		mobileBtnContainer.id = "spkmod-mobile-btn-container";
-		mobileBtnContainer.style.cssText = "position: fixed; bottom: 80px; left: 10px; z-index: 2147483647; display: flex; flex-direction: column; gap: 8px;";
+				mobileBtnContainer.id = "spkmod-mobile-btn-container";
+		mobileBtnContainer.style.cssText = "position: fixed; bottom: 80px; left: 10px; z-index: 999999; display: flex; flex-direction: column; gap: 8px;";
 		
 		const createToggleBtn = (id, icon, onClick) => {
 			const btn = document.createElement("button");
@@ -3570,25 +3568,7 @@ document.body.appendChild(
 				}
 			}),
 			buildElement("div", { className: "spkmod-panel-cat", id: "spkmod-camera-modes-cat" }, [
-				lunPanelElements.topCameraBtn = buildElement("button", {
-					className: "spkmod-panel-btn",
-					innerText: t("topCameraOff") || "Top Cam: OFF",
-					onclick: e => {
-						lunTopCameraActive = !lunTopCameraActive;
-						setText(e.target, t(lunTopCameraActive ? "topCameraOn" : "topCameraOff") || (lunTopCameraActive ? "Top Cam: ON" : "Top Cam: OFF"));
-						if (lunTopCameraActive) {
-							lunDroneModeActive = false;
-							lunFirstPersonActive = false;
-							if (lunPanelElements.freeCamBtn) setText(lunPanelElements.freeCamBtn, t("freeCamOff") || "Free Cam: OFF");
-							if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t("firstPersonOff") || "First Person: OFF");
-						} else {
-							if (typeof gameState !== "undefined" && gameState.cameraController) {
-								gameState.cameraController.cameraZoomDistance = 8;
-								gameState.cameraController.cameraPitch = 0.5;
-							}
-						}
-					}
-				}),
+
 				lunPanelElements.firstPersonBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
 					innerText: t("firstPersonOff"),
@@ -4456,7 +4436,7 @@ function toggleEmojiPicker(anchorBtn) {
     const isMobile = typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android/i.test(navigator.userAgent));
     const defaultW = isMobile ? "280px" : "340px";
     const defaultH = isMobile ? "200px" : "300px";
-    lunEmojiPickerPanel.style.cssText = `position: fixed; width: ${defaultW}; height: ${defaultH}; max-width: 90vw; max-height: 60vh; min-width: 200px; min-height: 150px; resize: both; overflow: hidden; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 2147483647; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;`;
+    lunEmojiPickerPanel.style.cssText = `position: fixed; width: ${defaultW}; height: ${defaultH}; max-width: 90vw; max-height: 60vh; min-width: 200px; min-height: 150px; resize: both; overflow: hidden; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;`;
     
     if (!(window.localStorage && localStorage.getItem("spkmod-pos-spkmod-emoji-picker-v2"))) {
         if (isMobile) {
@@ -4659,8 +4639,8 @@ function hookChatEmojiButton() {
         btn.id = "spkmod-emoji-btn";
         btn.innerText = "😀";
         btn.title = "Emojis";
-        btn.style.cssText = "position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: transparent; border: none; cursor: pointer; z-index: 2147483647; font-size: 16px; display: flex; align-items: center; justify-content: center; filter: grayscale(100%); transition: filter 0.2s; pointer-events: auto; user-select: none;";
-        btn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); }; // Prevent input from stealing focus
+        btn.style.cssText = "position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: transparent; border: none; cursor: pointer; z-index: 999999; font-size: 16px; display: flex; align-items: center; justify-content: center; filter: grayscale(100%); transition: filter 0.2s; pointer-events: auto; user-select: none;";
+        btn.onmousedown = (e) => { e.preventDefault();  }; // Prevent input from stealing focus
         btn.onmouseenter = () => btn.style.filter = "none";
         btn.onmouseleave = () => btn.style.filter = "grayscale(100%)";
         btn.onclick = (e) => {
@@ -4688,7 +4668,7 @@ window.applySeparatePanel = function() {
 			document.body.appendChild(panel);
 		}
 		panel.style.position = "absolute";
-		panel.style.zIndex = "2147483600";
+		panel.style.zIndex = "600000";
 		
 		if (!sepHeader) {
 			sepHeader = buildElement("div", { id: "spkmod-sep-header-row", className: "spkmod-panel-cat", style: "cursor: move; user-select: none; touch-action: none; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px; margin-bottom: 2px;" }, [
@@ -7645,7 +7625,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.chatTimestampLabel) setText(lunPanelElements.chatTimestampLabel, t("chatTimestampToggleLabel"));
 	if (lunPanelElements.fpPitchLabel) setText(lunPanelElements.fpPitchLabel, t("firstPersonPitchLabel"));
 	if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t(lunFirstPersonActive ? "firstPersonOn" : "firstPersonOff"));
-	if (lunPanelElements.topCameraBtn) setText(lunPanelElements.topCameraBtn, t(typeof lunTopCameraActive !== "undefined" && lunTopCameraActive ? "topCameraOn" : "topCameraOff"));
+
 	if (lunPanelElements.freeCamBtn) setText(lunPanelElements.freeCamBtn, t(lunDroneModeActive ? "freeCamOn" : "freeCamOff"));
 	if (lunPanelElements.lowHpLabel) setText(lunPanelElements.lowHpLabel, t("lowHpWarningToggleLabel"));
 	if (lunPanelElements.sessionGoldLabel) setText(lunPanelElements.sessionGoldLabel, t("sessionGoldToggleLabel"));
@@ -7850,27 +7830,6 @@ if (!window.__beyBladeLoopRunning) {
 
 
 function tick() {
-	if (lunHudElements.hud && lunHudElements.hud.parentElement !== document.body && !lunSeparatePanel) {
-		document.body.appendChild(lunHudElements.hud);
-	} else if (lunHudElements.hud && lunSeparatePanel && lunHudElements.hud.parentElement !== document.body) {
-        document.body.appendChild(lunHudElements.hud);
-    }
-    
-    if (lunSeparatePanel) {
-        const panel = lunHudElements.panel || document.getElementById("spkmod-panel");
-        if (panel && panel.parentElement !== document.body) {
-            document.body.appendChild(panel);
-        }
-    }
-    
-    if (lunHudElements.lowHpOverlay && lunHudElements.lowHpOverlay.parentElement !== document.body) {
-        document.body.appendChild(lunHudElements.lowHpOverlay);
-    }
-    
-    if (lunHudElements.mobileBtnContainer && lunHudElements.mobileBtnContainer.parentElement !== document.body) {
-        document.body.appendChild(lunHudElements.mobileBtnContainer);
-    }
-
 	if (!window.__gameStateHooked && typeof gameState !== "undefined" && gameState) {
 		if (typeof hookGameStateOnce === "function") {
 			hookGameStateOnce();
@@ -7898,9 +7857,15 @@ function tick() {
 		if (lunFirstPersonActive && gameState.cameraController) {
 			gameState.cameraController.cameraZoomDistance = 3;
 			gameState.cameraController.cameraPitch = lunFirstPersonPitch;
-		} else if (typeof lunTopCameraActive !== "undefined" && lunTopCameraActive && gameState.cameraController) {
-			gameState.cameraController.cameraZoomDistance = 50; // Increased zoom for top-down
-			gameState.cameraController.cameraPitch = 1.5; // Almost 90 degrees down
+			if (lunTickCount % 50 === 0) {
+				console.log("[SpeakiMod+] First Person Camera Info:", {
+					pitch: gameState.cameraController.cameraPitch,
+					zoom: gameState.cameraController.cameraZoomDistance,
+					yaw: gameState.cameraController.cameraYaw,
+					targetY: gameState.cameraController.target?.position?.y,
+					camY: gameState.cameraController.camera?.position?.y
+				});
+			}
 		}
 
 	if (lunLowHpWarningEnabled) {
