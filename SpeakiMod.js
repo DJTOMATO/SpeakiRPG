@@ -3568,25 +3568,7 @@ document.body.appendChild(
 				}
 			}),
 			buildElement("div", { className: "spkmod-panel-cat", id: "spkmod-camera-modes-cat" }, [
-				lunPanelElements.topCameraBtn = buildElement("button", {
-					className: "spkmod-panel-btn",
-					innerText: t("topCameraOff") || "Top Cam: OFF",
-					onclick: e => {
-						lunTopCameraActive = !lunTopCameraActive;
-						setText(e.target, t(lunTopCameraActive ? "topCameraOn" : "topCameraOff") || (lunTopCameraActive ? "Top Cam: ON" : "Top Cam: OFF"));
-						if (lunTopCameraActive) {
-							lunDroneModeActive = false;
-							lunFirstPersonActive = false;
-							if (lunPanelElements.freeCamBtn) setText(lunPanelElements.freeCamBtn, t("freeCamOff") || "Free Cam: OFF");
-							if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t("firstPersonOff") || "First Person: OFF");
-						} else {
-							if (typeof gameState !== "undefined" && gameState.cameraController) {
-								gameState.cameraController.cameraZoomDistance = 8;
-								gameState.cameraController.cameraPitch = 0.5;
-							}
-						}
-					}
-				}),
+
 				lunPanelElements.firstPersonBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
 					innerText: t("firstPersonOff"),
@@ -7643,7 +7625,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.chatTimestampLabel) setText(lunPanelElements.chatTimestampLabel, t("chatTimestampToggleLabel"));
 	if (lunPanelElements.fpPitchLabel) setText(lunPanelElements.fpPitchLabel, t("firstPersonPitchLabel"));
 	if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t(lunFirstPersonActive ? "firstPersonOn" : "firstPersonOff"));
-	if (lunPanelElements.topCameraBtn) setText(lunPanelElements.topCameraBtn, t(typeof lunTopCameraActive !== "undefined" && lunTopCameraActive ? "topCameraOn" : "topCameraOff"));
+
 	if (lunPanelElements.freeCamBtn) setText(lunPanelElements.freeCamBtn, t(lunDroneModeActive ? "freeCamOn" : "freeCamOff"));
 	if (lunPanelElements.lowHpLabel) setText(lunPanelElements.lowHpLabel, t("lowHpWarningToggleLabel"));
 	if (lunPanelElements.sessionGoldLabel) setText(lunPanelElements.sessionGoldLabel, t("sessionGoldToggleLabel"));
