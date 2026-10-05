@@ -4566,10 +4566,10 @@ function toggleEmojiPicker(anchorBtn) {
     // lunEmojiPickerPanel.onmousedown removed to fix click bug
     
     // Prevent scrolling inside the panel from zooming the game camera
-    lunEmojiPickerPanel.addEventListener("wheel", (e) => {  }, { passive: true });
-    lunEmojiPickerPanel.addEventListener("touchmove", (e) => {  }, { passive: true });
-    lunEmojiPickerPanel.addEventListener("mousedown", (e) => {  });
-    lunEmojiPickerPanel.addEventListener("touchstart", (e) => {  }, { passive: true });
+      lunEmojiPickerPanel.addEventListener("wheel", (e) => { e.stopPropagation(); }, { passive: true });
+      lunEmojiPickerPanel.addEventListener("touchmove", (e) => { e.stopPropagation(); }, { passive: true });
+      lunEmojiPickerPanel.addEventListener("mousedown", (e) => { e.stopPropagation(); });
+      lunEmojiPickerPanel.addEventListener("touchstart", (e) => { e.stopPropagation(); }, { passive: true });
 
     renderEmojiGrid();
     document.body.appendChild(lunEmojiPickerPanel);
