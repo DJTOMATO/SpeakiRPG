@@ -700,6 +700,12 @@ function setFilterEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-filter-enabled", String(enabled));
 }
 
+var lunStreamerModeEnabled = (window.localStorage && localStorage.getItem("spkmod-streamer-mode")) !== "false";
+
+function setStreamerModeEnabled(enabled) {
+	lunStreamerModeEnabled = enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-streamer-mode", String(enabled));
+}
 var lunHideVerboseChat = (window.localStorage && localStorage.getItem("spkmod-hide-verbose-chat")) === "true";
 
 function setHideVerboseChat(enabled) {
@@ -4045,6 +4051,19 @@ document.body.appendChild(
 						checked: lunFilterEnabled,
 						onchange: e => {
 							setFilterEnabled(e.target.checked);
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.streamerModeToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("streamerModeToggleLabel") || "Streamer Mode (Disable Mod Music)"
+					}),
+					lunPanelElements.streamerModeToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunStreamerModeEnabled,
+						onchange: e => {
+							setStreamerModeEnabled(e.target.checked);
 						}
 					})
 				]),
@@ -7682,6 +7701,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunHudElements.footerMsg, t("footerMsg"));
 	setText(lunPanelElements.settingsHeader, t("settingsHeader"));
 	if (lunPanelElements.filterToggleLabel) setText(lunPanelElements.filterToggleLabel, t("filterToggleLabel"));
+	if (lunPanelElements.streamerModeToggleLabel) setText(lunPanelElements.streamerModeToggleLabel, t("streamerModeToggleLabel") || "Streamer Mode (Disable Mod Music)");
 	if (lunPanelElements.verboseChatToggleLabel) setText(lunPanelElements.verboseChatToggleLabel, t("hideVerboseChatToggleLabel") || "Hide Mod Chat Messages");
 	if (lunPanelElements.gmChatToggleLabel) setText(lunPanelElements.gmChatToggleLabel, t("gmChatToggleLabel"));
 	if (lunPanelElements.friendChatToggleLabel) setText(lunPanelElements.friendChatToggleLabel, t("friendChatToggleLabel"));
@@ -9726,21 +9746,67 @@ const californiaAudio = new Audio('https://raw.githubusercontent.com/DJTOMATO/Sp
 californiaAudio.volume = 0.5;
 window.isCaliforniaPlaying = false;
 
+window.__speakiGameAudioFaded = false;
+
+function fadeGameAudio(targetVolume) {
+	// Attempt generic media tags
+	document.querySelectorAll("audio, video").forEach(el => {
+		if (el === californiaAudio) return;
+		if (el.__speakiOrigVolume === undefined) el.__speakiOrigVolume = el.volume;
+		
+		// Simple fade (not truly async but acceptable for mod)
+		let currentVol = el.volume;
+		const step = targetVolume < currentVol ? -0.1 : 0.1;
+		const fadeInterval = setInterval(() => {
+			currentVol += step;
+			if ((step < 0 && currentVol <= targetVolume) || (step > 0 && currentVol >= targetVolume)) {
+				el.volume = targetVolume;
+				clearInterval(fadeInterval);
+			} else {
+				el.volume = Math.max(0, Math.min(1, currentVol));
+			}
+		}, 100);
+	});
+
+	// Attempt Howler if exists
+	if (typeof window.Howler !== "undefined") {
+		if (window.__speakiOrigHowlerVol === undefined) window.__speakiOrigHowlerVol = Howler.volume();
+		const tVol = targetVolume === 0 ? 0 : window.__speakiOrigHowlerVol;
+		let currentVol = Howler.volume();
+		const step = tVol < currentVol ? -0.1 : 0.1;
+		const fadeInterval = setInterval(() => {
+			currentVol += step;
+			if ((step < 0 && currentVol <= tVol) || (step > 0 && currentVol >= tVol)) {
+				Howler.volume(tVol);
+				clearInterval(fadeInterval);
+			} else {
+				Howler.volume(Math.max(0, Math.min(1, currentVol)));
+			}
+		}, 100);
+	}
+}
+
 californiaAudio.addEventListener('ended', () => {
     window.isCaliforniaPlaying = false;
+	fadeGameAudio(1.0); // Restore volume
 });
 californiaAudio.addEventListener('pause', () => {
 	// Fallback if paused externally
 	if (californiaAudio.currentTime === californiaAudio.duration) {
     	window.isCaliforniaPlaying = false;
+		fadeGameAudio(1.0); // Restore volume
 	}
 });
 
 window.playCaliforniaDance = function() {
+	if (lunStreamerModeEnabled) return; // Streamer mode disables copyright audio
+
     if (!window.isCaliforniaPlaying) {
         window.isCaliforniaPlaying = true;
         californiaAudio.currentTime = 0;
-        californiaAudio.play().catch(e => {
+        californiaAudio.play().then(() => {
+			fadeGameAudio(0.0); // Fade out game music while playing
+		}).catch(e => {
             console.warn("[SpeakiMod+] California Girls audio play failed (autoplay blocked?):", e);
             window.isCaliforniaPlaying = false;
         });
@@ -9750,6 +9816,8 @@ window.playCaliforniaDance = function() {
 window.californiaRemoteAnimStates = new Map();
 
 function checkRemoteCaliforniaDance() {
+	if (lunStreamerModeEnabled) return; // Streamer mode disables checking
+
 	if (!gameState || !gameState.remotePlayers || !gameState.remotePlayers.remotePlayers) return;
 	
 	gameState.remotePlayers.remotePlayers.forEach((player, id) => {
