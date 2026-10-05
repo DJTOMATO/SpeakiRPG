@@ -4546,12 +4546,14 @@ function renderEmojiGrid() {
         grid.style.cssText = "display: flex; flex-wrap: wrap; gap: 4px; flex-grow: 1; overflow-y: auto; align-content: flex-start;";
         lunEmojiPickerPanel.appendChild(grid);
         
-        headerWrap.addEventListener("mousedown", () => {
-            lunEmojiPickerPanel.style.bottom = "auto";
-        });
-        headerWrap.addEventListener("touchstart", () => {
-            lunEmojiPickerPanel.style.bottom = "auto";
-        }, { passive: true });
+        const fixEmojiPanelPos = () => {
+            if (lunEmojiPickerPanel.style.bottom !== "auto") {
+                lunEmojiPickerPanel.style.top = lunEmojiPickerPanel.getBoundingClientRect().top + "px";
+                lunEmojiPickerPanel.style.bottom = "auto";
+            }
+        };
+        headerWrap.addEventListener("mousedown", fixEmojiPanelPos);
+        headerWrap.addEventListener("touchstart", fixEmojiPanelPos, { passive: true });
 
         if (typeof makeDraggable === 'function') {
             makeDraggable(lunEmojiPickerPanel, [headerWrap]);
