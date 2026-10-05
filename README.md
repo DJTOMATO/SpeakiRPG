@@ -212,15 +212,15 @@ requires selecting the avatar again. Missing images
 fall back to the original initials. Per-player avatar choices are kept separate
 from the general settings export.
 
-On desktop, Apply writes to `emoji-avatars.json` in the application's user-data
-directory before confirming the selection. Clients without the desktop bridge
-use local browser storage.
+Choices are stored in the game's browser `localStorage`. The feature runs entirely
+in `SpeakiMod.js` and works with existing clients, without a new installer.
+Clearing the game's browser data also clears avatar choices.
 The avatar storage adapter has async `get(identity)` and `set(identity, emoji)`
 methods so a future authenticated service can replace local storage; this version
 does not provide a synchronization service.
 
-The MMO emoji `:jeremy:` is a 96×96 animated GIF with the full 35.96-second loop
-and transparency.
+The MMO emoji `:jeremy:` is a 96×96 animated GIF, trimmed to 10 seconds at 10 fps
+with transparency (about 250 KiB). Created by Jeremy and included with permission.
 
 ---
 

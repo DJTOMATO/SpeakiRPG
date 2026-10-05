@@ -50,7 +50,6 @@
     },
     "files": [
       "main.js",
-      "avatar-store.cjs",
       "preload.js",
       "index.html",
       "node_modules/**/*",

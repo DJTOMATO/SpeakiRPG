@@ -2,7 +2,6 @@ const { app, BrowserWindow, ipcMain, nativeImage, globalShortcut } = require('el
 const axios = require('axios');
 const path = require('path');
 const RPC = require('discord-rpc');
-const { createAvatarFileStore } = require('./avatar-store.cjs');
 const clientId = '861430403955949569';
 
 const rpc = new RPC.Client({ transport: 'ipc' });
@@ -22,23 +21,6 @@ async function fetchFavicon(url) {
 
 
 let mainWindow;
-let avatarStore;
-function checkAvatarSender(event) {
-  if (!mainWindow || event.sender !== mainWindow.webContents ||
-      event.senderFrame !== event.sender.mainFrame ||
-      new URL(event.senderFrame.url).origin !== 'https://speakirpg.overture.io.kr') {
-    throw new Error('Avatar preferences are only available to the game window');
-  }
-  avatarStore ??= createAvatarFileStore(path.join(app.getPath('userData'), 'emoji-avatars.json'));
-}
-ipcMain.handle('avatar-get', (event, identity) => {
-  checkAvatarSender(event);
-  return avatarStore.get(identity);
-});
-ipcMain.handle('avatar-set', (event, identity, emoji) => {
-  checkAvatarSender(event);
-  return avatarStore.set(identity, emoji);
-});
 let icon;
 let statsInterval = null;
 let statsTimeout = null;

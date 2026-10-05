@@ -4779,21 +4779,11 @@ function createSpeakiAvatarController({ document, store, getPlayer, getCatalog, 
 	return { sync, open, refreshCatalog() { renderPortrait(); refreshDialog(); } };
 }
 
-const spkmodLocalAvatarStore = createSpeakiAvatarStore({
+const spkmodAvatarStore = createSpeakiAvatarStore({
 	getItem: key => localStorage.getItem(key),
 	setItem: (key, value) => localStorage.setItem(key, value),
 	removeItem: key => localStorage.removeItem(key)
 });
-const spkmodAvatarStore = window.electronAPI?.avatars ? {
-	async get(identity) {
-		const saved = await window.electronAPI.avatars.get(identity);
-		return saved === undefined ? spkmodLocalAvatarStore.get(identity) : saved;
-	},
-	async set(identity, emoji) {
-		const saved = await window.electronAPI.avatars.set(identity, emoji);
-		if (saved?.pack !== emoji?.pack || saved?.name !== emoji?.name) throw new Error("Avatar was not saved");
-	}
-} : spkmodLocalAvatarStore;
 
 const spkmodAvatarController = createSpeakiAvatarController({
 	document,
