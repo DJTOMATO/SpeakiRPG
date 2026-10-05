@@ -2027,20 +2027,30 @@ function populateMinigameList() {
 				style: "margin-bottom: 4px;",
 				onclick: () => {
 					lunHudElements.eventModal.classList.add("hidden");
-					document.querySelectorAll('.sr-minigame-entry-dialog').forEach(p => {
+					
+					const currentPanels = Array.from(document.querySelectorAll('.sr-minigame-entry-dialog'));
+					let currentActiveIdx = -1;
+					if (typeof ACTIVE_MINIGAME_ID !== 'undefined' && ACTIVE_MINIGAME_ID && typeof gameState !== 'undefined' && gameState.minigameEntryDialogs) {
+						currentActiveIdx = gameState.minigameEntryDialogs.findIndex(d => d.def && d.def.gameKey === ACTIVE_MINIGAME_ID);
+					}
+					
+					let currentPanel = currentPanels[currentActiveIdx];
+					if (!currentPanel && currentPanels.length > 0) currentPanel = currentPanels[0];
+					if (!currentPanel) return;
+
+					currentPanels.forEach(p => {
 						p.style.display = 'none';
 						p.classList.remove('sr-panel--open');
 					});
-					panel.style.display = 'flex';
-					panel.classList.add('sr-panel--open');
-					panel.hidden = false;
-					panel.removeAttribute('aria-hidden');
-					panel.querySelectorAll('[class*="guide"], .sr-minigame-entry__guide').forEach(g => g.style.display = 'none');
-					const actions = Array.from(panel.querySelectorAll('.sr-minigame-entry__actions'));
-					if (actions[0]) actions[0].style.display = 'flex';
-					if (actions[1]) actions[1].style.display = 'none';
+					currentPanel.style.display = 'flex';
+					currentPanel.classList.add('sr-panel--open');
+					currentPanel.hidden = false;
+					currentPanel.removeAttribute('aria-hidden');
+					currentPanel.querySelectorAll('[class*="guide"], .sr-minigame-entry__guide').forEach(g => g.style.display = 'none');
+					
+					// Do not force overwrite the matching state buttons (actions), as this breaks the matchmaking UI when reopening!
 
-                    window.lunActiveMinigamePanel = panel;
+                    window.lunActiveMinigamePanel = currentPanel;
                     window.lunMinigameZoneStarted = typeof gameState !== "undefined" ? gameState.zoneId : null;
 
                     if (!window.lunMinigameCloseHooked) {
@@ -9748,13 +9758,14 @@ window.isCaliforniaPlaying = false;
 
 window.__speakiGameAudioFaded = false;
 
+window.__speakiOrigBgmVol = -1;
+
 function fadeGameAudio(targetVolume) {
-	// Attempt generic media tags
+	// 1. Attempt generic media tags
 	document.querySelectorAll("audio, video").forEach(el => {
 		if (el === californiaAudio) return;
 		if (el.__speakiOrigVolume === undefined) el.__speakiOrigVolume = el.volume;
 		
-		// Simple fade (not truly async but acceptable for mod)
 		let currentVol = el.volume;
 		const step = targetVolume < currentVol ? -0.1 : 0.1;
 		const fadeInterval = setInterval(() => {
@@ -9768,7 +9779,7 @@ function fadeGameAudio(targetVolume) {
 		}, 100);
 	});
 
-	// Attempt Howler if exists
+	// 2. Attempt Howler if exists
 	if (typeof window.Howler !== "undefined") {
 		if (window.__speakiOrigHowlerVol === undefined) window.__speakiOrigHowlerVol = Howler.volume();
 		const tVol = targetVolume === 0 ? 0 : window.__speakiOrigHowlerVol;
@@ -9783,6 +9794,41 @@ function fadeGameAudio(targetVolume) {
 				Howler.volume(Math.max(0, Math.min(1, currentVol)));
 			}
 		}, 100);
+	}
+
+	// 3. Attempt UI Slider Hack (most reliable for native game BGM if UI is mounted)
+	const rows = Array.from(document.querySelectorAll('.sr-panel__row'));
+	const bgmStrings = ["BGM", "배경음(BGM)", "背景音乐(BGM)", "背景音樂(BGM)", "BGM音量", "Music", "Música"];
+	const bgmRow = rows.find(r => bgmStrings.some(s => r.textContent.includes(s)));
+	if (bgmRow) {
+		const slider = bgmRow.querySelector('input[type="range"]');
+		if (slider) {
+			if (targetVolume === 0 && window.__speakiOrigBgmVol === -1) {
+				window.__speakiOrigBgmVol = parseInt(slider.value, 10);
+			}
+			if (targetVolume > 0 && window.__speakiOrigBgmVol === -1) {
+				window.__speakiOrigBgmVol = 50; // Fallback
+			}
+
+			const targetVal = targetVolume === 0 ? 0 : window.__speakiOrigBgmVol;
+			let currentVol = parseInt(slider.value, 10);
+			const step = targetVal < currentVol ? -5 : 5;
+			
+			if (window.__speakiBgmFadeInterval) clearInterval(window.__speakiBgmFadeInterval);
+			
+			window.__speakiBgmFadeInterval = setInterval(() => {
+				currentVol += step;
+				if ((step < 0 && currentVol <= targetVal) || (step > 0 && currentVol >= targetVal)) {
+					currentVol = targetVal;
+					clearInterval(window.__speakiBgmFadeInterval);
+					if (targetVolume > 0) window.__speakiOrigBgmVol = -1; // Reset memory
+				}
+				
+				slider.value = currentVol;
+				slider.dispatchEvent(new Event('input', { bubbles: true }));
+				slider.dispatchEvent(new Event('change', { bubbles: true }));
+			}, 50);
+		}
 	}
 }
 
