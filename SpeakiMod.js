@@ -9803,7 +9803,7 @@ if (typeof spkmodI18nRenderers !== 'undefined') {
 
 // --- California Girls Emote Audio (ID 555 placeholder) ---
 const californiaAudio = new Audio('https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/audio/girls.mp3');
-californiaAudio.volume = 0.25;
+californiaAudio.volume = 0.15;
 window.isCaliforniaPlaying = false;
 
 window.__speakiGameAudioFaded = false;
