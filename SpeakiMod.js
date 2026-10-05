@@ -9824,7 +9824,9 @@ function fadeGameAudio(targetVolume) {
 					if (targetVolume > 0) window.__speakiOrigBgmVol = -1; // Reset memory
 				}
 				
-				slider.value = currentVol;
+				// Bypass React/Vue virtual DOM interception
+				const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+				nativeInputValueSetter.call(slider, currentVol);
 				slider.dispatchEvent(new Event('input', { bubbles: true }));
 				slider.dispatchEvent(new Event('change', { bubbles: true }));
 			}, 50);
