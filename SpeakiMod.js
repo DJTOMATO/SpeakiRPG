@@ -8097,7 +8097,7 @@ function tick() {
 		trueGainedThisFrame = (window.lunExpTrackerLastMaxExp - window.lunExpTrackerLastRawExp) + playerExp;
 	}
 	
-	if (trueGainedThisFrame > 3000) {
+	if (trueGainedThisFrame > 50000) {
 		window.lunExpTrackerIgnoredExp = (window.lunExpTrackerIgnoredExp || 0) + trueGainedThisFrame;
 	}
 
