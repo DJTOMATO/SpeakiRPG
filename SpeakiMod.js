@@ -2033,6 +2033,21 @@ function populateMinigameList() {
 					const actions = Array.from(panel.querySelectorAll('.sr-minigame-entry__actions'));
 					if (actions[0]) actions[0].style.display = 'flex';
 					if (actions[1]) actions[1].style.display = 'none';
+
+                    window.lunActiveMinigamePanel = panel;
+                    window.lunMinigameZoneStarted = typeof gameState !== "undefined" ? gameState.zoneId : null;
+
+                    if (!window.lunMinigameCloseHooked) {
+                        window.lunMinigameCloseHooked = true;
+                        document.addEventListener('click', (e) => {
+                            if (e.target.closest('.sr-panel__close') && e.target.closest('.sr-minigame-entry-dialog')) {
+                                const p = e.target.closest('.sr-minigame-entry-dialog');
+                                p.style.display = '';
+                                p.classList.remove('sr-panel--open');
+                                window.lunActiveMinigamePanel = null;
+                            }
+                        });
+                    }
 				}
 			}));
 		});
@@ -7976,6 +7991,13 @@ function tick() {
 		window._lunSessionStartTime = Date.now();
 	}
 	var zoneId = gameState.zoneId % 10000;
+    
+    if (window.lunActiveMinigamePanel && gameState.zoneId !== window.lunMinigameZoneStarted) {
+        window.lunActiveMinigamePanel.style.display = '';
+        window.lunActiveMinigamePanel.classList.remove('sr-panel--open');
+        window.lunActiveMinigamePanel = null;
+    }
+
 	var windowSec = lunExpIntervalMinutes * 60;
 	var windowTicks = windowSec * lunTPS;
 
