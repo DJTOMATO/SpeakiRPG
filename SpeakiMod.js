@@ -5762,7 +5762,7 @@ window.spkmodTriggerFlyEveryone = () => window.spkmodCycleEffect('fly', spkmodPl
 window.spkmodReviveAll = function() {
 	let count = 0;
 	
-	const reviveCtrl = (controller) => {
+	const reviveCtrl = (controller, player) => {
 		if (!controller || !lunDeathLocks.has(controller)) return;
 		lunDeathLocks.delete(controller);
 		try {
@@ -5770,6 +5770,27 @@ window.spkmodReviveAll = function() {
 			else if (typeof controller.revive === 'function') controller.revive();
 			else if (typeof controller.reset === 'function') controller.reset();
 			
+			if (typeof controller.forceReleasePoseHold === 'function') controller.forceReleasePoseHold();
+
+			if (player) {
+				const animState = player.animState ?? 0;
+				const mountDriverId = player.mountDriverId ?? 0;
+
+				if (animState === 3 && typeof controller.playStageDance === 'function') controller.playStageDance();
+				else if (animState === 6 && typeof controller.playFreeDance === 'function') controller.playFreeDance();
+				else if (animState === 1 && typeof controller.playReturnCastDance === 'function') controller.playReturnCastDance();
+				else if (animState === 2 && typeof controller.enterAffectionHold === 'function') controller.enterAffectionHold();
+				else if (animState === 4 && typeof controller.enterEmoteIdle === 'function') controller.enterEmoteIdle();
+				else if (animState === 5 && typeof controller.enterFallDownHold === 'function') controller.enterFallDownHold();
+				else if (animState === 7 && typeof controller.playReviveDance === 'function') controller.playReviveDance();
+
+				if (mountDriverId && mountDriverId !== 0 && typeof controller.enterMountPose === 'function') {
+					const mountItemId = player.mountItemId ?? 0;
+					const mountSeatIndex = player.mountSeatIndex ?? 0;
+					controller.enterMountPose([mountDriverId, mountItemId, mountSeatIndex]);
+				}
+			}
+
 			const state = lunDeathControllerStates.get(controller);
 			if (state && typeof state.originalSetLocomotion === 'function') {
 				state.originalSetLocomotion.call(controller, false);
@@ -5803,11 +5824,11 @@ window.spkmodReviveAll = function() {
 	}
 
 	if (typeof gameState !== "undefined") {
-		if (gameState.localAvatar?.animationController) reviveCtrl(gameState.localAvatar?.animationController);
+		if (gameState.localAvatar?.animationController) reviveCtrl(gameState.localAvatar?.animationController, null);
 		if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
 			for (const player of gameState.remotePlayers.remotePlayers.values()) {
 				const ctrl = player?.avatar?.animationController || player?.container?.controller;
-				if (ctrl) reviveCtrl(ctrl);
+				if (ctrl) reviveCtrl(ctrl, player);
 			}
 		}
 	}
