@@ -12,7 +12,7 @@
         "avatarEmpty": "No matching emojis. The list may still be loading.",
         "avatarUnavailable": "This image is unavailable. Choose another emoji or use initials.",
         "avatarSaveError": "Could not save your avatar. Please try again.",
-        "header": "SpeakiMod+ v1.9.86",
+        "header": "SpeakiMod+ v1.9.87",
         "playersNearby": "Speaki nearby: {0}",
         "zoneId": "Zone ID: {0}",
         "expPerMinute": "{0} EXP/min",
@@ -372,7 +372,7 @@
         "emojiCooldownWait": "Please wait {0}s before sending another emoji.",
         "emojiCooldownStripped": "Emojis removed from message (on cooldown).",
         "emojiWarning": "⚠️ Please don’t abuse this feature, or you might get sent to the weekend farm.",
-        "emojiTabTrickcal": "Trickcal",
+        "emojiTabTrickcal": "Trick 1",
         "panelLeftToggleLabel": "HUD Buttons on Left",
         "mentionPingToggleLabel": "Mention Ping Sound",
         "channelTrackerToggleLabel": "Show Channel Player Counts",
@@ -407,7 +407,7 @@
         "aFaintOff": "Situps: ▶️",
         "separatePanel": "Separate Action Panel (Mobile)",
         "hidePlayerLevelsLabel": "Hide Player Levels",
-        "emojiTabTrickcal2": "Trickcal 2",
+        "emojiTabTrickcal2": "Trick 2",
         "decalogue": {
             "title": "Decalogue of a Good Speaki",
             "desc": "Please read the following rules carefully before playing:",
@@ -437,7 +437,7 @@
         "avatarEmpty": "一致する絵文字がありません。読み込み中の場合もあります。",
         "avatarUnavailable": "画像を読み込めません。別の絵文字か頭文字を選んでください。",
         "avatarSaveError": "アイコンを保存できませんでした。もう一度お試しください。",
-        "header": "SpeakiMod+ v1.9.86",
+        "header": "SpeakiMod+ v1.9.87",
         "credits": "• 原作ゲーム: EPID Games\n• Speaki MMO 開発: GMDT\n• クライアント＆SpeakiMod+コーディング: Glas\n• SpeakiMod原作者: Alluseri\n• 日本語翻訳: JPN_健全なエルフ名15T\n\n使用ファンアート：\nUI背景への作品使用を許可してくださったアーティストの皆様に心より感謝申し上げます！\n- 느그 유노(Yuno)",
         "for_memo_jp_1": "🔽window_main🔽",
         "playersNearby": "近くのｽﾋﾟｷ数: {0}",
@@ -765,7 +765,7 @@
         "outgoingTranslateFailed": "メッセージの翻訳に失敗しました: {0}",
         "emojiTabStandard": "標準",
         "emojiTabCustom": "MMO",
-        "emojiTabTrickcal": "Trickcal",
+        "emojiTabTrickcal": "Trick 1",
         "emojiCooldownWait": "次の絵文字を送信するまで {0} 秒お待ちください。",
         "emojiCooldownStripped": "クールダウン中のため、メッセージから絵文字が削除されました。",
         "emojiWarning": "⚠️ この機能を悪用しないでください。週末農場送りにされるかもしれません。",
@@ -861,7 +861,7 @@
         "separatePanel": "アクションパネルを分離 (モバイル)",
         "hidePlayerLevelsLabel": "プレイヤーレベルを非表示",
         "streamerModeToggleLabel": "ストリーマーモード (モッドの音楽を無効化)",
-        "emojiTabTrickcal2": "Trickcal 2",
+        "emojiTabTrickcal2": "Trick 2",
         "decalogue": {
             "title": "良きスピーキーの十戒",
             "desc": "プレイする前に、以下のルールをよくお読みください：",
@@ -891,7 +891,7 @@
         "avatarEmpty": "일치하는 이모지가 없습니다. 목록을 불러오는 중일 수 있습니다.",
         "avatarUnavailable": "이미지를 불러올 수 없습니다. 다른 이모지나 이름 첫 글자를 선택하세요.",
         "avatarSaveError": "프로필 이미지를 저장하지 못했습니다. 다시 시도해 주세요.",
-        "header": "SpeakiMod+ v1.9.86",
+        "header": "SpeakiMod+ v1.9.87",
         "playersNearby": "근처 스피키: {0}",
         "zoneId": "존 ID: {0}",
         "expPerMinute": "{0} EXP/분",
@@ -1286,7 +1286,7 @@
         "separatePanel": "액션 패널 분리 (모바일)",
         "hidePlayerLevelsLabel": "플레이어 레벨 숨기기",
         "streamerModeToggleLabel": "스트리머 모드 (모드 음악 비활성화)",
-        "emojiTabTrickcal2": "Trickcal 2",
+        "emojiTabTrickcal2": "Trick 2",
         "decalogue": {
             "title": "훌륭한 스피키의 십계명",
             "desc": "플레이하기 전에 다음 규칙을 주의 깊게 읽어주세요:",
@@ -1316,7 +1316,7 @@
         "avatarEmpty": "沒有符合的表情，或清單仍在載入中。",
         "avatarUnavailable": "無法載入圖片，請選擇其他表情或恢復名字首字。",
         "avatarSaveError": "無法儲存頭貼，請重試。",
-        "header": "SpeakiMod+ v1.9.86",
+        "header": "SpeakiMod+ v1.9.87",
         "playersNearby": "附近的斯皮奇: {0}",
         "zoneId": "區域 ID: {0}",
         "expPerMinute": "{0} 經驗值/每分鐘",
@@ -1675,7 +1675,7 @@
         "emojiCooldownWait": "請等待 {0} 秒後再發送表情。",
         "emojiCooldownStripped": "由於冷卻時間，已從訊息中移除表情。",
         "emojiWarning": "⚠️ 請勿濫用此功能，否則你可能會被送到週末農場。",
-        "emojiTabTrickcal": "Trickcal",
+        "emojiTabTrickcal": "Trick 1",
         "panelLeftToggleLabel": "HUD 按鈕靠左顯示",
         "mentionPingToggleLabel": "提及提示音",
         "channelTrackerToggleLabel": "Show Channel Player Counts",
@@ -1711,7 +1711,7 @@
         "separatePanel": "分離動作面板 (手機)",
         "hidePlayerLevelsLabel": "隱藏玩家等級",
         "streamerModeToggleLabel": "實況主模式 (停用模組音樂)",
-        "emojiTabTrickcal2": "Trickcal 2"
+        "emojiTabTrickcal2": "Trick 2"
     },
     "es-419": {
         "langName": "Español",
@@ -1726,7 +1726,7 @@
         "avatarEmpty": "No hay emojis coincidentes. La lista puede estar cargando.",
         "avatarUnavailable": "Imagen no disponible. Elige otro emoji o usa la inicial.",
         "avatarSaveError": "No se pudo guardar el avatar. Inténtalo de nuevo.",
-        "header": "SpeakiMod+ v1.9.86",
+        "header": "SpeakiMod+ v1.9.87",
         "playersNearby": "Speaki cercanos: {0}",
         "zoneId": "ID de zona: {0}",
         "expPerMinute": "{0} EXP/min",
@@ -2085,7 +2085,7 @@
         "emojiCooldownWait": "Por favor espera {0}s antes de enviar otro emoji.",
         "emojiCooldownStripped": "Emojis eliminados del mensaje (en enfriamiento).",
         "emojiWarning": "⚠️ Por favor no abuses de esta función, o podrías terminar en la granja de fin de semana.",
-        "emojiTabTrickcal": "Trickcal",
+        "emojiTabTrickcal": "Trick 1",
         "panelLeftToggleLabel": "Botones del HUD a la Izquierda",
         "mentionPingToggleLabel": "Sonido de Mención",
         "channelTrackerToggleLabel": "Show Channel Player Counts",
@@ -2121,7 +2121,7 @@
         "separatePanel": "Separar Panel de Acciones (Móvil)",
         "hidePlayerLevelsLabel": "Ocultar Niveles de Jugadores",
         "streamerModeToggleLabel": "Modo Streamer (Desactivar Música del Mod)",
-        "emojiTabTrickcal2": "Trickcal 2"
+        "emojiTabTrickcal2": "Trick 2"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -2136,7 +2136,7 @@
         "avatarEmpty": "没有匹配的表情，或列表仍在加载中。",
         "avatarUnavailable": "无法加载图片，请选择其他表情或恢复名字首字。",
         "avatarSaveError": "无法保存头像，请重试。",
-        "header": "SpeakiMod+ v1.9.86",
+        "header": "SpeakiMod+ v1.9.87",
         "playersNearby": "附近的斯皮奇: {0}",
         "zoneId": "区域 ID: {0}",
         "expPerMinute": "{0} 经验值/每分钟",
@@ -2495,7 +2495,7 @@
         "emojiCooldownWait": "请等待 {0} 秒后再发送表情。",
         "emojiCooldownStripped": "由于冷却时间，已从消息中移除表情。",
         "emojiWarning": "⚠️ 请勿滥用此功能，否则你可能会被送到周末农场。",
-        "emojiTabTrickcal": "Trickcal",
+        "emojiTabTrickcal": "Trick 1",
         "panelLeftToggleLabel": "HUD 按钮靠左显示",
         "mentionPingToggleLabel": "提及提示音",
         "channelTrackerToggleLabel": "Show Channel Player Counts",
@@ -2531,7 +2531,7 @@
         "separatePanel": "分离动作面板 (手机)",
         "hidePlayerLevelsLabel": "隐藏玩家等级",
         "streamerModeToggleLabel": "主播模式 (禁用模组音乐)",
-        "emojiTabTrickcal2": "Trickcal 2"
+        "emojiTabTrickcal2": "Trick 2"
     },
     "zh": {
         "decalogue": {
