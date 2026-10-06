@@ -2497,8 +2497,10 @@ function updateStatsModalLive() {
 	const curGold = lunLastGold ?? 0;
 	const curElif = lunLastElif ?? 0;
 	const curSpkCoin = lunLastSpkCoin ?? 0;
+	// Deprecated as event is over | 🟣 ${curSpkCoin.toLocaleString()}
 	if (statsModalElements.currencyBalancesVal) {
-		statsModalElements.currencyBalancesVal.innerText = `💰 ${curGold.toLocaleString()} | 💎 ${curElif.toLocaleString()} | 🟣 ${curSpkCoin.toLocaleString()}`;
+		
+		statsModalElements.currencyBalancesVal.innerText = `💰 ${curGold.toLocaleString()} | 💎 ${curElif.toLocaleString()}`;
 	}
 
 	if (lunSessionStartGold === null && lunLastGold !== null) {
@@ -3936,6 +3938,17 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "🎮",
+					title: t("eventInfoBtnTooltip"),
+					onclick: () => {
+						lunHudElements.eventModal.classList.add("hidden");
+						window.gameState.onMinigameNpcInteract();
+					}
+				}),
+				lunPanelElements.eventBtn = buildElement("button", {
+					id: "spkmod-event-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					innerText: "🎉",
 					title: t("eventInfoBtnTooltip"),
 					onclick: _ => {
 						toggleEventModal();
