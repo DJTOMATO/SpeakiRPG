@@ -12,7 +12,7 @@
         "avatarEmpty": "No matching emojis. The list may still be loading.",
         "avatarUnavailable": "This image is unavailable. Choose another emoji or use initials.",
         "avatarSaveError": "Could not save your avatar. Please try again.",
-        "header": "SpeakiMod+ v1.9.85",
+        "header": "SpeakiMod+ v1.9.86",
         "playersNearby": "Speaki nearby: {0}",
         "zoneId": "Zone ID: {0}",
         "expPerMinute": "{0} EXP/min",
@@ -407,7 +407,22 @@
         "aFaintOff": "Situps: ▶️",
         "separatePanel": "Separate Action Panel (Mobile)",
         "hidePlayerLevelsLabel": "Hide Player Levels",
-        "emojiTabTrickcal2": "Trickcal 2"
+        "emojiTabTrickcal2": "Trickcal 2",
+        "decalogue": {
+            "title": "Decalogue of a Good Speaki",
+            "desc": "Please read the following rules carefully before playing:",
+            "rules": [
+                "1. Start a new game.",
+                "2. Any cheating software directly related to hunting will result in a permanent ban. This is because all other players are playing manually.",
+                "3. To be precise, it refers to the use of external tools ‘related to hunting.’ If this is a misunderstanding, we can try to discuss it further. Gamepads are not supported in this game.",
+                "4. I understand what you're saying, but the lack of an auto-target feature is a key feature of this game. Other players are controlling their characters manually. Please start a new game.",
+                "5. If I find a bug or exploit in this mod, I will report it to the developers rather than abusing it for personal gain.",
+                "6. Mod Responsibly: I will only use approved features in this mod and will not attempt to edit, alter, or add features that will give me an advantage in anyway or another.",
+                "7. No Abuse: I will not intentionally use certain features of the mod to affect other players’ gameplay experience, such as continuously following a specific player and interfering with their hunting."
+            ],
+            "checkbox": "I confirm I have read this and hereby promise to be a top speaki.",
+            "proceed": "PROCEED"
+        }
     },
     "ja": {
         "langName": "日本語",
@@ -422,7 +437,7 @@
         "avatarEmpty": "一致する絵文字がありません。読み込み中の場合もあります。",
         "avatarUnavailable": "画像を読み込めません。別の絵文字か頭文字を選んでください。",
         "avatarSaveError": "アイコンを保存できませんでした。もう一度お試しください。",
-        "header": "SpeakiMod+ v1.9.85",
+        "header": "SpeakiMod+ v1.9.86",
         "credits": "• 原作ゲーム: EPID Games\n• Speaki MMO 開発: GMDT\n• クライアント＆SpeakiMod+コーディング: Glas\n• SpeakiMod原作者: Alluseri\n• 日本語翻訳: JPN_健全なエルフ名15T\n\n使用ファンアート：\nUI背景への作品使用を許可してくださったアーティストの皆様に心より感謝申し上げます！\n- 느그 유노(Yuno)",
         "for_memo_jp_1": "🔽window_main🔽",
         "playersNearby": "近くのｽﾋﾟｷ数: {0}",
@@ -846,7 +861,22 @@
         "separatePanel": "アクションパネルを分離 (モバイル)",
         "hidePlayerLevelsLabel": "プレイヤーレベルを非表示",
         "streamerModeToggleLabel": "ストリーマーモード (モッドの音楽を無効化)",
-        "emojiTabTrickcal2": "Trickcal 2"
+        "emojiTabTrickcal2": "Trickcal 2",
+        "decalogue": {
+            "title": "良きスピーキーの十戒",
+            "desc": "プレイする前に、以下のルールをよくお読みください：",
+            "rules": [
+                "1. ゲームを新しく開始してください。",
+                "2. 狩りに直結するすべての不正プログラムは永久制限の対象となります。他のプレイヤーはすべて手動で操作しているためです。",
+                "3. 正確には「狩りに関連する」外部ツールの使用を指します。もしこれが誤解であれば、もう少し話し合うことができます。ゲームパッドはこのゲームではサポートされていません。",
+                "4. 何をおっしゃっているかは理解していますが、自動ターゲティング機能がないのがこのゲームの特徴です。他のプレイヤーは手動でキャラクターを操作しています。新しいゲームを開始してください。",
+                "5. このMODでバグや悪用可能な要素を発見した場合は、個人的な利益のために悪用するのではなく、開発者に報告します。",
+                "6. 責任あるMODの使用: 私はこのMODで承認された機能のみを使用し、いかなる方法でも自分に有利になるような機能を編集、変更、または追加しようとはしません。",
+                "7. 悪用禁止: 特定のプレイヤーを執拗に追いかけたり、他のプレイヤーの狩りを妨害するなど、他のプレイヤーのゲームプレイ体験に影響を与えるために、このMODの特定の機能を意図的に使用することはありません。"
+            ],
+            "checkbox": "私はこれを読んだことを確認し、トップのスピーキーになることを誓います。",
+            "proceed": "進む"
+        }
     },
     "ko": {
         "langName": "한국어",
@@ -861,7 +891,7 @@
         "avatarEmpty": "일치하는 이모지가 없습니다. 목록을 불러오는 중일 수 있습니다.",
         "avatarUnavailable": "이미지를 불러올 수 없습니다. 다른 이모지나 이름 첫 글자를 선택하세요.",
         "avatarSaveError": "프로필 이미지를 저장하지 못했습니다. 다시 시도해 주세요.",
-        "header": "SpeakiMod+ v1.9.85",
+        "header": "SpeakiMod+ v1.9.86",
         "playersNearby": "근처 스피키: {0}",
         "zoneId": "존 ID: {0}",
         "expPerMinute": "{0} EXP/분",
@@ -1256,7 +1286,22 @@
         "separatePanel": "액션 패널 분리 (모바일)",
         "hidePlayerLevelsLabel": "플레이어 레벨 숨기기",
         "streamerModeToggleLabel": "스트리머 모드 (모드 음악 비활성화)",
-        "emojiTabTrickcal2": "Trickcal 2"
+        "emojiTabTrickcal2": "Trickcal 2",
+        "decalogue": {
+            "title": "훌륭한 스피키의 십계명",
+            "desc": "플레이하기 전에 다음 규칙을 주의 깊게 읽어주세요:",
+            "rules": [
+                "1. 게임을 새롭게 시작하세요.",
+                "2. 사냥과 직결된 모든 부정 프로그램은 영구 제한 대상입니다. 다른 유저는 모두 손으로 하고 있기 때문입니다.",
+                "3. 정확히는 '사냥과 관련된' 외부 도구 사용입니다. 만약, 이것이 오해라면, 우리는 대화를 좀 더 시도해볼 수 있습니다. 게임패드는 이 게임에서 지원되지 않습니다.",
+                "4. 무슨 이야기를 하시는지 이해하고 있지만, 자동 타겟팅 기능이 없는 것이 이 게임의 특징입니다. 다른 유저들은 수동으로 캐릭터를 조작하고 있습니다. 새로운 게임을 시작해 주세요.",
+                "5. 이 모드에서 버그나 악용 가능한 요소를 발견하면, 개인적인 이득을 위해 남용하지 않고 개발자에게 신고하겠습니다.",
+                "6. 책임감 있는 모드 사용: 나는 이 모드에서 승인된 기능만 사용할 것이며, 어떤 방식이든 나에게 유리함을 줄 수 있는 기능을 수정, 변경 또는 추가하려고 시도하지 않을 것입니다.",
+                "7. 악용 금지: 특정 플레이어를 계속 따라다니거나 다른 플레이어의 사냥을 방해하는 등, 다른 플레이어의 게임 플레이 경험에 영향을 미치기 위해 이 모드의 특정 기능을 의도적으로 사용하지 않겠습니다."
+            ],
+            "checkbox": "나는 이것을 읽었음을 확인하며, 최고의 스피키가 될 것을 맹세합니다.",
+            "proceed": "계속하기"
+        }
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -1271,7 +1316,7 @@
         "avatarEmpty": "沒有符合的表情，或清單仍在載入中。",
         "avatarUnavailable": "無法載入圖片，請選擇其他表情或恢復名字首字。",
         "avatarSaveError": "無法儲存頭貼，請重試。",
-        "header": "SpeakiMod+ v1.9.85",
+        "header": "SpeakiMod+ v1.9.86",
         "playersNearby": "附近的斯皮奇: {0}",
         "zoneId": "區域 ID: {0}",
         "expPerMinute": "{0} 經驗值/每分鐘",
@@ -1681,7 +1726,7 @@
         "avatarEmpty": "No hay emojis coincidentes. La lista puede estar cargando.",
         "avatarUnavailable": "Imagen no disponible. Elige otro emoji o usa la inicial.",
         "avatarSaveError": "No se pudo guardar el avatar. Inténtalo de nuevo.",
-        "header": "SpeakiMod+ v1.9.85",
+        "header": "SpeakiMod+ v1.9.86",
         "playersNearby": "Speaki cercanos: {0}",
         "zoneId": "ID de zona: {0}",
         "expPerMinute": "{0} EXP/min",
@@ -2091,7 +2136,7 @@
         "avatarEmpty": "没有匹配的表情，或列表仍在加载中。",
         "avatarUnavailable": "无法加载图片，请选择其他表情或恢复名字首字。",
         "avatarSaveError": "无法保存头像，请重试。",
-        "header": "SpeakiMod+ v1.9.85",
+        "header": "SpeakiMod+ v1.9.86",
         "playersNearby": "附近的斯皮奇: {0}",
         "zoneId": "区域 ID: {0}",
         "expPerMinute": "{0} 经验值/每分钟",
@@ -2487,5 +2532,22 @@
         "hidePlayerLevelsLabel": "隐藏玩家等级",
         "streamerModeToggleLabel": "主播模式 (禁用模组音乐)",
         "emojiTabTrickcal2": "Trickcal 2"
+    },
+    "zh": {
+        "decalogue": {
+            "title": "优秀Speaki十诫",
+            "desc": "在游玩之前，请仔细阅读以下规则：",
+            "rules": [
+                "1. 开始新游戏。",
+                "2. 任何与狩猎直接相关的作弊软件都将导致永久封禁。这是因为所有其他玩家都在手动游玩。",
+                "3. 准确地说，它指的是使用与‘狩猎相关’的外部工具。如果这是一个误会，我们可以尝试进一步讨论。本游戏不支持手柄。",
+                "4. 我理解你的意思，但缺乏自动锁定功能是本游戏的一大特色。其他玩家都在手动控制他们的角色。请开始新游戏。",
+                "5. 如果我在本模组中发现漏洞或可利用之处，我会向开发者报告，而不是为了个人利益滥用它。",
+                "6. 负责任地使用模组：我将只使用本模组中批准的功能，并且不会尝试编辑、更改或添加任何会给我带来优势的功能。",
+                "7. 禁止滥用：我不会故意使用模组的某些功能来影响其他玩家的游戏体验，例如持续跟随特定玩家并干扰其他玩家的狩猎。"
+            ],
+            "checkbox": "我确认我已经阅读了此内容，并在此承诺成为一名顶尖的Speaki。",
+            "proceed": "继续"
+        }
     }
 }

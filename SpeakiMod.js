@@ -5116,6 +5116,108 @@ if (document.getElementById("spkmod-panel")) {
 }
 
 
+window.checkDecalogueToS = function() {
+    if (!window.localStorage) return;
+    if (localStorage.getItem("spkmod-tosread") === "true") return;
+
+    // Remove old ToS if any
+    const existing = document.getElementById("spkmod-decalogue-tos");
+    if (existing) existing.remove();
+
+    const lang = (typeof spkmodLang !== 'undefined') ? spkmodLang : 'en';
+    let t = null;
+    if (typeof spkmodTranslations !== 'undefined' && spkmodTranslations[lang] && spkmodTranslations[lang].decalogue) {
+        t = spkmodTranslations[lang].decalogue;
+    } else if (typeof spkmodTranslations !== 'undefined' && spkmodTranslations['en'] && spkmodTranslations['en'].decalogue) {
+        t = spkmodTranslations['en'].decalogue;
+    }
+
+    if (!t) {
+        // Translations not loaded yet, retry shortly
+        setTimeout(window.checkDecalogueToS, 500);
+        return;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.id = "spkmod-decalogue-tos";
+    overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.95); z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; color: white;";
+
+    const content = document.createElement("div");
+    content.style.cssText = "background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);";
+
+    const title = document.createElement("h1");
+    title.innerText = t.title;
+    title.style.cssText = "margin: 0; font-size: 24px; color: #facc15; text-align: center; border-bottom: 1px solid #334155; padding-bottom: 12px;";
+    content.appendChild(title);
+
+    const img = document.createElement("img");
+	img.src = "https://i.imgur.com/znG7SZf.png";
+    img.style.cssText = "width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; border: 1px solid #334155;";
+    content.appendChild(img);
+
+    const desc = document.createElement("p");
+    desc.innerText = t.desc;
+    desc.style.cssText = "margin: 0; font-size: 16px; font-weight: bold; color: #cbd5e1;";
+    content.appendChild(desc);
+
+    const ruleList = document.createElement("ul");
+    ruleList.style.cssText = "margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; color: #e2e8f0; font-size: 14.5px;";
+    
+    t.rules.forEach(rText => {
+        const li = document.createElement("li");
+        li.innerText = rText;
+        ruleList.appendChild(li);
+    });
+    content.appendChild(ruleList);
+
+    const checkboxContainer = document.createElement("label");
+    checkboxContainer.style.cssText = "display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: pointer; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid #475569;";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.style.cssText = "width: 20px; height: 20px; cursor: pointer;";
+
+    const checkText = document.createElement("span");
+    checkText.innerText = t.checkbox;
+    checkText.style.cssText = "font-size: 15px; font-weight: bold; color: #f8fafc;";
+    
+    checkboxContainer.appendChild(checkbox);
+    checkboxContainer.appendChild(checkText);
+    content.appendChild(checkboxContainer);
+
+    const proceedBtn = document.createElement("button");
+    proceedBtn.innerText = t.proceed;
+    proceedBtn.disabled = true;
+    proceedBtn.style.cssText = "padding: 12px; font-size: 18px; font-weight: bold; color: white; background: #475569; border: none; border-radius: 8px; cursor: not-allowed; transition: all 0.2s; margin-top: 8px;";
+
+    checkbox.addEventListener("change", (e) => {
+        if (e.target.checked) {
+            proceedBtn.disabled = false;
+            proceedBtn.style.background = "#f97316";
+            proceedBtn.style.cursor = "pointer";
+        } else {
+            proceedBtn.disabled = true;
+            proceedBtn.style.background = "#475569";
+            proceedBtn.style.cursor = "not-allowed";
+        }
+    });
+
+    proceedBtn.addEventListener("click", () => {
+        if (!checkbox.checked) return;
+        localStorage.setItem("spkmod-tosread", "true");
+        overlay.remove();
+    });
+
+    content.appendChild(proceedBtn);
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+};
+
+// Check shortly after load to ensure body exists
+setTimeout(window.checkDecalogueToS, 500);
+
+
+
 const lunJumpAnimMs = 500;
 
 const lunFaintAnimMs = 1200;
@@ -5558,9 +5660,7 @@ function executeGamepadAction(actionName) {
 			break;
 		case "attack":
 			if (typeof gameState.tryUsePortal === "function") gameState.tryUsePortal();
-			if (!gameState.targetMonsterId || gameState.targetMonsterId <= 0) {
-				findBestTarget(false);
-			}
+
 			gameState.combatAssist.autoAttackActive = true;
 			break;
 		case "skill1":
@@ -5591,7 +5691,7 @@ function executeGamepadAction(actionName) {
 			if (gameState.tryUsePotion) gameState.tryUsePotion();
 			break;
 		case "target":
-			findBestTarget(true);
+
 			break;
 		case "beyblade":
 			window.BeyBladeActive = !window.BeyBladeActive;
