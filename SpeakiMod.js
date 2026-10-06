@@ -5116,7 +5116,7 @@ if (document.getElementById("spkmod-panel")) {
 }
 
 
-window.checkDecalogueToS = function() {
+window.checkDecalogueToS = function(forceLang) {
     if (!window.localStorage) return;
     if (localStorage.getItem("spkmod-tosread") === "true") return;
 
@@ -5124,7 +5124,12 @@ window.checkDecalogueToS = function() {
     const existing = document.getElementById("spkmod-decalogue-tos");
     if (existing) existing.remove();
 
-    const lang = (typeof spkmodLang !== 'undefined') ? spkmodLang : 'en';
+    let lang = forceLang;
+    if (!lang) {
+        lang = (typeof spkmodLang !== 'undefined') ? spkmodLang : 'en';
+        if (typeof window.lunCurrentLang !== 'undefined') lang = window.lunCurrentLang;
+    }
+
     let t = null;
     if (typeof spkmodTranslations !== 'undefined' && spkmodTranslations[lang] && spkmodTranslations[lang].decalogue) {
         t = spkmodTranslations[lang].decalogue;
@@ -5134,7 +5139,7 @@ window.checkDecalogueToS = function() {
 
     if (!t) {
         // Translations not loaded yet, retry shortly
-        setTimeout(window.checkDecalogueToS, 500);
+        setTimeout(() => window.checkDecalogueToS(forceLang), 500);
         return;
     }
 
@@ -5145,13 +5150,34 @@ window.checkDecalogueToS = function() {
     const content = document.createElement("div");
     content.style.cssText = "background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);";
 
+    const langRow = document.createElement("div");
+    langRow.style.cssText = "display: flex; gap: 8px; justify-content: center; margin-bottom: 4px;";
+    
+    const langs = [
+        { code: 'en', label: 'English' },
+        { code: 'ko', label: '한국어' },
+        { code: 'ja', label: '日本語' },
+        { code: 'zh', label: '中文' }
+    ];
+
+    langs.forEach(l => {
+        const btn = document.createElement("button");
+        btn.innerText = l.label;
+        btn.style.cssText = `padding: 6px 12px; font-weight: bold; border-radius: 6px; border: 1px solid #475569; background: ${lang === l.code ? '#3b82f6' : '#0f172a'}; color: white; cursor: pointer; transition: 0.2s;`;
+        btn.onmouseover = () => { if (lang !== l.code) btn.style.background = '#1e293b'; };
+        btn.onmouseleave = () => { if (lang !== l.code) btn.style.background = '#0f172a'; };
+        btn.onclick = () => window.checkDecalogueToS(l.code);
+        langRow.appendChild(btn);
+    });
+    content.appendChild(langRow);
+
     const title = document.createElement("h1");
     title.innerText = t.title;
     title.style.cssText = "margin: 0; font-size: 24px; color: #facc15; text-align: center; border-bottom: 1px solid #334155; padding-bottom: 12px;";
     content.appendChild(title);
 
     const img = document.createElement("img");
-	img.src = "https://i.imgur.com/znG7SZf.png";
+    img.src = "https://i.imgur.com/znG7SZf.png";
     img.style.cssText = "width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; border: 1px solid #334155;";
     content.appendChild(img);
 
@@ -5214,8 +5240,7 @@ window.checkDecalogueToS = function() {
 };
 
 // Check shortly after load to ensure body exists
-setTimeout(window.checkDecalogueToS, 500);
-
+setTimeout(() => window.checkDecalogueToS(), 500);
 
 
 const lunJumpAnimMs = 500;
