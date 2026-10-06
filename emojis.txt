@@ -96,3 +96,10 @@ end,https://i.imgur.com/xhxN1it.jpeg
 glow,https://i.imgur.com/Phj6j4r.png
 SPK_66,https://i.imgur.com/aCcDsLS.gif
 SPK_67,https://i.imgur.com/dV1U8KA.gif
+sp1,https://i.imgur.com/9rRzQhb.png
+sp2,https://i.imgur.com/PTlq6TC.png
+sp3,https://i.imgur.com/nnkXKZ2.png
+sp4,https://i.imgur.com/qF20Asi.png
+sp5,https://i.imgur.com/mrSpyAM.png
+sp6,https://i.imgur.com/icb5Nup.png
+sp7,https://i.imgur.com/KIRWgYV.png
