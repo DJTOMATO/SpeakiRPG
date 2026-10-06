@@ -4491,6 +4491,7 @@ fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/emoj
             }
         }
     });
+    spkmodAvatarController.refreshCatalog();
 }).catch(err => {
     console.warn("[SpeakiMod+] Failed to load custom emojis:", err);
 });
@@ -4509,6 +4510,7 @@ fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis2.txt").t
             }
         }
     });
+    spkmodAvatarController.refreshCatalog();
 }).catch(err => {
     console.warn("[SpeakiMod+] Failed to load trickcal emojis:", err);
 });
@@ -4527,8 +4529,268 @@ fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis3.txt").t
             }
         }
     });
+    spkmodAvatarController.refreshCatalog();
 }).catch(err => {
     console.warn("[SpeakiMod+] Failed to load trickcal 2 emojis:", err);
+});
+
+// Local emoji avatars
+// This adapter is deliberately independent of the DOM. A future authenticated
+// service can implement the same async get/set contract without changing the UI.
+// Only emoji references are saved; never game credentials or arbitrary image URLs.
+function getSpeakiAvatarPlayer(state) {
+	const name = typeof state?.myPlayerName === "string" ? state.myPlayerName.trim() : "";
+	// myPlayerId is an in-world identifier, not a guaranteed persistent account ID.
+	// Keep this local identity separate so a future service can supply stable IDs.
+	return name ? { id: `name:${name}`, name } : null;
+}
+
+function validSpeakiAvatar(value) {
+	return value && ["custom", "trickcal", "trickcal2"].includes(value.pack)
+		&& typeof value.name === "string" && value.name.length > 0 && value.name.length <= 100;
+}
+
+function createSpeakiAvatarStore(storage) {
+	const keyFor = id => `spkmod-avatar-v1:${encodeURIComponent(String(id))}`;
+	return {
+		async get(id) {
+			const raw = storage.getItem(keyFor(id));
+			if (!raw) return null;
+			try {
+				const data = JSON.parse(raw);
+				return data.version === 1 && validSpeakiAvatar(data.emoji)
+					? { pack: data.emoji.pack, name: data.emoji.name } : null;
+			} catch { return null; }
+		},
+		async set(id, emoji) {
+			if (emoji === null) { storage.removeItem(keyFor(id)); return; }
+			if (!validSpeakiAvatar(emoji)) throw new Error("Invalid avatar selection");
+			storage.setItem(keyFor(id), JSON.stringify({ version: 1, emoji: { pack: emoji.pack, name: emoji.name } }));
+		}
+	};
+}
+
+function createSpeakiAvatarController({ document, store, getPlayer, getCatalog, translate }) {
+	let player = null, selection = null, portrait = null, button = null, dialog = null;
+	let generation = 0, imageGeneration = 0, renderedUrl = null, loaded = false;
+	let refreshDialog = () => {};
+	const style = document.createElement("style");
+	style.textContent = `
+		.sr-player-card__portrait-wrap:has(> .spkmod-avatar-button) { position: relative; }
+		.sr-player-card__portrait-wrap > .spkmod-avatar-button { position:absolute; inset:0; width:100%; height:100%; border:0; padding:0; border-radius:50%; overflow:hidden; background:transparent; cursor:pointer; z-index:1; }
+		.sr-player-card__portrait-wrap > .sr-player-card__lv-badge { z-index:2; pointer-events:none; }
+		.spkmod-avatar-button:focus-visible { outline:3px solid #ffd54a; outline-offset:3px; }
+		.spkmod-avatar-button img, .spkmod-avatar-preview img, .spkmod-avatar-choice img { display:block; width:100%; height:100%; object-fit:cover; object-position:center; border-radius:50%; }
+		.spkmod-avatar-dialog { box-sizing:border-box; width:min(480px, calc(100vw - 28px)); max-height:85vh; padding:20px; color:#f8fafc; background:#172033; border:1px solid #475569; border-radius:16px; font:14px/1.5 sans-serif; box-shadow:0 20px 60px #0008; }
+		.spkmod-avatar-dialog::backdrop { background:#0008; }
+		.spkmod-avatar-dialog h2 { margin:0; font-size:20px; }
+		.spkmod-avatar-dialog p { color:#bac6d8; margin:8px 0 16px; }
+		.spkmod-avatar-dialog button, .spkmod-avatar-dialog input { font:inherit; }
+		.spkmod-avatar-dialog button { cursor:pointer; color:inherit; background:#29364c; border:1px solid #52627b; border-radius:8px; padding:8px 12px; }
+		.spkmod-avatar-dialog button:disabled { opacity:.45; cursor:default; }
+		.spkmod-avatar-dialog button:focus-visible, .spkmod-avatar-dialog input:focus-visible { outline:2px solid #ffd54a; outline-offset:2px; }
+		.spkmod-avatar-preview { width:88px; height:88px; border-radius:50%; overflow:hidden; background:#334155; display:grid; place-items:center; font-size:36px; margin:12px auto; }
+		.spkmod-avatar-tabs, .spkmod-avatar-actions { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
+		.spkmod-avatar-dialog button[aria-pressed="true"] { border-color:#ffd54a; background:#51462b; }
+		.spkmod-avatar-search { box-sizing:border-box; width:100%; padding:9px 12px; border-radius:8px; border:1px solid #52627b; background:#0f172a; color:inherit; }
+		.spkmod-avatar-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(56px,1fr)); gap:10px; max-height:240px; overflow-y:auto; padding:6px; margin-top:12px; }
+		.spkmod-avatar-grid .spkmod-avatar-choice { padding:0; width:56px; height:56px; border-radius:50%; overflow:hidden; border:2px solid transparent; background:#334155; }
+		.spkmod-avatar-status { min-height:1.5em; color:#fcd34d; margin-top:8px; }
+		.spkmod-avatar-actions { justify-content:flex-end; margin-bottom:0; }
+		.spkmod-avatar-actions .spkmod-avatar-apply { background:#ffd54a; border-color:#ffd54a; color:#172033; font-weight:bold; }
+	`;
+	document.head.appendChild(style);
+	const text = key => translate(key);
+	const same = (a, b) => a?.pack === b?.pack && a?.name === b?.name;
+	function imageUrl(emoji) {
+		if (!validSpeakiAvatar(emoji)) return null;
+		const url = getCatalog()[emoji.pack]?.[emoji.name];
+		if (typeof url !== "string") return null;
+		try { return ["https:", "http:"].includes(new URL(url).protocol) ? url : null; }
+		catch { return null; }
+	}
+	function close() {
+		if (!dialog) return;
+		dialog.close(); dialog.remove(); dialog = null;
+		refreshDialog = () => {};
+		button?.focus();
+	}
+	function renderPortrait() {
+		if (!button) return;
+		button.title = text("avatarChange");
+		button.setAttribute("aria-label", text("avatarChange"));
+		button.disabled = !loaded;
+		const url = imageUrl(selection);
+		if (url === renderedUrl) return;
+		renderedUrl = url;
+		const token = ++imageGeneration;
+		button.replaceChildren(); // The game's initials remain underneath until the image loads.
+		if (!url) return;
+		const img = document.createElement("img");
+		img.alt = ""; img.referrerPolicy = "no-referrer"; img.draggable = false;
+		img.onload = () => { if (token === imageGeneration && button) button.replaceChildren(img); };
+		img.onerror = () => { if (token === imageGeneration && button) button.replaceChildren(); };
+		img.src = url;
+	}
+	function open() {
+		if (!player || !loaded || dialog) return;
+		const owner = player.id, token = generation;
+		let pending = selection ? { ...selection } : null;
+		let pack = pending?.pack || "custom", previewGeneration = 0, ready = false, saving = false;
+		dialog = document.createElement("dialog");
+		dialog.className = "spkmod-avatar-dialog";
+		dialog.id = "spkmod-avatar-dialog";
+		dialog.setAttribute("aria-labelledby", "spkmod-avatar-title");
+		const modal = dialog;
+		function element(tag, className, content) {
+			const el = document.createElement(tag);
+			if (className) el.className = className;
+			if (content) el.textContent = content;
+			return el;
+		}
+		const title = element("h2", "", text("avatarTitle")); title.id = "spkmod-avatar-title";
+		const note = element("p", "", text("avatarLocalNote"));
+		const preview = element("div", "spkmod-avatar-preview");
+		const tabs = element("div", "spkmod-avatar-tabs");
+		const search = element("input", "spkmod-avatar-search");
+		search.type = "search"; search.placeholder = text("avatarSearch"); search.setAttribute("aria-label", text("avatarSearch"));
+		const grid = element("div", "spkmod-avatar-grid");
+		const status = element("div", "spkmod-avatar-status"); status.setAttribute("role", "status");
+		const actions = element("div", "spkmod-avatar-actions");
+		const reset = element("button", "", text("avatarReset"));
+		const cancel = element("button", "", text("avatarCancel"));
+		const apply = element("button", "spkmod-avatar-apply", text("avatarApply"));
+		actions.append(reset, cancel, apply);
+		modal.append(title, note, preview, tabs, search, grid, status, actions);
+		const initial = () => Array.from(player?.name || "?")[0];
+		function updatePreview() {
+			const current = ++previewGeneration;
+			preview.textContent = initial();
+			ready = pending === null; apply.disabled = !ready || saving;
+			status.textContent = "";
+			if (!pending) return;
+			const url = imageUrl(pending);
+			if (!url) { status.textContent = text("avatarUnavailable"); return; }
+			const img = element("img"); img.alt = pending.name; img.referrerPolicy = "no-referrer";
+			img.onload = () => {
+				if (current !== previewGeneration || dialog !== modal) return;
+				preview.replaceChildren(img); ready = true; apply.disabled = saving;
+			};
+			img.onerror = () => {
+				if (current !== previewGeneration || dialog !== modal) return;
+				status.textContent = text("avatarUnavailable"); ready = false; apply.disabled = true;
+			};
+			img.src = url;
+		}
+		function renderGrid() {
+			grid.replaceChildren();
+			const query = search.value.trim().toLowerCase();
+			for (const [name] of Object.entries(getCatalog()[pack] || {})) {
+				if (query && !name.toLowerCase().includes(query)) continue;
+				const emoji = { pack, name }, url = imageUrl(emoji);
+				if (!url) continue;
+				const choice = element("button", "spkmod-avatar-choice");
+				choice.title = name; choice.setAttribute("aria-label", name);
+				choice.setAttribute("aria-pressed", String(same(pending, emoji)));
+				choice.disabled = saving;
+				const img = element("img"); img.alt = ""; img.loading = "lazy"; img.referrerPolicy = "no-referrer";
+				img.onerror = () => { choice.disabled = true; choice.textContent = "×"; };
+				img.src = url; choice.appendChild(img);
+				choice.onclick = () => {
+					pending = emoji;
+					for (const other of grid.children) other.setAttribute("aria-pressed", String(other === choice));
+					updatePreview();
+				};
+				grid.appendChild(choice);
+			}
+			if (!grid.children.length) grid.textContent = text("avatarEmpty");
+		}
+		for (const [key, label] of [["custom", "avatarCustom"], ["trickcal", "Trickcal"], ["trickcal2", "Trickcal 2"]]) {
+			const tab = element("button", "", key === "custom" ? text(label) : label);
+			tab.setAttribute("aria-pressed", String(pack === key));
+			tab.onclick = () => {
+				pack = key;
+				for (const other of tabs.children) other.setAttribute("aria-pressed", String(other === tab));
+				renderGrid();
+			};
+			tabs.appendChild(tab);
+		}
+		search.oninput = renderGrid;
+		reset.onclick = () => { pending = null; updatePreview(); renderGrid(); };
+		cancel.onclick = close;
+		apply.onclick = async () => {
+			if (!ready || saving || generation !== token || String(getPlayer()?.id) !== owner) { sync(); return; }
+			saving = true; apply.disabled = true; reset.disabled = true; renderGrid();
+			try {
+				await store.set(owner, pending);
+				if (generation !== token || String(getPlayer()?.id) !== owner) { sync(); return; }
+				selection = pending; renderPortrait();
+				if (dialog === modal) close();
+			} catch {
+				if (dialog !== modal) return;
+				saving = false; apply.disabled = !ready; reset.disabled = false;
+				status.textContent = text("avatarSaveError"); renderGrid();
+			}
+		};
+		modal.addEventListener("cancel", e => { e.preventDefault(); close(); });
+		// Keep typing and Escape inside the dialog rather than triggering game/mod shortcuts.
+		modal.addEventListener("keydown", e => {
+			e.stopPropagation();
+			if (e.key === "Escape") { e.preventDefault(); close(); }
+		});
+		modal.addEventListener("keyup", e => e.stopPropagation());
+		modal.addEventListener("click", e => { if (e.target === modal) {
+			const r = modal.getBoundingClientRect();
+			if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) close();
+		} });
+		refreshDialog = () => { renderGrid(); updatePreview(); };
+		document.body.appendChild(modal); refreshDialog(); modal.showModal();
+	}
+	function sync() {
+		const current = getPlayer();
+		const id = current?.id != null && String(current.id).trim() ? String(current.id) : null;
+		if (id !== (player?.id ?? null)) {
+			generation++; selection = null; loaded = false; close();
+			player = id ? { id, name: current.name } : null;
+			if (id) {
+				const token = generation;
+				Promise.resolve().then(() => store.get(id)).then(value => {
+					if (token !== generation) return;
+					selection = validSpeakiAvatar(value) ? value : null;
+				}).catch(() => {}).finally(() => {
+					if (token !== generation) return;
+					loaded = true; renderPortrait();
+				});
+			}
+		} else if (player) player.name = current.name;
+		const target = id ? document.querySelector(".sr-player-card__portrait") : null;
+		if (target !== portrait || (button && !button.isConnected)) {
+			button?.remove(); button = null; portrait = target; renderedUrl = null; imageGeneration++;
+			if (portrait?.parentElement) {
+				button = document.createElement("button"); button.type = "button";
+				button.className = "spkmod-avatar-button";
+				button.setAttribute("aria-haspopup", "dialog");
+				button.onclick = e => { e.preventDefault(); e.stopPropagation(); open(); };
+				portrait.parentElement.appendChild(button);
+			}
+		}
+		renderPortrait();
+	}
+	return { sync, open, refreshCatalog() { renderPortrait(); refreshDialog(); } };
+}
+
+const spkmodAvatarStore = createSpeakiAvatarStore({
+	getItem: key => localStorage.getItem(key),
+	setItem: (key, value) => localStorage.setItem(key, value),
+	removeItem: key => localStorage.removeItem(key)
+});
+
+const spkmodAvatarController = createSpeakiAvatarController({
+	document,
+	store: spkmodAvatarStore,
+	getPlayer: () => getSpeakiAvatarPlayer(window.gameState),
+	getCatalog: () => ({ custom: lunCustomEmojis, trickcal: lunTrickcalEmojis, trickcal2: lunTrickcal2Emojis }),
+	translate: key => t(key)
 });
 
 function getSortedEmojis() {
@@ -7971,6 +8233,7 @@ if (!window.__beyBladeLoopRunning) {
 
 
 function tick() {
+	if (lunTickCount % 20 === 0) spkmodAvatarController.sync();
 	if (!window.__gameStateHooked && typeof gameState !== "undefined" && gameState) {
 		if (typeof hookGameStateOnce === "function") {
 			hookGameStateOnce();
