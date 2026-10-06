@@ -5623,7 +5623,7 @@ const SPKMOD_DEFAULT_GAMEPAD_CONFIG = {
 	bindings: {
 		0: "potion",            // A / Cross (Heal / Potion)
 		1: "skill4",            // B / Circle (Skill 4)
-		2: "attack",            // X / Square (Attack / Auto-Target / Portal)
+		2: "jump",              // X / Square (Jump / Portal)
 		3: "skill3",            // Y / Triangle (Skill 3)
 		4: "skill1",            // LB / L1 (Skill 1)
 		5: "zoomIn",            // RB / R1 (Zoom In)
@@ -5641,7 +5641,7 @@ const SPKMOD_DEFAULT_GAMEPAD_CONFIG = {
 };
 
 const SPKMOD_GAMEPAD_ACTIONS = [
-	"attack", "skill1", "skill2", "skill3", "skill4", "potion",
+	"jump", "skill1", "skill2", "skill3", "skill4", "potion",
 	"beyblade", "reversebeyblade", "dance", "chowayo", "hearts", "town",
 	"zoomIn", "zoomOut", "lockCamera", "autoJump", "toggleSettings"
 ];
@@ -5683,11 +5683,7 @@ function executeGamepadAction(actionName) {
 			}
 			if (typeof gameState !== "undefined" && gameState && typeof gameState.tryUsePortal === "function") gameState.tryUsePortal();
 			break;
-		case "attack":
-			if (typeof gameState.tryUsePortal === "function") gameState.tryUsePortal();
 
-			gameState.combatAssist.autoAttackActive = true;
-			break;
 		case "skill1":
 			if (gameState.skillHotbar && gameState.skillHotbar.slots && gameState.skillHotbar.slots[0]) {
 				const sid = gameState.skillHotbar.slots[0].skillId;
