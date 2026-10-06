@@ -219,8 +219,8 @@ The avatar storage adapter has async `get(identity)` and `set(identity, emoji)`
 methods so a future authenticated service can replace local storage; this version
 does not provide a synchronization service.
 
-The MMO emoji `:jeremy:` is a 96×96 animated GIF, trimmed to 10 seconds at 10 fps
-with transparency (about 250 KiB). Created by Jeremy and included with permission.
+The MMO emoji `:jeremy:` is a 56×56 animated GIF, trimmed to 10 seconds at 8 fps
+with transparency (about 89 KiB). Created by Jeremy and included with permission.
 
 ---
 
