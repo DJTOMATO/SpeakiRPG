@@ -5635,12 +5635,8 @@ const SPKMOD_DEFAULT_GAMEPAD_CONFIG = {
 	invertCameraY: false,
 	bindings: {
 		0: "potion",            // A / Cross (Heal / Potion)
-		1: "skill4",            // B / Circle (Skill 4)
 		2: "jump",              // X / Square (Jump / Portal)
-		3: "skill3",            // Y / Triangle (Skill 3)
-		4: "skill1",            // LB / L1 (Skill 1)
 		5: "zoomIn",            // RB / R1 (Zoom In)
-		6: "skill2",            // LT / L2 (Skill 2)
 		7: "zoomOut",           // RT / R2 (Zoom Out)
 		8: "town",              // Back / View / Select (Back to Town)
 		9: "toggleSettings",    // Start / Menu
@@ -5654,7 +5650,7 @@ const SPKMOD_DEFAULT_GAMEPAD_CONFIG = {
 };
 
 const SPKMOD_GAMEPAD_ACTIONS = [
-	"jump", "skill1", "skill2", "skill3", "skill4", "potion",
+	"jump", "potion",
 	"beyblade", "reversebeyblade", "dance", "chowayo", "hearts", "town",
 	"zoomIn", "zoomOut", "lockCamera", "autoJump", "toggleSettings"
 ];
@@ -5697,30 +5693,7 @@ function executeGamepadAction(actionName) {
 			if (typeof gameState !== "undefined" && gameState && typeof gameState.tryUsePortal === "function") gameState.tryUsePortal();
 			break;
 
-		case "skill1":
-			if (gameState.skillHotbar && gameState.skillHotbar.slots && gameState.skillHotbar.slots[0]) {
-				const sid = gameState.skillHotbar.slots[0].skillId;
-				if (sid) gameState.combatAssist.requestActiveSkillCast(sid, 5);
-			}
-			break;
-		case "skill2":
-			if (gameState.skillHotbar && gameState.skillHotbar.slots && gameState.skillHotbar.slots[1]) {
-				const sid = gameState.skillHotbar.slots[1].skillId;
-				if (sid) gameState.combatAssist.requestActiveSkillCast(sid, 5);
-			}
-			break;
-		case "skill3":
-			if (gameState.skillHotbar && gameState.skillHotbar.slots && gameState.skillHotbar.slots[2]) {
-				const sid = gameState.skillHotbar.slots[2].skillId;
-				if (sid) gameState.combatAssist.requestActiveSkillCast(sid, 5);
-			}
-			break;
-		case "skill4":
-			if (gameState.skillHotbar && gameState.skillHotbar.slots && gameState.skillHotbar.slots[3]) {
-				const sid = gameState.skillHotbar.slots[3].skillId;
-				if (sid) gameState.combatAssist.requestActiveSkillCast(sid, 5);
-			}
-			break;
+
 		case "potion":
 			if (gameState.tryUsePotion) gameState.tryUsePotion();
 			break;
