@@ -75,8 +75,6 @@
 - Watch the game from another player's perspective
 - Follow player (Auto-follow targeted friends or nearby players with one click)
 - Player Radar (Scan nearby players with levels, distances, and IDs via button or `!players`)
-- Native Gamepad / Controller support (Xbox, PlayStation & Switch controllers with movement, camera & portal entry)
-- Interactive Controller Diagram & Remapping (Visual layout with live button press lighting & custom bindings)
 - Hide other players' nametags
 - Turn Speaki to face the camera (useful for posing)
 - Quest pinning
