@@ -2006,18 +2006,18 @@ function populateMinigameList() {
 	if (!panels.length) {
 		listContainer.appendChild(buildElement("div", { innerText: "No minigames found.", style: "color: #94a3b8; font-size: 9pt; text-align: center;" }));
 	} else {
-        let activeIndex = -1;
-        if (typeof ACTIVE_MINIGAME_ID !== 'undefined' && ACTIVE_MINIGAME_ID && typeof gameState !== 'undefined' && gameState.minigameEntryDialogs) {
-            activeIndex = gameState.minigameEntryDialogs.findIndex(d => d.def && d.def.gameKey === ACTIVE_MINIGAME_ID);
-        }
+		let activeIndex = -1;
+		if (typeof ACTIVE_MINIGAME_ID !== 'undefined' && ACTIVE_MINIGAME_ID && typeof gameState !== 'undefined' && gameState.minigameEntryDialogs) {
+			activeIndex = gameState.minigameEntryDialogs.findIndex(d => d.def && d.def.gameKey === ACTIVE_MINIGAME_ID);
+		}
 
-        if (activeIndex === -1) {
-            listContainer.appendChild(buildElement("div", { innerText: "Loading event data...", style: "color: #94a3b8; font-size: 9pt; text-align: center;" }));
-            return;
-        }
+		if (activeIndex === -1) {
+			listContainer.appendChild(buildElement("div", { innerText: "Loading event data...", style: "color: #94a3b8; font-size: 9pt; text-align: center;" }));
+			return;
+		}
 
 		panels.forEach((panel, idx) => {
-            if (idx !== activeIndex) return; // Only show active
+			if (idx !== activeIndex) return; // Only show active
 
 			let titleEl = panel.querySelector('.sr-panel__title, .sr-minigame-entry__greeting-name');
 			let title = titleEl ? titleEl.textContent.trim() : "Unknown Minigame";
@@ -2027,16 +2027,13 @@ function populateMinigameList() {
 				style: "margin-bottom: 4px;",
 				onclick: () => {
 					lunHudElements.eventModal.classList.add("hidden");
-					
-					const currentPanels = Array.from(document.querySelectorAll('.sr-minigame-entry-dialog'));
-					let currentActiveIdx = -1;
-					if (typeof ACTIVE_MINIGAME_ID !== 'undefined' && ACTIVE_MINIGAME_ID && typeof gameState !== 'undefined' && gameState.minigameEntryDialogs) {
-						currentActiveIdx = gameState.minigameEntryDialogs.findIndex(d => d.def && d.def.gameKey === ACTIVE_MINIGAME_ID);
-					}
-					
-					let currentPanel = currentPanels[currentActiveIdx];
-					if (!currentPanel && currentPanels.length > 0) currentPanel = currentPanels[0];
-					if (!currentPanel) return;
+
+					const currentPanels = Array.from(
+						document.querySelectorAll('.sr-minigame-entry-dialog')
+					);
+
+					const currentPanel = panel;
+					if (!currentPanel || !document.contains(currentPanel)) return;
 
 					currentPanels.forEach(p => {
 						p.style.display = 'none';
@@ -2047,23 +2044,22 @@ function populateMinigameList() {
 					currentPanel.hidden = false;
 					currentPanel.removeAttribute('aria-hidden');
 					currentPanel.querySelectorAll('[class*="guide"], .sr-minigame-entry__guide').forEach(g => g.style.display = 'none');
-					
+
 					// Do not force overwrite the matching state buttons (actions), as this breaks the matchmaking UI when reopening!
 
-                    window.lunActiveMinigamePanel = currentPanel;
-                    window.lunMinigameZoneStarted = typeof gameState !== "undefined" ? gameState.zoneId : null;
+					window.lunActiveMinigamePanel = currentPanel;
+					window.lunMinigameZoneStarted = typeof gameState !== "undefined" ? gameState.zoneId : null;
 
-                    if (!window.lunMinigameCloseHooked) {
-                        window.lunMinigameCloseHooked = true;
-                        document.addEventListener('click', (e) => {
-                            if (e.target.closest('.sr-panel__close') && e.target.closest('.sr-minigame-entry-dialog')) {
-                                const p = e.target.closest('.sr-minigame-entry-dialog');
-                                p.style.display = '';
-                                p.classList.remove('sr-panel--open');
-                                window.lunActiveMinigamePanel = null;
-                            }
-                        });
-                    }
+					if (!window.lunMinigameCloseHooked) {
+						window.lunMinigameCloseHooked = true;
+						document.addEventListener('click', (e) => {
+							if (e.target.closest('.sr-panel__close') && e.target.closest('.sr-minigame-entry-dialog')) {
+								const p = e.target.closest('.sr-minigame-entry-dialog');
+								p.classList.remove('sr-panel--open');
+								window.lunActiveMinigamePanel = null;
+							}
+						});
+					}
 				}
 			}));
 		});
