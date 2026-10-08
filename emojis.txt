@@ -60,7 +60,7 @@ SPK_45,https://i.imgur.com/bwHEnMg.png
 SPK_47,https://i.imgur.com/mzeTpre.png
 SPK_48,https://i.imgur.com/Landtz3.png
 SPK_49,https://i.imgur.com/5aO3YMg.png
-SPK_5,https://i.imgur.com/NbKDXGu.png
+SPK_5,https://i.imgur.com/3yxn8hc.png
 SPK_50,https://i.imgur.com/O7oEzfY.png
 SPK_51,https://i.imgur.com/5p8fwky.png
 SPK_52,https://i.imgur.com/WC6mfnT.png
