@@ -57,7 +57,6 @@ SPK_41,https://i.imgur.com/MBL4FmR.png
 SPK_43,https://i.imgur.com/UDtBR8Z.png
 SPK_44,https://i.imgur.com/6ig2IPT.png
 SPK_45,https://i.imgur.com/bwHEnMg.png
-SPK_46,https://i.imgur.com/5TobHd3.png
 SPK_47,https://i.imgur.com/mzeTpre.png
 SPK_48,https://i.imgur.com/Landtz3.png
 SPK_49,https://i.imgur.com/5aO3YMg.png
@@ -87,7 +86,6 @@ call,https://i.imgur.com/DQxprva.jpeg
 dt,https://i.imgur.com/JuUPmBL.png
 SPK_63,https://i.imgur.com/0orL75O.png
 SPK_64,https://i.imgur.com/FzOKBai.jpeg
-SPK_65,https://i.imgur.com/pnw5EuJ.png
 egg,https://i.imgur.com/DaCLujp.png
 fake,https://i.imgur.com/YXLjUaB.png
 cerb,https://i.imgur.com/WsPnA4b.png
