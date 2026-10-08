@@ -6813,8 +6813,9 @@ window.spkmodPlayFBX = function(url) {
     window.spkmodStopFBX();
     if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Loading FBX from URL...");
 
-    // Prepend CORS proxy to avoid cross-origin restrictions when loading external FBX files
-    const proxiedUrl = url.startsWith('http') ? 'https://corsproxy.io/?' + encodeURIComponent(url) : url;
+    // Use an adjustable proxy via console if needed (e.g. window.spkmodCORSProxy = "https://proxy.killcors.com/?url=")
+    const proxyPrefix = window.spkmodCORSProxy !== undefined ? window.spkmodCORSProxy : "https://proxy.killcors.com/?url=";
+    const proxiedUrl = url.startsWith('http') && proxyPrefix ? proxyPrefix + encodeURIComponent(url) : url;
 
     const loader = new window.THREE.FBXLoader();
     loader.load(proxiedUrl, (object) => {
