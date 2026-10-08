@@ -6812,8 +6812,11 @@ window.spkmodPlayFBX = function(url) {
     window.spkmodStopFBX();
     if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Loading FBX from URL...");
 
+    // Prepend CORS proxy to avoid cross-origin restrictions when loading external FBX files
+    const proxiedUrl = url.startsWith('http') ? 'https://corsproxy.io/?' + encodeURIComponent(url) : url;
+
     const loader = new window.THREE.FBXLoader();
-    loader.load(url, (object) => {
+    loader.load(proxiedUrl, (object) => {
         if (!object.animations || object.animations.length === 0) {
             if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Error: FBX has no animations!");
             return;
