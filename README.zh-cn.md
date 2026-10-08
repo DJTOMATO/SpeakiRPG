@@ -26,6 +26,7 @@
 - [9. 想要一起协作？](#9-want-to-collaborate)
 - [10. 常见问题 (FAQ)](#faq)
 - [11. 致谢名单](#credits)
+- [12. Speaki MMO 社区电影！](#12-speaki-mmo-社区电影)
 - [📱 SpeakiRPG 手机版 (Android)](#-speakirpg-手机版-android)
 
 ![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
@@ -288,6 +289,15 @@ npm start
 
 ---
 
+
+<h2 id="12-speaki-mmo-社区电影">12. Speaki MMO 社区电影！</h2>
+
+[🔝 返回顶部](#table-of-contents)
+
+由 PeiYu 和出色的 Speaki MMO 社区录制了一部关于 Speaki RPG 的电影，大量使用了本客户端中提供的相机录制功能（如第一人称和无人机模式）！
+
+请在这里观看这令人惊叹的社区作品：
+[![Speaki MMO Community Movie](https://img.youtube.com/vi/yaIEanyk6WI/0.jpg)](https://www.youtube.com/watch?v=yaIEanyk6WI)
 
 ## 📱 SpeakiRPG 手机版 (Android)
 官方现已支持由社区开发的 Android 客户端！您可以在 Android 设备上游玩内置了 SpeakiMod+ 的 SpeakiRPG。

@@ -24,6 +24,7 @@
 - [9. 協力を希望される方へ](#9-want-to-collaborate)
 - [10. よくある質問](#faq)
 - [11. クレジット](#credits)
+- [12. Speaki MMO コミュニティムービー！](#12-speaki-mmo-コミュニティムービー)
 - [📱 SpeakiRPG モバイル (Android)](#-speakirpg-モバイル-android)
 
 <h2 id="1-what-makes-it-awesome">1. 素晴らしい要素の数々</h2>
@@ -286,6 +287,15 @@ UI背景への作品使用を許可してくださったアーティストの皆
 
 ---
 
+
+<h2 id="12-speaki-mmo-コミュニティムービー">12. Speaki MMO コミュニティムービー！</h2>
+
+[🔝 トップへ戻る](#table-of-contents)
+
+Speaki RPGに関するムービーがPeiYuと素晴らしいSpeaki MMOコミュニティによって録画されました。このクライアントで利用可能なカメラ録画機能（一人称視点やドローンモードなど）をふんだんに使用しています！
+
+素晴らしいコミュニティの取り組みをぜひここでチェックしてください：
+[![Speaki MMO Community Movie](https://img.youtube.com/vi/yaIEanyk6WI/0.jpg)](https://www.youtube.com/watch?v=yaIEanyk6WI)
 
 ## 📱 SpeakiRPG モバイル (Android)
 コミュニティが開発した Android クライアントが公式にサポートされました！Android デバイスで SpeakiMod+ を内蔵した SpeakiRPG をプレイできます。

@@ -21,6 +21,7 @@
 - [9. 기여하고 싶으신가요?](#9-want-to-collaborate)
 - [10. 자주 묻는 질문](#faq)
 - [11. 크레딧](#credits)
+- [12. Speaki MMO 커뮤니티 무비!](#12-speaki-mmo-커뮤니티-무비)
 - [📱 SpeakiRPG 모바일 (Android)](#-speakirpg-모바일-android)
 
 ![Alt Text for Image](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
@@ -285,6 +286,15 @@ UI 배경으로 작품 사용을 허락해주신 아티스트 분들께 특별�
 
 ---
 
+
+<h2 id="12-speaki-mmo-커뮤니티-무비">12. Speaki MMO 커뮤니티 무비!</h2>
+
+[🔝 위로 가기](#table-of-contents)
+
+PeiYu와 멋진 Speaki MMO 커뮤니티가 이 클라이언트에서 제공하는 카메라 녹화 기능(1인칭 및 드론 모드 등)을 적극 활용하여 Speaki RPG에 대한 영화를 녹화했습니다!
+
+이곳에서 놀라운 커뮤니티의 노력을 확인해 보세요:
+[![Speaki MMO Community Movie](https://img.youtube.com/vi/yaIEanyk6WI/0.jpg)](https://www.youtube.com/watch?v=yaIEanyk6WI)
 
 ## 📱 SpeakiRPG 모바일 (Android)
 커뮤니티에서 개발한 Android 클라이언트가 공식적으로 지원됩니다! SpeakiMod+가 기본 내장된 상태로 Android 기기에서 SpeakiRPG를 플레이할 수 있습니다.
