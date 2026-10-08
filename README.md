@@ -325,8 +325,7 @@ A special thanks to the artists who kindly authorized the use of their artwork f
 
 A movie about Speaki RPG was recorded by PeiYu and the amazing Speaki MMO community, making heavy use of the camera recording features (like First Person and Drone modes) available in this client!
 
-Check out the incredible community effort here:
-[![Speaki MMO Community Movie](https://img.youtube.com/vi/yaIEanyk6WI/0.jpg)](https://www.youtube.com/watch?v=yaIEanyk6WI)
+Check out the incredible community effort [here](https://www.youtube.com/watch?v=yaIEanyk6WI)!
 
 ## 📱 SpeakiRPG Mobile (Android)
 A community-developed Android client is now officially supported! You can play SpeakiRPG on your Android device with SpeakiMod+ built right in.

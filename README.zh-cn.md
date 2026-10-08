@@ -296,8 +296,7 @@ npm start
 
 由 PeiYu 和出色的 Speaki MMO 社区录制了一部关于 Speaki RPG 的电影，大量使用了本客户端中提供的相机录制功能（如第一人称和无人机模式）！
 
-请在这里观看这令人惊叹的社区作品：
-[![Speaki MMO Community Movie](https://img.youtube.com/vi/yaIEanyk6WI/0.jpg)](https://www.youtube.com/watch?v=yaIEanyk6WI)
+请在[这里](https://www.youtube.com/watch?v=yaIEanyk6WI)观看这令人惊叹的社区作品！
 
 ## 📱 SpeakiRPG 手机版 (Android)
 官方现已支持由社区开发的 Android 客户端！您可以在 Android 设备上游玩内置了 SpeakiMod+ 的 SpeakiRPG。

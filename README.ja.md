@@ -294,8 +294,7 @@ UI背景への作品使用を許可してくださったアーティストの皆
 
 Speaki RPGに関するムービーがPeiYuと素晴らしいSpeaki MMOコミュニティによって録画されました。このクライアントで利用可能なカメラ録画機能（一人称視点やドローンモードなど）をふんだんに使用しています！
 
-素晴らしいコミュニティの取り組みをぜひここでチェックしてください：
-[![Speaki MMO Community Movie](https://img.youtube.com/vi/yaIEanyk6WI/0.jpg)](https://www.youtube.com/watch?v=yaIEanyk6WI)
+素晴らしいコミュニティの取り組みをぜひ[こちら](https://www.youtube.com/watch?v=yaIEanyk6WI)でチェックしてください！
 
 ## 📱 SpeakiRPG モバイル (Android)
 コミュニティが開発した Android クライアントが公式にサポートされました！Android デバイスで SpeakiMod+ を内蔵した SpeakiRPG をプレイできます。

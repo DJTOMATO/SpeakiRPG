@@ -311,8 +311,7 @@ MMO 表情 `:jeremy:` 為 56×56 GIF，裁成 10 秒、每秒 8 格並保留透�
 
 由 PeiYu 和出色的 Speaki MMO 社群錄製了一部關於 Speaki RPG 的電影，大量使用了本客戶端中提供的相機錄製功能（如第一人稱和無人機模式）！
 
-請在這裡觀看這令人驚嘆的社群作品：
-[![Speaki MMO Community Movie](https://img.youtube.com/vi/yaIEanyk6WI/0.jpg)](https://www.youtube.com/watch?v=yaIEanyk6WI)
+請在[這裡](https://www.youtube.com/watch?v=yaIEanyk6WI)觀看這令人驚嘆的社群作品！
 
 ## 📱 SpeakiRPG 手機版 (Android)
 官方現已支援由社群開發的 Android 客戶端！您可以在 Android 裝置上遊玩內建了 SpeakiMod+ 的 SpeakiRPG。
