@@ -50,7 +50,7 @@ t_149,https://i.imgur.com/sPai2dE.jpeg
 t_151,https://i.imgur.com/bEf6OqE.png
 t_152,https://i.imgur.com/57N8FDJ.png
 t_153,https://i.imgur.com/yNcEu7k.png
-t_154,https://i.imgur.com/5WyTQtX.png
+t_154,https://i.imgur.com/5hQObaL.jpeg
 t_155,https://i.imgur.com/b9U1wSr.jpeg
 t_156,https://i.imgur.com/YpbVncE.jpeg
 t_157,https://i.imgur.com/ue5pmlK.png
