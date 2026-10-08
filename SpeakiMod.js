@@ -6760,13 +6760,23 @@ window.spkmodFBXState = {
 };
 
 window.spkmodStopFBX = function() {
-    if (window.spkmodFBXState.gameActions) {
-        for (const action of window.spkmodFBXState.gameActions) {
-            action.stop();
-            const mixer = action.getMixer();
-            if (mixer) mixer.uncacheAction(action._clip);
+    if (window.spkmodFBXState.frameReq) {
+        cancelAnimationFrame(window.spkmodFBXState.frameReq);
+        window.spkmodFBXState.frameReq = null;
+    }
+    
+    if (window.spkmodFBXState.injectedModels) {
+        for (const item of window.spkmodFBXState.injectedModels) {
+            if (item.container && item.model) {
+                item.container.remove(item.model);
+            }
+            if (item.hiddenMeshes) {
+                for (const mesh of item.hiddenMeshes) {
+                    mesh.visible = true;
+                }
+            }
         }
-        window.spkmodFBXState.gameActions = [];
+        window.spkmodFBXState.injectedModels = [];
     }
     
     if (window.spkmodFBXState.audio) {
@@ -6825,116 +6835,80 @@ window.spkmodPlayFBX = function(url, everyone = false, audioUrl = null) {
             return;
         }
 
-        if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Injecting animation into game mixer...");
+        if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Injecting FBX mesh directly...");
         
-        const fbxClip = object.animations[0];
-        const gameClip = fbxClip.clone();
+        window.spkmodFBXState.injectedModels = [];
+        window.spkmodFBXState.clock = new window.THREE.Clock();
 
-        const gameAvatar = (gameState?.playerContainer?.container) || (gameState?.localAvatar?.container) || (gameState?.localAvatar?.group) || gameState?.playerContainer;
-        if (!gameAvatar || typeof gameAvatar.traverse !== 'function') {
-            console.error("[SpeakiMod FBX] gameAvatar not found or not traversable", { playerContainer: gameState?.playerContainer, localAvatar: gameState?.localAvatar });
-            if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Error: Could not find 3D avatar container.");
-            return;
-        }
-
-        const gameBones = {};
-        gameAvatar.traverse((child) => {
-            if (child.isBone || child.type === 'Bone') gameBones[child.name.toLowerCase()] = child;
-        });
-
-        const fbxBones = {};
-        object.traverse((child) => {
-            if (child.isBone || child.type === 'Bone') fbxBones[child.name] = child;
-        });
-
-        window.spkmodFBXState.boneMap = [];
-        for (const name in fbxBones) {
-            const lowerName = name.toLowerCase();
-            let gameBone = gameBones[lowerName];
+        const injectModel = (container, isSelf) => {
+            if (!container) return;
             
-            if (!gameBone) {
-                const simplified = lowerName.replace(/mixamorig/i, '').replace(/[^a-z0-9]/g, '');
-                const foundKey = Object.keys(gameBones).find(k => k.replace(/[^a-z0-9]/g, '').includes(simplified));
-                if (foundKey) gameBone = gameBones[foundKey];
-            }
-
-            if (gameBone) {
-                window.spkmodFBXState.boneMap.push({
-                    fbx: fbxBones[name],
-                    game: gameBone
-                });
-            }
-        }
-
-        // Rename the clip tracks and strip position/scale tracks from non-root bones
-        // to prevent the mesh from exploding due to different bone lengths.
-        const newTracks = [];
-        for (const track of gameClip.tracks) {
-            const trackParts = track.name.split('.');
-            const fbxBoneName = trackParts[0];
-            const property = trackParts[1];
-
-            const mapping = window.spkmodFBXState.boneMap.find(m => m.fbx.name === fbxBoneName);
-            if (!mapping) continue; // Drop unmapped
-
-            const lowerName = fbxBoneName.toLowerCase();
-            const isRoot = lowerName.includes('hips') || lowerName.includes('pelvis');
-
-            // CRITICAL: Drop position and scale tracks for everything EXCEPT the root bone.
-            // Forcing Mixamo bone lengths/positions onto the game rig completely destroys the mesh.
-            if (!isRoot && (property === 'position' || property === 'scale')) {
-                continue;
-            }
-
-            track.name = mapping.game.name + '.' + property;
-            
-            if (property === 'quaternion' && isRoot) {
-                const offset = window.spkmodFBXRotationOffset !== undefined ? window.spkmodFBXRotationOffset : Math.PI / 2;
-                if (offset !== 0) {
-                    const axis = window.spkmodFBXRotationAxis || new window.THREE.Vector3(1, 0, 0);
-                    const qFix = new window.THREE.Quaternion().setFromAxisAngle(axis, offset);
-                    for (let i = 0; i < track.values.length; i += 4) {
-                        const q = new window.THREE.Quaternion(track.values[i], track.values[i+1], track.values[i+2], track.values[i+3]);
-                        q.premultiply(qFix);
-                        track.values[i] = q.x;
-                        track.values[i+1] = q.y;
-                        track.values[i+2] = q.z;
-                        track.values[i+3] = q.w;
+            // Hide original meshes in the container so they don't overlap
+            const hiddenMeshes = [];
+            container.traverse(child => {
+                // Ignore the FBX object itself and UI elements like Sprites
+                if ((child.isMesh || child.isSkinnedMesh) && !child.userData.isFBX) {
+                    if (child.visible) {
+                        child.visible = false;
+                        hiddenMeshes.push(child);
                     }
                 }
-            }
-            newTracks.push(track);
-        }
-        gameClip.tracks = newTracks;
-        
-        gameClip.name = "FBX_" + Date.now();
+            });
 
-        const injectToMixer = (mixer) => {
-            if (!mixer) return;
-            const action = mixer.clipAction(gameClip);
-            action.setEffectiveWeight(1.0);
-            action.fadeIn(0.2);
+            // Clone the object if applying to multiple people (Three.js basic clone won't clone SkinnedMeshes properly without SkeletonUtils, but we'll try for now, or just use original for self)
+            // For safety, we'll just use the original object for the first injection
+            let fbxModel;
+            if (isSelf || window.spkmodFBXState.injectedModels.length === 0) {
+                fbxModel = object;
+            } else {
+                fbxModel = object.clone(); // Might be stiff if SkeletonUtils isn't present, but works for rigid meshes
+            }
+            
+            fbxModel.userData.isFBX = true;
+            
+            // Apply rotation offset to the entire model instead of bones
+            const offset = window.spkmodFBXRotationOffset !== undefined ? window.spkmodFBXRotationOffset : Math.PI / 2;
+            if (offset !== 0) {
+                const axis = window.spkmodFBXRotationAxis || new window.THREE.Vector3(1, 0, 0);
+                fbxModel.quaternion.setFromAxisAngle(axis, offset);
+            }
+
+            container.add(fbxModel);
+            
+            const mixer = new window.THREE.AnimationMixer(fbxModel);
+            const action = mixer.clipAction(object.animations[0]);
             action.play();
-            window.spkmodFBXState.gameActions.push(action);
+            
+            window.spkmodFBXState.injectedModels.push({
+                container: container,
+                model: fbxModel,
+                hiddenMeshes: hiddenMeshes,
+                mixer: mixer
+            });
         };
 
-        const selfMixer = gameState?.localAvatar?.animationController?.mixer;
-        if (selfMixer) {
-            injectToMixer(selfMixer);
-            if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Playing on Self.");
+        const gameAvatar = (gameState?.playerContainer?.container) || (gameState?.localAvatar?.container) || (gameState?.localAvatar?.group) || gameState?.playerContainer;
+        if (gameAvatar) {
+            injectModel(gameAvatar, true);
         }
 
         if (everyone && gameState?.remotePlayers?.remotePlayers) {
-            let pCount = 0;
             for (const player of gameState.remotePlayers.remotePlayers.values()) {
-                const pMixer = player?.avatar?.animationController?.mixer || player?.animationController?.mixer;
-                if (pMixer) {
-                    injectToMixer(pMixer);
-                    pCount++;
+                const pContainer = player?.container?.container || player?.container;
+                if (pContainer && pContainer !== gameAvatar) {
+                    injectModel(pContainer, false);
                 }
             }
-            if (typeof chatLog !== 'undefined') chatLog(`[FBX Importer] Playing on ${pCount} other players.`);
         }
+
+        const loop = () => {
+            const delta = window.spkmodFBXState.clock.getDelta();
+            for (const item of window.spkmodFBXState.injectedModels) {
+                if (item.mixer) item.mixer.update(delta);
+            }
+            window.spkmodFBXState.frameReq = requestAnimationFrame(loop);
+        };
+        loop();
 
         if (audioUrl) {
             window.spkmodFBXState.audio = new Audio(audioUrl);
