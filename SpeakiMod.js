@@ -3175,7 +3175,8 @@ document.body.appendChild(
 				innerText: t("nextLevelNA")
 			}),
 			lunHudElements.currencyTracker = buildElement("span", {
-				innerText: t("currencyTracker", "--", "--", "--"),
+				// innerText: t("currencyTracker", "--", "--", "--"),
+				innerText: t("currencyTracker", "--", "--", "--").replace(/ \| 🟣.*/, ""),
 				style: lunCurrencyTrackerEnabled ? "" : "display: none;"
 			}),
 			lunHudElements.sessionGoldTracker = buildElement("span", {
@@ -5269,6 +5270,101 @@ window.checkDecalogueToS = function(forceLang) {
 
 // Check shortly after load to ensure body exists
 setTimeout(() => window.checkDecalogueToS(), 500);
+
+
+window.showMovieNews = function(forceLang) {
+    if (localStorage.getItem('spkmod-movie-seen-v1') === 'true') return;
+
+    const existing = document.getElementById('spkmod-movie-news');
+    if (existing) existing.remove();
+
+    let lang = forceLang;
+    if (!lang) {
+        lang = (typeof spkmodLang !== 'undefined') ? spkmodLang : 'en';
+        if (typeof window.lunCurrentLang !== 'undefined') lang = window.lunCurrentLang;
+    }
+
+    let t = null;
+    if (typeof spkmodTranslations !== 'undefined' && spkmodTranslations[lang] && spkmodTranslations[lang].movieNews) {
+        t = spkmodTranslations[lang].movieNews;
+    } else if (typeof spkmodTranslations !== 'undefined' && spkmodTranslations['en'] && spkmodTranslations['en'].movieNews) {
+        t = spkmodTranslations['en'].movieNews;
+    }
+
+    if (!t) {
+        setTimeout(() => window.showMovieNews(forceLang), 500);
+        return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'spkmod-movie-news';
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.95); z-index: 9999998; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; color: white;';
+
+    const content = document.createElement('div');
+    content.style.cssText = 'background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 24px; max-width: 640px; width: 90%; max-height: 95vh; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);';
+
+    const langRow = document.createElement('div');
+    langRow.style.cssText = 'display: flex; gap: 8px; justify-content: center; margin-bottom: 4px; flex-wrap: wrap;';
+
+    const langs = [
+        { code: 'en', label: 'EN' },
+        { code: 'ko', label: '한국어' },
+        { code: 'ja', label: '日本語' },
+        { code: 'zh-TW', label: '繁體' },
+        { code: 'zh-CN', label: '简体' },
+        { code: 'es', label: 'ES' }
+    ];
+
+    langs.forEach(l => {
+        const btn = document.createElement('button');
+        btn.innerText = l.label;
+        btn.style.cssText = `padding: 6px 12px; font-weight: bold; border-radius: 6px; border: 1px solid #475569; background: ${lang === l.code ? '#3b82f6' : '#0f172a'}; color: white; cursor: pointer; transition: 0.2s;`;
+        btn.onmouseover = () => { if (lang !== l.code) btn.style.background = '#1e293b'; };
+        btn.onmouseleave = () => { if (lang !== l.code) btn.style.background = '#0f172a'; };
+        btn.onclick = () => window.showMovieNews(l.code);
+        langRow.appendChild(btn);
+    });
+    content.appendChild(langRow);
+
+    const title = document.createElement('h1');
+    title.innerText = t.title;
+    title.style.cssText = 'margin: 0; font-size: 24px; color: #facc15; text-align: center; border-bottom: 1px solid #334155; padding-bottom: 12px;';
+    content.appendChild(title);
+
+    const desc = document.createElement('p');
+    desc.innerText = t.desc;
+    desc.style.cssText = 'margin: 0; font-size: 16px; font-weight: bold; color: #cbd5e1; text-align: center;';
+    content.appendChild(desc);
+
+    const iframeContainer = document.createElement('div');
+    iframeContainer.style.cssText = 'position: relative; width: 100%; padding-bottom: 56.25%; height: 0; border-radius: 8px; overflow: hidden; border: 1px solid #334155;';
+    
+    const iframe = document.createElement('iframe');
+    iframe.src = 'https://www.youtube.com/embed/yaIEanyk6WI?autoplay=0';
+    iframe.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;';
+    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+    iframe.allowFullscreen = true;
+    
+    iframeContainer.appendChild(iframe);
+    content.appendChild(iframeContainer);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.innerText = t.close;
+    closeBtn.style.cssText = 'padding: 12px; font-size: 18px; font-weight: bold; color: white; background: #3b82f6; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; margin-top: 8px;';
+    closeBtn.onmouseover = () => closeBtn.style.background = '#2563eb';
+    closeBtn.onmouseleave = () => closeBtn.style.background = '#3b82f6';
+    
+    closeBtn.addEventListener('click', () => {
+        localStorage.setItem('spkmod-movie-seen-v1', 'true');
+        overlay.remove();
+    });
+
+    content.appendChild(closeBtn);
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+};
+
+setTimeout(() => window.showMovieNews(), 1500);
 
 
 const lunJumpAnimMs = 500;
@@ -8223,9 +8319,15 @@ spkmodI18nRenderers.push(() => {
 	refreshGamepadModalI18n();
 	if (typeof updateHudBgDropdown === 'function') updateHudBgDropdown();
 
+	/*
+	// ORIGINAL EVENT CODE - KEEP FOR WHEN EVENT COMES BACK
 	setText(lunHudElements.currencyTracker, lunLastGold === null
 		? t("currencyTracker", "--", "--", "--")
 		: t("currencyTracker", lunLastGold.toLocaleString(), lunLastElif.toLocaleString(), typeof lunLastSpkCoin !== 'undefined' && lunLastSpkCoin !== null ? lunLastSpkCoin.toLocaleString() : "--"));
+	*/
+	setText(lunHudElements.currencyTracker, lunLastGold === null
+		? t("currencyTracker", "--", "--", "--").replace(/ \| 🟣.*/, "")
+		: t("currencyTracker", lunLastGold.toLocaleString(), lunLastElif.toLocaleString(), "").replace(/ \| 🟣.*/, ""));
 	setText(lunHudElements.sessionGoldTracker, t("sessionGoldText", "--", "--"));
 	if (!lunPinnedQuestId) setText(lunHudElements.pinnedQuest.content, t("pinnedQuestDefault"));
 
@@ -8665,7 +8767,11 @@ function tick() {
 				return num.toLocaleString();
 			};
 
+			/*
+			// ORIGINAL EVENT CODE - KEEP FOR WHEN EVENT COMES BACK
 			setText(lunHudElements.currencyTracker, t("currencyTracker", formatCurrency(lunLastGold), formatCurrency(lunLastElif), formatCurrency(lunLastSpkCoin)));
+			*/
+			setText(lunHudElements.currencyTracker, t("currencyTracker", formatCurrency(lunLastGold), formatCurrency(lunLastElif), "").replace(/ \| 🟣.*/, ""));
 
 			if (lunSessionStartGold === null) {
 				lunSessionStartGold = lunLastGold;
@@ -9330,11 +9436,16 @@ function hookGameStateOnce() {
 
 			const myName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
 			let isMention = false;
-			if (myName && filteredMsg && filteredMsg.toLowerCase().includes(myName.toLowerCase()) && id !== -1337 && id !== -1338) {
-				isMention = true;
-				if (lunMentionAlertEnabled) chatLog(t("mentionAlertMsg", filteredName, filteredMsg));
-				if (typeof lunMentionPingEnabled !== 'undefined' && lunMentionPingEnabled) {
-					if (typeof playPingSound === 'function') playPingSound();
+			if (myName && filteredMsg && id !== -1337 && id !== -1338) {
+				const escapedName = myName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				// Use unicode aware boundaries (no letter/number before or after)
+				const mentionRegex = new RegExp(`(?<![\\p{L}\\p{N}_])${escapedName}(?![\\p{L}\\p{N}_])`, 'iu');
+				if (mentionRegex.test(filteredMsg)) {
+					isMention = true;
+					if (lunMentionAlertEnabled) chatLog(t("mentionAlertMsg", filteredName, filteredMsg));
+					if (typeof lunMentionPingEnabled !== 'undefined' && lunMentionPingEnabled) {
+						if (typeof playPingSound === 'function') playPingSound();
+					}
 				}
 			}
 
