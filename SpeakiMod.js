@@ -4616,6 +4616,7 @@ function createSpeakiAvatarController({ document, store, getPlayer, getCatalog, 
 		.sr-player-card__portrait-wrap:has(> .spkmod-avatar-button) { position: relative; }
 		.sr-player-card__portrait-wrap > .spkmod-avatar-button { position:absolute; inset:0; width:100%; height:100%; border:0; padding:0; border-radius:50%; overflow:hidden; background:transparent; cursor:pointer; z-index:1; }
 		.sr-player-card__portrait-wrap > .sr-player-card__lv-badge { z-index:2; pointer-events:none; }
+		.sr-player-card__portrait-wrap > .sr-player-card__class-badge { z-index:2; }
 		.spkmod-avatar-button:focus-visible { outline:3px solid #ffd54a; outline-offset:3px; }
 		.spkmod-avatar-button img, .spkmod-avatar-preview img, .spkmod-avatar-choice img { display:block; width:100%; height:100%; object-fit:cover; object-position:center; border-radius:50%; }
 		.spkmod-avatar-dialog { box-sizing:border-box; width:min(480px, calc(100vw - 28px)); max-height:85vh; padding:20px; color:#f8fafc; background:#172033; border:1px solid #475569; border-radius:16px; font:14px/1.5 sans-serif; box-shadow:0 20px 60px #0008; }
@@ -5024,7 +5025,7 @@ function renderEmojiGrid() {
                     btn.title = `:${name}:`;
                     btn.className = "spkmod-custom-emoji";
                     btn.setAttribute("data-url", url);
-                    btn.style.cssText = "width: 32px; height: 32px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; padding: 2px;";
+                    btn.style.cssText = "width: 35px; height: 35px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; padding: 2px;";
                     btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
                     btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
                     const img = document.createElement("img");
@@ -5036,7 +5037,7 @@ function renderEmojiGrid() {
                     };
                 } else {
                     btn.innerText = id;
-                    btn.style.cssText = "width: 28px; height: 28px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: background 0.1s;";
+                    btn.style.cssText = "width: 31px; height: 31px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: 19px; display: flex; align-items: center; justify-content: center; transition: background 0.1s;";
                     btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
                     btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
                     btn.onclick = (e) => {
@@ -5057,7 +5058,7 @@ function renderEmojiGrid() {
         sorted.forEach(emoji => {
             const btn = document.createElement("button");
             btn.innerText = emoji;
-            btn.style.cssText = "width: 28px; height: 28px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: background 0.1s;";
+            btn.style.cssText = "width: 31px; height: 31px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: 19px; display: flex; align-items: center; justify-content: center; transition: background 0.1s;";
             btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
             btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
             btn.onclick = (e) => {
@@ -5080,7 +5081,7 @@ function renderEmojiGrid() {
             btn.title = `:${name}:`;
             btn.className = "spkmod-custom-emoji";
             btn.setAttribute("data-url", url);
-            btn.style.cssText = "width: 32px; height: 32px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; padding: 2px;";
+            btn.style.cssText = "width: 35px; height: 35px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; padding: 2px;";
             btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
             btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
             

@@ -60,6 +60,7 @@
 - **Dynamic UI Scaling**: Shrink the HUD without squishing the game world! Use /uiscale <0.5 - 2.0> in chat or Ctrl + U to reset.
 - **Hotkeys Viewer Modal**: Easily see all available mod shortcuts directly in-game by clicking the new ⌨️ icon.
 - **Native Night Mode Integration**: Quickly toggle the game's darker scenery mode by pressing N.
+- **Local emoji avatars**
 - Nearby player count
 - EXP tracker (EXP per minute and time until next level estimation)
 - Channel tracker
@@ -200,26 +201,6 @@ npm install
 ```bash
 npm start
 ```
-
-**Local emoji avatars:** in game, click your round portrait, choose an emoji,
-check the circular preview, and click **Apply**. Static images and animated GIFs
-are supported, with centered cropping. **Use initials** followed by **Apply**
-restores the original portrait. The level badge stays visible. Choices are saved
-per character name on this device only; friends cannot see them. Reconnecting
-with a different in-world player ID preserves the selection. Renaming a character
-requires selecting the avatar again. Missing images
-fall back to the original initials. Per-player avatar choices are kept separate
-from the general settings export.
-
-Choices are stored in the game's browser `localStorage`. The feature runs entirely
-in `SpeakiMod.js` and works with existing clients, without a new installer.
-Clearing the game's browser data also clears avatar choices.
-The avatar storage adapter has async `get(identity)` and `set(identity, emoji)`
-methods so a future authenticated service can replace local storage; this version
-does not provide a synchronization service.
-
-The MMO emoji `:jeremy:` is a 56×56 animated GIF, trimmed to 10 seconds at 8 fps
-with transparency (about 89 KiB). Created by Jeremy and included with permission.
 
 ---
 
