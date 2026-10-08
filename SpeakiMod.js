@@ -3874,7 +3874,18 @@ document.body.appendChild(
 					onclick: (e) => {
 						e.preventDefault();
 						
-						if (lunHudElements.effectsModal) lunHudElements.effectsModal.classList.toggle("hidden");
+						if (lunHudElements.effectsModal) {
+							lunHudElements.effectsModal.classList.toggle("hidden");
+							
+							const fbxUi = lunHudElements.effectsModal.querySelector("#spkmod-fbx-ui-container") || document.getElementById("spkmod-fbx-ui-container");
+							if (fbxUi) {
+								if (typeof gameState !== 'undefined' && gameState?.myStat?.name?.toLowerCase() === 'glas') {
+									fbxUi.style.display = 'flex';
+								} else {
+									fbxUi.style.display = 'none';
+								}
+							}
+						}
 					}
 				})
 			]),
@@ -7205,26 +7216,24 @@ document.body.appendChild(
 					onclick: () => window.spkmodTriggerFlyEveryone && window.spkmodTriggerFlyEveryone()
 				}),
 				// FBX Importer (Glas only)
-				...((typeof gameState !== 'undefined' && gameState?.myStat?.name?.toLowerCase() === 'glas') ? [
-					buildElement("div", { style: "margin-top: 10px; border-top: 1px solid #555; padding-top: 10px; display: flex; flex-direction: column; gap: 4px;" }, [
-						buildElement("div", { className: "spkmod-panel-cat-header", innerText: "FBX Importer", style: "margin-top: 0px;" }),
-						lunPanelElements.fbxUrlInput = buildElement("input", { type: "text", placeholder: "URL...", style: "width: 100%; box-sizing: border-box; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; margin-bottom: 4px;" }),
-						lunPanelElements.fbxPlayBtn = buildElement("button", {
-							className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; width: 100%;",
-							innerText: "Play on Self",
-							onclick: () => {
-                                if (window.spkmodPlayFBX) window.spkmodPlayFBX(lunPanelElements.fbxUrlInput.value);
-                            }
-						}),
-						lunPanelElements.fbxStopBtn = buildElement("button", {
-							className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; width: 100%;",
-							innerText: "Stop FBX",
-							onclick: () => {
-                                if (window.spkmodStopFBX) window.spkmodStopFBX();
-                            }
-						})
-					])
-				] : [])
+				buildElement("div", { id: "spkmod-fbx-ui-container", style: "margin-top: 10px; border-top: 1px solid #555; padding-top: 10px; display: none; flex-direction: column; gap: 4px;" }, [
+					buildElement("div", { className: "spkmod-panel-cat-header", innerText: "FBX Importer", style: "margin-top: 0px;" }),
+					lunPanelElements.fbxUrlInput = buildElement("input", { type: "text", placeholder: "URL...", style: "width: 100%; box-sizing: border-box; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; margin-bottom: 4px;" }),
+					lunPanelElements.fbxPlayBtn = buildElement("button", {
+						className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; width: 100%;",
+						innerText: "Play on Self",
+						onclick: () => {
+                            if (window.spkmodPlayFBX) window.spkmodPlayFBX(lunPanelElements.fbxUrlInput.value);
+                        }
+					}),
+					lunPanelElements.fbxStopBtn = buildElement("button", {
+						className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; width: 100%;",
+						innerText: "Stop FBX",
+						onclick: () => {
+                            if (window.spkmodStopFBX) window.spkmodStopFBX();
+                        }
+					})
+				])
 			]),
 			buildElement("div", { style: "display: flex; flex-direction: column; gap: 8px; flex: 1; border-left: 1px solid #555; padding-left: 10px;" }, [
 				buildElement("div", { className: "spkmod-panel-cat-header", innerText: t("renameHeader") || "Rename Name Tags", style: "margin-top: 0px;" }),
