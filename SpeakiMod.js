@@ -3620,20 +3620,14 @@ document.body.appendChild(
 					}
 				}),
 				lunPanelElements.chowayoBtn = buildElement("button", {
-					id: "spkmod-autochowayo-btn",
+					id: "spkmod-chowayo-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"),
+					innerText: t("chowayo") || "Chowayo",
 					value: "",
 					onclick: e => {
-						window.AutoChowayoActive = !window.AutoChowayoActive;
-						if (window.AutoChowayoActive) {
-							chatLog(t("autoChowayoActivatedMsg") || "Auto Chowayo activated!");
-							autoChowayoLoop();
-						} else {
-							chatLog(t("autoChowayoDeactivatedMsg") || "Auto Chowayo deactivated.");
-							clearTimeout(window.__autoChowayoTimeoutId);
+						if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) {
+							gameState.sendEmoteNow(typeof Emotes !== "undefined" ? Emotes.MinigameJoayo || 3 : 3);
 						}
-						setText(e.target, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
 					}
 				})
 			]),
