@@ -6869,8 +6869,30 @@ window.spkmodPlayFBX = async function(url, everyone = false, audioUrl = null) {
                 const axis = window.spkmodFBXRotationAxis || new window.THREE.Vector3(1, 0, 0);
                 fbxModel.quaternion.setFromAxisAngle(axis, offset);
             }
+            
+            // Allow scaling
+            const scale = window.spkmodFBXScale !== undefined ? window.spkmodFBXScale : 1;
+            fbxModel.scale.set(scale, scale, scale);
 
-            // Since we are using r185 matching the game, no polyfills are needed.
+            // Convert to Basic material to prevent it from rendering black/dark gray without scene lights
+            fbxModel.traverse(child => {
+                if (child.isMesh || child.isSkinnedMesh) {
+                    if (child.material) {
+                        const mats = Array.isArray(child.material) ? child.material : [child.material];
+                        for (let i = 0; i < mats.length; i++) {
+                            const oldMat = mats[i];
+                            mats[i] = new window.THREE.MeshBasicMaterial({
+                                map: oldMat.map,
+                                color: oldMat.color,
+                                transparent: oldMat.transparent || (oldMat.map && oldMat.map.format === window.THREE.RGBAFormat),
+                                alphaTest: oldMat.alphaTest > 0 ? oldMat.alphaTest : 0.5,
+                                side: window.THREE.DoubleSide
+                            });
+                        }
+                        child.material = Array.isArray(child.material) ? mats : mats[0];
+                    }
+                }
+            });
 
 
             container.add(fbxModel);
@@ -7256,8 +7278,8 @@ document.body.appendChild(
 				// FBX Importer (Glas only)
 				buildElement("div", { id: "spkmod-fbx-ui-container", style: "margin-top: 10px; border-top: 1px solid #555; padding-top: 10px; display: none; flex-direction: column; gap: 4px;" }, [
 					buildElement("div", { className: "spkmod-panel-cat-header", innerText: "FBX Importer", style: "margin-top: 0px;" }),
-					lunPanelElements.fbxUrlInput = buildElement("input", { type: "text", placeholder: "FBX URL...", style: "width: 100%; box-sizing: border-box; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; margin-bottom: 2px;" }),
-					lunPanelElements.fbxAudioUrlInput = buildElement("input", { type: "text", placeholder: "Audio URL (Optional)...", style: "width: 100%; box-sizing: border-box; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; margin-bottom: 4px;" }),
+					lunPanelElements.fbxUrlInput = buildElement("input", { type: "text", value: "http://localhost:8000/s3kzJMhDNRpi.fbx", placeholder: "FBX URL...", style: "width: 100%; box-sizing: border-box; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; margin-bottom: 2px;" }),
+					lunPanelElements.fbxAudioUrlInput = buildElement("input", { type: "text", value: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/audio/girls.mp3", placeholder: "Audio URL (Optional)...", style: "width: 100%; box-sizing: border-box; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; margin-bottom: 4px;" }),
 					lunPanelElements.fbxPlayBtn = buildElement("button", {
 						className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; width: 100%;",
 						innerText: "Play on Self",
