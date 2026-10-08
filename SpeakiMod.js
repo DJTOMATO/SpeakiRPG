@@ -2622,7 +2622,7 @@ function updateDynamicStyles() {
 			--spkmod-accent: ${lunAccentColor};
 		}
 				#app { filter: ${filterRule}; }
-		#app > *:not(:has(canvas)):not(canvas) { zoom: ${lunGameUiScale} !important; }
+		#app > *:not(:has(canvas)):not(canvas):not(.sr-click-ripple-layer) { zoom: ${lunGameUiScale} !important; }
 		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-effects-modal, #spkmod-stats-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq, body > #spkmod-panel { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
 		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-effects-modal, #spkmod-stats-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
