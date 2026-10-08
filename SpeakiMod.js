@@ -6788,7 +6788,7 @@ window.spkmodStopFBX = function() {
     if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Animation stopped.");
 };
 
-window.spkmodPlayFBX = function(url, everyone = false, audioUrl = null) {
+window.spkmodPlayFBX = async function(url, everyone = false, audioUrl = null) {
     if (!url) {
         if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] No URL provided.");
         return;
@@ -6797,36 +6797,23 @@ window.spkmodPlayFBX = function(url, everyone = false, audioUrl = null) {
     if (!window.THREE) {
         if (window.spkmodFBXState.loading) return;
         window.spkmodFBXState.loading = true;
-        if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Downloading Three.js core...");
+        if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Downloading Three.js core (r185)...");
         
-        const scriptThree = document.createElement('script');
-        scriptThree.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
-        scriptThree.onload = () => {
-            // Polyfill removeFromParent for compatibility with newer game engine ThreeJS versions
-            if (window.THREE && window.THREE.Object3D && !window.THREE.Object3D.prototype.removeFromParent) {
-                window.THREE.Object3D.prototype.removeFromParent = function() {
-                    if (this.parent) this.parent.remove(this);
-                    return this;
-                };
-            }
-
-            if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Downloading fflate...");
-            const scriptFflate = document.createElement('script');
-            scriptFflate.src = "https://cdn.jsdelivr.net/npm/fflate@0.8.0/umd/index.js";
-            scriptFflate.onload = () => {
-                if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Downloading FBXLoader...");
-                const scriptFbx = document.createElement('script');
-                scriptFbx.src = "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js";
-                scriptFbx.onload = () => {
-                    window.spkmodFBXState.loading = false;
-                    window.spkmodPlayFBX(url, everyone);
-                };
-                document.head.appendChild(scriptFbx);
-            };
-            document.head.appendChild(scriptFflate);
-        };
-        document.head.appendChild(scriptThree);
-        return;
+        try {
+            const THREE = await import('https://esm.sh/v135/three@0.185.0');
+            window.THREE = THREE;
+            
+            if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Downloading FBXLoader...");
+            const { FBXLoader } = await import('https://esm.sh/v135/three@0.185.0/examples/jsm/loaders/FBXLoader.js');
+            window.THREE.FBXLoader = FBXLoader;
+            
+            window.spkmodFBXState.loading = false;
+        } catch (e) {
+            console.error("[FBX Importer] Failed to load ThreeJS:", e);
+            if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Error loading Three.js modules.");
+            window.spkmodFBXState.loading = false;
+            return;
+        }
     }
 
     window.spkmodStopFBX();
@@ -6874,25 +6861,15 @@ window.spkmodPlayFBX = function(url, everyone = false, audioUrl = null) {
             
             fbxModel.userData.isFBX = true;
             
-            // Apply rotation offset to the entire model instead of bones
-            const offset = window.spkmodFBXRotationOffset !== undefined ? window.spkmodFBXRotationOffset : Math.PI / 2;
+            // Allow manual rotation offset if needed, but default to no rotation
+            const offset = window.spkmodFBXRotationOffset !== undefined ? window.spkmodFBXRotationOffset : 0;
             if (offset !== 0) {
                 const axis = window.spkmodFBXRotationAxis || new window.THREE.Vector3(1, 0, 0);
                 fbxModel.quaternion.setFromAxisAngle(axis, offset);
             }
 
-            // Polyfill missing newer ThreeJS methods on r128 objects/materials to prevent renderer crashes
-            fbxModel.traverse(child => {
-                if (typeof child.onBeforeRender !== 'function') child.onBeforeRender = function() {};
-                if (typeof child.onAfterRender !== 'function') child.onAfterRender = function() {};
-                if (child.material) {
-                    const mats = Array.isArray(child.material) ? child.material : [child.material];
-                    for (const mat of mats) {
-                        if (typeof mat.onBeforeRender !== 'function') mat.onBeforeRender = function() {};
-                        if (typeof mat.onAfterRender !== 'function') mat.onAfterRender = function() {};
-                    }
-                }
-            });
+            // Since we are using r185 matching the game, no polyfills are needed.
+
 
             container.add(fbxModel);
             
@@ -7277,12 +7254,13 @@ document.body.appendChild(
 				// FBX Importer (Glas only)
 				buildElement("div", { id: "spkmod-fbx-ui-container", style: "margin-top: 10px; border-top: 1px solid #555; padding-top: 10px; display: none; flex-direction: column; gap: 4px;" }, [
 					buildElement("div", { className: "spkmod-panel-cat-header", innerText: "FBX Importer", style: "margin-top: 0px;" }),
-					lunPanelElements.fbxUrlInput = buildElement("input", { type: "text", placeholder: "URL...", style: "width: 100%; box-sizing: border-box; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; margin-bottom: 4px;" }),
+					lunPanelElements.fbxUrlInput = buildElement("input", { type: "text", placeholder: "FBX URL...", style: "width: 100%; box-sizing: border-box; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; margin-bottom: 2px;" }),
+					lunPanelElements.fbxAudioUrlInput = buildElement("input", { type: "text", placeholder: "Audio URL (Optional)...", style: "width: 100%; box-sizing: border-box; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; margin-bottom: 4px;" }),
 					lunPanelElements.fbxPlayBtn = buildElement("button", {
 						className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; width: 100%;",
 						innerText: "Play on Self",
 						onclick: () => {
-                            if (window.spkmodPlayFBX) window.spkmodPlayFBX(lunPanelElements.fbxUrlInput.value);
+                            if (window.spkmodPlayFBX) window.spkmodPlayFBX(lunPanelElements.fbxUrlInput.value, false, lunPanelElements.fbxAudioUrlInput.value || null);
                         }
 					}),
 					lunPanelElements.fbxStopBtn = buildElement("button", {
