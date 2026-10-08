@@ -4479,6 +4479,20 @@ let lunEmojiPickerPanel = null;
 let lunEmojiTab = "standard";
 const LUN_EMOJIS = ["👍","👎","👋","🙏","👏","🙌","🤝","😊","😂","🤣","😍","😎","🤔","😅","😭","🥺","🔥","💯","❤️","✨","🎉","💀","👀","🗣️","💰","💎","🟣","⭐","❌","✅", "💪", "🤷", "🤦", "🎈", "🎂", "🥳", "🙄", "🤐", "🥵", "🥶", "🤯", "😴", "🤮", "🤡", "👻", "👽", "💩", "🤖", "🎃"];
 let lunEmojiFreq = JSON.parse((window.localStorage && localStorage.getItem("spkmod-emoji-freq")) || "{}");
+let lunEmojiFavorites = JSON.parse((window.localStorage && localStorage.getItem("spkmod-emoji-fav")) || "[]");
+
+function toggleFavoriteEmoji(id) {
+    if (lunEmojiFavorites.includes(id)) {
+        lunEmojiFavorites = lunEmojiFavorites.filter(x => x !== id);
+        if (typeof chatLog !== "undefined") chatLog(t("emojiFavRemoved", "Removed from Favorites"));
+    } else {
+        lunEmojiFavorites.push(id);
+        if (typeof chatLog !== "undefined") chatLog(t("emojiFavAdded", "Added to Favorites"));
+    }
+    if (window.localStorage) localStorage.setItem("spkmod-emoji-fav", JSON.stringify(lunEmojiFavorites));
+    if (typeof lunEmojiTab !== "undefined" && lunEmojiTab === "fav") { if (typeof renderEmojiGrid === "function") renderEmojiGrid(); }
+}
+
 
 // Custom Emojis (Fetched from GitHub)
 var lunCustomEmojis = {};
@@ -4915,7 +4929,7 @@ function renderEmojiGrid() {
 
         header = document.createElement("div");
         header.id = "spkmod-emoji-tabs";
-        header.style.cssText = "display: flex; gap: 4px; margin-bottom: 4px; border-bottom: 1px solid #444; padding-bottom: 4px;";
+        header.style.cssText = "display: flex; gap: 4px; margin-bottom: 4px; border-bottom: 1px solid #444; padding-bottom: 4px; flex-wrap: wrap;";
         headerWrap.appendChild(header);
         
         lunEmojiPickerPanel.appendChild(headerWrap);
@@ -4970,11 +4984,65 @@ function renderEmojiGrid() {
     header.appendChild(btnCus);
     header.appendChild(btnTrickcal);
     header.appendChild(btnTrickcal2);
+    const btnFav = document.createElement("button");
+    btnFav.innerText = "❤️ " + t("emojiTabFav", "Favorites");
+    btnFav.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'fav' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
+    btnFav.onclick = (e) => {  lunEmojiTab = 'fav'; renderEmojiGrid(); };
+    header.appendChild(btnFav);
     header.appendChild(btnTrickcal3);
 
     grid.innerHTML = "";
     
-    if (lunEmojiTab === 'standard') {
+    if (lunEmojiTab === 'fav') {
+        if (lunEmojiFavorites.length === 0) {
+            const noFavs = document.createElement("div");
+            noFavs.innerText = t("emojiNoFavs", "Right-click an emoji to favorite it!");
+            noFavs.style.cssText = "color: #aaa; width: 100%; text-align: center; margin-top: 20px; font-size: 13px;";
+            grid.appendChild(noFavs);
+        } else {
+            lunEmojiFavorites.forEach(id => {
+                let isCustom = false;
+                let url = null;
+                let name = id;
+                if (typeof lunTrickcalEmojis !== 'undefined' && lunTrickcalEmojis[id]) { isCustom = true; url = lunTrickcalEmojis[id]; }
+                else if (typeof lunTrickcal2Emojis !== 'undefined' && lunTrickcal2Emojis[id]) { isCustom = true; url = lunTrickcal2Emojis[id]; }
+                else if (typeof lunTrickcal3Emojis !== 'undefined' && lunTrickcal3Emojis[id]) { isCustom = true; url = lunTrickcal3Emojis[id]; }
+                else if (typeof lunCustomEmojis !== 'undefined' && lunCustomEmojis[id]) { isCustom = true; url = lunCustomEmojis[id]; }
+                
+                const btn = document.createElement("button");
+                if (isCustom) {
+                    btn.title = `:${name}:`;
+                    btn.className = "spkmod-custom-emoji";
+                    btn.setAttribute("data-url", url);
+                    btn.style.cssText = "width: 32px; height: 32px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; padding: 2px;";
+                    btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
+                    btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
+                    const img = document.createElement("img");
+                    img.src = url;
+                    img.style.cssText = "max-width: 100%; max-height: 100%; object-fit: contain;";
+                    btn.appendChild(img);
+                    btn.onclick = (e) => {
+                        insertEmojiIntoChat(`:${name}: `);
+                    };
+                } else {
+                    btn.innerText = id;
+                    btn.style.cssText = "width: 28px; height: 28px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: background 0.1s;";
+                    btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
+                    btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
+                    btn.onclick = (e) => {
+                        lunEmojiFreq[id] = (lunEmojiFreq[id]||0) + 1;
+                        if (window.localStorage) localStorage.setItem("spkmod-emoji-freq", JSON.stringify(lunEmojiFreq));
+                        insertEmojiIntoChat(id);
+                    };
+                }
+                btn.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    if (typeof toggleFavoriteEmoji === 'function') toggleFavoriteEmoji(id);
+                };
+                grid.appendChild(btn);
+            });
+        }
+    } else if (lunEmojiTab === 'standard') {
         const sorted = getSortedEmojis();
         sorted.forEach(emoji => {
             const btn = document.createElement("button");
@@ -4988,6 +5056,10 @@ function renderEmojiGrid() {
                 if (window.localStorage) localStorage.setItem("spkmod-emoji-freq", JSON.stringify(lunEmojiFreq));
                 renderEmojiGrid();
                 insertEmojiIntoChat(emoji);
+            };
+            btn.oncontextmenu = (e) => {
+                e.preventDefault();
+                if (typeof toggleFavoriteEmoji === 'function') toggleFavoriteEmoji(emoji);
             };
             grid.appendChild(btn);
         });
@@ -5010,6 +5082,10 @@ function renderEmojiGrid() {
             btn.onclick = (e) => {
                 
                 insertEmojiIntoChat(`:${name}: `);
+            };
+            btn.oncontextmenu = (e) => {
+                e.preventDefault();
+                if (typeof toggleFavoriteEmoji === 'function') toggleFavoriteEmoji(name);
             };
             grid.appendChild(btn);
         });
