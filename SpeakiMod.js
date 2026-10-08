@@ -1458,6 +1458,42 @@ function hookKnownBotPlayerEmotesForAll() {
 	gameState.remotePlayers.remotePlayers.forEach(hookKnownBotPlayerEmotes);
 }
 
+function hookBlockedUserVoice() {
+    if (typeof gameState === "undefined" || !gameState) return;
+    if (typeof gameState.handleEmote !== "function") return;
+    if (gameState.__speakiBlockedUserVoiceHooked) return;
+
+    const originalHandleEmote = gameState.handleEmote;
+
+    gameState.handleEmote = function(e) {
+        if (!e || e.playerId === this.myPlayerId) {
+            return originalHandleEmote.call(this, e);
+        }
+
+        const remotePlayer = this.remotePlayers?.get(e.playerId);
+        if (!remotePlayer || !isBlockedUser(remotePlayer.info?.name)) {
+            return originalHandleEmote.call(this, e);
+        }
+
+        const controller = remotePlayer.avatar?.animationController ?? null;
+
+        switch (e.emoteId) {
+            case Emotes.Cry:
+                controller?.playEmote();
+                return;
+
+            case Emotes.MinigameJoayo:
+                controller?.playAffectionEmote();
+                return;
+
+            default:
+                return originalHandleEmote.call(this, e);
+        }
+    };
+
+    gameState.__speakiBlockedUserVoiceHooked = true;
+}
+
 var lunChatTimestampsEnabled = (window.localStorage && localStorage.getItem("spkmod-chat-timestamps")) === "true";
 function setChatTimestampsEnabled(enabled) {
 	lunChatTimestampsEnabled = !!enabled;
@@ -9613,6 +9649,7 @@ function hookGameStateOnce() {
 		gameState.chatBox.__speakiAppendHooked = true;
 	}
 
+	hookBlockedUserVoice();
 	hookRemotePlayersOnce();
 	if (typeof refreshI18n === "function") refreshI18n();
 	if (window.spkmodDebug) spkmodDebug.log("In-game GameState hooks successfully installed.");
