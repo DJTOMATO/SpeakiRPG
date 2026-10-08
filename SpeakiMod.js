@@ -4923,7 +4923,7 @@ function renderEmojiGrid() {
         headerWrap.style.cssText = "cursor: move; user-select: none; touch-action: none;";
         
         const warningBanner = document.createElement("div");
-        warningBanner.innerText = t("emojiWarning", "⚠️ Please don’t abuse this feature, or you might get sent to the weekend farm.");
+        warningBanner.id = "spkmod-emoji-warning";
         warningBanner.style.cssText = "color: #ffaa00; font-size: 11px; text-align: center; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px dashed #555; font-weight: bold; font-family: sans-serif;";
         headerWrap.appendChild(warningBanner);
 
@@ -4952,6 +4952,16 @@ function renderEmojiGrid() {
             makeDraggable(lunEmojiPickerPanel, [headerWrap]);
         }
     }
+    
+    let warningBannerEl = lunEmojiPickerPanel.querySelector("#spkmod-emoji-warning");
+    
+    if (warningBannerEl) {
+    
+        warningBannerEl.innerText = lunEmojiTab === "fav" ? t("emojiWarningFav") : t("emojiWarning");
+    
+    }
+    
+    
     
     header.innerHTML = "";
     
@@ -4985,7 +4995,7 @@ function renderEmojiGrid() {
     header.appendChild(btnTrickcal);
     header.appendChild(btnTrickcal2);
     const btnFav = document.createElement("button");
-    btnFav.innerText = "⭐ " + t("emojiTabFav");
+    btnFav.innerText = t("emojiTabFav");
     btnFav.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'fav' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
     btnFav.onclick = (e) => {  lunEmojiTab = 'fav'; renderEmojiGrid(); };
     header.appendChild(btnTrickcal3);

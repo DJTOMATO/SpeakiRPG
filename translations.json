@@ -427,7 +427,8 @@
         "emojiTabFav": "💚",
         "emojiFavAdded": "Added {0} to favorites.",
         "emojiFavRemoved": "Removed {0} from favorites.",
-        "emojiNoFavs": "No favorite emojis yet. Right-click an emoji to add it!"
+        "emojiNoFavs": "No favorite emojis yet. Right-click an emoji to add it!",
+        "emojiWarningFav": "You can add/remove emotes in this list using the right click mouse button on any emoji"
     },
     "ja": {
         "langName": "日本語",
@@ -887,7 +888,8 @@
         "emojiTabFav": "💚",
         "emojiFavAdded": "{0} をお気に入りに追加しました。",
         "emojiFavRemoved": "{0} をお気に入りから削除しました。",
-        "emojiNoFavs": "お気に入りの絵文字はまだありません。絵文字を右クリックして追加してください！"
+        "emojiNoFavs": "お気に入りの絵文字はまだありません。絵文字を右クリックして追加してください！",
+        "emojiWarningFav": "任意の絵文字を右クリックして、このリストからお気に入りを追加/削除できます"
     },
     "ko": {
         "langName": "한국어",
@@ -1317,7 +1319,8 @@
         "emojiTabFav": "💚",
         "emojiFavAdded": "{0}을(를) 즐겨찾기에 추가했습니다.",
         "emojiFavRemoved": "{0}을(를) 즐겨찾기에서 제거했습니다.",
-        "emojiNoFavs": "아직 즐겨찾는 이모지가 없습니다. 이모지를 우클릭하여 추가해보세요!"
+        "emojiNoFavs": "아직 즐겨찾는 이모지가 없습니다. 이모지를 우클릭하여 추가해보세요!",
+        "emojiWarningFav": "아무 이모지나 우클릭하여 이 목록에 즐겨찾기를 추가하거나 제거할 수 있습니다"
     },
     "zh-TW": {
         "langName": "繁體中文",
