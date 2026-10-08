@@ -6866,38 +6866,46 @@ window.spkmodPlayFBX = function(url, everyone = false, audioUrl = null) {
             }
         }
 
-        // Rename the clip tracks to match the game bone names and fix root rotation
-        gameClip.tracks = gameClip.tracks.map(track => {
+        // Rename the clip tracks and strip position/scale tracks from non-root bones
+        // to prevent the mesh from exploding due to different bone lengths.
+        const newTracks = [];
+        for (const track of gameClip.tracks) {
             const trackParts = track.name.split('.');
             const fbxBoneName = trackParts[0];
             const property = trackParts[1];
 
             const mapping = window.spkmodFBXState.boneMap.find(m => m.fbx.name === fbxBoneName);
-            if (mapping) {
-                track.name = mapping.game.name + '.' + property;
-                
-                // Fix: Mixamo FBX animations usually require a 90-degree X-axis rotation correction 
-                // on the root bone (Hips/Pelvis) because FBX uses Y-up and the game uses Z-up.
-                const lowerName = fbxBoneName.toLowerCase();
-                if (property === 'quaternion' && (lowerName.includes('hips') || lowerName.includes('pelvis'))) {
-                    // Allow tweaking via console if it's the wrong way (e.g., window.spkmodFBXRotationOffset = -Math.PI / 2)
-                    const offset = window.spkmodFBXRotationOffset !== undefined ? window.spkmodFBXRotationOffset : Math.PI / 2;
-                    if (offset !== 0) {
-                        const axis = window.spkmodFBXRotationAxis || new window.THREE.Vector3(1, 0, 0);
-                        const qFix = new window.THREE.Quaternion().setFromAxisAngle(axis, offset);
-                        for (let i = 0; i < track.values.length; i += 4) {
-                            const q = new window.THREE.Quaternion(track.values[i], track.values[i+1], track.values[i+2], track.values[i+3]);
-                            q.premultiply(qFix);
-                            track.values[i] = q.x;
-                            track.values[i+1] = q.y;
-                            track.values[i+2] = q.z;
-                            track.values[i+3] = q.w;
-                        }
+            if (!mapping) continue; // Drop unmapped
+
+            const lowerName = fbxBoneName.toLowerCase();
+            const isRoot = lowerName.includes('hips') || lowerName.includes('pelvis');
+
+            // CRITICAL: Drop position and scale tracks for everything EXCEPT the root bone.
+            // Forcing Mixamo bone lengths/positions onto the game rig completely destroys the mesh.
+            if (!isRoot && (property === 'position' || property === 'scale')) {
+                continue;
+            }
+
+            track.name = mapping.game.name + '.' + property;
+            
+            if (property === 'quaternion' && isRoot) {
+                const offset = window.spkmodFBXRotationOffset !== undefined ? window.spkmodFBXRotationOffset : Math.PI / 2;
+                if (offset !== 0) {
+                    const axis = window.spkmodFBXRotationAxis || new window.THREE.Vector3(1, 0, 0);
+                    const qFix = new window.THREE.Quaternion().setFromAxisAngle(axis, offset);
+                    for (let i = 0; i < track.values.length; i += 4) {
+                        const q = new window.THREE.Quaternion(track.values[i], track.values[i+1], track.values[i+2], track.values[i+3]);
+                        q.premultiply(qFix);
+                        track.values[i] = q.x;
+                        track.values[i+1] = q.y;
+                        track.values[i+2] = q.z;
+                        track.values[i+3] = q.w;
                     }
                 }
             }
-            return track;
-        });
+            newTracks.push(track);
+        }
+        gameClip.tracks = newTracks;
         
         gameClip.name = "FBX_" + Date.now();
 
