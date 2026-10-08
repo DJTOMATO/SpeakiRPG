@@ -6740,6 +6740,142 @@ window.spkmodApplyNamePresets = function() {
 };
 
 
+// --- FBX Importer Logic ---
+window.spkmodFBXState = {
+    loaded: false,
+    loading: false,
+    mixer: null,
+    clock: null,
+    scene: null,
+    boneMap: null,
+    frameReq: null
+};
+
+window.spkmodStopFBX = function() {
+    if (window.spkmodFBXState.frameReq) {
+        cancelAnimationFrame(window.spkmodFBXState.frameReq);
+        window.spkmodFBXState.frameReq = null;
+    }
+    if (window.spkmodFBXState.mixer) {
+        window.spkmodFBXState.mixer.stopAllAction();
+    }
+    if (typeof gameState !== 'undefined' && gameState?.localAvatar?.animationController?.mixer) {
+        gameState.localAvatar.animationController.mixer.timeScale = 1; // Restore game animation
+    }
+    if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Animation stopped.");
+};
+
+window.spkmodPlayFBX = function(url) {
+    if (!url) {
+        if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] No URL provided.");
+        return;
+    }
+    
+    if (!window.THREE) {
+        if (window.spkmodFBXState.loading) return;
+        window.spkmodFBXState.loading = true;
+        if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Downloading Three.js core...");
+        
+        const scriptThree = document.createElement('script');
+        scriptThree.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+        scriptThree.onload = () => {
+            if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Downloading fflate...");
+            const scriptFflate = document.createElement('script');
+            scriptFflate.src = "https://cdn.jsdelivr.net/npm/fflate@0.8.0/umd/index.js";
+            scriptFflate.onload = () => {
+                if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Downloading FBXLoader...");
+                const scriptFbx = document.createElement('script');
+                scriptFbx.src = "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js";
+                scriptFbx.onload = () => {
+                    window.spkmodFBXState.loading = false;
+                    window.spkmodPlayFBX(url);
+                };
+                document.head.appendChild(scriptFbx);
+            };
+            document.head.appendChild(scriptFflate);
+        };
+        document.head.appendChild(scriptThree);
+        return;
+    }
+
+    window.spkmodStopFBX();
+    if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Loading FBX from URL...");
+
+    const loader = new window.THREE.FBXLoader();
+    loader.load(url, (object) => {
+        if (!object.animations || object.animations.length === 0) {
+            if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Error: FBX has no animations!");
+            return;
+        }
+
+        if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Mapping bones and playing animation!");
+
+        window.spkmodFBXState.scene = object;
+        window.spkmodFBXState.mixer = new window.THREE.AnimationMixer(object);
+        window.spkmodFBXState.clock = new window.THREE.Clock();
+
+        const action = window.spkmodFBXState.mixer.clipAction(object.animations[0]);
+        action.play();
+
+        const gameAvatar = gameState?.localAvatar?.container;
+        if (!gameAvatar) return;
+
+        const gameBones = {};
+        gameAvatar.traverse((child) => {
+            if (child.isBone || child.type === 'Bone') gameBones[child.name.toLowerCase()] = child;
+        });
+
+        const fbxBones = {};
+        object.traverse((child) => {
+            if (child.isBone || child.type === 'Bone') fbxBones[child.name] = child;
+        });
+
+        window.spkmodFBXState.boneMap = [];
+        for (const name in fbxBones) {
+            const lowerName = name.toLowerCase();
+            let gameBone = gameBones[lowerName];
+            
+            if (!gameBone) {
+                const simplified = lowerName.replace(/mixamorig/i, '').replace(/[^a-z0-9]/g, '');
+                const foundKey = Object.keys(gameBones).find(k => k.replace(/[^a-z0-9]/g, '').includes(simplified));
+                if (foundKey) gameBone = gameBones[foundKey];
+            }
+
+            if (gameBone) {
+                window.spkmodFBXState.boneMap.push({
+                    fbx: fbxBones[name],
+                    game: gameBone
+                });
+            }
+        }
+
+        const loop = () => {
+            if (window.spkmodFBXState.mixer) {
+                window.spkmodFBXState.mixer.update(window.spkmodFBXState.clock.getDelta());
+                
+                if (gameState?.localAvatar?.animationController?.mixer) {
+                    gameState.localAvatar.animationController.mixer.timeScale = 0; // Freeze game animation
+                }
+
+                for (const mapping of window.spkmodFBXState.boneMap) {
+                    mapping.game.position.set(mapping.fbx.position.x, mapping.fbx.position.y, mapping.fbx.position.z);
+                    mapping.game.quaternion.set(mapping.fbx.quaternion.x, mapping.fbx.quaternion.y, mapping.fbx.quaternion.z, mapping.fbx.quaternion.w);
+                    mapping.game.scale.set(mapping.fbx.scale.x, mapping.fbx.scale.y, mapping.fbx.scale.z);
+                }
+            }
+            window.spkmodFBXState.frameReq = requestAnimationFrame(loop);
+        };
+        
+        loop();
+
+    }, undefined, (err) => {
+        if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Error loading FBX: " + err);
+        console.error("[SpeakiMod] FBX Load Error:", err);
+    });
+};
+// --- End FBX Importer Logic ---
+
+
 const mapModalElements = {};
 let mapUpdateFrame = null;
 
@@ -7067,7 +7203,28 @@ document.body.appendChild(
 					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px;",
 					innerText: t("flyEveryoneBtn"),
 					onclick: () => window.spkmodTriggerFlyEveryone && window.spkmodTriggerFlyEveryone()
-				})
+				}),
+				// FBX Importer (Glas only)
+				...((typeof gameState !== 'undefined' && gameState?.myStat?.name?.toLowerCase() === 'glas') ? [
+					buildElement("div", { style: "margin-top: 10px; border-top: 1px solid #555; padding-top: 10px; display: flex; flex-direction: column; gap: 4px;" }, [
+						buildElement("div", { className: "spkmod-panel-cat-header", innerText: "FBX Importer", style: "margin-top: 0px;" }),
+						lunPanelElements.fbxUrlInput = buildElement("input", { type: "text", placeholder: "URL...", style: "width: 100%; box-sizing: border-box; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; margin-bottom: 4px;" }),
+						lunPanelElements.fbxPlayBtn = buildElement("button", {
+							className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; width: 100%;",
+							innerText: "Play on Self",
+							onclick: () => {
+                                if (window.spkmodPlayFBX) window.spkmodPlayFBX(lunPanelElements.fbxUrlInput.value);
+                            }
+						}),
+						lunPanelElements.fbxStopBtn = buildElement("button", {
+							className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; width: 100%;",
+							innerText: "Stop FBX",
+							onclick: () => {
+                                if (window.spkmodStopFBX) window.spkmodStopFBX();
+                            }
+						})
+					])
+				] : [])
 			]),
 			buildElement("div", { style: "display: flex; flex-direction: column; gap: 8px; flex: 1; border-left: 1px solid #555; padding-left: 10px;" }, [
 				buildElement("div", { className: "spkmod-panel-cat-header", innerText: t("renameHeader") || "Rename Name Tags", style: "margin-top: 0px;" }),
