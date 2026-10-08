@@ -6754,30 +6754,24 @@ window.spkmodApplyNamePresets = function() {
 
 // --- FBX Importer Logic ---
 window.spkmodFBXState = {
-    loaded: false,
     loading: false,
-    mixer: null,
-    clock: null,
-    scene: null,
-    boneMap: null,
-    frameReq: null
+    gameActions: []
 };
 
 window.spkmodStopFBX = function() {
-    if (window.spkmodFBXState.frameReq) {
-        cancelAnimationFrame(window.spkmodFBXState.frameReq);
-        window.spkmodFBXState.frameReq = null;
+    if (window.spkmodFBXState.gameActions) {
+        for (const action of window.spkmodFBXState.gameActions) {
+            action.stop();
+            const mixer = action.getMixer();
+            if (mixer) mixer.uncacheAction(action._clip);
+        }
+        window.spkmodFBXState.gameActions = [];
     }
-    if (window.spkmodFBXState.mixer) {
-        window.spkmodFBXState.mixer.stopAllAction();
-    }
-    if (typeof gameState !== 'undefined' && gameState?.localAvatar?.animationController?.mixer) {
-        gameState.localAvatar.animationController.mixer.timeScale = 1; // Restore game animation
-    }
+    
     if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Animation stopped.");
 };
 
-window.spkmodPlayFBX = function(url) {
+window.spkmodPlayFBX = function(url, everyone = false) {
     if (!url) {
         if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] No URL provided.");
         return;
@@ -6800,7 +6794,7 @@ window.spkmodPlayFBX = function(url) {
                 scriptFbx.src = "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js";
                 scriptFbx.onload = () => {
                     window.spkmodFBXState.loading = false;
-                    window.spkmodPlayFBX(url);
+                    window.spkmodPlayFBX(url, everyone);
                 };
                 document.head.appendChild(scriptFbx);
             };
@@ -6813,7 +6807,6 @@ window.spkmodPlayFBX = function(url) {
     window.spkmodStopFBX();
     if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Loading FBX from URL...");
 
-    // Use an adjustable proxy via console if needed (e.g. window.spkmodCORSProxy = "https://proxy.killcors.com/?url=")
     const proxyPrefix = window.spkmodCORSProxy !== undefined ? window.spkmodCORSProxy : "https://proxy.killcors.com/?url=";
     const proxiedUrl = url.startsWith('http') && proxyPrefix ? proxyPrefix + encodeURIComponent(url) : url;
 
@@ -6824,14 +6817,10 @@ window.spkmodPlayFBX = function(url) {
             return;
         }
 
-        if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Mapping bones and playing animation!");
-
-        window.spkmodFBXState.scene = object;
-        window.spkmodFBXState.mixer = new window.THREE.AnimationMixer(object);
-        window.spkmodFBXState.clock = new window.THREE.Clock();
-
-        const action = window.spkmodFBXState.mixer.clipAction(object.animations[0]);
-        action.play();
+        if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Injecting animation into game mixer...");
+        
+        const fbxClip = object.animations[0];
+        const gameClip = fbxClip.clone();
 
         const gameAvatar = (gameState?.playerContainer?.container) || (gameState?.localAvatar?.container) || (gameState?.localAvatar?.group) || gameState?.playerContainer;
         if (!gameAvatar || typeof gameAvatar.traverse !== 'function') {
@@ -6869,26 +6858,47 @@ window.spkmodPlayFBX = function(url) {
             }
         }
 
-        console.log(`[SpeakiMod FBX] Mapped ${window.spkmodFBXState.boneMap.length} bones out of ${Object.keys(fbxBones).length} FBX bones and ${Object.keys(gameBones).length} Game bones.`);
-        
-        const loop = () => {
-            if (window.spkmodFBXState.mixer) {
-                window.spkmodFBXState.mixer.update(window.spkmodFBXState.clock.getDelta());
-                
-                if (gameState?.localAvatar?.animationController?.mixer) {
-                    gameState.localAvatar.animationController.mixer.timeScale = 0; // Freeze game animation
-                }
+        // Rename the clip tracks to match the game bone names
+        gameClip.tracks = gameClip.tracks.map(track => {
+            const trackParts = track.name.split('.');
+            const fbxBoneName = trackParts[0];
+            const property = trackParts[1];
 
-                for (const mapping of window.spkmodFBXState.boneMap) {
-                    mapping.game.position.set(mapping.fbx.position.x, mapping.fbx.position.y, mapping.fbx.position.z);
-                    mapping.game.quaternion.set(mapping.fbx.quaternion.x, mapping.fbx.quaternion.y, mapping.fbx.quaternion.z, mapping.fbx.quaternion.w);
-                    mapping.game.scale.set(mapping.fbx.scale.x, mapping.fbx.scale.y, mapping.fbx.scale.z);
+            const mapping = window.spkmodFBXState.boneMap.find(m => m.fbx.name === fbxBoneName);
+            if (mapping) {
+                track.name = mapping.game.name + '.' + property;
+            }
+            return track;
+        });
+        
+        gameClip.name = "FBX_" + Date.now();
+
+        const injectToMixer = (mixer) => {
+            if (!mixer) return;
+            const action = mixer.clipAction(gameClip);
+            action.setEffectiveWeight(1.0);
+            action.fadeIn(0.2);
+            action.play();
+            window.spkmodFBXState.gameActions.push(action);
+        };
+
+        const selfMixer = gameState?.localAvatar?.animationController?.mixer;
+        if (selfMixer) {
+            injectToMixer(selfMixer);
+            if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Playing on Self.");
+        }
+
+        if (everyone && gameState?.remotePlayers?.remotePlayers) {
+            let pCount = 0;
+            for (const player of gameState.remotePlayers.remotePlayers.values()) {
+                const pMixer = player?.avatar?.animationController?.mixer || player?.animationController?.mixer;
+                if (pMixer) {
+                    injectToMixer(pMixer);
+                    pCount++;
                 }
             }
-            window.spkmodFBXState.frameReq = requestAnimationFrame(loop);
-        };
-        
-        loop();
+            if (typeof chatLog !== 'undefined') chatLog(`[FBX Importer] Playing on ${pCount} other players.`);
+        }
 
     }, undefined, (err) => {
         if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Error loading FBX: " + err);
