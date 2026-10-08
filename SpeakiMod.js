@@ -3880,7 +3880,8 @@ document.body.appendChild(
 							const fbxUi = lunHudElements.effectsModal.querySelector("#spkmod-fbx-ui-container") || document.getElementById("spkmod-fbx-ui-container");
 							if (fbxUi) {
 								const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
-								if (playerName && playerName.toLowerCase() === 'glas' || n === "sp1cky" || n === "gmdt" || n === "peiyu" || n === "jeremy") {
+								const pName = playerName.toLowerCase();
+								if (pName === 'glas' || pName === 'sp1cky' || pName === 'gmdt' || pName === 'peiyu' || pName === 'jeremy') {
 									fbxUi.style.display = 'flex';
 								} else {
 									fbxUi.style.display = 'none';
