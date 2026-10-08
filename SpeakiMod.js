@@ -8111,6 +8111,25 @@ function getPlayerPos() {
 
 const lunTranslateCache = new Map(); // `${source}|${target}:${text}` -> translated text
 const lunTranslateMaxLen = 480; // MyMemory free tier is ~500 chars/request
+const MAX_TRANSLATE_CACHE = 500;
+
+function cacheGet(key) {
+    if (!lunTranslateCache.has(key)) return undefined;
+    const value = lunTranslateCache.get(key);
+    lunTranslateCache.delete(key);
+    lunTranslateCache.set(key, value);
+    return value;
+}
+
+function cacheSet(key, value) {
+    lunTranslateCache.delete(key);
+    lunTranslateCache.set(key, value);
+    while (lunTranslateCache.size > MAX_TRANSLATE_CACHE) {
+        const oldestKey = lunTranslateCache.keys().next().value;
+        lunTranslateCache.delete(oldestKey);
+    }
+}
+
 let lunTranslateQueue = Promise.resolve();
 let lunTranslateLastAt = 0;
 const lunTranslateMinGapMs = 400;
@@ -8170,7 +8189,8 @@ async function translateChatText(text, source, target) {
 
 	const normalized = safeText.toLowerCase();
 	const cacheKey = `${source}|${target}:${normalized}`;
-	if (lunTranslateCache.has(cacheKey)) return lunTranslateCache.get(cacheKey);
+	const cached = cacheGet(cacheKey);
+	if (cached !== undefined) return cached;
 
 	const run = lunTranslateQueue.then(async () => {
 		const wait = lunTranslateLastAt + lunTranslateMinGapMs - Date.now();
@@ -8245,7 +8265,7 @@ async function translateChatText(text, source, target) {
 			// Check against the stripped text, so it doesn't just re-translate identical text
 			if (translated.trim().toLowerCase() === safeText.toLowerCase()) return null;
 
-			lunTranslateCache.set(cacheKey, translated);
+			cacheSet(cacheKey, translated);
 			return translated;
 		} catch (err) {
 			console.warn("[SpeakiMod+] Translation request failed:", err);
