@@ -6881,6 +6881,19 @@ window.spkmodPlayFBX = function(url, everyone = false, audioUrl = null) {
                 fbxModel.quaternion.setFromAxisAngle(axis, offset);
             }
 
+            // Polyfill missing newer ThreeJS methods on r128 objects/materials to prevent renderer crashes
+            fbxModel.traverse(child => {
+                if (typeof child.onBeforeRender !== 'function') child.onBeforeRender = function() {};
+                if (typeof child.onAfterRender !== 'function') child.onAfterRender = function() {};
+                if (child.material) {
+                    const mats = Array.isArray(child.material) ? child.material : [child.material];
+                    for (const mat of mats) {
+                        if (typeof mat.onBeforeRender !== 'function') mat.onBeforeRender = function() {};
+                        if (typeof mat.onAfterRender !== 'function') mat.onAfterRender = function() {};
+                    }
+                }
+            });
+
             container.add(fbxModel);
             
             const mixer = new window.THREE.AnimationMixer(fbxModel);
