@@ -6833,8 +6833,12 @@ window.spkmodPlayFBX = function(url) {
         const action = window.spkmodFBXState.mixer.clipAction(object.animations[0]);
         action.play();
 
-        const gameAvatar = gameState?.localAvatar?.container;
-        if (!gameAvatar) return;
+        const gameAvatar = (gameState?.playerContainer?.container) || (gameState?.localAvatar?.container) || (gameState?.localAvatar?.group) || gameState?.playerContainer;
+        if (!gameAvatar || typeof gameAvatar.traverse !== 'function') {
+            console.error("[SpeakiMod FBX] gameAvatar not found or not traversable", { playerContainer: gameState?.playerContainer, localAvatar: gameState?.localAvatar });
+            if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Error: Could not find 3D avatar container.");
+            return;
+        }
 
         const gameBones = {};
         gameAvatar.traverse((child) => {
