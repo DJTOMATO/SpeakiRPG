@@ -6801,10 +6801,12 @@ window.spkmodPlayFBX = async function(url, everyone = false, audioUrl = null) {
         
         try {
             const THREE = await import('https://esm.sh/v135/three@0.185.0');
-            window.THREE = THREE;
             
             if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Downloading FBXLoader...");
             const { FBXLoader } = await import('https://esm.sh/v135/three@0.185.0/examples/jsm/loaders/FBXLoader.js');
+            
+            // THREE is a read-only Module namespace, so we create a new object and merge them.
+            window.THREE = Object.assign({}, THREE);
             window.THREE.FBXLoader = FBXLoader;
             
             window.spkmodFBXState.loading = false;
