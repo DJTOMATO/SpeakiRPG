@@ -6802,6 +6802,14 @@ window.spkmodPlayFBX = function(url, everyone = false, audioUrl = null) {
         const scriptThree = document.createElement('script');
         scriptThree.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
         scriptThree.onload = () => {
+            // Polyfill removeFromParent for compatibility with newer game engine ThreeJS versions
+            if (window.THREE && window.THREE.Object3D && !window.THREE.Object3D.prototype.removeFromParent) {
+                window.THREE.Object3D.prototype.removeFromParent = function() {
+                    if (this.parent) this.parent.remove(this);
+                    return this;
+                };
+            }
+
             if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Downloading fflate...");
             const scriptFflate = document.createElement('script');
             scriptFflate.src = "https://cdn.jsdelivr.net/npm/fflate@0.8.0/umd/index.js";
