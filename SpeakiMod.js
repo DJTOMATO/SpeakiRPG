@@ -3879,7 +3879,8 @@ document.body.appendChild(
 							
 							const fbxUi = lunHudElements.effectsModal.querySelector("#spkmod-fbx-ui-container") || document.getElementById("spkmod-fbx-ui-container");
 							if (fbxUi) {
-								if (typeof gameState !== 'undefined' && gameState?.myStat?.name?.toLowerCase() === 'glas') {
+								const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
+								if (playerName && playerName.toLowerCase() === 'glas') {
 									fbxUi.style.display = 'flex';
 								} else {
 									fbxUi.style.display = 'none';
