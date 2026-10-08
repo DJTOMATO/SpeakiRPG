@@ -6755,7 +6755,8 @@ window.spkmodApplyNamePresets = function() {
 // --- FBX Importer Logic ---
 window.spkmodFBXState = {
     loading: false,
-    gameActions: []
+    gameActions: [],
+    audio: null
 };
 
 window.spkmodStopFBX = function() {
@@ -6768,10 +6769,16 @@ window.spkmodStopFBX = function() {
         window.spkmodFBXState.gameActions = [];
     }
     
+    if (window.spkmodFBXState.audio) {
+        window.spkmodFBXState.audio.pause();
+        window.spkmodFBXState.audio.currentTime = 0;
+        window.spkmodFBXState.audio = null;
+    }
+    
     if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Animation stopped.");
 };
 
-window.spkmodPlayFBX = function(url, everyone = false) {
+window.spkmodPlayFBX = function(url, everyone = false, audioUrl = null) {
     if (!url) {
         if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] No URL provided.");
         return;
@@ -6807,8 +6814,9 @@ window.spkmodPlayFBX = function(url, everyone = false) {
     window.spkmodStopFBX();
     if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Loading FBX from URL...");
 
-    const proxyPrefix = window.spkmodCORSProxy !== undefined ? window.spkmodCORSProxy : "https://proxy.killcors.com/?url=";
-    const proxiedUrl = url.startsWith('http') && proxyPrefix ? proxyPrefix + encodeURIComponent(url) : url;
+    const proxyPrefix = window.spkmodCORSProxy !== undefined ? window.spkmodCORSProxy : "";
+    const isLocal = url.includes('localhost') || url.includes('127.0.0.1');
+    const proxiedUrl = (url.startsWith('http') && proxyPrefix && !isLocal) ? proxyPrefix + encodeURIComponent(url) : url;
 
     const loader = new window.THREE.FBXLoader();
     loader.load(proxiedUrl, (object) => {
@@ -6858,7 +6866,7 @@ window.spkmodPlayFBX = function(url, everyone = false) {
             }
         }
 
-        // Rename the clip tracks to match the game bone names
+        // Rename the clip tracks to match the game bone names and fix root rotation
         gameClip.tracks = gameClip.tracks.map(track => {
             const trackParts = track.name.split('.');
             const fbxBoneName = trackParts[0];
@@ -6867,6 +6875,25 @@ window.spkmodPlayFBX = function(url, everyone = false) {
             const mapping = window.spkmodFBXState.boneMap.find(m => m.fbx.name === fbxBoneName);
             if (mapping) {
                 track.name = mapping.game.name + '.' + property;
+                
+                // Fix: Mixamo FBX animations usually require a 90-degree X-axis rotation correction 
+                // on the root bone (Hips/Pelvis) because FBX uses Y-up and the game uses Z-up.
+                const lowerName = fbxBoneName.toLowerCase();
+                if (property === 'quaternion' && (lowerName.includes('hips') || lowerName.includes('pelvis'))) {
+                    // Allow tweaking via console if it's the wrong way (e.g., window.spkmodFBXRotationOffset = -Math.PI / 2)
+                    const offset = window.spkmodFBXRotationOffset !== undefined ? window.spkmodFBXRotationOffset : Math.PI / 2;
+                    if (offset !== 0) {
+                        const qFix = new window.THREE.Quaternion().setFromAxisAngle(new window.THREE.Vector3(1, 0, 0), offset);
+                        for (let i = 0; i < track.values.length; i += 4) {
+                            const q = new window.THREE.Quaternion(track.values[i], track.values[i+1], track.values[i+2], track.values[i+3]);
+                            q.premultiply(qFix);
+                            track.values[i] = q.x;
+                            track.values[i+1] = q.y;
+                            track.values[i+2] = q.z;
+                            track.values[i+3] = q.w;
+                        }
+                    }
+                }
             }
             return track;
         });
@@ -6898,6 +6925,13 @@ window.spkmodPlayFBX = function(url, everyone = false) {
                 }
             }
             if (typeof chatLog !== 'undefined') chatLog(`[FBX Importer] Playing on ${pCount} other players.`);
+        }
+
+        if (audioUrl) {
+            window.spkmodFBXState.audio = new Audio(audioUrl);
+            window.spkmodFBXState.audio.volume = 0.5;
+            // Optionally set loop=true if you want the audio to loop with the animation
+            window.spkmodFBXState.audio.play().catch(e => console.warn("[FBX Importer] Audio play blocked:", e));
         }
 
     }, undefined, (err) => {
