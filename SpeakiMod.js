@@ -8101,7 +8101,7 @@ function getPlayerPos() {
 
 const lunTranslateCache = new Map(); // `${source}|${target}:${text}` -> translated text
 const lunTranslateMaxLen = 480; // MyMemory free tier is ~500 chars/request
-const MAX_TRANSLATE_CACHE = 500;
+const MAX_TRANSLATE_CACHE = 1500;
 
 function cacheGet(key) {
     if (!lunTranslateCache.has(key)) return undefined;
