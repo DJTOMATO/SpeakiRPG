@@ -6874,47 +6874,37 @@ window.spkmodPlayFBX = async function(url, everyone = false, audioUrl = null) {
             const scale = window.spkmodFBXScale !== undefined ? window.spkmodFBXScale : 2.3;
             fbxModel.scale.set(scale, scale, scale);
 
-            // Fetch specific game textures for the FBX model
-            const textureLoader = new window.THREE.TextureLoader();
-            const texBody = textureLoader.load('https://speakirpg.overture.io.kr/models/speaki/Map_Body.png');
-            texBody.colorSpace = "srgb";
-            const texFace = textureLoader.load('https://speakirpg.overture.io.kr/models/speaki/Map_Face.png');
-            texFace.colorSpace = "srgb";
-            const texOutfit = textureLoader.load('https://speakirpg.overture.io.kr/models/speaki/speaki_Purepumpkin/textures/Map_PurePK.png');
-            texOutfit.colorSpace = "srgb";
+            // Steal the exact native materials (and their custom toon shaders + outlines) from the player's original hidden meshes!
+            const origMats = {};
+            let defaultMat = null;
+            
+            for (const mesh of hiddenMeshes) {
+                if (mesh.material) {
+                    const name = (mesh.name || "").toLowerCase();
+                    if (name.includes("body")) origMats.body = mesh.material;
+                    else if (name.includes("face")) origMats.face = mesh.material;
+                    else origMats.outfit = mesh.material; // Outfit/Hair
+                    
+                    if (!defaultMat) defaultMat = mesh.material;
+                }
+            }
 
-            // Convert to Basic material to prevent it from rendering black/dark gray without scene lights
+            // Apply the game's native materials to the FBX model
             fbxModel.traverse(child => {
                 if (child.isMesh || child.isSkinnedMesh) {
-                    if (child.material) {
-                        const meshName = (child.name || "").toLowerCase();
-                        const mats = Array.isArray(child.material) ? child.material : [child.material];
-                        
-                        for (let i = 0; i < mats.length; i++) {
-                            const oldMat = mats[i];
-                            const matName = (oldMat.name || "").toLowerCase();
-                            
-                            let assignedMap = oldMat.map;
-                            // Override map with game textures if names match
-                            if (meshName.includes("body") || matName.includes("body")) {
-                                assignedMap = texBody;
-                            } else if (meshName.includes("face") || matName.includes("face")) {
-                                assignedMap = texFace;
-                            } else if (meshName.includes("outfit") || matName.includes("outfit") || meshName.includes("purepk") || matName.includes("pumpkin") || matName.includes("purepumpkin") || matName.includes("m_")) {
-                                assignedMap = texOutfit;
-                            } else {
-                                assignedMap = texOutfit; // Default to outfit
-                            }
-                            
-                            mats[i] = new window.THREE.MeshBasicMaterial({
-                                map: assignedMap,
-                                color: oldMat.color,
-                                transparent: true,
-                                alphaTest: 0.5,
-                                side: window.THREE.DoubleSide
-                            });
-                        }
-                        child.material = Array.isArray(child.material) ? mats : mats[0];
+                    const meshName = (child.name || "").toLowerCase();
+                    let assignedMat = defaultMat;
+                    
+                    if (meshName.includes("body") && origMats.body) {
+                        assignedMat = origMats.body;
+                    } else if (meshName.includes("face") && origMats.face) {
+                        assignedMat = origMats.face;
+                    } else if (origMats.outfit) {
+                        assignedMat = origMats.outfit;
+                    }
+                    
+                    if (assignedMat) {
+                        child.material = assignedMat;
                     }
                 }
             });
