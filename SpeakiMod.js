@@ -6871,21 +6871,46 @@ window.spkmodPlayFBX = async function(url, everyone = false, audioUrl = null) {
             }
             
             // Allow scaling
-            const scale = window.spkmodFBXScale !== undefined ? window.spkmodFBXScale : 1;
+            const scale = window.spkmodFBXScale !== undefined ? window.spkmodFBXScale : 2.3;
             fbxModel.scale.set(scale, scale, scale);
+
+            // Fetch specific game textures for the FBX model
+            const textureLoader = new window.THREE.TextureLoader();
+            const texBody = textureLoader.load('https://speakirpg.overture.io.kr/models/speaki/Map_Body.png');
+            texBody.colorSpace = "srgb";
+            const texFace = textureLoader.load('https://speakirpg.overture.io.kr/models/speaki/Map_Face.png');
+            texFace.colorSpace = "srgb";
+            const texOutfit = textureLoader.load('https://speakirpg.overture.io.kr/models/speaki/speaki_Purepumpkin/textures/Map_PurePK.png');
+            texOutfit.colorSpace = "srgb";
 
             // Convert to Basic material to prevent it from rendering black/dark gray without scene lights
             fbxModel.traverse(child => {
                 if (child.isMesh || child.isSkinnedMesh) {
                     if (child.material) {
+                        const meshName = (child.name || "").toLowerCase();
                         const mats = Array.isArray(child.material) ? child.material : [child.material];
+                        
                         for (let i = 0; i < mats.length; i++) {
                             const oldMat = mats[i];
+                            const matName = (oldMat.name || "").toLowerCase();
+                            
+                            let assignedMap = oldMat.map;
+                            // Override map with game textures if names match
+                            if (meshName.includes("body") || matName.includes("body")) {
+                                assignedMap = texBody;
+                            } else if (meshName.includes("face") || matName.includes("face")) {
+                                assignedMap = texFace;
+                            } else if (meshName.includes("outfit") || matName.includes("outfit") || meshName.includes("purepk") || matName.includes("pumpkin") || matName.includes("purepumpkin") || matName.includes("m_")) {
+                                assignedMap = texOutfit;
+                            } else {
+                                assignedMap = texOutfit; // Default to outfit
+                            }
+                            
                             mats[i] = new window.THREE.MeshBasicMaterial({
-                                map: oldMat.map,
+                                map: assignedMap,
                                 color: oldMat.color,
-                                transparent: oldMat.transparent || (oldMat.map && oldMat.map.format === window.THREE.RGBAFormat),
-                                alphaTest: oldMat.alphaTest > 0 ? oldMat.alphaTest : 0.5,
+                                transparent: true,
+                                alphaTest: 0.5,
                                 side: window.THREE.DoubleSide
                             });
                         }
