@@ -6883,7 +6883,8 @@ window.spkmodPlayFBX = function(url, everyone = false, audioUrl = null) {
                     // Allow tweaking via console if it's the wrong way (e.g., window.spkmodFBXRotationOffset = -Math.PI / 2)
                     const offset = window.spkmodFBXRotationOffset !== undefined ? window.spkmodFBXRotationOffset : Math.PI / 2;
                     if (offset !== 0) {
-                        const qFix = new window.THREE.Quaternion().setFromAxisAngle(new window.THREE.Vector3(1, 0, 0), offset);
+                        const axis = window.spkmodFBXRotationAxis || new window.THREE.Vector3(1, 0, 0);
+                        const qFix = new window.THREE.Quaternion().setFromAxisAngle(axis, offset);
                         for (let i = 0; i < track.values.length; i += 4) {
                             const q = new window.THREE.Quaternion(track.values[i], track.values[i+1], track.values[i+2], track.values[i+3]);
                             q.premultiply(qFix);
