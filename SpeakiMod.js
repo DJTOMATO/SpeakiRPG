@@ -6865,6 +6865,8 @@ window.spkmodPlayFBX = function(url) {
             }
         }
 
+        console.log(`[SpeakiMod FBX] Mapped ${window.spkmodFBXState.boneMap.length} bones out of ${Object.keys(fbxBones).length} FBX bones and ${Object.keys(gameBones).length} Game bones.`);
+        
         const loop = () => {
             if (window.spkmodFBXState.mixer) {
                 window.spkmodFBXState.mixer.update(window.spkmodFBXState.clock.getDelta());
