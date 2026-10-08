@@ -4484,10 +4484,10 @@ let lunEmojiFavorites = JSON.parse((window.localStorage && localStorage.getItem(
 function toggleFavoriteEmoji(id) {
     if (lunEmojiFavorites.includes(id)) {
         lunEmojiFavorites = lunEmojiFavorites.filter(x => x !== id);
-        if (typeof chatLog !== "undefined") chatLog(t("emojiFavRemoved", "Removed from Favorites"));
+        if (typeof chatLog !== "undefined") chatLog(t("emojiFavRemoved", id));
     } else {
         lunEmojiFavorites.push(id);
-        if (typeof chatLog !== "undefined") chatLog(t("emojiFavAdded", "Added to Favorites"));
+        if (typeof chatLog !== "undefined") chatLog(t("emojiFavAdded", id));
     }
     if (window.localStorage) localStorage.setItem("spkmod-emoji-fav", JSON.stringify(lunEmojiFavorites));
     if (typeof lunEmojiTab !== "undefined" && lunEmojiTab === "fav") { if (typeof renderEmojiGrid === "function") renderEmojiGrid(); }
@@ -4976,7 +4976,7 @@ function renderEmojiGrid() {
     btnTrickcal2.onclick = (e) => {  lunEmojiTab = 'trickcal2'; renderEmojiGrid(); };
 
     const btnTrickcal3 = document.createElement("button");
-    btnTrickcal3.innerText = "🌟 " + t("emojiTabTrickcal3", "Trick 3");
+	btnTrickcal3.innerText = "🍀 " + t("emojiTabTrickcal3", "Trick 3");
     btnTrickcal3.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'trickcal3' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
     btnTrickcal3.onclick = (e) => {  lunEmojiTab = 'trickcal3'; renderEmojiGrid(); };
     
@@ -4985,18 +4985,18 @@ function renderEmojiGrid() {
     header.appendChild(btnTrickcal);
     header.appendChild(btnTrickcal2);
     const btnFav = document.createElement("button");
-    btnFav.innerText = "❤️ " + t("emojiTabFav", "Favorites");
+    btnFav.innerText = "⭐ " + t("emojiTabFav");
     btnFav.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'fav' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
     btnFav.onclick = (e) => {  lunEmojiTab = 'fav'; renderEmojiGrid(); };
-    header.appendChild(btnFav);
     header.appendChild(btnTrickcal3);
+    header.appendChild(btnFav);
 
     grid.innerHTML = "";
     
     if (lunEmojiTab === 'fav') {
         if (lunEmojiFavorites.length === 0) {
             const noFavs = document.createElement("div");
-            noFavs.innerText = t("emojiNoFavs", "Right-click an emoji to favorite it!");
+            noFavs.innerText = t("emojiNoFavs");
             noFavs.style.cssText = "color: #aaa; width: 100%; text-align: center; margin-top: 20px; font-size: 13px;";
             grid.appendChild(noFavs);
         } else {
