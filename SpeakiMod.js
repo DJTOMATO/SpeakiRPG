@@ -3348,6 +3348,15 @@ document.body.appendChild(
 						togglePetDance(e.target);
 					}
 				}),
+				lunPanelElements.justPetBtn = buildElement("button", {
+					id: "spkmod-justpet-btn",
+					className: "spkmod-panel-btn",
+					innerText: t(window.JustPetActive ? "justPetOn" : "justPetOff") || (window.JustPetActive ? "Just Pet: ⏸️" : "Just Pet: ▶️"),
+					value: "",
+					onclick: e => {
+						toggleJustPet(e.target);
+					}
+				}),
 				lunPanelElements.ritualBtn = buildElement("button", {
 					id: "spkmod-ritual-btn",
 					className: "spkmod-panel-btn",
@@ -5628,6 +5637,60 @@ function togglePetDance(btn) {
 	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.petDanceBtn);
 	if (targetBtn) {
 		setText(targetBtn, t(window.PetDanceActive ? "petDanceOn" : "petDanceOff") || (window.PetDanceActive ? "Pet Dance: ⏸️" : "Pet Dance: ▶️"));
+	}
+}
+
+window.JustPetActive = false;
+let justPetInterval = null;
+let justPetTick = 0;
+
+function justPetLoop() {
+	if (!window.JustPetActive) return;
+	
+	justPetTick++;
+	
+	if (justPetTick % 7 === 0) {
+		if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) {
+			gameState.sendEmoteNow(Emotes.StrokeBloom);
+		}
+	}
+}
+
+function toggleJustPet(btn) {
+	window.JustPetActive = !window.JustPetActive;
+	if (window.JustPetActive) {
+		justPetTick = 0;
+		if (justPetInterval) clearInterval(justPetInterval);
+		justPetInterval = setInterval(justPetLoop, 100);
+		
+		if (!window.AutoHeartsActive) {
+			window.AutoHeartsActive = true;
+			chatLog(t("autoHeartsActivatedMsg") || "Auto Hearts activated!");
+			if (typeof autoHeartsLoop === "function") autoHeartsLoop();
+			const heartsBtn = typeof lunPanelElements !== "undefined" ? lunPanelElements.autoHeartsBtn : null;
+			if (heartsBtn) setText(heartsBtn, t("autoHeartsOn") || "Auto Hearts: ON");
+		}
+		
+		chatLog(t("justPetActivatedMsg") || "Just Pet activated!");
+	} else {
+		if (justPetInterval) {
+			clearInterval(justPetInterval);
+			justPetInterval = null;
+		}
+		
+		if (window.AutoHeartsActive && !window.PetDanceActive) {
+			window.AutoHeartsActive = false;
+			clearTimeout(window.__autoHeartsTimeoutId);
+			const heartsBtn = typeof lunPanelElements !== "undefined" ? lunPanelElements.autoHeartsBtn : null;
+			if (heartsBtn) setText(heartsBtn, t("autoHeartsOff") || "Auto Hearts: OFF");
+		}
+		
+		chatLog(t("justPetDeactivatedMsg") || "Just Pet deactivated.");
+	}
+	
+	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.justPetBtn);
+	if (targetBtn) {
+		setText(targetBtn, t(window.JustPetActive ? "justPetOn" : "justPetOff") || (window.JustPetActive ? "Just Pet: ⏸️" : "Just Pet: ▶️"));
 	}
 }
 
@@ -8599,6 +8662,7 @@ spkmodI18nRenderers.push(() => {
 	setText(lunPanelElements.heartsBtn, t("hearts"));
 	setText(lunPanelElements.autoHeartsBtn, t(window.AutoHeartsActive ? "autoHeartsOn" : "autoHeartsOff"));
 	if (lunPanelElements.petDanceBtn) setText(lunPanelElements.petDanceBtn, t(window.PetDanceActive ? "petDanceOn" : "petDanceOff") || (window.PetDanceActive ? "Pet Dance: ⏸️" : "Pet Dance: ▶️"));
+	if (lunPanelElements.justPetBtn) setText(lunPanelElements.justPetBtn, t(window.JustPetActive ? "justPetOn" : "justPetOff") || (window.JustPetActive ? "Just Pet: ⏸️" : "Just Pet: ▶️"));
 	setText(lunPanelElements.ritualBtn, t(window.RitualState === 0 ? "ritualOff" : (window.RitualState === 1 ? "ritualOn" : "ritualInverted")));
 	if (lunPanelElements.partnerDanceBtn) setText(lunPanelElements.partnerDanceBtn, t(window.PartnerDanceState === 1 ? "partnerDanceOn" : (window.PartnerDanceState === 2 ? "partnerDanceInverted" : "partnerDanceOff")) || (window.PartnerDanceState === 0 ? "8 Dance: ▶️" : (window.PartnerDanceState === 1 ? "8 Dance: ⏸️" : "Rev 8: ⏸️")));
 	setText(lunPanelElements.turntableBtn, t(window.TurntableActive === 1 ? "turntableOn" : (window.TurntableActive === 2 ? "turntableHalf" : "turntableOff")));
