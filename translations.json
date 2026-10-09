@@ -429,8 +429,9 @@
                "emojiFavRemoved":  "Removed {0} from favorites.",
                "emojiNoFavs":  "No favorite emojis yet. Right-click an emoji to add it!",
                "emojiWarningFav":  "You can add/remove emotes in this list using the right click mouse button on any emoji",
-               "justPetOn":  "Just Pet: ??",
-               "justPetOff":  "Just Pet: ??",
+               "justPetOn":  "Pet: ⏸️",
+               "justPetOff":  "Pet: ▶️",
+
                "justPetActivatedMsg":  "Just Pet activated!",
                "justPetDeactivatedMsg":  "Just Pet deactivated."
            },
@@ -894,8 +895,8 @@
                "emojiFavRemoved":  "{0} をお気に入りから削除しました。",
                "emojiNoFavs":  "お気に入りの絵文字はまだありません。絵文字を右クリックして追加してください！",
                "emojiWarningFav":  "任意の絵文字を右クリックして、このリストからお気に入りを追加/削除できます",
-               "justPetOn":  "Just Pet: ??",
-               "justPetOff":  "Just Pet: ??",
+               "justPetOn":  "Pet: ⏸️",
+               "justPetOff":  "Pet: ▶️",
                "justPetActivatedMsg":  "Just Pet activated!",
                "justPetDeactivatedMsg":  "Just Pet deactivated."
            },
@@ -1329,8 +1330,8 @@
                "emojiFavRemoved":  "{0}을(를) 즐겨찾기에서 제거했습니다.",
                "emojiNoFavs":  "아직 즐겨찾는 이모지가 없습니다. 이모지를 우클릭하여 추가해보세요!",
                "emojiWarningFav":  "아무 이모지나 우클릭하여 이 목록에 즐겨찾기를 추가하거나 제거할 수 있습니다",
-               "justPetOn":  "Just Pet: ??",
-               "justPetOff":  "Just Pet: ??",
+               "justPetOn":  "Pet: ⏸️",
+               "justPetOff":  "Pet: ▶️",
                "justPetActivatedMsg":  "Just Pet activated!",
                "justPetDeactivatedMsg":  "Just Pet deactivated."
            },
@@ -1759,8 +1760,8 @@
                                     "desc":  "由 PeiYu 和 Speaki MMO 社群錄製的電影！請在下方觀看。",
                                     "close":  "關閉"
                                 },
-                  "justPetOn":  "Just Pet: ??",
-                  "justPetOff":  "Just Pet: ??",
+                  "justPetOn":  "Pet: ⏸️",
+                  "justPetOff":  "Pet: ▶️",
                   "justPetActivatedMsg":  "Just Pet activated!",
                   "justPetDeactivatedMsg":  "Just Pet deactivated."
               },
@@ -2189,8 +2190,9 @@
                                      "desc":  "A movie was recorded by PeiYu and the Speaki MMO community! Check it out below.",
                                      "close":  "Close"
                                  },
-                   "justPetOn":  "Just Pet: ??",
-                   "justPetOff":  "Just Pet: ??",
+                                 
+                   "justPetOn":  "Pet: ⏸️",
+                   "justPetOff":  "Pet: ▶️",
                    "justPetActivatedMsg":  "Just Pet activated!",
                    "justPetDeactivatedMsg":  "Just Pet deactivated."
                },
@@ -2604,8 +2606,8 @@
                                     "desc":  "由 PeiYu 和 Speaki MMO 社区录制的电影！请在下方观看。",
                                     "close":  "关闭"
                                 },
-                  "justPetOn":  "Just Pet: ??",
-                  "justPetOff":  "Just Pet: ??",
+                  "justPetOn":  "Pet: ⏸️",
+                  "justPetOff":  "Pet: ▶️",
                   "justPetActivatedMsg":  "Just Pet activated!",
                   "justPetDeactivatedMsg":  "Just Pet deactivated."
               },
@@ -2630,8 +2632,8 @@
                                  "desc":  "A movie was recorded by PeiYu and the Speaki MMO community! Check it out below.",
                                  "close":  "Close"
                              },
-               "justPetOn":  "Just Pet: ??",
-               "justPetOff":  "Just Pet: ??",
+               "justPetOn":  "Pet: ⏸️",
+               "justPetOff":  "Pet: ▶️",
                "justPetActivatedMsg":  "Just Pet activated!",
                "justPetDeactivatedMsg":  "Just Pet deactivated."
            }
