@@ -5601,6 +5601,8 @@ function renderInfoUI() {
 }
 
 
+
+
 const lunJumpAnimMs = 500;
 
 const lunFaintAnimMs = 1200;
@@ -8256,21 +8258,150 @@ const lunTranslateCache = new Map(); // `${source}|${target}:${text}` -> transla
 const lunTranslateMaxLen = 480; // MyMemory free tier is ~500 chars/request
 const MAX_TRANSLATE_CACHE = 1500;
 
+const lunTranslatePriorityHeap = [];
+const lunTranslateHeapNodeByKey = new Map();
+let lunTranslateCacheSequence = 0;
+
+function cacheNodeIsLowerPriority(a, b) {
+    if (a.priority !== b.priority) {
+        return a.priority < b.priority;
+    }
+    return a.lastUsed < b.lastUsed;
+}
+
+function cacheHeapSwap(i, j) {
+    const temp = lunTranslatePriorityHeap[i];
+
+    lunTranslatePriorityHeap[i] = lunTranslatePriorityHeap[j];
+    lunTranslatePriorityHeap[j] = temp;
+
+    lunTranslatePriorityHeap[i].heapIndex = i;
+    lunTranslatePriorityHeap[j].heapIndex = j;
+}
+
+function cacheHeapSiftUp(index) {
+    while (index > 0) {
+        const parent = Math.floor((index - 1) / 2);
+
+        if (!cacheNodeIsLowerPriority(
+            lunTranslatePriorityHeap[index],
+            lunTranslatePriorityHeap[parent]
+        )) {
+            break;
+        }
+
+        cacheHeapSwap(index, parent);
+        index = parent;
+    }
+
+    return index;
+}
+
+function cacheHeapSiftDown(index) {
+    const heap = lunTranslatePriorityHeap;
+
+    while (true) {
+        const left = index * 2 + 1;
+        const right = left + 1;
+        let smallest = index;
+
+        if (
+            left < heap.length &&
+            cacheNodeIsLowerPriority(heap[left], heap[smallest])
+        ) {
+            smallest = left;
+        }
+
+        if (
+            right < heap.length &&
+            cacheNodeIsLowerPriority(heap[right], heap[smallest])
+        ) {
+            smallest = right;
+        }
+
+        if (smallest === index) break;
+
+        cacheHeapSwap(index, smallest);
+        index = smallest;
+    }
+
+    return index;
+}
+
+function cacheHeapFix(index) {
+    index = cacheHeapSiftUp(index);
+    cacheHeapSiftDown(index);
+}
+
+function cacheHeapInsert(node) {
+    node.heapIndex = lunTranslatePriorityHeap.length;
+    lunTranslatePriorityHeap.push(node);
+    cacheHeapSiftUp(node.heapIndex);
+}
+
+function cacheHeapPopMin() {
+    const heap = lunTranslatePriorityHeap;
+
+    if (heap.length === 0) return null;
+
+    const min = heap[0];
+    const last = heap.pop();
+
+    if (heap.length > 0) {
+        heap[0] = last;
+        last.heapIndex = 0;
+        cacheHeapSiftDown(0);
+    }
+
+    min.heapIndex = -1;
+    return min;
+}
+
 function cacheGet(key) {
     if (!lunTranslateCache.has(key)) return undefined;
-    const value = lunTranslateCache.get(key);
-    lunTranslateCache.delete(key);
-    lunTranslateCache.set(key, value);
-    return value;
+
+    const node = lunTranslateHeapNodeByKey.get(key);
+
+    if (node) {
+        node.priority++;
+        node.lastUsed = ++lunTranslateCacheSequence;
+        cacheHeapFix(node.heapIndex);
+    }
+
+    return lunTranslateCache.get(key);
 }
 
 function cacheSet(key, value) {
-    lunTranslateCache.delete(key);
-    lunTranslateCache.set(key, value);
-    while (lunTranslateCache.size > MAX_TRANSLATE_CACHE) {
-        const oldestKey = lunTranslateCache.keys().next().value;
-        lunTranslateCache.delete(oldestKey);
+
+    const existing = lunTranslateHeapNodeByKey.get(key);
+
+    if (existing) {
+        existing.priority++;
+        existing.lastUsed = ++lunTranslateCacheSequence;
+        cacheHeapFix(existing.heapIndex);
+        return;
     }
+
+    if (lunTranslateCache.size >= MAX_TRANSLATE_CACHE) {
+        const victim = cacheHeapPopMin();
+
+        if (victim) {
+            lunTranslateCache.delete(victim.key);
+            lunTranslateHeapNodeByKey.delete(victim.key);
+        }
+    }
+
+    lunTranslateCache.set(key, value);
+
+    const node = {
+        key,
+        priority: 1,
+        lastUsed: ++lunTranslateCacheSequence,
+        heapIndex: -1
+    };
+
+    lunTranslateHeapNodeByKey.set(key, node);
+    cacheHeapInsert(node);
 }
 
 let lunTranslateQueue = Promise.resolve();
