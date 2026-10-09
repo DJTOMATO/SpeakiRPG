@@ -1487,6 +1487,20 @@ function resolveRemotePlayerById(playerId) {
     return null;
 }
 
+function isSilencedPlayer(player) {
+    if (!player) return false;
+    const name = player.info?.name || player.name;
+    if (!name || typeof name !== "string") return false;
+    const lower = name.trim().toLocaleLowerCase();
+    if (!lower) return false;
+    if (isBlockedUser(name)) return true;
+    if (Array.isArray(lunKnownBotNames) && lunKnownBotNames.some(b => typeof b === "string" && b.trim().toLocaleLowerCase() === lower)) return true;
+    const accId = player.info?.userId || player.info?.id || player.info?.playerId;
+    const level = player.info?.level || player.level;
+    if (typeof isKnownBotName === "function" && isKnownBotName(name, level, accId)) return true;
+    return false;
+}
+
 function hookBlockedUserVoice() {
     if (typeof gameState === "undefined" || !gameState) return;
     if (gameState.__speakiBlockedUserVoiceHooked) return;
@@ -1499,9 +1513,20 @@ function hookBlockedUserVoice() {
                 return originalHandleEmote.call(this, e);
             }
 
-            const remotePlayer = resolveRemotePlayerById(e.playerId);
-            const name = remotePlayer?.info?.name;
-            if (isBlockedUser(name)) {
+            let remotePlayer = resolveRemotePlayerById(e.playerId);
+            if (!remotePlayer && gameState?.remotePlayers) {
+                const list = gameState.remotePlayers.remotePlayers instanceof Map
+                    ? gameState.remotePlayers.remotePlayers.values()
+                    : (typeof gameState.remotePlayers.values === "function" ? gameState.remotePlayers.values() : []);
+                for (const p of list) {
+                    if (p?.info?.playerId == e.playerId) {
+                        remotePlayer = p;
+                        break;
+                    }
+                }
+            }
+
+            if (isSilencedPlayer(remotePlayer)) {
                 return; // Suppress emote completely: no animations, no voice lines, no sound!
             }
 
@@ -1519,7 +1544,7 @@ function hookBlockedUserVoice() {
                     : (typeof gameState.remotePlayers.values === "function" ? gameState.remotePlayers.values() : []);
 
                 for (const p of list) {
-                    if (isBlockedUser(p?.info?.name)) {
+                    if (isSilencedPlayer(p)) {
                         const cPos = p?.container?.position;
                         if (cPos === pos || (cPos && Math.hypot(cPos.x - pos.x, cPos.z - pos.z) < 0.1)) {
                             return 999999; // Distance >= 25 mutes audio to 0 volume
