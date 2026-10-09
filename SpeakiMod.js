@@ -4212,14 +4212,10 @@ document.body.appendChild(
 				lunPanelElements.targetZone = buildElement("select", {
 					className: "spkmod-panel-combo",
 					style: "flex: 1; min-width: 0; height: 28px; padding: 0 4px; font-size: 9.5pt; box-sizing: border-box;"
-				})
-			]),
-			buildElement("div", {
-				className: "spkmod-panel-cat"
-			}, [
+				}),
 				lunPanelElements.langSelect = buildElement("select", {
 					className: "spkmod-panel-combo",
-					style: "flex: 1; min-width: 0; height: 28px; padding: 0 6px; font-size: 10pt; box-sizing: border-box;",
+					style: "flex: 0 0 88px; width: 88px; height: 28px; padding: 0 4px; font-size: 9pt; box-sizing: border-box;",
 					value: spkmodLang,
 					onchange: e => {
 						setLanguage(e.target.value);
@@ -4228,11 +4224,15 @@ document.body.appendChild(
 					value: code,
 					innerText: spkmodTranslations[code].langName,
 					selected: code === spkmodLang
-				}))),
+				})))
+			]),
+			buildElement("div", {
+				className: "spkmod-panel-cat"
+			}, [
 				lunPanelElements.invisibleBtn = buildElement("button", {
 					id: "spkmod-invisible-ghost-btn",
 					className: "spkmod-panel-btn",
-					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;" + (window.lunInvisibilityActive ? " background: #5a2e2e !important;" : ""),
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;" + (window.lunInvisibilityActive ? " background: #5a2e2e !important;" : ""),
 					innerText: "👻",
 					title: t("invisibleBtn") || "Invisible Self",
 					onclick: _ => {
@@ -4242,7 +4242,7 @@ document.body.appendChild(
 				lunPanelElements.settingsBtn = buildElement("button", {
 					id: "spkmod-settings-btn",
 					className: "spkmod-panel-btn",
-					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "⚙️",
 					title: t("settingsBtnTooltip"),
 					onclick: _ => {
@@ -4252,7 +4252,7 @@ document.body.appendChild(
 				lunPanelElements.hotkeysBtn = buildElement("button", {
 					id: "spkmod-hotkeys-btn",
 					className: "spkmod-panel-btn",
-					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "⌨️",
 					title: t("hotkeysModalTitle") || "Hotkeys",
 					onclick: _ => {
@@ -4262,7 +4262,7 @@ document.body.appendChild(
 				lunPanelElements.patchNotesBtn = buildElement("button", {
 					id: "spkmod-patchnotes-btn",
 					className: "spkmod-panel-btn",
-					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "📰",
 					title: t("patchNotesBtnTooltip"),
 					onclick: _ => {
@@ -4272,17 +4272,21 @@ document.body.appendChild(
 				lunPanelElements.infoBtn = buildElement("button", {
 					id: "spkmod-info-btn",
 					className: "spkmod-panel-btn",
-					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "ℹ️",
 					title: t("infoBtnTooltip") === "infoBtnTooltip" ? "Info & News" : t("infoBtnTooltip"),
 					onclick: _ => {
 						toggleInfoModal();
 					}
-				}),
-				lunPanelElements.eventBtn = buildElement("button", {
-					id: "spkmod-event-btn",
+				})
+			]),
+			buildElement("div", {
+				className: "spkmod-panel-cat"
+			}, [
+				buildElement("button", {
+					id: "spkmod-minigame-btn",
 					className: "spkmod-panel-btn",
-					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "🎮",
 					title: t("eventInfoBtnTooltip"),
 					onclick: () => {
@@ -4293,7 +4297,7 @@ document.body.appendChild(
 				lunPanelElements.eventBtn = buildElement("button", {
 					id: "spkmod-event-btn",
 					className: "spkmod-panel-btn",
-					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "🎉",
 					title: t("eventInfoBtnTooltip"),
 					onclick: _ => {
@@ -4303,7 +4307,7 @@ document.body.appendChild(
 				lunPanelElements.mapBtn = buildElement("button", {
 					id: "spkmod-map-btn",
 					className: "spkmod-panel-btn",
-					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "🗺️",
 					title: t("mapModalTitle"),
 					onclick: _ => {
@@ -4313,7 +4317,7 @@ document.body.appendChild(
 				lunPanelElements.statsBtn = buildElement("button", {
 					id: "spkmod-stats-btn",
 					className: "spkmod-panel-btn",
-					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "⏱️",
 					title: t("statsBtnTooltip"),
 					onclick: _ => {
@@ -4323,7 +4327,7 @@ document.body.appendChild(
 				lunPanelElements.dragBtn = buildElement("button", {
 					id: "spkmod-drag-btn",
 					className: "spkmod-panel-btn",
-					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: grab;",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: grab;",
 					innerText: "⚓",
 					title: t("dragMenuTooltip"),
 					ondblclick: (e) => {
