@@ -1353,9 +1353,36 @@ function updateKnownBotVisibility() {
 			const accId = player.info?.userId || player.info?.id || player.info?.playerId;
 			const isBot = lunHideKnownBotsEnabled && isKnownBotName(player.info?.name, player.info?.level, accId);
             const isBlocked = isBlockedUser(player.info?.name);
-			player.container.visible = !(isBot || isBlocked);
+			player.container.visible = !(lunHideAllOtherPlayers || isBot || isBlocked);
 		}
 	});
+	if (lunHideAllOtherPlayers) {
+		if (gameState?.remotePetRegistry?.pets) {
+			for (const pet of gameState.remotePetRegistry.pets.values()) {
+				if (pet?.root) pet.root.visible = false;
+				else if (pet?.container) pet.container.visible = false;
+			}
+		}
+		if (gameState?.remoteDroneCoreRegistry?.droneCores) {
+			for (const drone of gameState.remoteDroneCoreRegistry.droneCores.values()) {
+				if (drone?.root) drone.root.visible = false;
+				else if (drone?.container) drone.container.visible = false;
+			}
+		}
+	} else {
+		if (gameState?.remotePetRegistry?.pets) {
+			for (const pet of gameState.remotePetRegistry.pets.values()) {
+				if (pet?.root && !pet.root.visible) pet.root.visible = true;
+				else if (pet?.container && !pet.container.visible) pet.container.visible = true;
+			}
+		}
+		if (gameState?.remoteDroneCoreRegistry?.droneCores) {
+			for (const drone of gameState.remoteDroneCoreRegistry.droneCores.values()) {
+				if (drone?.root && !drone.root.visible) drone.root.visible = true;
+				else if (drone?.container && !drone.container.visible) drone.container.visible = true;
+			}
+		}
+	}
 }
 
 function isKnownBotContainer(container) {
@@ -1420,6 +1447,7 @@ function hookKnownBotHeartEmotes() {
 
 	const originalSpawnHearts = bloomEffects.spawnHearts.bind(bloomEffects);
 	bloomEffects.spawnHearts = function(container, ...args) {
+		if (lunHideAllOtherPlayers) return;
 		if (lunHideKnownBotsEnabled && isKnownBotContainer(container)) return;
 		if (isBlockedUserContainer(container)) return;
 		return originalSpawnHearts(container, ...args);
@@ -1488,6 +1516,7 @@ function resolveRemotePlayerById(playerId) {
 }
 
 function isSilencedPlayer(player) {
+    if (lunHideAllOtherPlayers) return true;
     if (!player) return false;
     const name = player.info?.name || player.name;
     if (!name || typeof name !== "string") return false;
@@ -2427,6 +2456,170 @@ var lunViewClip = false;
 var lunBgOpacity = (window.localStorage && localStorage.getItem("spkmod-bg-opacity")) || "glass";
 var lunAccentColor = (window.localStorage && localStorage.getItem("spkmod-accent-color")) || "#ffd54a";
 var lunHudBackground = (window.localStorage && localStorage.getItem("spkmod-hud-bg")) || "none";
+var lunChromaKeyColor = (window.localStorage && localStorage.getItem("spkmod-chroma-key")) || "none";
+var lunHideAllOtherPlayers = (window.localStorage && localStorage.getItem("spkmod-hide-all-players") === "true") || false;
+var lunLockedFacialExpression = (window.localStorage && localStorage.getItem("spkmod-locked-facial-expression")) || "none";
+
+const LUN_CHROMA_COLORS = {
+	green: 0x00FF00,
+	blue: 0x0000FF,
+	red: 0xFF0000,
+	magenta: 0xFF00FF
+};
+
+function applyChromaKeyColor(colorKey) {
+	lunChromaKeyColor = colorKey || "none";
+	if (window.localStorage) {
+		localStorage.setItem("spkmod-chroma-key", lunChromaKeyColor);
+	}
+	const scene = gameState?.scene;
+	if (!scene) return;
+
+	const hex = LUN_CHROMA_COLORS[lunChromaKeyColor];
+
+	if (hex !== undefined) {
+		if (scene.__origBackground === undefined) {
+			scene.__origBackground = scene.background || null;
+		}
+		if (scene.background && typeof scene.background.setHex === "function") {
+			scene.background.setHex(hex);
+		} else if (scene.children) {
+			const anyMesh = scene.children.find(c => c?.material?.color);
+			if (anyMesh && anyMesh.material?.color?.constructor) {
+				scene.background = new anyMesh.material.color.constructor(hex);
+			}
+		}
+
+		if (scene.fog) {
+			if (scene.__origFogColor === undefined) {
+				scene.__origFogColor = scene.fog.color ? scene.fog.color.getHex() : null;
+			}
+			if (scene.fog.color && typeof scene.fog.color.setHex === "function") {
+				scene.fog.color.setHex(hex);
+			}
+		}
+
+		const handleMesh = (obj) => {
+			if (!obj) return;
+			if (obj.renderOrder === -1) {
+				if (obj.geometry && (obj.geometry.type === "SphereGeometry" || obj.geometry.parameters?.radius === 400 || obj.material?.side === 1)) {
+					if (obj.material) {
+						if (obj.material.__origMap === undefined) obj.material.__origMap = obj.material.map;
+						if (obj.material.__origColor === undefined) obj.material.__origColor = obj.material.color ? obj.material.color.getHex() : 0xffffff;
+						obj.material.map = null;
+						if (obj.material.color && typeof obj.material.color.setHex === "function") {
+							obj.material.color.setHex(hex);
+						}
+						obj.material.needsUpdate = true;
+					}
+					obj.visible = true;
+				} else if (obj.geometry && (obj.geometry.type === "CircleGeometry" || obj.geometry.parameters?.radius === 350)) {
+					if (obj.__origVisible === undefined) obj.__origVisible = obj.visible;
+					obj.visible = false;
+				} else if (obj.isInstancedMesh || (obj.geometry && obj.geometry.parameters?.radius === 1)) {
+					if (obj.__origVisible === undefined) obj.__origVisible = obj.visible;
+					obj.visible = false;
+				}
+			} else if (obj.name === "racing-environment" || (obj.children && obj.children.some(c => c.renderOrder === -1))) {
+				if (obj.children) {
+					for (const sub of obj.children) {
+						handleMesh(sub);
+					}
+				}
+			}
+		};
+
+		if (scene.children) {
+			for (const child of scene.children) {
+				handleMesh(child);
+			}
+		}
+	} else {
+		if (scene.__origBackground !== undefined) {
+			scene.background = scene.__origBackground;
+		}
+		if (scene.fog && scene.__origFogColor !== undefined && scene.__origFogColor !== null) {
+			if (scene.fog.color && typeof scene.fog.color.setHex === "function") {
+				scene.fog.color.setHex(scene.__origFogColor);
+			}
+		}
+
+		const restoreMesh = (obj) => {
+			if (!obj) return;
+			if (obj.renderOrder === -1) {
+				if (obj.material && obj.material.__origMap !== undefined) {
+					obj.material.map = obj.material.__origMap;
+					if (obj.material.__origColor !== undefined && obj.material.color && typeof obj.material.color.setHex === "function") {
+						obj.material.color.setHex(obj.material.__origColor);
+					}
+					obj.material.needsUpdate = true;
+				}
+				if (obj.__origVisible !== undefined) {
+					obj.visible = obj.__origVisible;
+				}
+			} else if (obj.name === "racing-environment" || (obj.children && obj.children.some(c => c.renderOrder === -1))) {
+				if (obj.children) {
+					for (const sub of obj.children) {
+						restoreMesh(sub);
+					}
+				}
+			}
+		};
+
+		if (scene.children) {
+			for (const child of scene.children) {
+				restoreMesh(child);
+			}
+		}
+	}
+}
+
+function setHideAllOtherPlayers(enabled) {
+	lunHideAllOtherPlayers = !!enabled;
+	if (window.localStorage) {
+		localStorage.setItem("spkmod-hide-all-players", lunHideAllOtherPlayers ? "true" : "false");
+	}
+	updateKnownBotVisibility();
+	if (typeof updateLocalEditsUI === "function") {
+		updateLocalEditsUI();
+	}
+	if (typeof chatLog === "function") {
+		chatLog("Solitude Mode: " + (lunHideAllOtherPlayers ? "ON" : "OFF"));
+	}
+}
+
+function applyLockedFacialExpression(exprKey) {
+	lunLockedFacialExpression = exprKey || "none";
+	if (window.localStorage) {
+		localStorage.setItem("spkmod-locked-facial-expression", lunLockedFacialExpression);
+	}
+	const fe = gameState?.localAvatar?.faceExpression;
+	if (fe) {
+		if (lunLockedFacialExpression === "none") {
+			if (typeof fe.endOverride === "function") {
+				fe.endOverride();
+			}
+		} else {
+			if (typeof fe.beginOverride === "function") {
+				fe.beginOverride();
+			}
+			if (typeof fe.setOverrideExpression === "function") {
+				fe.setOverrideExpression(lunLockedFacialExpression);
+			}
+		}
+	}
+	if (typeof updateLocalEditsUI === "function") {
+		updateLocalEditsUI();
+	}
+}
+
+function maintainLockedFacialExpression() {
+	if (!lunLockedFacialExpression || lunLockedFacialExpression === "none") return;
+	const fe = gameState?.localAvatar?.faceExpression;
+	if (!fe) return;
+	if (typeof fe.beginOverride === "function") fe.beginOverride();
+	if (typeof fe.setOverrideExpression === "function") fe.setOverrideExpression(lunLockedFacialExpression);
+}
 
 function toggleStatsModal() {
 	if (!lunHudElements.statsModal) return;
@@ -2724,9 +2917,9 @@ function updateDynamicStyles() {
 		}
 				#app { filter: ${filterRule}; }
 		#app > *:not(:has(canvas)):not(canvas):not(.sr-click-ripple-layer) { zoom: ${lunGameUiScale} !important; }
-		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
+		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq, body > #spkmod-panel { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
-		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
+		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
 			background: var(--spkmod-bg) !important;
 			backdrop-filter: var(--spkmod-blur) !important;
 			border-color: var(--spkmod-accent) !important;
@@ -3940,10 +4133,10 @@ document.body.appendChild(
 					}
 				})
 			]),
-			buildElement("div", { className: "spkmod-panel-cat" }, [
+			buildElement("div", { className: "spkmod-panel-cat", style: "display: flex; gap: 4px;" }, [
 				lunPanelElements.localEffectsBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
-					style: "padding: 6px; font-size: 11px; width: 100%; text-align: center; font-weight: bold; cursor: pointer;",
+					style: "padding: 6px; font-size: 11px; flex: 1; text-align: center; font-weight: bold; cursor: pointer;",
 					innerText: t("localEffectsBtn"),
 					onclick: (e) => {
 						e.preventDefault();
@@ -3961,6 +4154,17 @@ document.body.appendChild(
 									fbxUi.style.display = 'none';
 								}
 							}
+						}
+					}
+				}),
+				lunPanelElements.localEditsBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					style: "padding: 6px; font-size: 11px; flex: 1; text-align: center; font-weight: bold; cursor: pointer;",
+					innerText: t("localEditsBtn") || "🎨 Local Edits",
+					onclick: (e) => {
+						e.preventDefault();
+						if (typeof toggleLocalEditsModal === "function") {
+							toggleLocalEditsModal();
 						}
 					}
 				})
@@ -7617,6 +7821,268 @@ setTimeout(() => {
 	}
 }, 500);
 
+const editsModalElements = {};
+
+function setCameraEffectLocal(effectKey) {
+	lunCameraEffect = effectKey || "none";
+	if (window.localStorage) localStorage.setItem("spkmod-camera-effect", lunCameraEffect);
+	if (typeof updateDynamicStyles === "function") updateDynamicStyles();
+	if (typeof lunPanelElements !== "undefined" && lunPanelElements.cameraEffectSelect) {
+		lunPanelElements.cameraEffectSelect.value = lunCameraEffect;
+	}
+	if (typeof updateLocalEditsUI === "function") updateLocalEditsUI();
+	if (typeof chatLog === "function") chatLog("Camera Effect: " + lunCameraEffect.toUpperCase());
+}
+
+function updateLocalEditsUI() {
+	if (!editsModalElements.chromaHeader) return;
+	
+	const chromaBtns = {
+		none: editsModalElements.chromaBtnNone,
+		green: editsModalElements.chromaBtnGreen,
+		blue: editsModalElements.chromaBtnBlue,
+		red: editsModalElements.chromaBtnRed,
+		magenta: editsModalElements.chromaBtnMagenta
+	};
+	for (const [key, btn] of Object.entries(chromaBtns)) {
+		if (btn) {
+			if (lunChromaKeyColor === key) {
+				btn.style.borderColor = "var(--spkmod-accent, #ffd54a)";
+				btn.style.background = "rgba(255, 255, 255, 0.2)";
+				btn.style.fontWeight = "bold";
+			} else {
+				btn.style.borderColor = "#555";
+				btn.style.background = "";
+				btn.style.fontWeight = "normal";
+			}
+		}
+	}
+
+	if (editsModalElements.solitudeToggleBtn) {
+		if (lunHideAllOtherPlayers) {
+			editsModalElements.solitudeToggleBtn.innerText = t("solitudeToggleOn") || "Alone Mode: ON (Only You Visible)";
+			editsModalElements.solitudeToggleBtn.style.borderColor = "#55ff55";
+			editsModalElements.solitudeToggleBtn.style.background = "rgba(85, 255, 85, 0.2)";
+			editsModalElements.solitudeToggleBtn.style.color = "#aaffaa";
+		} else {
+			editsModalElements.solitudeToggleBtn.innerText = t("solitudeToggleOff") || "Alone Mode: OFF (All Players Visible)";
+			editsModalElements.solitudeToggleBtn.style.borderColor = "#555";
+			editsModalElements.solitudeToggleBtn.style.background = "";
+			editsModalElements.solitudeToggleBtn.style.color = "#ffffff";
+		}
+	}
+
+	if (editsModalElements.facialSelect) {
+		editsModalElements.facialSelect.value = lunLockedFacialExpression || "none";
+	}
+
+	const camBtns = {
+		none: editsModalElements.camBtnNone,
+		bw: editsModalElements.camBtnBw,
+		sepia: editsModalElements.camBtnSepia,
+		morning: editsModalElements.camBtnMorning,
+		dusk: editsModalElements.camBtnDusk,
+		night: editsModalElements.camBtnNight
+	};
+	for (const [key, btn] of Object.entries(camBtns)) {
+		if (btn) {
+			if (lunCameraEffect === key) {
+				btn.style.borderColor = "var(--spkmod-accent, #ffd54a)";
+				btn.style.background = "rgba(255, 255, 255, 0.2)";
+				btn.style.fontWeight = "bold";
+			} else {
+				btn.style.borderColor = "#555";
+				btn.style.background = "";
+				btn.style.fontWeight = "normal";
+			}
+		}
+	}
+}
+
+function toggleLocalEditsModal() {
+	if (!lunHudElements.editsModal) return;
+	const isClosed = lunHudElements.editsModal.classList.contains("hidden");
+	if (isClosed) {
+		if (typeof positionModalNicely === "function") positionModalNicely(lunHudElements.editsModal);
+		lunHudElements.editsModal.classList.remove("hidden");
+		updateLocalEditsUI();
+	} else {
+		lunHudElements.editsModal.classList.add("hidden");
+	}
+}
+
+document.body.appendChild(
+	lunHudElements.editsModal = buildElement("div", {
+		id: "spkmod-edits-modal",
+		className: "hidden",
+		style: "width: 360px; max-width: 95vw; overflow-x: hidden;"
+	}, [
+		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
+			lunPanelElements.editsModalTitle = buildElement("span", {
+				innerText: t("localEditsTitle") || "🎨 Local Edits (Creator Mode)",
+				style: "font-weight: bold; font-size: 12px; cursor: move; user-select: none; touch-action: none; padding: 6px 0; min-height: 24px; display: inline-block; width: 100%;"
+			}),
+			buildElement("span", {
+				innerText: "✕",
+				style: "cursor: pointer; padding: 0 4px; font-size: 14px;",
+				onclick: _ => lunHudElements.editsModal.classList.add("hidden")
+			})
+		]),
+		buildElement("div", { style: "display: flex; flex-direction: column; gap: 10px; max-height: 75vh; overflow-y: auto; padding: 4px; box-sizing: border-box;" }, [
+			// Section 1: Chroma Key Skybox
+			buildElement("div", { style: "display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid #555; padding-bottom: 8px;" }, [
+				editsModalElements.chromaHeader = buildElement("div", {
+					className: "spkmod-panel-cat-header",
+					innerText: "🎬 " + (t("chromaKeyHeader") || "Chroma Key Skybox (Background)"),
+					style: "margin-top: 0px;"
+				}),
+				buildElement("div", { style: "display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;" }, [
+					editsModalElements.chromaBtnNone = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 2px; font-size: 10px; text-align: center;",
+						innerText: t("chromaKeyColorNone") || "Default",
+						onclick: () => { applyChromaKeyColor("none"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnGreen = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 2px; font-size: 10px; text-align: center; color: #00ff00;",
+						innerText: "🟢 " + (t("chromaKeyColorGreen") || "Green"),
+						onclick: () => { applyChromaKeyColor("green"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnBlue = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 2px; font-size: 10px; text-align: center; color: #5599ff;",
+						innerText: "🔵 " + (t("chromaKeyColorBlue") || "Blue"),
+						onclick: () => { applyChromaKeyColor("blue"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnRed = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 2px; font-size: 10px; text-align: center; color: #ff5555;",
+						innerText: "🔴 " + (t("chromaKeyColorRed") || "Red"),
+						onclick: () => { applyChromaKeyColor("red"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnMagenta = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 2px; font-size: 10px; text-align: center; color: #ff55ff;",
+						innerText: "🟣 " + (t("chromaKeyColorMagenta") || "Magenta"),
+						onclick: () => { applyChromaKeyColor("magenta"); updateLocalEditsUI(); }
+					})
+				])
+			]),
+
+			// Section 2: Solitude Mode (Alone Mode)
+			buildElement("div", { style: "display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid #555; padding-bottom: 8px;" }, [
+				editsModalElements.solitudeHeader = buildElement("div", {
+					className: "spkmod-panel-cat-header",
+					innerText: "👤 " + (t("solitudeHeader") || "Solitude (Alone Mode)"),
+					style: "margin-top: 0px;"
+				}),
+				editsModalElements.solitudeToggleBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					style: "padding: 7px; font-size: 11px; font-weight: bold; width: 100%;",
+					innerText: lunHideAllOtherPlayers ? (t("solitudeToggleOn") || "Alone Mode: ON (Only You Visible)") : (t("solitudeToggleOff") || "Alone Mode: OFF (All Players Visible)"),
+					onclick: () => {
+						setHideAllOtherPlayers(!lunHideAllOtherPlayers);
+					}
+				})
+			]),
+
+			// Section 3: Facial Expression Lock
+			buildElement("div", { style: "display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid #555; padding-bottom: 8px;" }, [
+				editsModalElements.facialHeader = buildElement("div", {
+					className: "spkmod-panel-cat-header",
+					innerText: "😊 " + (t("facialExpressionHeader") || "Character Facial Expression"),
+					style: "margin-top: 0px;"
+				}),
+				buildElement("div", { style: "display: flex; gap: 4px;" }, [
+					editsModalElements.facialSelect = buildElement("select", {
+						className: "spkmod-panel-combo",
+						style: "flex: 1;",
+						value: lunLockedFacialExpression,
+						onchange: (e) => {
+							applyLockedFacialExpression(e.target.value);
+						}
+					}, [
+						buildElement("option", { value: "none", innerText: t("exprDefault") || "Default (Dynamic Blinking)" }),
+						buildElement("option", { value: "open_confident", innerText: t("exprConfident") || "Confident / Smug 😏" }),
+						buildElement("option", { value: "open_curious", innerText: t("exprCurious") || "Curious 🥺" }),
+						buildElement("option", { value: "closed_lash_smile", innerText: t("exprLashSmile") || "Lash Smile ☺️" }),
+						buildElement("option", { value: "closed_smile", innerText: t("exprSmile") || "Delighted Smile 😄" }),
+						buildElement("option", { value: "open_gentle", innerText: t("exprGentle") || "Gentle Open Smile 😊" }),
+						buildElement("option", { value: "closed_tongue_2", innerText: t("exprTongueWink") || "Wink & Tongue 😜" }),
+						buildElement("option", { value: "open_teasing_tongue", innerText: t("exprTeasing") || "Teasing Tongue 😛" }),
+						buildElement("option", { value: "open_worried_tongue", innerText: t("exprWorried") || "Worried Tongue 😨" })
+					]),
+					editsModalElements.facialResetBtn = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 4px 8px; font-size: 11px;",
+						innerText: "↺",
+						title: "Reset / Unlock Expression",
+						onclick: () => {
+							applyLockedFacialExpression("none");
+						}
+					})
+				])
+			]),
+
+			// Section 4: Camera Effects (Filters & Hotkeys)
+			buildElement("div", { style: "display: flex; flex-direction: column; gap: 4px;" }, [
+				editsModalElements.cameraHeader = buildElement("div", {
+					className: "spkmod-panel-cat-header",
+					innerText: "📷 " + (t("cameraEffectsTitle") || "Camera Filters (Hotkeys)"),
+					style: "margin-top: 0px;"
+				}),
+				buildElement("div", { style: "display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;" }, [
+					editsModalElements.camBtnNone = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
+						innerText: "None [Ctrl+6]",
+						onclick: () => setCameraEffectLocal("none")
+					}),
+					editsModalElements.camBtnBw = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
+						innerText: "B&W [Ctrl+7]",
+						onclick: () => setCameraEffectLocal("bw")
+					}),
+					editsModalElements.camBtnSepia = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
+						innerText: "Sepia [Ctrl+8]",
+						onclick: () => setCameraEffectLocal("sepia")
+					}),
+					editsModalElements.camBtnMorning = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
+						innerText: "Morning [Ctrl+9]",
+						onclick: () => setCameraEffectLocal("morning")
+					}),
+					editsModalElements.camBtnDusk = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
+						innerText: "Dusk [Ctrl+0]",
+						onclick: () => setCameraEffectLocal("dusk")
+					}),
+					editsModalElements.camBtnNight = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
+						innerText: "Night",
+						onclick: () => setCameraEffectLocal("night")
+					})
+				])
+			])
+		])
+	])
+);
+setTimeout(() => {
+	if (typeof makeDraggable === 'function' && lunHudElements.editsModal && lunPanelElements.editsModalTitle) {
+		const modalW = 360;
+		lunHudElements.editsModal.style.left = Math.max(10, (window.innerWidth / 2) - (modalW / 2)) + "px";
+		lunHudElements.editsModal.style.top = Math.max(10, window.innerHeight * 0.15) + "px";
+		makeDraggable(lunHudElements.editsModal, [lunPanelElements.editsModalTitle]);
+	}
+}, 500);
+
 
 document.body.appendChild(
 	lunHudElements.patchNotesModal = buildElement("div", {
@@ -9025,6 +9491,9 @@ spkmodI18nRenderers.push(() => {
 	if (typeof hotkeysModalElements !== "undefined" && hotkeysModalElements.headerTitle) {
 		hotkeysModalElements.headerTitle.innerText = "⌨️ " + (t("hotkeysModalTitle") || "Hotkeys");
 	}
+	if (lunPanelElements.localEditsBtn) setText(lunPanelElements.localEditsBtn, t("localEditsBtn") || "🎨 Local Edits");
+	if (lunPanelElements.editsModalTitle) setText(lunPanelElements.editsModalTitle, t("localEditsTitle") || "🎨 Local Edits (Creator Mode)");
+	if (typeof updateLocalEditsUI === "function") updateLocalEditsUI();
 	if (lunPanelElements.cameraEffectLabel) setText(lunPanelElements.cameraEffectLabel, t("cameraEffectLabel") || "Camera Effect");
 	if (lunPanelElements.cameraEffectSelect && lunPanelElements.cameraEffectSelect.options) {
 		if (lunPanelElements.cameraEffectSelect.options[0]) lunPanelElements.cameraEffectSelect.options[0].innerText = t("effectNone") || "Normal";
@@ -9262,6 +9731,10 @@ function tick() {
 	if (gameState.chatBubbles && typeof gameState.chatBubbles.show === "function" && !gameState.chatBubbles.__speakiHooked) {
 		var hkChatBubblesShow = gameState.chatBubbles.show.bind(gameState.chatBubbles);
 		gameState.chatBubbles.show = (e, t, n) => {
+			if (lunHideAllOtherPlayers) {
+				const isLocal = (e === gameState.playerContainer || e === gameState.localAvatar || e === gameState.myPlayerId);
+				if (!isLocal) return;
+			}
 			if (lunHideKnownBotsEnabled && isKnownBotBubbleSource(e)) return;
 			if (typeof isBlockedUserBubbleSource === 'function' && isBlockedUserBubbleSource(e)) return;
 			return hkChatBubblesShow(e, t, filterName(n));
@@ -9679,6 +10152,12 @@ function hookAvatarLabel(entity) {
 	hookKnownBotHeartEmotes();
 	hookKnownBotPlayerEmotesForAll();
 	if (typeof hookBlockedUserVoice === "function") hookBlockedUserVoice();
+	if (typeof lunChromaKeyColor !== "undefined" && lunChromaKeyColor !== "none" && typeof applyChromaKeyColor === "function") {
+		applyChromaKeyColor(lunChromaKeyColor);
+	}
+	if (typeof lunLockedFacialExpression !== "undefined" && lunLockedFacialExpression !== "none" && typeof maintainLockedFacialExpression === "function") {
+		maintainLockedFacialExpression();
+	}
 
 	if (gameState && gameState.myStat) {
 		const currentLevel = gameState.myStat.level;
@@ -11939,7 +12418,7 @@ window.addEventListener("keydown", e => {
 		if (e.key === "7") newEffect = "bw";
 		if (e.key === "8") newEffect = "sepia";
 		if (e.key === "9") newEffect = "morning";
-		if (e.key === "0") newEffect = "night"; // 0 instead of 10
+		if (e.key === "0") newEffect = "dusk"; // Ctrl + 0 -> Dusk
 		
 		if (newEffect !== null) {
 			e.preventDefault();
@@ -11947,6 +12426,7 @@ window.addEventListener("keydown", e => {
 			if (window.localStorage) localStorage.setItem("spkmod-camera-effect", lunCameraEffect);
 			if (typeof updateDynamicStyles === "function") updateDynamicStyles();
 			if (typeof lunPanelElements !== "undefined" && lunPanelElements.cameraEffectSelect) lunPanelElements.cameraEffectSelect.value = lunCameraEffect;
+			if (typeof updateLocalEditsUI === "function") updateLocalEditsUI();
 			if (typeof chatLog === "function") chatLog("Camera Effect: " + newEffect.toUpperCase());
 			return;
 		}
