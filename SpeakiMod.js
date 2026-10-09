@@ -813,12 +813,10 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 		if (res.ok) {
 			const data = await res.json();
 			if (data && data.en) {
-				for (const lang of Object.keys(data)) {
-					spkmodTranslations[lang] = Object.assign({}, spkmodTranslations[lang] || {}, data[lang]);
-				}
+				spkmodTranslations = data;
 				if (typeof window !== "undefined" && window.localStorage) {
 					try {
-						localStorage.setItem("spkmod-translations-cache", JSON.stringify(spkmodTranslations));
+						localStorage.setItem("spkmod-translations-cache", JSON.stringify(data));
 					} catch (_) {}
 				}
 				if (!spkmodTranslations[spkmodLang]) spkmodLang = "en";
@@ -7857,6 +7855,21 @@ function setCameraEffectLocal(effectKey) {
 function updateLocalEditsUI() {
 	if (!editsModalElements.chromaHeader) return;
 	
+	// Headers & Labels
+	if (lunPanelElements.editsModalTitle) setText(lunPanelElements.editsModalTitle, t("localEditsTitle") || "🎨 Local Edits (Creator Mode)");
+	if (lunPanelElements.localEditsBtn) setText(lunPanelElements.localEditsBtn, t("localEditsBtn") || "🎨 Local Edits");
+	if (editsModalElements.chromaHeader) setText(editsModalElements.chromaHeader, "🎬 " + (t("chromaKeyHeader") || "Chroma Key Skybox (Background)"));
+	if (editsModalElements.solitudeHeader) setText(editsModalElements.solitudeHeader, "👤 " + (t("solitudeHeader") || "Solitude (Alone Mode)"));
+	if (editsModalElements.facialHeader) setText(editsModalElements.facialHeader, "😊 " + (t("facialExpressionHeader") || "Character Facial Expression"));
+	if (editsModalElements.cameraHeader) setText(editsModalElements.cameraHeader, "📷 " + (t("cameraEffectsTitle") || "Camera Filters (Hotkeys)"));
+
+	// Chroma Key Buttons
+	if (editsModalElements.chromaBtnNone) setText(editsModalElements.chromaBtnNone, t("chromaKeyColorNone") || "Default");
+	if (editsModalElements.chromaBtnGreen) setText(editsModalElements.chromaBtnGreen, "🟢 " + (t("chromaKeyColorGreen") || "Green"));
+	if (editsModalElements.chromaBtnBlue) setText(editsModalElements.chromaBtnBlue, "🔵 " + (t("chromaKeyColorBlue") || "Blue"));
+	if (editsModalElements.chromaBtnRed) setText(editsModalElements.chromaBtnRed, "🔴 " + (t("chromaKeyColorRed") || "Red"));
+	if (editsModalElements.chromaBtnMagenta) setText(editsModalElements.chromaBtnMagenta, "🟣 " + (t("chromaKeyColorMagenta") || "Magenta"));
+
 	const chromaBtns = {
 		none: editsModalElements.chromaBtnNone,
 		green: editsModalElements.chromaBtnGreen,
@@ -7878,23 +7891,46 @@ function updateLocalEditsUI() {
 		}
 	}
 
+	// Solitude Toggle Button
 	if (editsModalElements.solitudeToggleBtn) {
 		if (lunHideAllOtherPlayers) {
-			editsModalElements.solitudeToggleBtn.innerText = t("solitudeToggleOn") || "Alone Mode: ON (Only You Visible)";
+			setText(editsModalElements.solitudeToggleBtn, t("solitudeToggleOn") || "Alone Mode: ON (Only You Visible)");
 			editsModalElements.solitudeToggleBtn.style.borderColor = "#55ff55";
 			editsModalElements.solitudeToggleBtn.style.background = "rgba(85, 255, 85, 0.2)";
 			editsModalElements.solitudeToggleBtn.style.color = "#aaffaa";
 		} else {
-			editsModalElements.solitudeToggleBtn.innerText = t("solitudeToggleOff") || "Alone Mode: OFF (All Players Visible)";
+			setText(editsModalElements.solitudeToggleBtn, t("solitudeToggleOff") || "Alone Mode: OFF (All Players Visible)");
 			editsModalElements.solitudeToggleBtn.style.borderColor = "#555";
 			editsModalElements.solitudeToggleBtn.style.background = "";
 			editsModalElements.solitudeToggleBtn.style.color = "#ffffff";
 		}
 	}
 
-	if (editsModalElements.facialSelect) {
+	// Facial Expression Dropdown Options
+	if (editsModalElements.facialSelect && editsModalElements.facialSelect.options) {
+		const opts = editsModalElements.facialSelect.options;
+		if (opts[0]) setText(opts[0], t("exprDefault") || "Default (Dynamic Blinking)");
+		if (opts[1]) setText(opts[1], t("exprConfident") || "Confident / Smug 😏");
+		if (opts[2]) setText(opts[2], t("exprCurious") || "Curious 🥺");
+		if (opts[3]) setText(opts[3], t("exprLashSmile") || "Lash Smile ☺️");
+		if (opts[4]) setText(opts[4], t("exprSmile") || "Delighted Smile 😄");
+		if (opts[5]) setText(opts[5], t("exprGentle") || "Gentle Open Smile 😊");
+		if (opts[6]) setText(opts[6], t("exprTongueWink") || "Wink & Tongue 😜");
+		if (opts[7]) setText(opts[7], t("exprTeasing") || "Teasing Tongue 😛");
+		if (opts[8]) setText(opts[8], t("exprWorried") || "Worried Tongue 😨");
 		editsModalElements.facialSelect.value = lunLockedFacialExpression || "none";
 	}
+	if (editsModalElements.facialResetBtn) {
+		editsModalElements.facialResetBtn.title = t("exprResetTooltip") || "Reset / Unlock Expression";
+	}
+
+	// Camera Effect Buttons
+	if (editsModalElements.camBtnNone) setText(editsModalElements.camBtnNone, (t("effectNone") || "Normal") + " [Ctrl+6]");
+	if (editsModalElements.camBtnBw) setText(editsModalElements.camBtnBw, (t("effectBw") || "B&W") + " [Ctrl+7]");
+	if (editsModalElements.camBtnSepia) setText(editsModalElements.camBtnSepia, (t("effectSepia") || "Sepia") + " [Ctrl+8]");
+	if (editsModalElements.camBtnMorning) setText(editsModalElements.camBtnMorning, (t("effectMorning") || "Morning") + " [Ctrl+9]");
+	if (editsModalElements.camBtnDusk) setText(editsModalElements.camBtnDusk, (t("effectDusk") || "Dusk") + " [Ctrl+0]");
+	if (editsModalElements.camBtnNight) setText(editsModalElements.camBtnNight, (t("effectNight") || "Night"));
 
 	const camBtns = {
 		none: editsModalElements.camBtnNone,
@@ -8039,7 +8075,7 @@ document.body.appendChild(
 						className: "spkmod-panel-btn",
 						style: "padding: 4px 8px; font-size: 11px;",
 						innerText: "↺",
-						title: "Reset / Unlock Expression",
+						title: t("exprResetTooltip") || "Reset / Unlock Expression",
 						onclick: () => {
 							applyLockedFacialExpression("none");
 						}
@@ -8058,37 +8094,37 @@ document.body.appendChild(
 					editsModalElements.camBtnNone = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
-						innerText: "None [Ctrl+6]",
+						innerText: (t("effectNone") || "Normal") + " [Ctrl+6]",
 						onclick: () => setCameraEffectLocal("none")
 					}),
 					editsModalElements.camBtnBw = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
-						innerText: "B&W [Ctrl+7]",
+						innerText: (t("effectBw") || "B&W") + " [Ctrl+7]",
 						onclick: () => setCameraEffectLocal("bw")
 					}),
 					editsModalElements.camBtnSepia = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
-						innerText: "Sepia [Ctrl+8]",
+						innerText: (t("effectSepia") || "Sepia") + " [Ctrl+8]",
 						onclick: () => setCameraEffectLocal("sepia")
 					}),
 					editsModalElements.camBtnMorning = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
-						innerText: "Morning [Ctrl+9]",
+						innerText: (t("effectMorning") || "Morning") + " [Ctrl+9]",
 						onclick: () => setCameraEffectLocal("morning")
 					}),
 					editsModalElements.camBtnDusk = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
-						innerText: "Dusk [Ctrl+0]",
+						innerText: (t("effectDusk") || "Dusk") + " [Ctrl+0]",
 						onclick: () => setCameraEffectLocal("dusk")
 					}),
 					editsModalElements.camBtnNight = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
-						innerText: "Night",
+						innerText: (t("effectNight") || "Night"),
 						onclick: () => setCameraEffectLocal("night")
 					})
 				])
@@ -8100,6 +8136,7 @@ if (lunHudElements.editsModal) {
 	const modalW = 360;
 	lunHudElements.editsModal.style.left = Math.max(10, Math.round((window.innerWidth / 2) - (modalW / 2))) + "px";
 	lunHudElements.editsModal.style.top = Math.max(10, Math.round(window.innerHeight * 0.15)) + "px";
+	if (typeof updateLocalEditsUI === "function") updateLocalEditsUI();
 }
 setTimeout(() => {
 	if (typeof makeDraggable === 'function' && lunHudElements.editsModal && lunPanelElements.editsModalTitle) {
@@ -8763,6 +8800,9 @@ if (typeof spkmodI18nRenderers !== "undefined") {
 	spkmodI18nRenderers.push(() => {
 		if (lunHudElements && lunHudElements.hotkeysModal && !lunHudElements.hotkeysModal.classList.contains("hidden")) {
 			renderHotkeysUI();
+		}
+		if (typeof updateLocalEditsUI === "function") {
+			updateLocalEditsUI();
 		}
 	});
 }

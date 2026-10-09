@@ -455,7 +455,8 @@
         "exprTongueWink": "Wink & Tongue 😜",
         "exprTeasing": "Teasing Tongue 😛",
         "exprWorried": "Worried Tongue 😨",
-        "cameraEffectsTitle": "Camera Filters (Hotkeys)"
+        "cameraEffectsTitle": "Camera Filters (Hotkeys)",
+        "exprResetTooltip": "Reset / Unlock Expression"
     },
     "ja": {
         "langName": "日本語",
@@ -943,7 +944,8 @@
         "exprTongueWink": "ウィンク＆舌ペロ 😜",
         "exprTeasing": "からかい舌出し 😛",
         "exprWorried": "困り顔 😨",
-        "cameraEffectsTitle": "カメラフィルター (ホットキー)"
+        "cameraEffectsTitle": "カメラフィルター (ホットキー)",
+        "exprResetTooltip": "表情のリセット / ロック解除"
     },
     "ko": {
         "langName": "한국어",
@@ -1401,7 +1403,8 @@
         "exprTongueWink": "윙크 메롱 😜",
         "exprTeasing": "장난꾸러기 메롱 😛",
         "exprWorried": "당황 / 걱정 😨",
-        "cameraEffectsTitle": "카메라 필터 (단축키)"
+        "cameraEffectsTitle": "카메라 필터 (단축키)",
+        "exprResetTooltip": "표정 초기화 / 고정 해제"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -1854,7 +1857,8 @@
         "exprTongueWink": "眨眼吐舌 😜",
         "exprTeasing": "調皮吐舌 😛",
         "exprWorried": "擔憂 😨",
-        "cameraEffectsTitle": "鏡頭濾鏡 (快捷鍵)"
+        "cameraEffectsTitle": "鏡頭濾鏡 (快捷鍵)",
+        "exprResetTooltip": "重設 / 解鎖表情"
     },
     "es-419": {
         "langName": "Español",
@@ -2192,11 +2196,11 @@
         "gameUiScaleLabel": "Escala del Juego",
         "cameraEffectLabel": "Camera Effect",
         "effectNone": "Normal",
-        "effectBw": "Noir (B&W)",
-        "effectSepia": "Retro (Sepia)",
-        "effectMorning": "Morning",
-        "effectDusk": "Dusk / Dawn",
-        "effectNight": "Night",
+        "effectBw": "Blanco y Negro (B&N)",
+        "effectSepia": "Sepia (Retro)",
+        "effectMorning": "Mañana",
+        "effectDusk": "Atardecer / Amanecer",
+        "effectNight": "Noche",
         "gamepadDroneSpeed": "Free Camera Speed",
         "hotkeysModalTitle": "Atajos",
         "droneSpeedLabel": "Veloc. del Dron",
@@ -2307,7 +2311,8 @@
         "exprTongueWink": "Guiño y Lengua 😜",
         "exprTeasing": "Burlón con Lengua 😛",
         "exprWorried": "Preocupado 😨",
-        "cameraEffectsTitle": "Filtros de Cámara (Atajos)"
+        "cameraEffectsTitle": "Filtros de Cámara (Atajos)",
+        "exprResetTooltip": "Restablecer / Desbloquear Expresión"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -2644,12 +2649,12 @@
         "statsMinigamePlays": "小游戏次数",
         "gameUiScaleLabel": "游戏介面缩放比例",
         "cameraEffectLabel": "Camera Effect",
-        "effectNone": "Normal",
-        "effectBw": "Noir (B&W)",
-        "effectSepia": "Retro (Sepia)",
-        "effectMorning": "Morning",
-        "effectDusk": "Dusk / Dawn",
-        "effectNight": "Night",
+        "effectNone": "原版滤镜",
+        "effectBw": "黑白滤镜",
+        "effectSepia": "复古滤镜",
+        "effectMorning": "明亮滤镜",
+        "effectDusk": "黎明滤镜",
+        "effectNight": "深夜滤镜",
         "gamepadDroneSpeed": "Free Camera Speed",
         "hotkeysModalTitle": "快捷键",
         "droneSpeedLabel": "南瓜摄像机速度",
@@ -2745,7 +2750,8 @@
         "exprTongueWink": "眨眼吐舌 😜",
         "exprTeasing": "调皮吐舌 😛",
         "exprWorried": "担忧 😨",
-        "cameraEffectsTitle": "镜头滤镜 (快捷键)"
+        "cameraEffectsTitle": "镜头滤镜 (快捷键)",
+        "exprResetTooltip": "重置 / 解锁表情"
     },
     "zh": {
         "decalogue": {
