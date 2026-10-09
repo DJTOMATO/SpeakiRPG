@@ -3890,7 +3890,7 @@ document.body.appendChild(
 							if (fbxUi) {
 								const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
 								const pName = playerName.toLowerCase();
-								if (pName === 'glas' || pName === 'sp1cky' || pName === 'gmdt' || pName === 'peiyu' || pName === 'jeremy') {
+								if (pName === 'glas' || pName === 'sp1cky' || pName === 'gmdt' || pName === 'peiyu' || pName === 'jeremy' || pName === 'oage') {
 									fbxUi.style.display = 'flex';
 								} else {
 									fbxUi.style.display = 'none';
