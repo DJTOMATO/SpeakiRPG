@@ -3987,7 +3987,7 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "ℹ️",
-					title: t("infoBtnTooltip") || "Info & News",
+					title: t("infoBtnTooltip") === "infoBtnTooltip" ? "Info & News" : t("infoBtnTooltip"),
 					onclick: _ => {
 						toggleInfoModal();
 					}
@@ -5531,7 +5531,7 @@ document.body.appendChild(
 	}, [
 		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
 			lunHudElements.infoModalHeader = buildElement("span", {
-				innerText: "ℹ️ " + (t("infoBtnTooltip") || "Info & News"),
+				innerText: "ℹ️ " + (t("infoBtnTooltip") === "infoBtnTooltip" ? "Info & News" : t("infoBtnTooltip")),
 				style: "font-weight: bold; font-size: 12px; cursor: move; user-select: none;"
 			}),
 			buildElement("span", {

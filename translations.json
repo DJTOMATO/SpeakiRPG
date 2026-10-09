@@ -1,6 +1,7 @@
 {
     "en":  {
                "langName":  "English",
+               "infoBtnTooltip":  "Info & News",
                "avatarTitle":  "Choose your avatar",
                "avatarChange":  "Change avatar (only visible to you)",
                "avatarLocalNote":  "Only visible to you on this device. Images and GIFs are cropped to a circle.",
@@ -437,6 +438,7 @@
            },
     "ja":  {
                "langName":  "日本語",
+               "infoBtnTooltip":  "情報＆ニュース",
                "avatarTitle":  "アイコンを選択",
                "avatarChange":  "アイコンを変更（自分にのみ表示）",
                "avatarLocalNote":  "この端末の自分にのみ表示されます。画像とGIFは円形に切り抜かれます。",
@@ -902,6 +904,7 @@
            },
     "ko":  {
                "langName":  "한국어",
+               "infoBtnTooltip":  "정보 및 뉴스",
                "avatarTitle":  "프로필 이미지 선택",
                "avatarChange":  "프로필 이미지 변경 (나에게만 표시)",
                "avatarLocalNote":  "이 기기에서 나에게만 표시됩니다. 이미지와 GIF는 원형으로 잘립니다.",
@@ -1337,6 +1340,7 @@
            },
     "zh-TW":  {
                   "langName":  "繁體中文",
+                  "infoBtnTooltip":  "資訊與新聞",
                   "avatarTitle":  "選擇你的頭貼",
                   "avatarChange":  "更換頭貼（僅自己可見）",
                   "avatarLocalNote":  "僅在這台裝置上對自己顯示。圖片與 GIF 會以圓形裁切。",
@@ -1767,6 +1771,7 @@
               },
     "es-419":  {
                    "langName":  "Español",
+                   "infoBtnTooltip":  "Información y Noticias",
                    "avatarTitle":  "Elige tu avatar",
                    "avatarChange":  "Cambiar avatar (solo visible para ti)",
                    "avatarLocalNote":  "Solo visible para ti en este dispositivo. Las imágenes y GIF se recortan en círculo.",
@@ -2198,6 +2203,7 @@
                },
     "zh-CN":  {
                   "langName":  "简体中文",
+                  "infoBtnTooltip":  "资讯与新闻",
                   "avatarTitle":  "选择你的头像",
                   "avatarChange":  "更换头像（仅自己可见）",
                   "avatarLocalNote":  "仅在这台设备上对自己显示。图片与 GIF 会以圆形裁切。",
