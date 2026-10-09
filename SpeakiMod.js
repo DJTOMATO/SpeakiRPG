@@ -1333,7 +1333,17 @@ XMLHttpRequest.prototype.send = function() {
 
 function isBlockedUser(name) {
     if (typeof name !== "string") return false;
-    return cachedBlockedNames.has(name.trim().toLocaleLowerCase());
+    const clean = name.trim().toLocaleLowerCase();
+    if (!clean) return false;
+    if (cachedBlockedNames.has(clean)) return true;
+    try {
+        const stored = JSON.parse(localStorage.getItem("sr1_blocked_players") || "[]");
+        if (Array.isArray(stored) && stored.some(n => typeof n === "string" && n.trim().toLocaleLowerCase() === clean)) {
+            cachedBlockedNames.add(clean);
+            return true;
+        }
+    } catch (_) {}
+    return false;
 }
 
 function updateKnownBotVisibility() {
@@ -1458,38 +1468,68 @@ function hookKnownBotPlayerEmotesForAll() {
 	gameState.remotePlayers.remotePlayers.forEach(hookKnownBotPlayerEmotes);
 }
 
+function resolveRemotePlayerById(playerId) {
+    if (!gameState?.remotePlayers) return null;
+    const rp = gameState.remotePlayers;
+    let p = rp.get?.(playerId) || rp.get?.(Number(playerId)) || rp.get?.(String(playerId));
+    if (p) return p;
+    if (rp.remotePlayers instanceof Map) {
+        p = rp.remotePlayers.get(playerId) || rp.remotePlayers.get(Number(playerId)) || rp.remotePlayers.get(String(playerId));
+        if (p) return p;
+        for (const item of rp.remotePlayers.values()) {
+            if (item?.info?.playerId == playerId) return item;
+        }
+    } else if (typeof rp.values === "function") {
+        for (const item of rp.values()) {
+            if (item?.info?.playerId == playerId) return item;
+        }
+    }
+    return null;
+}
+
 function hookBlockedUserVoice() {
     if (typeof gameState === "undefined" || !gameState) return;
-    if (typeof gameState.handleEmote !== "function") return;
     if (gameState.__speakiBlockedUserVoiceHooked) return;
 
-    const originalHandleEmote = gameState.handleEmote;
+    if (typeof gameState.handleEmote === "function") {
+        const originalHandleEmote = gameState.handleEmote;
 
-    gameState.handleEmote = function(e) {
-        if (!e || e.playerId === this.myPlayerId) {
-            return originalHandleEmote.call(this, e);
-        }
-
-        const remotePlayer = this.remotePlayers?.get(e.playerId);
-        if (!remotePlayer || !isBlockedUser(remotePlayer.info?.name)) {
-            return originalHandleEmote.call(this, e);
-        }
-
-        const controller = remotePlayer.avatar?.animationController ?? null;
-
-        switch (e.emoteId) {
-            case Emotes.Cry:
-                controller?.playEmote();
-                return;
-
-            case Emotes.MinigameJoayo:
-                controller?.playAffectionEmote();
-                return;
-
-            default:
+        gameState.handleEmote = function(e) {
+            if (!e || e.playerId === this.myPlayerId) {
                 return originalHandleEmote.call(this, e);
-        }
-    };
+            }
+
+            const remotePlayer = resolveRemotePlayerById(e.playerId);
+            const name = remotePlayer?.info?.name;
+            if (isBlockedUser(name)) {
+                return; // Suppress emote completely: no animations, no voice lines, no sound!
+            }
+
+            return originalHandleEmote.call(this, e);
+        };
+    }
+
+    if (typeof gameState.remoteSoundDistance === "function") {
+        const originalSoundDist = gameState.remoteSoundDistance;
+
+        gameState.remoteSoundDistance = function(pos) {
+            if (pos && gameState.remotePlayers) {
+                const list = gameState.remotePlayers.remotePlayers instanceof Map
+                    ? gameState.remotePlayers.remotePlayers.values()
+                    : (typeof gameState.remotePlayers.values === "function" ? gameState.remotePlayers.values() : []);
+
+                for (const p of list) {
+                    if (isBlockedUser(p?.info?.name)) {
+                        const cPos = p?.container?.position;
+                        if (cPos === pos || (cPos && Math.hypot(cPos.x - pos.x, cPos.z - pos.z) < 0.1)) {
+                            return 999999; // Distance >= 25 mutes audio to 0 volume
+                        }
+                    }
+                }
+            }
+            return originalSoundDist.apply(this, arguments);
+        };
+    }
 
     gameState.__speakiBlockedUserVoiceHooked = true;
 }
@@ -9613,6 +9653,7 @@ function hookAvatarLabel(entity) {
 	updateKnownBotVisibility();
 	hookKnownBotHeartEmotes();
 	hookKnownBotPlayerEmotesForAll();
+	if (typeof hookBlockedUserVoice === "function") hookBlockedUserVoice();
 
 	if (gameState && gameState.myStat) {
 		const currentLevel = gameState.myStat.level;
@@ -9754,7 +9795,8 @@ var hkChatBoxAppend = (id, name, msg) => {
 
 function hookGameStateOnce() {
 	if (typeof gameState === "undefined" || !gameState) return false;
-	if (window.__gameStateHooked) return true;
+	if (gameState.__speakiGameStateHooked) return true;
+	gameState.__speakiGameStateHooked = true;
 	window.__gameStateHooked = true;
 	if (window.spkmodDebug) spkmodDebug.log("Initializing in-game GameState hooks...");
 
