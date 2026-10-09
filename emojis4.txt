@@ -1,6 +1,5 @@
 t_170,https://i.imgur.com/ftvLISA.png
 t_171,https://i.imgur.com/xosCNh0.png
-t_172,https://i.imgur.com/AN0PiXs.png
 t_173,https://i.imgur.com/r55s1r3.png
 t_174,https://i.imgur.com/PzYQ48X.png
 t_175,https://i.imgur.com/HI30knL.png
@@ -44,3 +43,4 @@ t_212,https://i.imgur.com/TbVomvp.png
 t_213,https://i.imgur.com/EWHw2hp.png
 t_214,https://i.imgur.com/ZHUW5eS.png
 t_215,https://i.imgur.com/UtbnDi0.jpeg
+t_139,https://i.imgur.com/jmLD0BB.png
