@@ -2470,8 +2470,62 @@ const LUN_CHROMA_COLORS = {
 	green: 0x00FF00,
 	blue: 0x0000FF,
 	red: 0xFF0000,
-	magenta: 0xFF00FF
+	magenta: 0xFF00FF,
+	black: 0x000000,
+	white: 0xFFFFFF,
+	midnight: 0x0A0C24,
+	sunset: 0x3B1538,
+	cyber: 0x051D28
 };
+
+const LUN_PROCEDURAL_SKIES = {
+	stars: { top: "#02010e", mid: "#090827", bottom: "#161343", fog: 0x161343, hasStars: true },
+	vaporwave_grad: { top: "#ff2a85", mid: "#7928ca", bottom: "#ff7e40", fog: 0x24083c, hasStars: false },
+	cyber_grad: { top: "#020024", mid: "#4b0082", bottom: "#00f2fe", fog: 0x08182b, hasStars: false },
+	pastel_grad: { top: "#a1c4fd", mid: "#fbc2eb", bottom: "#fed6e3", fog: 0xfbd2e6, hasStars: false },
+	golden_grad: { top: "#191638", mid: "#872b53", bottom: "#f9b248", fog: 0xd84f3c, hasStars: false }
+};
+
+var _lunSkyTextureCache = {};
+function createSkyCanvasTexture(presetKey) {
+	if (_lunSkyTextureCache[presetKey]) return _lunSkyTextureCache[presetKey];
+	const cfg = LUN_PROCEDURAL_SKIES[presetKey];
+	if (!cfg || typeof document === "undefined") return null;
+	const canvas = document.createElement("canvas");
+	canvas.width = 512;
+	canvas.height = 512;
+	const ctx = canvas.getContext("2d");
+	if (!ctx) return null;
+
+	const grad = ctx.createLinearGradient(0, 0, 0, 512);
+	grad.addColorStop(0, cfg.top);
+	grad.addColorStop(0.5, cfg.mid);
+	grad.addColorStop(1, cfg.bottom);
+	ctx.fillStyle = grad;
+	ctx.fillRect(0, 0, 512, 512);
+
+	if (cfg.hasStars) {
+		for (let i = 0; i < 300; i++) {
+			const x = (Math.sin(i * 127.1) * 0.5 + 0.5) * 512;
+			const y = (Math.cos(i * 311.7) * 0.5 + 0.5) * 460;
+			const r = (Math.sin(i * 59.3) * 0.5 + 0.5) * 1.5 + 0.5;
+			const alpha = (Math.cos(i * 83.9) * 0.5 + 0.5) * 0.7 + 0.3;
+			ctx.beginPath();
+			ctx.arc(x, y, r, 0, Math.PI * 2);
+			ctx.fillStyle = i % 5 === 0 ? `rgba(255, 230, 180, ${alpha})` : (i % 7 === 0 ? `rgba(180, 220, 255, ${alpha})` : `rgba(255, 255, 255, ${alpha})`);
+			ctx.fill();
+		}
+	}
+
+	let tex = null;
+	if (typeof window !== "undefined" && window.THREE && typeof window.THREE.CanvasTexture === "function") {
+		tex = new window.THREE.CanvasTexture(canvas);
+	}
+	if (tex) {
+		_lunSkyTextureCache[presetKey] = tex;
+	}
+	return tex;
+}
 
 function applyChromaKeyColor(colorKey) {
 	lunChromaKeyColor = colorKey || "none";
@@ -2482,6 +2536,7 @@ function applyChromaKeyColor(colorKey) {
 	if (!scene) return;
 
 	const hex = LUN_CHROMA_COLORS[lunChromaKeyColor];
+	const isProc = LUN_PROCEDURAL_SKIES[lunChromaKeyColor] !== undefined;
 
 	if (hex !== undefined) {
 		if (scene.__origBackground === undefined) {
@@ -2538,6 +2593,60 @@ function applyChromaKeyColor(colorKey) {
 		if (scene.children) {
 			for (const child of scene.children) {
 				handleMesh(child);
+			}
+		}
+	} else if (isProc) {
+		const tex = createSkyCanvasTexture(lunChromaKeyColor);
+		const procCfg = LUN_PROCEDURAL_SKIES[lunChromaKeyColor];
+		if (scene.__origBackground === undefined) {
+			scene.__origBackground = scene.background || null;
+		}
+		if (tex) {
+			scene.background = tex;
+		}
+
+		if (scene.fog && procCfg) {
+			if (scene.__origFogColor === undefined) {
+				scene.__origFogColor = scene.fog.color ? scene.fog.color.getHex() : null;
+			}
+			if (scene.fog.color && typeof scene.fog.color.setHex === "function") {
+				scene.fog.color.setHex(procCfg.fog);
+			}
+		}
+
+		const handleProcMesh = (obj) => {
+			if (!obj) return;
+			if (obj.renderOrder === -1) {
+				if (obj.geometry && (obj.geometry.type === "SphereGeometry" || obj.geometry.parameters?.radius === 400 || obj.material?.side === 1)) {
+					if (obj.material) {
+						if (obj.material.__origMap === undefined) obj.material.__origMap = obj.material.map;
+						if (obj.material.__origColor === undefined) obj.material.__origColor = obj.material.color ? obj.material.color.getHex() : 0xffffff;
+						if (tex) obj.material.map = tex;
+						if (obj.material.color && typeof obj.material.color.setHex === "function") {
+							obj.material.color.setHex(0xffffff);
+						}
+						obj.material.needsUpdate = true;
+					}
+					obj.visible = true;
+				} else if (obj.geometry && (obj.geometry.type === "CircleGeometry" || obj.geometry.parameters?.radius === 350)) {
+					if (obj.__origVisible === undefined) obj.__origVisible = obj.visible;
+					obj.visible = false;
+				} else if (obj.isInstancedMesh || (obj.geometry && obj.geometry.parameters?.radius === 1)) {
+					if (obj.__origVisible === undefined) obj.__origVisible = obj.visible;
+					obj.visible = false;
+				}
+			} else if (obj.name === "racing-environment" || (obj.children && obj.children.some(c => c.renderOrder === -1))) {
+				if (obj.children) {
+					for (const sub of obj.children) {
+						handleProcMesh(sub);
+					}
+				}
+			}
+		};
+
+		if (scene.children) {
+			for (const child of scene.children) {
+				handleProcMesh(child);
 			}
 		}
 	} else {
@@ -2843,12 +2952,46 @@ function updateDynamicStyles() {
 	let bgRule = "rgba(0, 0, 0, 0.75)";
 	let blurRule = "blur(4px)";
 	let filterRule = "none";
+
+	if (typeof document !== "undefined" && !document.getElementById("spkmod-fx-svg") && document.body) {
+		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		svg.id = "spkmod-fx-svg";
+		svg.setAttribute("style", "position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;");
+		svg.setAttribute("aria-hidden", "true");
+		svg.innerHTML = `
+			<defs>
+				<filter id="spkmod-fx-chromatic">
+					<feColorMatrix type="matrix" result="red" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"/>
+					<feOffset in="red" dx="3.5" dy="0" result="red-shifted"/>
+					<feColorMatrix in="SourceGraphic" type="matrix" result="blue" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"/>
+					<feOffset in="blue" dx="-3.5" dy="0" result="blue-shifted"/>
+					<feColorMatrix in="SourceGraphic" type="matrix" result="green" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"/>
+					<feBlend in="red-shifted" in2="green" mode="screen" result="rg"/>
+					<feBlend in="rg" in2="blue-shifted" mode="screen"/>
+				</filter>
+			</defs>
+		`;
+		document.body.appendChild(svg);
+	}
+
 	switch(lunCameraEffect) {
 		case "bw": filterRule = "grayscale(100%) contrast(110%)"; break;
 		case "sepia": filterRule = "sepia(80%) saturate(140%) hue-rotate(-10deg) contrast(110%)"; break;
 		case "morning": filterRule = "brightness(110%) contrast(110%) sepia(20%) hue-rotate(5deg) saturate(120%)"; break;
 		case "dusk": filterRule = "brightness(90%) sepia(30%) hue-rotate(330deg) saturate(130%) contrast(120%)"; break;
 		case "night": filterRule = "brightness(75%) contrast(120%) sepia(40%) hue-rotate(180deg) saturate(150%)"; break;
+		case "vaporwave": filterRule = "contrast(125%) saturate(220%) hue-rotate(285deg) brightness(105%)"; break;
+		case "chromatic": filterRule = "url('#spkmod-fx-chromatic') contrast(115%) saturate(130%)"; break;
+		case "unfocus": filterRule = "blur(3.5px) contrast(105%) brightness(105%)"; break;
+		case "focus": filterRule = "contrast(140%) saturate(125%) brightness(102%)"; break;
+		case "vhs": filterRule = "contrast(125%) saturate(140%) sepia(30%) hue-rotate(15deg) brightness(95%)"; break;
+		case "cyberpunk": filterRule = "contrast(140%) saturate(190%) hue-rotate(145deg) brightness(110%)"; break;
+		case "nostalgia": filterRule = "contrast(95%) brightness(110%) saturate(120%) blur(0.7px) sepia(15%)"; break;
+		case "pastel": filterRule = "brightness(112%) contrast(92%) saturate(135%) hue-rotate(345deg)"; break;
+		case "warmVintage": filterRule = "sepia(50%) saturate(150%) contrast(108%) brightness(102%) hue-rotate(-15deg)"; break;
+		case "coolCinema": filterRule = "contrast(115%) saturate(115%) hue-rotate(190deg) brightness(96%)"; break;
+		case "matrix": filterRule = "contrast(150%) saturate(200%) hue-rotate(90deg) brightness(85%)"; break;
+		case "inverted": filterRule = "invert(100%) hue-rotate(180deg)"; break;
 	}
 	if (lunBgOpacity === "solid") {
 		bgRule = "rgba(10, 10, 10, 0.95)";
@@ -4673,7 +4816,19 @@ document.body.appendChild(
 						buildElement("option", { value: "sepia", innerText: t("effectSepia") || "Sepia" }),
 						buildElement("option", { value: "morning", innerText: t("effectMorning") || "Morning" }),
 						buildElement("option", { value: "dusk", innerText: t("effectDusk") || "Dusk / Dawn" }),
-						buildElement("option", { value: "night", innerText: t("effectNight") || "Night" })
+						buildElement("option", { value: "night", innerText: t("effectNight") || "Night" }),
+						buildElement("option", { value: "vaporwave", innerText: t("effectVaporwave") || "Vaporwave" }),
+						buildElement("option", { value: "chromatic", innerText: t("effectChromatic") || "Chromatic Aberration" }),
+						buildElement("option", { value: "unfocus", innerText: t("effectUnfocus") || "Dreamy Blur" }),
+						buildElement("option", { value: "focus", innerText: t("effectFocus") || "Sharp Clarity" }),
+						buildElement("option", { value: "vhs", innerText: t("effectVhs") || "90s VHS Tape" }),
+						buildElement("option", { value: "cyberpunk", innerText: t("effectCyberpunk") || "Cyberpunk" }),
+						buildElement("option", { value: "nostalgia", innerText: t("effectNostalgia") || "Dreamy Train" }),
+						buildElement("option", { value: "pastel", innerText: t("effectPastel") || "Pastel Anime" }),
+						buildElement("option", { value: "warmVintage", innerText: t("effectWarmVintage") || "Vintage Film" }),
+						buildElement("option", { value: "coolCinema", innerText: t("effectCoolCinema") || "Cool Cinema" }),
+						buildElement("option", { value: "matrix", innerText: t("effectMatrix") || "Matrix" }),
+						buildElement("option", { value: "inverted", innerText: t("effectInverted") || "Negative" })
 					])
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
@@ -7867,19 +8022,42 @@ function updateLocalEditsUI() {
 	if (editsModalElements.facialHeader) setText(editsModalElements.facialHeader, "😊 " + (t("facialExpressionHeader") || "Character Facial Expression"));
 	if (editsModalElements.cameraHeader) setText(editsModalElements.cameraHeader, "📷 " + (t("cameraEffectsTitle") || "Camera Filters (Hotkeys)"));
 
-	// Chroma Key Buttons
+	// Skybox / Chroma Key Buttons
+	if (editsModalElements.skyboxSubheadSolids) setText(editsModalElements.skyboxSubheadSolids, t("skyboxSubheadSolids") || "Solid Colors & Chroma");
+	if (editsModalElements.skyboxSubheadGradients) setText(editsModalElements.skyboxSubheadGradients, t("skyboxSubheadGradients") || "Gradients & Starry Skies");
+
 	if (editsModalElements.chromaBtnNone) setText(editsModalElements.chromaBtnNone, t("chromaKeyColorNone") || "Default");
 	if (editsModalElements.chromaBtnGreen) setText(editsModalElements.chromaBtnGreen, "🟢 " + (t("chromaKeyColorGreen") || "Green"));
 	if (editsModalElements.chromaBtnBlue) setText(editsModalElements.chromaBtnBlue, "🔵 " + (t("chromaKeyColorBlue") || "Blue"));
 	if (editsModalElements.chromaBtnRed) setText(editsModalElements.chromaBtnRed, "🔴 " + (t("chromaKeyColorRed") || "Red"));
 	if (editsModalElements.chromaBtnMagenta) setText(editsModalElements.chromaBtnMagenta, "🟣 " + (t("chromaKeyColorMagenta") || "Magenta"));
+	if (editsModalElements.chromaBtnBlack) setText(editsModalElements.chromaBtnBlack, "⚫ " + (t("skyColorBlack") || "Black Void"));
+	if (editsModalElements.chromaBtnWhite) setText(editsModalElements.chromaBtnWhite, "⚪ " + (t("skyColorWhite") || "White Studio"));
+	if (editsModalElements.chromaBtnMidnight) setText(editsModalElements.chromaBtnMidnight, "🌌 " + (t("skyColorMidnight") || "Midnight"));
+	if (editsModalElements.chromaBtnSunset) setText(editsModalElements.chromaBtnSunset, "🟪 " + (t("skyColorSunset") || "Sunset"));
+	if (editsModalElements.chromaBtnCyber) setText(editsModalElements.chromaBtnCyber, "🔷 " + (t("skyColorCyber") || "Cyber"));
+	if (editsModalElements.chromaBtnStars) setText(editsModalElements.chromaBtnStars, t("skyGradStars") || "✨ Starry Night");
+	if (editsModalElements.chromaBtnVapor) setText(editsModalElements.chromaBtnVapor, t("skyGradVaporwave") || "🌆 Vaporwave Sunset");
+	if (editsModalElements.chromaBtnCyberGrad) setText(editsModalElements.chromaBtnCyberGrad, t("skyGradCyber") || "⚡ Cyber Aurora");
+	if (editsModalElements.chromaBtnPastelGrad) setText(editsModalElements.chromaBtnPastelGrad, t("skyGradPastel") || "🎀 Pastel Dream");
+	if (editsModalElements.chromaBtnGoldenGrad) setText(editsModalElements.chromaBtnGoldenGrad, t("skyGradGolden") || "🌅 Golden Twilight");
 
 	const chromaBtns = {
 		none: editsModalElements.chromaBtnNone,
 		green: editsModalElements.chromaBtnGreen,
 		blue: editsModalElements.chromaBtnBlue,
 		red: editsModalElements.chromaBtnRed,
-		magenta: editsModalElements.chromaBtnMagenta
+		magenta: editsModalElements.chromaBtnMagenta,
+		black: editsModalElements.chromaBtnBlack,
+		white: editsModalElements.chromaBtnWhite,
+		midnight: editsModalElements.chromaBtnMidnight,
+		sunset: editsModalElements.chromaBtnSunset,
+		cyber: editsModalElements.chromaBtnCyber,
+		stars: editsModalElements.chromaBtnStars,
+		vaporwave_grad: editsModalElements.chromaBtnVapor,
+		cyber_grad: editsModalElements.chromaBtnCyberGrad,
+		pastel_grad: editsModalElements.chromaBtnPastelGrad,
+		golden_grad: editsModalElements.chromaBtnGoldenGrad
 	};
 	for (const [key, btn] of Object.entries(chromaBtns)) {
 		if (btn) {
@@ -7935,6 +8113,18 @@ function updateLocalEditsUI() {
 	if (editsModalElements.camBtnMorning) setText(editsModalElements.camBtnMorning, (t("effectMorning") || "Morning") + " [Ctrl+9]");
 	if (editsModalElements.camBtnDusk) setText(editsModalElements.camBtnDusk, (t("effectDusk") || "Dusk") + " [Ctrl+0]");
 	if (editsModalElements.camBtnNight) setText(editsModalElements.camBtnNight, (t("effectNight") || "Night"));
+	if (editsModalElements.camBtnVaporwave) setText(editsModalElements.camBtnVaporwave, "🌸 " + (t("effectVaporwave") || "Vaporwave"));
+	if (editsModalElements.camBtnChromatic) setText(editsModalElements.camBtnChromatic, "🌈 " + (t("effectChromatic") || "Chromatic Aberration"));
+	if (editsModalElements.camBtnUnfocus) setText(editsModalElements.camBtnUnfocus, "🌫️ " + (t("effectUnfocus") || "Dreamy Blur"));
+	if (editsModalElements.camBtnFocus) setText(editsModalElements.camBtnFocus, "🔍 " + (t("effectFocus") || "Sharp Clarity"));
+	if (editsModalElements.camBtnVhs) setText(editsModalElements.camBtnVhs, "📼 " + (t("effectVhs") || "90s VHS Tape"));
+	if (editsModalElements.camBtnCyberpunk) setText(editsModalElements.camBtnCyberpunk, "⚡ " + (t("effectCyberpunk") || "Cyberpunk"));
+	if (editsModalElements.camBtnNostalgia) setText(editsModalElements.camBtnNostalgia, "🚂 " + (t("effectNostalgia") || "Dreamy Train"));
+	if (editsModalElements.camBtnPastel) setText(editsModalElements.camBtnPastel, "🎀 " + (t("effectPastel") || "Pastel Anime"));
+	if (editsModalElements.camBtnWarmVintage) setText(editsModalElements.camBtnWarmVintage, "🎞️ " + (t("effectWarmVintage") || "Vintage Film"));
+	if (editsModalElements.camBtnCoolCinema) setText(editsModalElements.camBtnCoolCinema, "🎬 " + (t("effectCoolCinema") || "Cool Cinema"));
+	if (editsModalElements.camBtnMatrix) setText(editsModalElements.camBtnMatrix, "🟢 " + (t("effectMatrix") || "Matrix"));
+	if (editsModalElements.camBtnInverted) setText(editsModalElements.camBtnInverted, "🔲 " + (t("effectInverted") || "Negative"));
 
 	const camBtns = {
 		none: editsModalElements.camBtnNone,
@@ -7942,7 +8132,19 @@ function updateLocalEditsUI() {
 		sepia: editsModalElements.camBtnSepia,
 		morning: editsModalElements.camBtnMorning,
 		dusk: editsModalElements.camBtnDusk,
-		night: editsModalElements.camBtnNight
+		night: editsModalElements.camBtnNight,
+		vaporwave: editsModalElements.camBtnVaporwave,
+		chromatic: editsModalElements.camBtnChromatic,
+		unfocus: editsModalElements.camBtnUnfocus,
+		focus: editsModalElements.camBtnFocus,
+		vhs: editsModalElements.camBtnVhs,
+		cyberpunk: editsModalElements.camBtnCyberpunk,
+		nostalgia: editsModalElements.camBtnNostalgia,
+		pastel: editsModalElements.camBtnPastel,
+		warmVintage: editsModalElements.camBtnWarmVintage,
+		coolCinema: editsModalElements.camBtnCoolCinema,
+		matrix: editsModalElements.camBtnMatrix,
+		inverted: editsModalElements.camBtnInverted
 	};
 	for (const [key, btn] of Object.entries(camBtns)) {
 		if (btn) {
@@ -7991,43 +8193,113 @@ document.body.appendChild(
 			})
 		]),
 		buildElement("div", { style: "display: flex; flex-direction: column; gap: 10px; max-height: 75vh; overflow-y: auto; padding: 4px; box-sizing: border-box;" }, [
-			// Section 1: Chroma Key Skybox
+			// Section 1: Skybox & Background
 			buildElement("div", { style: "display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid #555; padding-bottom: 8px;" }, [
 				editsModalElements.chromaHeader = buildElement("div", {
 					className: "spkmod-panel-cat-header",
-					innerText: "🎬 " + (t("chromaKeyHeader") || "Chroma Key Skybox (Background)"),
+					innerText: "🎬 " + (t("chromaKeyHeader") || "Skybox & Background"),
 					style: "margin-top: 0px;"
+				}),
+				editsModalElements.skyboxSubheadSolids = buildElement("div", {
+					style: "font-size: 10px; color: #aaa; margin: 2px 0 1px 0;",
+					innerText: t("skyboxSubheadSolids") || "Solid Colors & Chroma"
 				}),
 				buildElement("div", { style: "display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;" }, [
 					editsModalElements.chromaBtnNone = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 2px; font-size: 10px; text-align: center;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center;",
 						innerText: t("chromaKeyColorNone") || "Default",
 						onclick: () => { applyChromaKeyColor("none"); updateLocalEditsUI(); }
 					}),
 					editsModalElements.chromaBtnGreen = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 2px; font-size: 10px; text-align: center; color: #00ff00;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #00ff00;",
 						innerText: "🟢 " + (t("chromaKeyColorGreen") || "Green"),
 						onclick: () => { applyChromaKeyColor("green"); updateLocalEditsUI(); }
 					}),
 					editsModalElements.chromaBtnBlue = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 2px; font-size: 10px; text-align: center; color: #5599ff;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #5599ff;",
 						innerText: "🔵 " + (t("chromaKeyColorBlue") || "Blue"),
 						onclick: () => { applyChromaKeyColor("blue"); updateLocalEditsUI(); }
 					}),
 					editsModalElements.chromaBtnRed = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 2px; font-size: 10px; text-align: center; color: #ff5555;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ff5555;",
 						innerText: "🔴 " + (t("chromaKeyColorRed") || "Red"),
 						onclick: () => { applyChromaKeyColor("red"); updateLocalEditsUI(); }
 					}),
 					editsModalElements.chromaBtnMagenta = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 2px; font-size: 10px; text-align: center; color: #ff55ff;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ff55ff;",
 						innerText: "🟣 " + (t("chromaKeyColorMagenta") || "Magenta"),
 						onclick: () => { applyChromaKeyColor("magenta"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnBlack = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ffffff; background: #111;",
+						innerText: "⚫ " + (t("skyColorBlack") || "Black Void"),
+						onclick: () => { applyChromaKeyColor("black"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnWhite = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #333333; background: #eee;",
+						innerText: "⚪ " + (t("skyColorWhite") || "White Studio"),
+						onclick: () => { applyChromaKeyColor("white"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnMidnight = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #8faaff;",
+						innerText: "🌌 " + (t("skyColorMidnight") || "Midnight"),
+						onclick: () => { applyChromaKeyColor("midnight"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnSunset = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ff99ff;",
+						innerText: "🟪 " + (t("skyColorSunset") || "Sunset"),
+						onclick: () => { applyChromaKeyColor("sunset"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnCyber = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #00ffff;",
+						innerText: "🔷 " + (t("skyColorCyber") || "Cyber"),
+						onclick: () => { applyChromaKeyColor("cyber"); updateLocalEditsUI(); }
+					})
+				]),
+				editsModalElements.skyboxSubheadGradients = buildElement("div", {
+					style: "font-size: 10px; color: #aaa; margin: 4px 0 1px 0;",
+					innerText: t("skyboxSubheadGradients") || "Gradients & Starry Skies"
+				}),
+				buildElement("div", { style: "display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;" }, [
+					editsModalElements.chromaBtnStars = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ffe899;",
+						innerText: t("skyGradStars") || "✨ Starry Night",
+						onclick: () => { applyChromaKeyColor("stars"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnVapor = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ff77c6;",
+						innerText: t("skyGradVaporwave") || "🌆 Vaporwave Sunset",
+						onclick: () => { applyChromaKeyColor("vaporwave_grad"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnCyberGrad = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #38ef7d;",
+						innerText: t("skyGradCyber") || "⚡ Cyber Aurora",
+						onclick: () => { applyChromaKeyColor("cyber_grad"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnPastelGrad = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #fbc2eb;",
+						innerText: t("skyGradPastel") || "🎀 Pastel Dream",
+						onclick: () => { applyChromaKeyColor("pastel_grad"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnGoldenGrad = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #f9b248; grid-column: span 2;",
+						innerText: t("skyGradGolden") || "🌅 Golden Twilight",
+						onclick: () => { applyChromaKeyColor("golden_grad"); updateLocalEditsUI(); }
 					})
 				])
 			]),
@@ -8130,6 +8402,78 @@ document.body.appendChild(
 						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
 						innerText: (t("effectNight") || "Night"),
 						onclick: () => setCameraEffectLocal("night")
+					}),
+					editsModalElements.camBtnVaporwave = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ff77c6;",
+						innerText: "🌸 " + (t("effectVaporwave") || "Vaporwave"),
+						onclick: () => setCameraEffectLocal("vaporwave")
+					}),
+					editsModalElements.camBtnChromatic = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #00ffcc;",
+						innerText: "🌈 " + (t("effectChromatic") || "Chromatic Aberration"),
+						onclick: () => setCameraEffectLocal("chromatic")
+					}),
+					editsModalElements.camBtnUnfocus = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #c4d8e2;",
+						innerText: "🌫️ " + (t("effectUnfocus") || "Dreamy Blur"),
+						onclick: () => setCameraEffectLocal("unfocus")
+					}),
+					editsModalElements.camBtnFocus = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ffffff;",
+						innerText: "🔍 " + (t("effectFocus") || "Sharp Clarity"),
+						onclick: () => setCameraEffectLocal("focus")
+					}),
+					editsModalElements.camBtnVhs = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #39ff14;",
+						innerText: "📼 " + (t("effectVhs") || "90s VHS Tape"),
+						onclick: () => setCameraEffectLocal("vhs")
+					}),
+					editsModalElements.camBtnCyberpunk = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #00ffff;",
+						innerText: "⚡ " + (t("effectCyberpunk") || "Cyberpunk"),
+						onclick: () => setCameraEffectLocal("cyberpunk")
+					}),
+					editsModalElements.camBtnNostalgia = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #f4d06f;",
+						innerText: "🚂 " + (t("effectNostalgia") || "Dreamy Train"),
+						onclick: () => setCameraEffectLocal("nostalgia")
+					}),
+					editsModalElements.camBtnPastel = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ffb7b2;",
+						innerText: "🎀 " + (t("effectPastel") || "Pastel Anime"),
+						onclick: () => setCameraEffectLocal("pastel")
+					}),
+					editsModalElements.camBtnWarmVintage = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #e29578;",
+						innerText: "🎞️ " + (t("effectWarmVintage") || "Vintage Film"),
+						onclick: () => setCameraEffectLocal("warmVintage")
+					}),
+					editsModalElements.camBtnCoolCinema = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #83c5be;",
+						innerText: "🎬 " + (t("effectCoolCinema") || "Cool Cinema"),
+						onclick: () => setCameraEffectLocal("coolCinema")
+					}),
+					editsModalElements.camBtnMatrix = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #00ff66;",
+						innerText: "🟢 " + (t("effectMatrix") || "Matrix"),
+						onclick: () => setCameraEffectLocal("matrix")
+					}),
+					editsModalElements.camBtnInverted = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #e0e0e0;",
+						innerText: "🔲 " + (t("effectInverted") || "Negative"),
+						onclick: () => setCameraEffectLocal("inverted")
 					})
 				])
 			])
@@ -9570,6 +9914,18 @@ spkmodI18nRenderers.push(() => {
 		if (lunPanelElements.cameraEffectSelect.options[3]) lunPanelElements.cameraEffectSelect.options[3].innerText = t("effectMorning") || "Morning";
 		if (lunPanelElements.cameraEffectSelect.options[4]) lunPanelElements.cameraEffectSelect.options[4].innerText = t("effectDusk") || "Dusk / Dawn";
 		if (lunPanelElements.cameraEffectSelect.options[5]) lunPanelElements.cameraEffectSelect.options[5].innerText = t("effectNight") || "Night";
+		if (lunPanelElements.cameraEffectSelect.options[6]) lunPanelElements.cameraEffectSelect.options[6].innerText = t("effectVaporwave") || "Vaporwave";
+		if (lunPanelElements.cameraEffectSelect.options[7]) lunPanelElements.cameraEffectSelect.options[7].innerText = t("effectChromatic") || "Chromatic Aberration";
+		if (lunPanelElements.cameraEffectSelect.options[8]) lunPanelElements.cameraEffectSelect.options[8].innerText = t("effectUnfocus") || "Dreamy Blur";
+		if (lunPanelElements.cameraEffectSelect.options[9]) lunPanelElements.cameraEffectSelect.options[9].innerText = t("effectFocus") || "Sharp Clarity";
+		if (lunPanelElements.cameraEffectSelect.options[10]) lunPanelElements.cameraEffectSelect.options[10].innerText = t("effectVhs") || "90s VHS Tape";
+		if (lunPanelElements.cameraEffectSelect.options[11]) lunPanelElements.cameraEffectSelect.options[11].innerText = t("effectCyberpunk") || "Cyberpunk";
+		if (lunPanelElements.cameraEffectSelect.options[12]) lunPanelElements.cameraEffectSelect.options[12].innerText = t("effectNostalgia") || "Dreamy Train";
+		if (lunPanelElements.cameraEffectSelect.options[13]) lunPanelElements.cameraEffectSelect.options[13].innerText = t("effectPastel") || "Pastel Anime";
+		if (lunPanelElements.cameraEffectSelect.options[14]) lunPanelElements.cameraEffectSelect.options[14].innerText = t("effectWarmVintage") || "Vintage Film";
+		if (lunPanelElements.cameraEffectSelect.options[15]) lunPanelElements.cameraEffectSelect.options[15].innerText = t("effectCoolCinema") || "Cool Cinema";
+		if (lunPanelElements.cameraEffectSelect.options[16]) lunPanelElements.cameraEffectSelect.options[16].innerText = t("effectMatrix") || "Matrix";
+		if (lunPanelElements.cameraEffectSelect.options[17]) lunPanelElements.cameraEffectSelect.options[17].innerText = t("effectInverted") || "Negative";
 	}
 
 	if (lunPanelElements.bgOpacityLabel) setText(lunPanelElements.bgOpacityLabel, t("bgOpacityLabel"));
