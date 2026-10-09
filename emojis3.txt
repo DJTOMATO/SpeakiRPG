@@ -37,7 +37,6 @@ t_135,https://i.imgur.com/ll2O12j.png
 t_136,https://i.imgur.com/l3pezsT.gif
 t_137,https://i.imgur.com/Lz0yOZD.png
 t_138,https://i.imgur.com/WAPxXVj.png
-t_139,https://i.imgur.com/0guQ7V6.png
 t_140,https://i.imgur.com/VsjrMsB.png
 t_141,https://i.imgur.com/oQBeDQk.png
 SPK_65,https://i.imgur.com/YIi4og5.jpeg
