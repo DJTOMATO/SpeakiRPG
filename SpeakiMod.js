@@ -2659,9 +2659,9 @@ function updateDynamicStyles() {
 		}
 				#app { filter: ${filterRule}; }
 		#app > *:not(:has(canvas)):not(canvas):not(.sr-click-ripple-layer) { zoom: ${lunGameUiScale} !important; }
-		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-effects-modal, #spkmod-stats-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
+		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq, body > #spkmod-panel { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
-		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-effects-modal, #spkmod-stats-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
+		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
 			background: var(--spkmod-bg) !important;
 			backdrop-filter: var(--spkmod-blur) !important;
 			border-color: var(--spkmod-accent) !important;
@@ -2982,7 +2982,7 @@ document.head.appendChild(buildElement(
 			border-radius: 8px;
 			padding: 6px;
 		}
-		#spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-effects-modal, #spkmod-stats-modal {
+		#spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal {
 			display: flex;
 			flex-direction: column;
 			position: fixed;
@@ -3014,7 +3014,7 @@ document.head.appendChild(buildElement(
 			width: 290px;
 			max-width: 95vw;
 		}
-		#spkmod-patchnotes-modal {
+		#spkmod-patchnotes-modal, #spkmod-info-modal {
 			width: 380px;
 			max-width: 95vw;
 		}
@@ -3074,7 +3074,7 @@ document.head.appendChild(buildElement(
 		body.spkmod-ui-hidden #spkmod-players-modal,
 		body.spkmod-ui-hidden #spkmod-map-modal,
 		body.spkmod-ui-hidden #spkmod-stats-modal,
-		body.spkmod-ui-hidden #spkmod-news-modal,
+		body.spkmod-ui-hidden #spkmod-info-modal,
 		body.spkmod-ui-hidden #spkmod-translate-picker {
 			display: none !important;
 		}
@@ -3890,7 +3890,7 @@ document.body.appendChild(
 							if (fbxUi) {
 								const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
 								const pName = playerName.toLowerCase();
-								if (pName === 'glas' || pName === 'sp1cky' || pName === 'gmdt' || pName === 'peiyu' || pName === 'jeremy' || pName === 'oage') {
+								if (pName === 'glas' || pName === 'sp1cky' || pName === 'gmdt' || pName === 'peiyu' || pName === 'jeremy') {
 									fbxUi.style.display = 'flex';
 								} else {
 									fbxUi.style.display = 'none';
@@ -3980,6 +3980,16 @@ document.body.appendChild(
 					title: t("patchNotesBtnTooltip"),
 					onclick: _ => {
 						togglePatchNotesModal();
+					}
+				}),
+				lunPanelElements.infoBtn = buildElement("button", {
+					id: "spkmod-info-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 0 0 32px; width: 32px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					innerText: "ℹ️",
+					title: t("infoBtnTooltip") || "Info & News",
+					onclick: _ => {
+						toggleInfoModal();
 					}
 				}),
 				lunPanelElements.eventBtn = buildElement("button", {
@@ -5510,6 +5520,85 @@ window.showMovieNews = function(forceLang) {
 };
 
 setTimeout(() => window.showMovieNews(), 1500);
+
+
+// --- Info / News Modal Logic ---
+
+document.body.appendChild(
+	lunHudElements.infoModal = buildElement("div", {
+		id: "spkmod-info-modal",
+		className: "hidden"
+	}, [
+		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
+			lunHudElements.infoModalHeader = buildElement("span", {
+				innerText: "ℹ️ " + (t("infoBtnTooltip") || "Info & News"),
+				style: "font-weight: bold; font-size: 12px; cursor: move; user-select: none;"
+			}),
+			buildElement("span", {
+				id: "spkmod-info-close",
+				innerText: "✕",
+				style: "cursor: pointer; padding: 0 4px;",
+				onclick: _ => lunHudElements.infoModal.classList.add("hidden")
+			})
+		]),
+		lunHudElements.infoContentContainer = buildElement("div", {
+			style: "display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; padding-right: 2px;"
+		})
+	])
+);
+setTimeout(() => {
+	if (typeof makeDraggable === 'function' && lunHudElements.infoModal && lunHudElements.infoModalHeader) {
+		makeDraggable(lunHudElements.infoModal, [lunHudElements.infoModalHeader]);
+	}
+}, 500);
+
+window.lunInfoFetched = false;
+window.lunInfoLoading = false;
+window.lunInfoData = "";
+
+function toggleInfoModal() {
+	if (!lunHudElements.infoModal) return;
+	const isClosed = lunHudElements.infoModal.classList.contains("hidden");
+	if (isClosed) {
+		if (typeof positionModalNicely === 'function') positionModalNicely(lunHudElements.infoModal);
+		lunHudElements.infoModal.classList.remove("hidden");
+		if (!window.lunInfoFetched) {
+			fetchInfoOnce();
+		}
+	} else {
+		lunHudElements.infoModal.classList.add("hidden");
+	}
+}
+
+function fetchInfoOnce() {
+    window.lunInfoLoading = true;
+    renderInfoUI();
+    const ts = Date.now(); // Cache busting
+    fetch('https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/info.html?t=' + ts)
+        .then(r => r.text())
+        .then(html => {
+            window.lunInfoData = html;
+            window.lunInfoLoading = false;
+            window.lunInfoFetched = true;
+            renderInfoUI();
+        })
+        .catch(e => {
+            window.lunInfoData = "<div style='color:#f87171; padding: 10px; text-align: center;'>Failed to load info.</div>";
+            window.lunInfoLoading = false;
+            window.lunInfoFetched = true;
+            renderInfoUI();
+        });
+}
+
+function renderInfoUI() {
+    const container = lunHudElements.infoContentContainer;
+    if (!container) return;
+    if (window.lunInfoLoading) {
+        container.innerHTML = "<div style='text-align: center; padding: 20px; color: #aaa;'>Loading...</div>";
+        return;
+    }
+    container.innerHTML = window.lunInfoData;
+}
 
 
 const lunJumpAnimMs = 500;

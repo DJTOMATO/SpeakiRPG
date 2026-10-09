@@ -1,0 +1,101 @@
+<style>
+    .info-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        font-family: sans-serif;
+    }
+    .lang-row { 
+        display: flex; 
+        gap: 8px; 
+        justify-content: center; 
+        margin-bottom: 4px; 
+        flex-wrap: wrap; 
+    }
+    .lang-btn { 
+        padding: 6px 12px; 
+        font-weight: bold; 
+        border-radius: 6px; 
+        border: 1px solid #475569; 
+        background: #0f172a; 
+        color: white; 
+        cursor: pointer; 
+        transition: 0.2s; 
+    }
+    .lang-btn:hover { 
+        background: #1e293b !important; 
+    }
+    .movie-title { 
+        margin: 0; 
+        font-size: 24px; 
+        color: #facc15; 
+        text-align: center; 
+        border-bottom: 1px solid #334155; 
+        padding-bottom: 12px; 
+    }
+    .movie-desc { 
+        margin: 0; 
+        font-size: 16px; 
+        font-weight: bold; 
+        color: #cbd5e1; 
+        text-align: center; 
+    }
+    .iframe-container { 
+        position: relative; 
+        width: 100%; 
+        padding-bottom: 56.25%; 
+        height: 0; 
+        border-radius: 8px; 
+        overflow: hidden; 
+        border: 1px solid #334155; 
+    }
+    .iframe-container iframe { 
+        position: absolute; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%; 
+        border: 0; 
+    }
+</style>
+
+<div class="info-wrapper">
+    <div class="lang-row">
+        <button class="lang-btn" data-lang="en" onclick="window.setInfoLang('en')">English</button>
+        <button class="lang-btn" data-lang="zh-CN" onclick="window.setInfoLang('zh-CN')">简体中文</button>
+        <button class="lang-btn" data-lang="zh-TW" onclick="window.setInfoLang('zh-TW')">繁體中文</button>
+        <button class="lang-btn" data-lang="ko" onclick="window.setInfoLang('ko')">한국어</button>
+        <button class="lang-btn" data-lang="ja" onclick="window.setInfoLang('ja')">日本語</button>
+    </div>
+
+    <h1 id="info-title" class="movie-title">Community Movie!</h1>
+    <p id="info-desc" class="movie-desc">A movie was recorded by PeiYu and the Speaki MMO community! Check it out below.</p>
+
+    <div class="iframe-container">
+        <iframe src="https://www.youtube.com/embed/yaIEanyk6WI?autoplay=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+</div>
+
+<script id="info-script">
+window.infoLangs = {
+  "en": { title: "Community Movie!", desc: "A movie was recorded by PeiYu and the Speaki MMO community! Check it out below." },
+  "ja": { title: "コミュニティムービー！", desc: "PeiYuとSpeaki MMOコミュニティによって映画が撮影されました！以下からチェックしてください。" },
+  "ko": { title: "커뮤니티 무비!", desc: "PeiYu와 Speaki MMO 커뮤니티가 영화를 녹화했습니다! 아래에서 확인하세요." },
+  "zh-TW": { title: "社群電影！", desc: "由 PeiYu 和 Speaki MMO 社群錄製的電影！請在下方觀看。" },
+  "zh-CN": { title: "社区电影！", desc: "由 PeiYu 和 Speaki MMO 社区录制的电影！请在下方观看。" }
+};
+
+window.setInfoLang = function(lang) {
+  document.getElementById('info-title').innerText = window.infoLangs[lang].title;
+  document.getElementById('info-desc').innerText = window.infoLangs[lang].desc;
+  const btns = document.querySelectorAll('.lang-btn');
+  btns.forEach(b => {
+      if (b.dataset.lang === lang) {
+          b.style.background = '#3b82f6';
+      } else {
+          b.style.background = '#0f172a';
+      }
+  });
+};
+</script>
+<img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" onload="eval(document.getElementById('info-script').innerText); window.setInfoLang('en');" style="display:none;">
