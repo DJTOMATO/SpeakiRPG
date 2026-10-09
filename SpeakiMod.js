@@ -894,7 +894,9 @@ var lunHudElements = {
 	eventModal: null,
 	patchNotesModal: null,
 	statsModal: null,
-	hotkeysModal: null
+	hotkeysModal: null,
+	effectsModal: null,
+	editsModal: null
 };
 var eventModalElements = {
 	headerTitle: null,
@@ -999,7 +1001,10 @@ var lunPanelElements = {
 	hideKnownBotsLabel: null,
 	hideKnownBotsToggleInput: null,
 	settingsCatGeneral: null,
-	settingsCatHUD: null
+	settingsCatHUD: null,
+	localEffectsBtn: null,
+	localEditsBtn: null,
+	editsModalTitle: null
 };
 var lunMenuFoldingLevel = 0;
 
@@ -2001,7 +2006,9 @@ function positionModalNicely(modal) {
 		lunHudElements.settingsModal,
 		lunHudElements.statsModal,
 		lunHudElements.eventModal,
-		lunHudElements.patchNotesModal
+		lunHudElements.patchNotesModal,
+		lunHudElements.effectsModal,
+		lunHudElements.editsModal
 	];
 
 	const visibleModals = allModals.filter(m => m && m !== modal && !m.classList.contains("hidden") && m.offsetParent !== null);
@@ -2072,6 +2079,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-outgoing-source-lang",
 	"spkmod-panel-left",
 	"spkmod-pos-spkmod-effects-modal",
+	"spkmod-pos-spkmod-edits-modal",
 	"spkmod-pos-spkmod-emoji-picker-v2",
 	"spkmod-pos-spkmod-event-modal",
 	"spkmod-pos-spkmod-gamepad-modal",
@@ -3240,7 +3248,7 @@ document.head.appendChild(buildElement(
 			border-radius: 8px;
 			padding: 6px;
 		}
-		#spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal {
+		#spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal {
 			display: flex;
 			flex-direction: column;
 			position: fixed;
@@ -3278,6 +3286,10 @@ document.head.appendChild(buildElement(
 		}
 		#spkmod-effects-modal {
 			width: 260px;
+			max-width: 95vw;
+		}
+		#spkmod-edits-modal {
+			width: 360px;
 			max-width: 95vw;
 		}
 		#spkmod-stats-modal {
@@ -3318,7 +3330,7 @@ document.head.appendChild(buildElement(
 			from { opacity: 0.7; transform: scale(0.98); }
 			to { opacity: 1.0; transform: scale(1.02); }
 		}
-		#spkmod-hud.hidden, .hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden, #spkmod-stats-modal.hidden {
+		#spkmod-hud.hidden, .hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden, #spkmod-stats-modal.hidden, #spkmod-effects-modal.hidden, #spkmod-edits-modal.hidden {
 			display: none !important;
 		}
 		
@@ -3332,6 +3344,8 @@ document.head.appendChild(buildElement(
 		body.spkmod-ui-hidden #spkmod-players-modal,
 		body.spkmod-ui-hidden #spkmod-map-modal,
 		body.spkmod-ui-hidden #spkmod-stats-modal,
+		body.spkmod-ui-hidden #spkmod-effects-modal,
+		body.spkmod-ui-hidden #spkmod-edits-modal,
 		body.spkmod-ui-hidden #spkmod-info-modal,
 		body.spkmod-ui-hidden #spkmod-translate-picker {
 			display: none !important;
@@ -4165,6 +4179,12 @@ document.body.appendChild(
 						e.preventDefault();
 						if (typeof toggleLocalEditsModal === "function") {
 							toggleLocalEditsModal();
+						} else if (lunHudElements.editsModal) {
+							const isHidden = lunHudElements.editsModal.classList.toggle("hidden");
+							if (!isHidden) {
+								if (typeof bringToFront === "function") bringToFront(lunHudElements.editsModal);
+								if (typeof updateLocalEditsUI === "function") updateLocalEditsUI();
+							}
 						}
 					}
 				})
@@ -7903,19 +7923,21 @@ function toggleLocalEditsModal() {
 	if (!lunHudElements.editsModal) return;
 	const isClosed = lunHudElements.editsModal.classList.contains("hidden");
 	if (isClosed) {
+		if (typeof bringToFront === "function") bringToFront(lunHudElements.editsModal);
 		if (typeof positionModalNicely === "function") positionModalNicely(lunHudElements.editsModal);
 		lunHudElements.editsModal.classList.remove("hidden");
-		updateLocalEditsUI();
+		if (typeof updateLocalEditsUI === "function") updateLocalEditsUI();
 	} else {
 		lunHudElements.editsModal.classList.add("hidden");
 	}
 }
+window.toggleLocalEditsModal = toggleLocalEditsModal;
 
 document.body.appendChild(
 	lunHudElements.editsModal = buildElement("div", {
 		id: "spkmod-edits-modal",
 		className: "hidden",
-		style: "width: 360px; max-width: 95vw; overflow-x: hidden;"
+		style: "position: fixed; z-index: 600000; width: 360px; max-width: 95vw; overflow-x: hidden;"
 	}, [
 		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
 			lunPanelElements.editsModalTitle = buildElement("span", {
@@ -8074,11 +8096,13 @@ document.body.appendChild(
 		])
 	])
 );
+if (lunHudElements.editsModal) {
+	const modalW = 360;
+	lunHudElements.editsModal.style.left = Math.max(10, Math.round((window.innerWidth / 2) - (modalW / 2))) + "px";
+	lunHudElements.editsModal.style.top = Math.max(10, Math.round(window.innerHeight * 0.15)) + "px";
+}
 setTimeout(() => {
 	if (typeof makeDraggable === 'function' && lunHudElements.editsModal && lunPanelElements.editsModalTitle) {
-		const modalW = 360;
-		lunHudElements.editsModal.style.left = Math.max(10, (window.innerWidth / 2) - (modalW / 2)) + "px";
-		lunHudElements.editsModal.style.top = Math.max(10, window.innerHeight * 0.15) + "px";
 		makeDraggable(lunHudElements.editsModal, [lunPanelElements.editsModalTitle]);
 	}
 }, 500);
