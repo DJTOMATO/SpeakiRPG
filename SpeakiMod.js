@@ -8088,22 +8088,47 @@ function updateLocalEditsUI() {
 		}
 	}
 
-	// Facial Expression Dropdown Options
-	if (editsModalElements.facialSelect && editsModalElements.facialSelect.options) {
-		const opts = editsModalElements.facialSelect.options;
-		if (opts[0]) setText(opts[0], t("exprDefault") || "Default (Dynamic Blinking)");
-		if (opts[1]) setText(opts[1], t("exprConfident") || "Confident / Smug 😏");
-		if (opts[2]) setText(opts[2], t("exprCurious") || "Curious 🥺");
-		if (opts[3]) setText(opts[3], t("exprLashSmile") || "Lash Smile ☺️");
-		if (opts[4]) setText(opts[4], t("exprSmile") || "Delighted Smile 😄");
-		if (opts[5]) setText(opts[5], t("exprGentle") || "Gentle Open Smile 😊");
-		if (opts[6]) setText(opts[6], t("exprTongueWink") || "Wink & Tongue 😜");
-		if (opts[7]) setText(opts[7], t("exprTeasing") || "Teasing Tongue 😛");
-		if (opts[8]) setText(opts[8], t("exprWorried") || "Worried Tongue 😨");
-		editsModalElements.facialSelect.value = lunLockedFacialExpression || "none";
+	// Facial Expression Buttons & Controls
+	if (editsModalElements.exprBtnDefault) {
+		setText(editsModalElements.exprBtnDefault, t("exprDefaultBtn") || "Default (Blinking)");
+		editsModalElements.exprBtnDefault.title = t("exprDefault") || "Default (Dynamic Blinking)";
 	}
 	if (editsModalElements.facialResetBtn) {
+		setText(editsModalElements.facialResetBtn, t("exprResetBtn") || "↺ Reset");
 		editsModalElements.facialResetBtn.title = t("exprResetTooltip") || "Reset / Unlock Expression";
+	}
+	if (editsModalElements.exprBtnConfident) editsModalElements.exprBtnConfident.title = t("exprConfident") || "Confident / Smug 😏";
+	if (editsModalElements.exprBtnCurious) editsModalElements.exprBtnCurious.title = t("exprCurious") || "Curious 🥺";
+	if (editsModalElements.exprBtnLashSmile) editsModalElements.exprBtnLashSmile.title = t("exprLashSmile") || "Lash Smile ☺️";
+	if (editsModalElements.exprBtnSmile) editsModalElements.exprBtnSmile.title = t("exprSmile") || "Delighted Smile 😄";
+	if (editsModalElements.exprBtnGentle) editsModalElements.exprBtnGentle.title = t("exprGentle") || "Gentle Open Smile 😊";
+	if (editsModalElements.exprBtnTongueWink) editsModalElements.exprBtnTongueWink.title = t("exprTongueWink") || "Wink & Tongue 😜";
+	if (editsModalElements.exprBtnTeasing) editsModalElements.exprBtnTeasing.title = t("exprTeasing") || "Teasing Tongue 😛";
+	if (editsModalElements.exprBtnWorried) editsModalElements.exprBtnWorried.title = t("exprWorried") || "Worried Tongue 😨";
+
+	const exprBtns = {
+		none: editsModalElements.exprBtnDefault,
+		open_confident: editsModalElements.exprBtnConfident,
+		open_curious: editsModalElements.exprBtnCurious,
+		closed_lash_smile: editsModalElements.exprBtnLashSmile,
+		closed_smile: editsModalElements.exprBtnSmile,
+		open_gentle: editsModalElements.exprBtnGentle,
+		closed_tongue_2: editsModalElements.exprBtnTongueWink,
+		open_teasing_tongue: editsModalElements.exprBtnTeasing,
+		open_worried_tongue: editsModalElements.exprBtnWorried
+	};
+	for (const [key, btn] of Object.entries(exprBtns)) {
+		if (btn) {
+			if ((lunLockedFacialExpression || "none") === key) {
+				btn.style.borderColor = "var(--spkmod-accent, #ffd54a)";
+				btn.style.background = "rgba(255, 255, 255, 0.25)";
+				btn.style.fontWeight = "bold";
+			} else {
+				btn.style.borderColor = "#555";
+				btn.style.background = "";
+				btn.style.fontWeight = "normal";
+			}
+		}
 	}
 
 	// Camera Effect Buttons
@@ -8329,32 +8354,77 @@ document.body.appendChild(
 					style: "margin-top: 0px;"
 				}),
 				buildElement("div", { style: "display: flex; gap: 4px;" }, [
-					editsModalElements.facialSelect = buildElement("select", {
-						className: "spkmod-panel-combo",
-						style: "flex: 1;",
-						value: lunLockedFacialExpression,
-						onchange: (e) => {
-							applyLockedFacialExpression(e.target.value);
-						}
-					}, [
-						buildElement("option", { value: "none", innerText: t("exprDefault") || "Default (Dynamic Blinking)" }),
-						buildElement("option", { value: "open_confident", innerText: t("exprConfident") || "Confident / Smug 😏" }),
-						buildElement("option", { value: "open_curious", innerText: t("exprCurious") || "Curious 🥺" }),
-						buildElement("option", { value: "closed_lash_smile", innerText: t("exprLashSmile") || "Lash Smile ☺️" }),
-						buildElement("option", { value: "closed_smile", innerText: t("exprSmile") || "Delighted Smile 😄" }),
-						buildElement("option", { value: "open_gentle", innerText: t("exprGentle") || "Gentle Open Smile 😊" }),
-						buildElement("option", { value: "closed_tongue_2", innerText: t("exprTongueWink") || "Wink & Tongue 😜" }),
-						buildElement("option", { value: "open_teasing_tongue", innerText: t("exprTeasing") || "Teasing Tongue 😛" }),
-						buildElement("option", { value: "open_worried_tongue", innerText: t("exprWorried") || "Worried Tongue 😨" })
-					]),
+					editsModalElements.exprBtnDefault = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "flex: 1; padding: 5px 6px; font-size: 11px; text-align: center;",
+						innerText: t("exprDefaultBtn") || "Default (Blinking)",
+						title: t("exprDefault") || "Default (Dynamic Blinking)",
+						onclick: () => applyLockedFacialExpression("none")
+					}),
 					editsModalElements.facialResetBtn = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 4px 8px; font-size: 11px;",
-						innerText: "↺",
+						style: "padding: 5px 10px; font-size: 11px; text-align: center;",
+						innerText: t("exprResetBtn") || "↺ Reset",
 						title: t("exprResetTooltip") || "Reset / Unlock Expression",
-						onclick: () => {
-							applyLockedFacialExpression("none");
-						}
+						onclick: () => applyLockedFacialExpression("none")
+					})
+				]),
+				buildElement("div", { style: "display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px;" }, [
+					editsModalElements.exprBtnConfident = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 0; font-size: 16px; text-align: center; line-height: 1.1;",
+						innerText: "😏",
+						title: t("exprConfident") || "Confident / Smug 😏",
+						onclick: () => applyLockedFacialExpression("open_confident")
+					}),
+					editsModalElements.exprBtnCurious = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 0; font-size: 16px; text-align: center; line-height: 1.1;",
+						innerText: "🥺",
+						title: t("exprCurious") || "Curious 🥺",
+						onclick: () => applyLockedFacialExpression("open_curious")
+					}),
+					editsModalElements.exprBtnLashSmile = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 0; font-size: 16px; text-align: center; line-height: 1.1;",
+						innerText: "☺️",
+						title: t("exprLashSmile") || "Lash Smile ☺️",
+						onclick: () => applyLockedFacialExpression("closed_lash_smile")
+					}),
+					editsModalElements.exprBtnSmile = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 0; font-size: 16px; text-align: center; line-height: 1.1;",
+						innerText: "😄",
+						title: t("exprSmile") || "Delighted Smile 😄",
+						onclick: () => applyLockedFacialExpression("closed_smile")
+					}),
+					editsModalElements.exprBtnGentle = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 0; font-size: 16px; text-align: center; line-height: 1.1;",
+						innerText: "😊",
+						title: t("exprGentle") || "Gentle Open Smile 😊",
+						onclick: () => applyLockedFacialExpression("open_gentle")
+					}),
+					editsModalElements.exprBtnTongueWink = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 0; font-size: 16px; text-align: center; line-height: 1.1;",
+						innerText: "😜",
+						title: t("exprTongueWink") || "Wink & Tongue 😜",
+						onclick: () => applyLockedFacialExpression("closed_tongue_2")
+					}),
+					editsModalElements.exprBtnTeasing = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 0; font-size: 16px; text-align: center; line-height: 1.1;",
+						innerText: "😛",
+						title: t("exprTeasing") || "Teasing Tongue 😛",
+						onclick: () => applyLockedFacialExpression("open_teasing_tongue")
+					}),
+					editsModalElements.exprBtnWorried = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 0; font-size: 16px; text-align: center; line-height: 1.1;",
+						innerText: "😨",
+						title: t("exprWorried") || "Worried Tongue 😨",
+						onclick: () => applyLockedFacialExpression("open_worried_tongue")
 					})
 				])
 			]),
