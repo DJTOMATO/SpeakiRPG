@@ -279,6 +279,8 @@ npm start
 * **클라이언트 및 SpeakiMod+ 코딩:** Glas
 * **SpeakiMod 원작자:** Alluseri
 * **일본어 번역:** JPN_건전한엘프명15T
+* **한국어 번역:** Mafty-hobagi
+* **품질 보증 및 조정:** Chan.
 
 **사용된 팬아트:**
 UI 배경으로 작품 사용을 허락해주신 아티스트 분들께 특별히 감사드립니다!

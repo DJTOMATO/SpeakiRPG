@@ -282,6 +282,8 @@ npm start
 * **SpeakiMod 原作者:** Alluseri
 * **日语翻译:** JPN_WholesomeElfName15T
 * **繁体中文 (zh-TW) 翻译:** PeiYu
+* **韩语翻译:** Mafty-hobagi
+* **质量保证与微调:** Chan.
 
 **使用的同人图：**
 特别感谢授权将其作品用于 UI 背景的画师们！

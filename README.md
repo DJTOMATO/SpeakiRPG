@@ -292,6 +292,7 @@ Want to collaborate? Join our [Discord](https://discord.gg/bruZhcwqRx), [send a 
 * **Japanese Translation:** JPN_WholesomeElfName15T
 * **Traditional Chinese (zh-TW) Translation:** PeiYu
 * **Korean Translation:** Mafty-hobagi
+* **Quality Assurance & Tweaks:** Chan.
 
 **Fanart Used:**
 A special thanks to the artists who kindly authorized the use of their artwork for the UI backgrounds!
