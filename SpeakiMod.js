@@ -2475,101 +2475,21 @@ const LUN_CHROMA_COLORS = {
 	white: 0xFFFFFF,
 	midnight: 0x0A0C24,
 	sunset: 0x3B1538,
-	cyber: 0x051D28
+	cyber: 0x051D28,
+	yellow: 0xFFFF00,
+	orange: 0xFF6600,
+	pink: 0xFF69B4,
+	cyan: 0x00E5FF,
+	mint: 0x00E676,
+	purple: 0x5B21B6,
+	amber: 0xD97706,
+	crimson: 0x881337,
+	slate: 0x475569,
+	sepia: 0x451A03
 };
 
-const LUN_PROCEDURAL_SKIES = {
-	stars: { top: "#02010e", mid: "#090827", bottom: "#161343", fog: 0x161343, hasStars: true },
-	vaporwave_grad: { top: "#ff2a85", mid: "#7928ca", bottom: "#ff7e40", fog: 0x24083c, hasStars: false },
-	cyber_grad: { top: "#020024", mid: "#4b0082", bottom: "#00f2fe", fog: 0x08182b, hasStars: false },
-	pastel_grad: { top: "#a1c4fd", mid: "#fbc2eb", bottom: "#fed6e3", fog: 0xfbd2e6, hasStars: false },
-	golden_grad: { top: "#191638", mid: "#872b53", bottom: "#f9b248", fog: 0xd84f3c, hasStars: false }
-};
-
-function getThreeTextureConstructor(scene) {
-	if (typeof window !== "undefined" && window.THREE) {
-		if (typeof window.THREE.CanvasTexture === "function") return window.THREE.CanvasTexture;
-		if (typeof window.THREE.Texture === "function") return window.THREE.Texture;
-	}
-	const sc = scene || (typeof gameState !== "undefined" && gameState?.scene);
-	if (sc && typeof sc.traverse === "function") {
-		let found = null;
-		sc.traverse(obj => {
-			if (found) return;
-			if (obj && obj.material) {
-				const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-				for (const m of mats) {
-					if (m?.map && m.map.constructor) { found = m.map.constructor; return; }
-					if (m?.__origMap && m.__origMap.constructor) { found = m.__origMap.constructor; return; }
-				}
-			}
-		});
-		if (found) {
-			if (typeof window !== "undefined") {
-				window.THREE = window.THREE || {};
-				if (!window.THREE.Texture) window.THREE.Texture = found;
-			}
-			return found;
-		}
-	}
-	return null;
-}
-
-var _lunSkyTextureCache = {};
-function createSkyCanvasTexture(presetKey, baseTexture, scene) {
-	if (_lunSkyTextureCache[presetKey]) return _lunSkyTextureCache[presetKey];
-	const cfg = LUN_PROCEDURAL_SKIES[presetKey];
-	if (!cfg || typeof document === "undefined") return null;
-
-	const canvas = document.createElement("canvas");
-	canvas.width = 1024;
-	canvas.height = 1024;
-	const ctx = canvas.getContext("2d");
-	if (!ctx) return null;
-
-	const grad = ctx.createLinearGradient(0, 0, 0, 1024);
-	grad.addColorStop(0, cfg.top);
-	grad.addColorStop(0.5, cfg.mid);
-	grad.addColorStop(1, cfg.bottom);
-	ctx.fillStyle = grad;
-	ctx.fillRect(0, 0, 1024, 1024);
-
-	if (cfg.hasStars) {
-		for (let i = 0; i < 400; i++) {
-			const x = (Math.sin(i * 127.1) * 0.5 + 0.5) * 1024;
-			const y = (Math.cos(i * 311.7) * 0.5 + 0.5) * 900;
-			const r = (Math.sin(i * 59.3) * 0.5 + 0.5) * 2.0 + 0.6;
-			const alpha = (Math.cos(i * 83.9) * 0.5 + 0.5) * 0.7 + 0.3;
-			ctx.beginPath();
-			ctx.arc(x, y, r, 0, Math.PI * 2);
-			ctx.fillStyle = i % 5 === 0 ? `rgba(255, 230, 180, ${alpha})` : (i % 7 === 0 ? `rgba(180, 220, 255, ${alpha})` : `rgba(255, 255, 255, ${alpha})`);
-			ctx.fill();
-		}
-	}
-
-	const TexClass = (baseTexture && baseTexture.constructor) || getThreeTextureConstructor(scene);
-	if (!TexClass) {
-		console.warn("[SpeakiMod] Three.js Texture constructor not available yet.");
-		return null;
-	}
-
-	let tex = null;
-	try {
-		tex = new TexClass(canvas);
-		tex.needsUpdate = true;
-		if (baseTexture) {
-			if (baseTexture.mapping !== undefined) tex.mapping = baseTexture.mapping;
-			if (baseTexture.wrapS !== undefined) tex.wrapS = baseTexture.wrapS;
-			if (baseTexture.wrapT !== undefined) tex.wrapT = baseTexture.wrapT;
-		}
-	} catch (e) {
-		console.error("[SpeakiMod] Failed to instantiate Texture:", e);
-	}
-
-	if (tex) {
-		_lunSkyTextureCache[presetKey] = tex;
-	}
-	return tex;
+if (lunChromaKeyColor !== "none" && !LUN_CHROMA_COLORS[lunChromaKeyColor]) {
+	lunChromaKeyColor = "none";
 }
 
 function applyChromaKeyColor(colorKey) {
@@ -2581,7 +2501,6 @@ function applyChromaKeyColor(colorKey) {
 	if (!scene) return;
 
 	const hex = LUN_CHROMA_COLORS[lunChromaKeyColor];
-	const isProc = LUN_PROCEDURAL_SKIES[lunChromaKeyColor] !== undefined;
 
 	if (hex !== undefined) {
 		if (scene.__origBackground === undefined) {
@@ -2643,88 +2562,6 @@ function applyChromaKeyColor(colorKey) {
 		if (scene.children) {
 			for (const child of scene.children) {
 				handleMesh(child);
-			}
-		}
-	} else if (isProc) {
-		const procCfg = LUN_PROCEDURAL_SKIES[lunChromaKeyColor];
-		if (scene.__origBackground === undefined) {
-			scene.__origBackground = scene.background || null;
-		}
-
-		// Find the sky sphere mesh first to get baseTexture
-		let skySphereMesh = null;
-		const findSkySphere = (obj) => {
-			if (!obj || skySphereMesh) return;
-			if (obj.renderOrder === -1 && obj.geometry && (obj.geometry.type === "SphereGeometry" || obj.geometry.parameters?.radius === 400 || obj.material?.side === 1)) {
-				skySphereMesh = obj;
-				return;
-			}
-			if (obj.children) {
-				for (const sub of obj.children) findSkySphere(sub);
-			}
-		};
-		if (scene.children) {
-			for (const child of scene.children) findSkySphere(child);
-		}
-
-		const baseTex = skySphereMesh?.material?.__origMap || skySphereMesh?.material?.map;
-		const tex = createSkyCanvasTexture(lunChromaKeyColor, baseTex, scene);
-
-		if (scene.background && typeof scene.background.setHex === "function" && procCfg) {
-			scene.background.setHex(procCfg.fog);
-		} else if (tex) {
-			scene.background = tex;
-		}
-
-		if (scene.fog && procCfg) {
-			if (scene.__origFogColor === undefined) {
-				scene.__origFogColor = scene.fog.color ? scene.fog.color.getHex() : null;
-			}
-			if (scene.fog.color && typeof scene.fog.color.setHex === "function") {
-				scene.fog.color.setHex(procCfg.fog);
-			}
-		}
-
-		const handleProcMesh = (obj) => {
-			if (!obj) return;
-			if (obj.renderOrder === -1) {
-				if (obj.geometry && (obj.geometry.type === "SphereGeometry" || obj.geometry.parameters?.radius === 400 || obj.material?.side === 1)) {
-					if (obj.material) {
-						if (obj.material.__origMap === undefined) obj.material.__origMap = obj.material.map;
-						if (obj.material.__origColor === undefined) obj.material.__origColor = obj.material.color ? obj.material.color.getHex() : 0xffffff;
-						if (tex) {
-							if (obj.material.map !== tex) {
-								obj.material.map = tex;
-								obj.material.needsUpdate = true;
-							}
-							if (obj.material.color && typeof obj.material.color.setHex === "function") {
-								if (obj.material.color.getHex() !== 0xffffff) {
-									obj.material.color.setHex(0xffffff);
-									obj.material.needsUpdate = true;
-								}
-							}
-						}
-					}
-					obj.visible = true;
-				} else if (obj.geometry && (obj.geometry.type === "CircleGeometry" || obj.geometry.parameters?.radius === 350)) {
-					if (obj.__origVisible === undefined) obj.__origVisible = obj.visible;
-					obj.visible = false;
-				} else if (obj.isInstancedMesh || (obj.geometry && obj.geometry.parameters?.radius === 1)) {
-					if (obj.__origVisible === undefined) obj.__origVisible = obj.visible;
-					obj.visible = false;
-				}
-			} else if (obj.name === "racing-environment" || (obj.children && obj.children.some(c => c.renderOrder === -1))) {
-				if (obj.children) {
-					for (const sub of obj.children) {
-						handleProcMesh(sub);
-					}
-				}
-			}
-		};
-
-		if (scene.children) {
-			for (const child of scene.children) {
-				handleProcMesh(child);
 			}
 		}
 	} else {
@@ -8111,9 +7948,6 @@ function updateLocalEditsUI() {
 	if (editsModalElements.cameraHeader) setText(editsModalElements.cameraHeader, "📷 " + (t("cameraEffectsTitle") || "Camera Filters (Hotkeys)"));
 
 	// Skybox / Chroma Key Buttons
-	if (editsModalElements.skyboxSubheadSolids) setText(editsModalElements.skyboxSubheadSolids, t("skyboxSubheadSolids") || "Solid Colors & Chroma");
-	if (editsModalElements.skyboxSubheadGradients) setText(editsModalElements.skyboxSubheadGradients, t("skyboxSubheadGradients") || "Gradients & Starry Skies");
-
 	if (editsModalElements.chromaBtnNone) setText(editsModalElements.chromaBtnNone, t("chromaKeyColorNone") || "Default");
 	if (editsModalElements.chromaBtnGreen) setText(editsModalElements.chromaBtnGreen, "🟢 " + (t("chromaKeyColorGreen") || "Green"));
 	if (editsModalElements.chromaBtnBlue) setText(editsModalElements.chromaBtnBlue, "🔵 " + (t("chromaKeyColorBlue") || "Blue"));
@@ -8121,14 +7955,19 @@ function updateLocalEditsUI() {
 	if (editsModalElements.chromaBtnMagenta) setText(editsModalElements.chromaBtnMagenta, "🟣 " + (t("chromaKeyColorMagenta") || "Magenta"));
 	if (editsModalElements.chromaBtnBlack) setText(editsModalElements.chromaBtnBlack, "⚫ " + (t("skyColorBlack") || "Black Void"));
 	if (editsModalElements.chromaBtnWhite) setText(editsModalElements.chromaBtnWhite, "⚪ " + (t("skyColorWhite") || "White Studio"));
-	if (editsModalElements.chromaBtnMidnight) setText(editsModalElements.chromaBtnMidnight, "🌌 " + (t("skyColorMidnight") || "Midnight"));
-	if (editsModalElements.chromaBtnSunset) setText(editsModalElements.chromaBtnSunset, "🟪 " + (t("skyColorSunset") || "Sunset"));
-	if (editsModalElements.chromaBtnCyber) setText(editsModalElements.chromaBtnCyber, "🔷 " + (t("skyColorCyber") || "Cyber"));
-	if (editsModalElements.chromaBtnStars) setText(editsModalElements.chromaBtnStars, t("skyGradStars") || "✨ Starry Night");
-	if (editsModalElements.chromaBtnVapor) setText(editsModalElements.chromaBtnVapor, t("skyGradVaporwave") || "🌆 Vaporwave Sunset");
-	if (editsModalElements.chromaBtnCyberGrad) setText(editsModalElements.chromaBtnCyberGrad, t("skyGradCyber") || "⚡ Cyber Aurora");
-	if (editsModalElements.chromaBtnPastelGrad) setText(editsModalElements.chromaBtnPastelGrad, t("skyGradPastel") || "🎀 Pastel Dream");
-	if (editsModalElements.chromaBtnGoldenGrad) setText(editsModalElements.chromaBtnGoldenGrad, t("skyGradGolden") || "🌅 Golden Twilight");
+	if (editsModalElements.chromaBtnMidnight) setText(editsModalElements.chromaBtnMidnight, "🌌 " + (t("skyColorMidnight") || "Midnight Navy"));
+	if (editsModalElements.chromaBtnSunset) setText(editsModalElements.chromaBtnSunset, "🟪 " + (t("skyColorSunset") || "Sunset Violet"));
+	if (editsModalElements.chromaBtnCyber) setText(editsModalElements.chromaBtnCyber, "🔷 " + (t("skyColorCyber") || "Cyber Teal"));
+	if (editsModalElements.chromaBtnYellow) setText(editsModalElements.chromaBtnYellow, "🟡 " + (t("skyColorYellow") || "Neon Yellow"));
+	if (editsModalElements.chromaBtnOrange) setText(editsModalElements.chromaBtnOrange, "🧡 " + (t("skyColorOrange") || "Vivid Orange"));
+	if (editsModalElements.chromaBtnPink) setText(editsModalElements.chromaBtnPink, "🌸 " + (t("skyColorPink") || "Soft Pink"));
+	if (editsModalElements.chromaBtnCyan) setText(editsModalElements.chromaBtnCyan, "🩵 " + (t("skyColorCyan") || "Electric Cyan"));
+	if (editsModalElements.chromaBtnMint) setText(editsModalElements.chromaBtnMint, "🌿 " + (t("skyColorMint") || "Mint Green"));
+	if (editsModalElements.chromaBtnPurple) setText(editsModalElements.chromaBtnPurple, "💜 " + (t("skyColorPurple") || "Deep Purple"));
+	if (editsModalElements.chromaBtnAmber) setText(editsModalElements.chromaBtnAmber, "🪙 " + (t("skyColorAmber") || "Warm Amber"));
+	if (editsModalElements.chromaBtnCrimson) setText(editsModalElements.chromaBtnCrimson, "🍷 " + (t("skyColorCrimson") || "Crimson Wine"));
+	if (editsModalElements.chromaBtnSlate) setText(editsModalElements.chromaBtnSlate, "🩶 " + (t("skyColorSlate") || "Studio Slate"));
+	if (editsModalElements.chromaBtnSepia) setText(editsModalElements.chromaBtnSepia, "☕ " + (t("skyColorSepia") || "Warm Sepia"));
 
 	const chromaBtns = {
 		none: editsModalElements.chromaBtnNone,
@@ -8141,11 +7980,16 @@ function updateLocalEditsUI() {
 		midnight: editsModalElements.chromaBtnMidnight,
 		sunset: editsModalElements.chromaBtnSunset,
 		cyber: editsModalElements.chromaBtnCyber,
-		stars: editsModalElements.chromaBtnStars,
-		vaporwave_grad: editsModalElements.chromaBtnVapor,
-		cyber_grad: editsModalElements.chromaBtnCyberGrad,
-		pastel_grad: editsModalElements.chromaBtnPastelGrad,
-		golden_grad: editsModalElements.chromaBtnGoldenGrad
+		yellow: editsModalElements.chromaBtnYellow,
+		orange: editsModalElements.chromaBtnOrange,
+		pink: editsModalElements.chromaBtnPink,
+		cyan: editsModalElements.chromaBtnCyan,
+		mint: editsModalElements.chromaBtnMint,
+		purple: editsModalElements.chromaBtnPurple,
+		amber: editsModalElements.chromaBtnAmber,
+		crimson: editsModalElements.chromaBtnCrimson,
+		slate: editsModalElements.chromaBtnSlate,
+		sepia: editsModalElements.chromaBtnSepia
 	};
 	for (const [key, btn] of Object.entries(chromaBtns)) {
 		if (btn) {
@@ -8313,10 +8157,6 @@ document.body.appendChild(
 					innerText: "🎬 " + (t("chromaKeyHeader") || "Skybox & Background"),
 					style: "margin-top: 0px;"
 				}),
-				editsModalElements.skyboxSubheadSolids = buildElement("div", {
-					style: "font-size: 10px; color: #aaa; margin: 2px 0 1px 0;",
-					innerText: t("skyboxSubheadSolids") || "Solid Colors & Chroma"
-				}),
 				buildElement("div", { style: "display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;" }, [
 					editsModalElements.chromaBtnNone = buildElement("button", {
 						className: "spkmod-panel-btn",
@@ -8363,56 +8203,80 @@ document.body.appendChild(
 					editsModalElements.chromaBtnMidnight = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #8faaff;",
-						innerText: "🌌 " + (t("skyColorMidnight") || "Midnight"),
+						innerText: "🌌 " + (t("skyColorMidnight") || "Midnight Navy"),
 						onclick: () => { applyChromaKeyColor("midnight"); updateLocalEditsUI(); }
 					}),
 					editsModalElements.chromaBtnSunset = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ff99ff;",
-						innerText: "🟪 " + (t("skyColorSunset") || "Sunset"),
+						innerText: "🟪 " + (t("skyColorSunset") || "Sunset Violet"),
 						onclick: () => { applyChromaKeyColor("sunset"); updateLocalEditsUI(); }
 					}),
 					editsModalElements.chromaBtnCyber = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #00ffff;",
-						innerText: "🔷 " + (t("skyColorCyber") || "Cyber"),
+						innerText: "🔷 " + (t("skyColorCyber") || "Cyber Teal"),
 						onclick: () => { applyChromaKeyColor("cyber"); updateLocalEditsUI(); }
-					})
-				]),
-				editsModalElements.skyboxSubheadGradients = buildElement("div", {
-					style: "font-size: 10px; color: #aaa; margin: 4px 0 1px 0;",
-					innerText: t("skyboxSubheadGradients") || "Gradients & Starry Skies"
-				}),
-				buildElement("div", { style: "display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;" }, [
-					editsModalElements.chromaBtnStars = buildElement("button", {
-						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ffe899;",
-						innerText: t("skyGradStars") || "✨ Starry Night",
-						onclick: () => { applyChromaKeyColor("stars"); updateLocalEditsUI(); }
 					}),
-					editsModalElements.chromaBtnVapor = buildElement("button", {
+					editsModalElements.chromaBtnYellow = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ff77c6;",
-						innerText: t("skyGradVaporwave") || "🌆 Vaporwave Sunset",
-						onclick: () => { applyChromaKeyColor("vaporwave_grad"); updateLocalEditsUI(); }
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ffff33;",
+						innerText: "🟡 " + (t("skyColorYellow") || "Neon Yellow"),
+						onclick: () => { applyChromaKeyColor("yellow"); updateLocalEditsUI(); }
 					}),
-					editsModalElements.chromaBtnCyberGrad = buildElement("button", {
+					editsModalElements.chromaBtnOrange = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #38ef7d;",
-						innerText: t("skyGradCyber") || "⚡ Cyber Aurora",
-						onclick: () => { applyChromaKeyColor("cyber_grad"); updateLocalEditsUI(); }
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ff8833;",
+						innerText: "🧡 " + (t("skyColorOrange") || "Vivid Orange"),
+						onclick: () => { applyChromaKeyColor("orange"); updateLocalEditsUI(); }
 					}),
-					editsModalElements.chromaBtnPastelGrad = buildElement("button", {
+					editsModalElements.chromaBtnPink = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #fbc2eb;",
-						innerText: t("skyGradPastel") || "🎀 Pastel Dream",
-						onclick: () => { applyChromaKeyColor("pastel_grad"); updateLocalEditsUI(); }
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ff80bf;",
+						innerText: "🌸 " + (t("skyColorPink") || "Soft Pink"),
+						onclick: () => { applyChromaKeyColor("pink"); updateLocalEditsUI(); }
 					}),
-					editsModalElements.chromaBtnGoldenGrad = buildElement("button", {
+					editsModalElements.chromaBtnCyan = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #f9b248; grid-column: span 2;",
-						innerText: t("skyGradGolden") || "🌅 Golden Twilight",
-						onclick: () => { applyChromaKeyColor("golden_grad"); updateLocalEditsUI(); }
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #38bdf8;",
+						innerText: "🩵 " + (t("skyColorCyan") || "Electric Cyan"),
+						onclick: () => { applyChromaKeyColor("cyan"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnMint = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #34d399;",
+						innerText: "🌿 " + (t("skyColorMint") || "Mint Green"),
+						onclick: () => { applyChromaKeyColor("mint"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnPurple = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #c084fc;",
+						innerText: "💜 " + (t("skyColorPurple") || "Deep Purple"),
+						onclick: () => { applyChromaKeyColor("purple"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnAmber = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #fbbf24;",
+						innerText: "🪙 " + (t("skyColorAmber") || "Warm Amber"),
+						onclick: () => { applyChromaKeyColor("amber"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnCrimson = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #fb7185;",
+						innerText: "🍷 " + (t("skyColorCrimson") || "Crimson Wine"),
+						onclick: () => { applyChromaKeyColor("crimson"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnSlate = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #94a3b8;",
+						innerText: "🩶 " + (t("skyColorSlate") || "Studio Slate"),
+						onclick: () => { applyChromaKeyColor("slate"); updateLocalEditsUI(); }
+					}),
+					editsModalElements.chromaBtnSepia = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #d97706;",
+						innerText: "☕ " + (t("skyColorSepia") || "Warm Sepia"),
+						onclick: () => { applyChromaKeyColor("sepia"); updateLocalEditsUI(); }
 					})
 				])
 			]),
