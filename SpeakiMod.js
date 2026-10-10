@@ -5841,6 +5841,8 @@ window.checkDecalogueToS = function(forceLang) {
         lang = (typeof spkmodLang !== 'undefined') ? spkmodLang : 'en';
         if (typeof window.lunCurrentLang !== 'undefined') lang = window.lunCurrentLang;
     }
+    if (lang === 'zh') lang = 'zh-CN';
+    if (lang === 'es') lang = 'es-419';
 
     let t = null;
     if (typeof spkmodTranslations !== 'undefined' && spkmodTranslations[lang] && spkmodTranslations[lang].decalogue) {
@@ -5863,13 +5865,15 @@ window.checkDecalogueToS = function(forceLang) {
     content.style.cssText = "background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);";
 
     const langRow = document.createElement("div");
-    langRow.style.cssText = "display: flex; gap: 8px; justify-content: center; margin-bottom: 4px;";
+    langRow.style.cssText = "display: flex; gap: 8px; justify-content: center; margin-bottom: 4px; flex-wrap: wrap;";
     
     const langs = [
         { code: 'en', label: 'English' },
-        { code: 'ko', label: '한국어' },
         { code: 'ja', label: '日本語' },
-        { code: 'zh', label: '中文' }
+        { code: 'ko', label: '한국어' },
+        { code: 'zh-TW', label: '繁體中文' },
+        { code: 'zh-CN', label: '简体中文' },
+        { code: 'es-419', label: 'Español' }
     ];
 
     langs.forEach(l => {
@@ -5966,6 +5970,8 @@ window.showMovieNews = function(forceLang) {
         lang = (typeof spkmodLang !== 'undefined') ? spkmodLang : 'en';
         if (typeof window.lunCurrentLang !== 'undefined') lang = window.lunCurrentLang;
     }
+    if (lang === 'zh') lang = 'zh-CN';
+    if (lang === 'es') lang = 'es-419';
 
     let t = null;
     if (typeof spkmodTranslations !== 'undefined' && spkmodTranslations[lang] && spkmodTranslations[lang].movieNews) {
@@ -5990,12 +5996,12 @@ window.showMovieNews = function(forceLang) {
     langRow.style.cssText = 'display: flex; gap: 8px; justify-content: center; margin-bottom: 4px; flex-wrap: wrap;';
 
     const langs = [
-        { code: 'en', label: 'EN' },
-        { code: 'ko', label: '한국어' },
+        { code: 'en', label: 'English' },
         { code: 'ja', label: '日本語' },
-        { code: 'zh-TW', label: '繁體' },
-        { code: 'zh-CN', label: '简体' },
-        { code: 'es', label: 'ES' }
+        { code: 'ko', label: '한국어' },
+        { code: 'zh-TW', label: '繁體中文' },
+        { code: 'zh-CN', label: '简体中文' },
+        { code: 'es-419', label: 'Español' }
     ];
 
     langs.forEach(l => {
@@ -11675,6 +11681,8 @@ function showNewsModal(remoteVer, htmlBody, stylesHtml = "") {
 	const langSections = content.querySelectorAll(".spk-news-section");
 
 	function setModalNewsLang(targetLang) {
+		if (targetLang === "zh") targetLang = "zh-CN";
+		if (targetLang === "es") targetLang = "es-419";
 		let matched = false;
 		langTabs.forEach(tab => {
 			const isMatch = tab.getAttribute("data-target-lang") === targetLang;

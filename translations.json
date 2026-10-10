@@ -2866,9 +2866,9 @@
             "proceed": "PROCEDER"
         },
         "movieNews": {
-            "title": "Community Movie!",
-            "desc": "A movie was recorded by PeiYu and the Speaki MMO community! Check it out below.",
-            "close": "Close"
+            "title": "¡Película de la Comunidad!",
+            "desc": "¡Una película fue grabada por PeiYu y la increíble comunidad de Speaki MMO! Mírala a continuación.",
+            "close": "Cerrar"
         },
         "justPetOn": "Pet: ⏸️",
         "justPetOff": "Pet: ▶️",

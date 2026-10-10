@@ -62,10 +62,11 @@
 <div class="info-wrapper">
     <div class="lang-row">
         <button class="lang-btn" data-lang="en" onclick="window.setInfoLang('en')">English</button>
-        <button class="lang-btn" data-lang="zh-CN" onclick="window.setInfoLang('zh-CN')">简体中文</button>
-        <button class="lang-btn" data-lang="zh-TW" onclick="window.setInfoLang('zh-TW')">繁體中文</button>
-        <button class="lang-btn" data-lang="ko" onclick="window.setInfoLang('ko')">한국어</button>
         <button class="lang-btn" data-lang="ja" onclick="window.setInfoLang('ja')">日本語</button>
+        <button class="lang-btn" data-lang="ko" onclick="window.setInfoLang('ko')">한국어</button>
+        <button class="lang-btn" data-lang="zh-TW" onclick="window.setInfoLang('zh-TW')">繁體中文</button>
+        <button class="lang-btn" data-lang="zh-CN" onclick="window.setInfoLang('zh-CN')">简体中文</button>
+        <button class="lang-btn" data-lang="es-419" onclick="window.setInfoLang('es-419')">Español</button>
     </div>
 
     <h1 id="info-title" class="movie-title">Community Movie!</h1>
@@ -82,10 +83,14 @@ window.infoLangs = {
   "ja": { title: "コミュニティムービー！", desc: "PeiYuとSpeaki MMOコミュニティによって映画が撮影されました！以下からチェックしてください。" },
   "ko": { title: "커뮤니티 무비!", desc: "PeiYu와 Speaki MMO 커뮤니티가 영화를 녹화했습니다! 아래에서 확인하세요." },
   "zh-TW": { title: "社群電影！", desc: "由 PeiYu 和 Speaki MMO 社群錄製的電影！請在下方觀看。" },
-  "zh-CN": { title: "社区电影！", desc: "由 PeiYu 和 Speaki MMO 社区录制的电影！请在下方观看。" }
+  "zh-CN": { title: "社区电影！", desc: "由 PeiYu 和 Speaki MMO 社区录制的电影！请在下方观看。" },
+  "es-419": { title: "¡Película de la Comunidad!", desc: "¡Una película fue grabada por PeiYu y la increíble comunidad de Speaki MMO! Mírala a continuación." }
 };
 
 window.setInfoLang = function(lang) {
+  if (lang === 'zh') lang = 'zh-CN';
+  if (lang === 'es') lang = 'es-419';
+  if (!window.infoLangs[lang]) lang = 'en';
   document.getElementById('info-title').innerText = window.infoLangs[lang].title;
   document.getElementById('info-desc').innerText = window.infoLangs[lang].desc;
   const btns = document.querySelectorAll('.lang-btn');
@@ -98,4 +103,4 @@ window.setInfoLang = function(lang) {
   });
 };
 </script>
-<img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" onload="eval(document.getElementById('info-script').innerText); window.setInfoLang('en');" style="display:none;">
+<img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" onload="eval(document.getElementById('info-script').innerText); (function(){ let l = (typeof window.lunCurrentLang !== 'undefined' ? window.lunCurrentLang : (typeof window.spkmodLang !== 'undefined' ? window.spkmodLang : 'en')); window.setInfoLang(l); })();" style="display:none;">
