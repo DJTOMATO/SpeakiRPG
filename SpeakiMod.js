@@ -4757,7 +4757,7 @@ document.body.appendChild(
 						buildElement("option", { value: "coolCinema", innerText: t("effectCoolCinema") || "Cool Cinema" }),
 						buildElement("option", { value: "matrix", innerText: t("effectMatrix") || "Matrix" }),
 						buildElement("option", { value: "inverted", innerText: t("effectInverted") || "Negative" }),
-						buildElement("option", { value: "gameboy", innerText: t("effectGameboy") || "Game Boy 8-Bit" }),
+						buildElement("option", { value: "gameboy", innerText: t("effectGameboy") || "Monatium Boy" }),
 						buildElement("option", { value: "bloodMoon", innerText: t("effectBloodMoon") || "Blood Moon" }),
 						buildElement("option", { value: "synthwave", innerText: t("effectSynthwave") || "Synthwave" }),
 						buildElement("option", { value: "underwater", innerText: t("effectUnderwater") || "Aqua Fantasy" }),
@@ -8100,7 +8100,7 @@ function updateLocalEditsUI() {
 	if (editsModalElements.camBtnCoolCinema) setText(editsModalElements.camBtnCoolCinema, "🎬 " + (t("effectCoolCinema") || "Cool Cinema"));
 	if (editsModalElements.camBtnMatrix) setText(editsModalElements.camBtnMatrix, "🟢 " + (t("effectMatrix") || "Matrix"));
 	if (editsModalElements.camBtnInverted) setText(editsModalElements.camBtnInverted, "🔲 " + (t("effectInverted") || "Negative"));
-	if (editsModalElements.camBtnGameboy) setText(editsModalElements.camBtnGameboy, "👾 " + (t("effectGameboy") || "Game Boy 8-Bit"));
+	if (editsModalElements.camBtnGameboy) setText(editsModalElements.camBtnGameboy, "👾 " + (t("effectGameboy") || "Monatium Boy"));
 	if (editsModalElements.camBtnBloodMoon) setText(editsModalElements.camBtnBloodMoon, "🩸 " + (t("effectBloodMoon") || "Blood Moon"));
 	if (editsModalElements.camBtnSynthwave) setText(editsModalElements.camBtnSynthwave, "🔮 " + (t("effectSynthwave") || "Synthwave"));
 	if (editsModalElements.camBtnUnderwater) setText(editsModalElements.camBtnUnderwater, "🫧 " + (t("effectUnderwater") || "Aqua Fantasy"));
@@ -8536,7 +8536,7 @@ document.body.appendChild(
 					editsModalElements.camBtnGameboy = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #8bac0f;",
-						innerText: "👾 " + (t("effectGameboy") || "Game Boy 8-Bit"),
+						innerText: "👾 " + (t("effectGameboy") || "Monatium Boy"),
 						onclick: () => setCameraEffectLocal("gameboy")
 					}),
 					editsModalElements.camBtnBloodMoon = buildElement("button", {
@@ -10038,7 +10038,7 @@ spkmodI18nRenderers.push(() => {
 		if (lunPanelElements.cameraEffectSelect.options[15]) lunPanelElements.cameraEffectSelect.options[15].innerText = t("effectCoolCinema") || "Cool Cinema";
 		if (lunPanelElements.cameraEffectSelect.options[16]) lunPanelElements.cameraEffectSelect.options[16].innerText = t("effectMatrix") || "Matrix";
 		if (lunPanelElements.cameraEffectSelect.options[17]) lunPanelElements.cameraEffectSelect.options[17].innerText = t("effectInverted") || "Negative";
-		if (lunPanelElements.cameraEffectSelect.options[18]) lunPanelElements.cameraEffectSelect.options[18].innerText = t("effectGameboy") || "Game Boy 8-Bit";
+		if (lunPanelElements.cameraEffectSelect.options[18]) lunPanelElements.cameraEffectSelect.options[18].innerText = t("effectGameboy") || "Monatium Boy";
 		if (lunPanelElements.cameraEffectSelect.options[19]) lunPanelElements.cameraEffectSelect.options[19].innerText = t("effectBloodMoon") || "Blood Moon";
 		if (lunPanelElements.cameraEffectSelect.options[20]) lunPanelElements.cameraEffectSelect.options[20].innerText = t("effectSynthwave") || "Synthwave";
 		if (lunPanelElements.cameraEffectSelect.options[21]) lunPanelElements.cameraEffectSelect.options[21].innerText = t("effectUnderwater") || "Aqua Fantasy";
