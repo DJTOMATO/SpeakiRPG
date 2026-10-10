@@ -2486,29 +2486,59 @@ const LUN_PROCEDURAL_SKIES = {
 	golden_grad: { top: "#191638", mid: "#872b53", bottom: "#f9b248", fog: 0xd84f3c, hasStars: false }
 };
 
+function getThreeTextureConstructor(scene) {
+	if (typeof window !== "undefined" && window.THREE) {
+		if (typeof window.THREE.CanvasTexture === "function") return window.THREE.CanvasTexture;
+		if (typeof window.THREE.Texture === "function") return window.THREE.Texture;
+	}
+	const sc = scene || (typeof gameState !== "undefined" && gameState?.scene);
+	if (sc && typeof sc.traverse === "function") {
+		let found = null;
+		sc.traverse(obj => {
+			if (found) return;
+			if (obj && obj.material) {
+				const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+				for (const m of mats) {
+					if (m?.map && m.map.constructor) { found = m.map.constructor; return; }
+					if (m?.__origMap && m.__origMap.constructor) { found = m.__origMap.constructor; return; }
+				}
+			}
+		});
+		if (found) {
+			if (typeof window !== "undefined") {
+				window.THREE = window.THREE || {};
+				if (!window.THREE.Texture) window.THREE.Texture = found;
+			}
+			return found;
+		}
+	}
+	return null;
+}
+
 var _lunSkyTextureCache = {};
-function createSkyCanvasTexture(presetKey) {
+function createSkyCanvasTexture(presetKey, baseTexture, scene) {
 	if (_lunSkyTextureCache[presetKey]) return _lunSkyTextureCache[presetKey];
 	const cfg = LUN_PROCEDURAL_SKIES[presetKey];
 	if (!cfg || typeof document === "undefined") return null;
+
 	const canvas = document.createElement("canvas");
-	canvas.width = 512;
-	canvas.height = 512;
+	canvas.width = 1024;
+	canvas.height = 1024;
 	const ctx = canvas.getContext("2d");
 	if (!ctx) return null;
 
-	const grad = ctx.createLinearGradient(0, 0, 0, 512);
+	const grad = ctx.createLinearGradient(0, 0, 0, 1024);
 	grad.addColorStop(0, cfg.top);
 	grad.addColorStop(0.5, cfg.mid);
 	grad.addColorStop(1, cfg.bottom);
 	ctx.fillStyle = grad;
-	ctx.fillRect(0, 0, 512, 512);
+	ctx.fillRect(0, 0, 1024, 1024);
 
 	if (cfg.hasStars) {
-		for (let i = 0; i < 300; i++) {
-			const x = (Math.sin(i * 127.1) * 0.5 + 0.5) * 512;
-			const y = (Math.cos(i * 311.7) * 0.5 + 0.5) * 460;
-			const r = (Math.sin(i * 59.3) * 0.5 + 0.5) * 1.5 + 0.5;
+		for (let i = 0; i < 400; i++) {
+			const x = (Math.sin(i * 127.1) * 0.5 + 0.5) * 1024;
+			const y = (Math.cos(i * 311.7) * 0.5 + 0.5) * 900;
+			const r = (Math.sin(i * 59.3) * 0.5 + 0.5) * 2.0 + 0.6;
 			const alpha = (Math.cos(i * 83.9) * 0.5 + 0.5) * 0.7 + 0.3;
 			ctx.beginPath();
 			ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -2517,10 +2547,25 @@ function createSkyCanvasTexture(presetKey) {
 		}
 	}
 
-	let tex = null;
-	if (typeof window !== "undefined" && window.THREE && typeof window.THREE.CanvasTexture === "function") {
-		tex = new window.THREE.CanvasTexture(canvas);
+	const TexClass = (baseTexture && baseTexture.constructor) || getThreeTextureConstructor(scene);
+	if (!TexClass) {
+		console.warn("[SpeakiMod] Three.js Texture constructor not available yet.");
+		return null;
 	}
+
+	let tex = null;
+	try {
+		tex = new TexClass(canvas);
+		tex.needsUpdate = true;
+		if (baseTexture) {
+			if (baseTexture.mapping !== undefined) tex.mapping = baseTexture.mapping;
+			if (baseTexture.wrapS !== undefined) tex.wrapS = baseTexture.wrapS;
+			if (baseTexture.wrapT !== undefined) tex.wrapT = baseTexture.wrapT;
+		}
+	} catch (e) {
+		console.error("[SpeakiMod] Failed to instantiate Texture:", e);
+	}
+
 	if (tex) {
 		_lunSkyTextureCache[presetKey] = tex;
 	}
@@ -2567,11 +2612,16 @@ function applyChromaKeyColor(colorKey) {
 					if (obj.material) {
 						if (obj.material.__origMap === undefined) obj.material.__origMap = obj.material.map;
 						if (obj.material.__origColor === undefined) obj.material.__origColor = obj.material.color ? obj.material.color.getHex() : 0xffffff;
-						obj.material.map = null;
-						if (obj.material.color && typeof obj.material.color.setHex === "function") {
-							obj.material.color.setHex(hex);
+						if (obj.material.map !== null) {
+							obj.material.map = null;
+							obj.material.needsUpdate = true;
 						}
-						obj.material.needsUpdate = true;
+						if (obj.material.color && typeof obj.material.color.setHex === "function") {
+							if (obj.material.color.getHex() !== hex) {
+								obj.material.color.setHex(hex);
+								obj.material.needsUpdate = true;
+							}
+						}
 					}
 					obj.visible = true;
 				} else if (obj.geometry && (obj.geometry.type === "CircleGeometry" || obj.geometry.parameters?.radius === 350)) {
@@ -2596,12 +2646,33 @@ function applyChromaKeyColor(colorKey) {
 			}
 		}
 	} else if (isProc) {
-		const tex = createSkyCanvasTexture(lunChromaKeyColor);
 		const procCfg = LUN_PROCEDURAL_SKIES[lunChromaKeyColor];
 		if (scene.__origBackground === undefined) {
 			scene.__origBackground = scene.background || null;
 		}
-		if (tex) {
+
+		// Find the sky sphere mesh first to get baseTexture
+		let skySphereMesh = null;
+		const findSkySphere = (obj) => {
+			if (!obj || skySphereMesh) return;
+			if (obj.renderOrder === -1 && obj.geometry && (obj.geometry.type === "SphereGeometry" || obj.geometry.parameters?.radius === 400 || obj.material?.side === 1)) {
+				skySphereMesh = obj;
+				return;
+			}
+			if (obj.children) {
+				for (const sub of obj.children) findSkySphere(sub);
+			}
+		};
+		if (scene.children) {
+			for (const child of scene.children) findSkySphere(child);
+		}
+
+		const baseTex = skySphereMesh?.material?.__origMap || skySphereMesh?.material?.map;
+		const tex = createSkyCanvasTexture(lunChromaKeyColor, baseTex, scene);
+
+		if (scene.background && typeof scene.background.setHex === "function" && procCfg) {
+			scene.background.setHex(procCfg.fog);
+		} else if (tex) {
 			scene.background = tex;
 		}
 
@@ -2621,11 +2692,18 @@ function applyChromaKeyColor(colorKey) {
 					if (obj.material) {
 						if (obj.material.__origMap === undefined) obj.material.__origMap = obj.material.map;
 						if (obj.material.__origColor === undefined) obj.material.__origColor = obj.material.color ? obj.material.color.getHex() : 0xffffff;
-						if (tex) obj.material.map = tex;
-						if (obj.material.color && typeof obj.material.color.setHex === "function") {
-							obj.material.color.setHex(0xffffff);
+						if (tex) {
+							if (obj.material.map !== tex) {
+								obj.material.map = tex;
+								obj.material.needsUpdate = true;
+							}
+							if (obj.material.color && typeof obj.material.color.setHex === "function") {
+								if (obj.material.color.getHex() !== 0xffffff) {
+									obj.material.color.setHex(0xffffff);
+									obj.material.needsUpdate = true;
+								}
+							}
 						}
-						obj.material.needsUpdate = true;
 					}
 					obj.visible = true;
 				} else if (obj.geometry && (obj.geometry.type === "CircleGeometry" || obj.geometry.parameters?.radius === 350)) {
@@ -3402,6 +3480,7 @@ document.head.appendChild(buildElement(
 			gap: 8px;
 			max-height: 85vh;
 			overflow-y: auto;
+			overflow-x: hidden;
 			box-shadow: 0 4px 20px rgba(0,0,0,0.8);
 		}
 		#spkmod-gamepad-modal {
@@ -3430,8 +3509,11 @@ document.head.appendChild(buildElement(
 			max-width: 95vw;
 		}
 		#spkmod-edits-modal {
-			width: 360px;
+			width: fit-content;
+			min-width: 420px;
 			max-width: 95vw;
+			overflow-x: hidden;
+			box-sizing: border-box;
 		}
 		#spkmod-stats-modal {
 			width: 240px;
@@ -8204,7 +8286,7 @@ document.body.appendChild(
 	lunHudElements.editsModal = buildElement("div", {
 		id: "spkmod-edits-modal",
 		className: "hidden",
-		style: "position: fixed; z-index: 600000; width: 360px; max-width: 95vw; overflow-x: hidden;"
+		style: "position: fixed; z-index: 600000; width: fit-content; min-width: 420px; max-width: 95vw; overflow-x: hidden; box-sizing: border-box;"
 	}, [
 		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between;" }, [
 			lunPanelElements.editsModalTitle = buildElement("span", {
@@ -8217,7 +8299,7 @@ document.body.appendChild(
 				onclick: _ => lunHudElements.editsModal.classList.add("hidden")
 			})
 		]),
-		buildElement("div", { style: "display: flex; flex-direction: column; gap: 10px; max-height: 75vh; overflow-y: auto; padding: 4px; box-sizing: border-box;" }, [
+		buildElement("div", { style: "display: flex; flex-direction: column; gap: 10px; max-height: 80vh; overflow-y: auto; overflow-x: hidden; padding: 4px; box-sizing: border-box;" }, [
 			// Section 1: Skybox & Background
 			buildElement("div", { style: "display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid #555; padding-bottom: 8px;" }, [
 				editsModalElements.chromaHeader = buildElement("div", {
@@ -8551,7 +8633,7 @@ document.body.appendChild(
 	])
 );
 if (lunHudElements.editsModal) {
-	const modalW = 360;
+	const modalW = lunHudElements.editsModal.offsetWidth || 440;
 	lunHudElements.editsModal.style.left = Math.max(10, Math.round((window.innerWidth / 2) - (modalW / 2))) + "px";
 	lunHudElements.editsModal.style.top = Math.max(10, Math.round(window.innerHeight * 0.15)) + "px";
 	if (typeof updateLocalEditsUI === "function") updateLocalEditsUI();
