@@ -2907,6 +2907,15 @@ function updateDynamicStyles() {
 		case "coolCinema": filterRule = "contrast(115%) saturate(115%) hue-rotate(190deg) brightness(96%)"; break;
 		case "matrix": filterRule = "contrast(150%) saturate(200%) hue-rotate(90deg) brightness(85%)"; break;
 		case "inverted": filterRule = "invert(100%) hue-rotate(180deg)"; break;
+		case "gameboy": filterRule = "grayscale(100%) brightness(95%) contrast(160%) sepia(100%) hue-rotate(50deg) saturate(320%)"; break;
+		case "bloodMoon": filterRule = "contrast(160%) brightness(85%) saturate(220%) sepia(60%) hue-rotate(300deg)"; break;
+		case "synthwave": filterRule = "contrast(145%) saturate(260%) hue-rotate(240deg) brightness(105%)"; break;
+		case "underwater": filterRule = "contrast(115%) saturate(160%) hue-rotate(140deg) brightness(105%) blur(0.4px)"; break;
+		case "goldenHour": filterRule = "brightness(115%) contrast(108%) sepia(35%) saturate(175%) hue-rotate(-20deg)"; break;
+		case "comicBook": filterRule = "contrast(200%) saturate(190%) brightness(102%)"; break;
+		case "arctic": filterRule = "brightness(108%) contrast(120%) saturate(85%) hue-rotate(160deg) sepia(15%)"; break;
+		case "cosmic": filterRule = "contrast(135%) saturate(230%) hue-rotate(110deg) brightness(110%)"; break;
+		case "filmNoir": filterRule = "grayscale(100%) contrast(210%) brightness(80%)"; break;
 	}
 	if (lunBgOpacity === "solid") {
 		bgRule = "rgba(10, 10, 10, 0.95)";
@@ -4747,7 +4756,16 @@ document.body.appendChild(
 						buildElement("option", { value: "warmVintage", innerText: t("effectWarmVintage") || "Vintage Film" }),
 						buildElement("option", { value: "coolCinema", innerText: t("effectCoolCinema") || "Cool Cinema" }),
 						buildElement("option", { value: "matrix", innerText: t("effectMatrix") || "Matrix" }),
-						buildElement("option", { value: "inverted", innerText: t("effectInverted") || "Negative" })
+						buildElement("option", { value: "inverted", innerText: t("effectInverted") || "Negative" }),
+						buildElement("option", { value: "gameboy", innerText: t("effectGameboy") || "Game Boy 8-Bit" }),
+						buildElement("option", { value: "bloodMoon", innerText: t("effectBloodMoon") || "Blood Moon" }),
+						buildElement("option", { value: "synthwave", innerText: t("effectSynthwave") || "Synthwave" }),
+						buildElement("option", { value: "underwater", innerText: t("effectUnderwater") || "Aqua Fantasy" }),
+						buildElement("option", { value: "goldenHour", innerText: t("effectGoldenHour") || "Golden Hour" }),
+						buildElement("option", { value: "comicBook", innerText: t("effectComicBook") || "Comic Book" }),
+						buildElement("option", { value: "arctic", innerText: t("effectArctic") || "Arctic Frost" }),
+						buildElement("option", { value: "cosmic", innerText: t("effectCosmic") || "Cosmic Aurora" }),
+						buildElement("option", { value: "filmNoir", innerText: t("effectFilmNoir") || "Film Noir" })
 					])
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
@@ -8082,6 +8100,15 @@ function updateLocalEditsUI() {
 	if (editsModalElements.camBtnCoolCinema) setText(editsModalElements.camBtnCoolCinema, "🎬 " + (t("effectCoolCinema") || "Cool Cinema"));
 	if (editsModalElements.camBtnMatrix) setText(editsModalElements.camBtnMatrix, "🟢 " + (t("effectMatrix") || "Matrix"));
 	if (editsModalElements.camBtnInverted) setText(editsModalElements.camBtnInverted, "🔲 " + (t("effectInverted") || "Negative"));
+	if (editsModalElements.camBtnGameboy) setText(editsModalElements.camBtnGameboy, "👾 " + (t("effectGameboy") || "Game Boy 8-Bit"));
+	if (editsModalElements.camBtnBloodMoon) setText(editsModalElements.camBtnBloodMoon, "🩸 " + (t("effectBloodMoon") || "Blood Moon"));
+	if (editsModalElements.camBtnSynthwave) setText(editsModalElements.camBtnSynthwave, "🔮 " + (t("effectSynthwave") || "Synthwave"));
+	if (editsModalElements.camBtnUnderwater) setText(editsModalElements.camBtnUnderwater, "🫧 " + (t("effectUnderwater") || "Aqua Fantasy"));
+	if (editsModalElements.camBtnGoldenHour) setText(editsModalElements.camBtnGoldenHour, "☀️ " + (t("effectGoldenHour") || "Golden Hour"));
+	if (editsModalElements.camBtnComicBook) setText(editsModalElements.camBtnComicBook, "💥 " + (t("effectComicBook") || "Comic Book"));
+	if (editsModalElements.camBtnArctic) setText(editsModalElements.camBtnArctic, "❄️ " + (t("effectArctic") || "Arctic Frost"));
+	if (editsModalElements.camBtnCosmic) setText(editsModalElements.camBtnCosmic, "🌌 " + (t("effectCosmic") || "Cosmic Aurora"));
+	if (editsModalElements.camBtnFilmNoir) setText(editsModalElements.camBtnFilmNoir, "🕵️ " + (t("effectFilmNoir") || "Film Noir"));
 
 	const camBtns = {
 		none: editsModalElements.camBtnNone,
@@ -8101,7 +8128,16 @@ function updateLocalEditsUI() {
 		warmVintage: editsModalElements.camBtnWarmVintage,
 		coolCinema: editsModalElements.camBtnCoolCinema,
 		matrix: editsModalElements.camBtnMatrix,
-		inverted: editsModalElements.camBtnInverted
+		inverted: editsModalElements.camBtnInverted,
+		gameboy: editsModalElements.camBtnGameboy,
+		bloodMoon: editsModalElements.camBtnBloodMoon,
+		synthwave: editsModalElements.camBtnSynthwave,
+		underwater: editsModalElements.camBtnUnderwater,
+		goldenHour: editsModalElements.camBtnGoldenHour,
+		comicBook: editsModalElements.camBtnComicBook,
+		arctic: editsModalElements.camBtnArctic,
+		cosmic: editsModalElements.camBtnCosmic,
+		filmNoir: editsModalElements.camBtnFilmNoir
 	};
 	for (const [key, btn] of Object.entries(camBtns)) {
 		if (btn) {
@@ -8388,7 +8424,7 @@ document.body.appendChild(
 					innerText: "📷 " + (t("cameraEffectsTitle") || "Camera Filters (Hotkeys)"),
 					style: "margin-top: 0px;"
 				}),
-				buildElement("div", { style: "display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;" }, [
+				buildElement("div", { style: "display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;" }, [
 					editsModalElements.camBtnNone = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
@@ -8496,6 +8532,60 @@ document.body.appendChild(
 						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #e0e0e0;",
 						innerText: "🔲 " + (t("effectInverted") || "Negative"),
 						onclick: () => setCameraEffectLocal("inverted")
+					}),
+					editsModalElements.camBtnGameboy = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #8bac0f;",
+						innerText: "👾 " + (t("effectGameboy") || "Game Boy 8-Bit"),
+						onclick: () => setCameraEffectLocal("gameboy")
+					}),
+					editsModalElements.camBtnBloodMoon = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ff4d4d;",
+						innerText: "🩸 " + (t("effectBloodMoon") || "Blood Moon"),
+						onclick: () => setCameraEffectLocal("bloodMoon")
+					}),
+					editsModalElements.camBtnSynthwave = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #e056fd;",
+						innerText: "🔮 " + (t("effectSynthwave") || "Synthwave"),
+						onclick: () => setCameraEffectLocal("synthwave")
+					}),
+					editsModalElements.camBtnUnderwater = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #22d3ee;",
+						innerText: "🫧 " + (t("effectUnderwater") || "Aqua Fantasy"),
+						onclick: () => setCameraEffectLocal("underwater")
+					}),
+					editsModalElements.camBtnGoldenHour = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #f59e0b;",
+						innerText: "☀️ " + (t("effectGoldenHour") || "Golden Hour"),
+						onclick: () => setCameraEffectLocal("goldenHour")
+					}),
+					editsModalElements.camBtnComicBook = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #f43f5e;",
+						innerText: "💥 " + (t("effectComicBook") || "Comic Book"),
+						onclick: () => setCameraEffectLocal("comicBook")
+					}),
+					editsModalElements.camBtnArctic = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #93c5fd;",
+						innerText: "❄️ " + (t("effectArctic") || "Arctic Frost"),
+						onclick: () => setCameraEffectLocal("arctic")
+					}),
+					editsModalElements.camBtnCosmic = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #c084fc;",
+						innerText: "🌌 " + (t("effectCosmic") || "Cosmic Aurora"),
+						onclick: () => setCameraEffectLocal("cosmic")
+					}),
+					editsModalElements.camBtnFilmNoir = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #e2e8f0;",
+						innerText: "🕵️ " + (t("effectFilmNoir") || "Film Noir"),
+						onclick: () => setCameraEffectLocal("filmNoir")
 					})
 				])
 			])
@@ -9948,6 +10038,15 @@ spkmodI18nRenderers.push(() => {
 		if (lunPanelElements.cameraEffectSelect.options[15]) lunPanelElements.cameraEffectSelect.options[15].innerText = t("effectCoolCinema") || "Cool Cinema";
 		if (lunPanelElements.cameraEffectSelect.options[16]) lunPanelElements.cameraEffectSelect.options[16].innerText = t("effectMatrix") || "Matrix";
 		if (lunPanelElements.cameraEffectSelect.options[17]) lunPanelElements.cameraEffectSelect.options[17].innerText = t("effectInverted") || "Negative";
+		if (lunPanelElements.cameraEffectSelect.options[18]) lunPanelElements.cameraEffectSelect.options[18].innerText = t("effectGameboy") || "Game Boy 8-Bit";
+		if (lunPanelElements.cameraEffectSelect.options[19]) lunPanelElements.cameraEffectSelect.options[19].innerText = t("effectBloodMoon") || "Blood Moon";
+		if (lunPanelElements.cameraEffectSelect.options[20]) lunPanelElements.cameraEffectSelect.options[20].innerText = t("effectSynthwave") || "Synthwave";
+		if (lunPanelElements.cameraEffectSelect.options[21]) lunPanelElements.cameraEffectSelect.options[21].innerText = t("effectUnderwater") || "Aqua Fantasy";
+		if (lunPanelElements.cameraEffectSelect.options[22]) lunPanelElements.cameraEffectSelect.options[22].innerText = t("effectGoldenHour") || "Golden Hour";
+		if (lunPanelElements.cameraEffectSelect.options[23]) lunPanelElements.cameraEffectSelect.options[23].innerText = t("effectComicBook") || "Comic Book";
+		if (lunPanelElements.cameraEffectSelect.options[24]) lunPanelElements.cameraEffectSelect.options[24].innerText = t("effectArctic") || "Arctic Frost";
+		if (lunPanelElements.cameraEffectSelect.options[25]) lunPanelElements.cameraEffectSelect.options[25].innerText = t("effectCosmic") || "Cosmic Aurora";
+		if (lunPanelElements.cameraEffectSelect.options[26]) lunPanelElements.cameraEffectSelect.options[26].innerText = t("effectFilmNoir") || "Film Noir";
 	}
 
 	if (lunPanelElements.bgOpacityLabel) setText(lunPanelElements.bgOpacityLabel, t("bgOpacityLabel"));

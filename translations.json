@@ -485,7 +485,16 @@
         "effectWarmVintage": "Vintage Film",
         "effectCoolCinema": "Cool Cinema",
         "effectMatrix": "Matrix",
-        "effectInverted": "Negative"
+        "effectInverted": "Negative",
+        "effectGameboy": "Game Boy 8-Bit",
+        "effectBloodMoon": "Blood Moon",
+        "effectSynthwave": "Synthwave",
+        "effectUnderwater": "Aqua Fantasy",
+        "effectGoldenHour": "Golden Hour",
+        "effectComicBook": "Comic Book",
+        "effectArctic": "Arctic Frost",
+        "effectCosmic": "Cosmic Aurora",
+        "effectFilmNoir": "Film Noir"
     },
     "ja": {
         "langName": "日本語",
@@ -1003,7 +1012,16 @@
         "effectWarmVintage": "ビンテージフィルム",
         "effectCoolCinema": "シネマティックブルー",
         "effectMatrix": "マトリックス",
-        "effectInverted": "ネガ反転"
+        "effectInverted": "ネガ反転",
+        "effectGameboy": "ゲームボーイ風",
+        "effectBloodMoon": "ブラッドムーン",
+        "effectSynthwave": "シンセウェイヴ",
+        "effectUnderwater": "アクアファンタジー",
+        "effectGoldenHour": "ゴールデンアワー",
+        "effectComicBook": "コミックポップ",
+        "effectArctic": "アークティックフロスト",
+        "effectCosmic": "コズミックオーロラ",
+        "effectFilmNoir": "フィルム・ノワール"
     },
     "ko": {
         "langName": "한국어",
@@ -1491,7 +1509,16 @@
         "effectWarmVintage": "빈티지 필름",
         "effectCoolCinema": "쿨 시네마",
         "effectMatrix": "매트릭스",
-        "effectInverted": "색상 반전"
+        "effectInverted": "색상 반전",
+        "effectGameboy": "게임보이 8비트",
+        "effectBloodMoon": "블러드 문",
+        "effectSynthwave": "신스웨이브",
+        "effectUnderwater": "아쿠아 판타지",
+        "effectGoldenHour": "골든 아워",
+        "effectComicBook": "코믹북 팝아트",
+        "effectArctic": "북극 한기",
+        "effectCosmic": "코스믹 오로라",
+        "effectFilmNoir": "필름 누아르"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -1974,7 +2001,16 @@
         "effectWarmVintage": "復古膠捲",
         "effectCoolCinema": "冷調電影",
         "effectMatrix": "母體綠光",
-        "effectInverted": "負片反轉"
+        "effectInverted": "負片反轉",
+        "effectGameboy": "復古掌機",
+        "effectBloodMoon": "血月異境",
+        "effectSynthwave": "合成波霓虹",
+        "effectUnderwater": "深海夢境",
+        "effectGoldenHour": "黃金時刻",
+        "effectComicBook": "美漫普普風",
+        "effectArctic": "極地極寒",
+        "effectCosmic": "宇宙極光",
+        "effectFilmNoir": "黑色電影"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -2457,7 +2493,16 @@
         "effectWarmVintage": "复古胶卷",
         "effectCoolCinema": "冷调电影",
         "effectMatrix": "黑客绿光",
-        "effectInverted": "负片反转"
+        "effectInverted": "负片反转",
+        "effectGameboy": "复古掌机",
+        "effectBloodMoon": "血月异境",
+        "effectSynthwave": "合成波霓虹",
+        "effectUnderwater": "深海梦境",
+        "effectGoldenHour": "黄金时刻",
+        "effectComicBook": "美漫波普风",
+        "effectArctic": "极地极寒",
+        "effectCosmic": "宇宙极光",
+        "effectFilmNoir": "黑色电影"
     },
     "es-419": {
         "langName": "Español",
@@ -2940,6 +2985,15 @@
         "effectWarmVintage": "Película Vintage",
         "effectCoolCinema": "Cine Frío",
         "effectMatrix": "Matrix",
-        "effectInverted": "Negativo"
+        "effectInverted": "Negativo",
+        "effectGameboy": "Game Boy 8-Bit",
+        "effectBloodMoon": "Luna de Sangre",
+        "effectSynthwave": "Synthwave",
+        "effectUnderwater": "Fantasía Marina",
+        "effectGoldenHour": "Hora Dorada",
+        "effectComicBook": "Cómic Pop",
+        "effectArctic": "Escarcha Ártica",
+        "effectCosmic": "Aurora Cósmica",
+        "effectFilmNoir": "Cine Negro"
     }
 }
