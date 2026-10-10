@@ -7354,6 +7354,16 @@ window.spkmodStopFBX = function() {
                     mesh.visible = true;
                 }
             }
+            if (item.mixer) {
+                item.mixer.stopAllAction();
+                if (item.container) item.mixer.uncacheRoot(item.container);
+            }
+            if (item.controller) {
+                lunDeathLocks.delete(item.controller);
+                if (typeof item.controller.setLocomotion === 'function') {
+                    item.controller.setLocomotion(0);
+                }
+            }
         }
         window.spkmodFBXState.injectedModels = [];
     }
@@ -7411,14 +7421,154 @@ window.spkmodPlayFBX = async function(url, everyone = false, audioUrl = null) {
             return;
         }
 
-        if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Injecting FBX mesh directly...");
-        
+        // Check if FBX contains 3D meshes
+        let fbxMeshCount = 0;
+        object.traverse(child => {
+            if (child.isMesh || child.isSkinnedMesh) fbxMeshCount++;
+        });
+
+        if (fbxMeshCount === 0) {
+            if (typeof chatLog !== 'undefined') {
+                chatLog("[FBX Importer] Animation-only FBX detected (no meshes). Playing animation directly over existing avatar!");
+            }
+        } else {
+            if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Injecting FBX mesh directly...");
+        }
+
         window.spkmodFBXState.injectedModels = [];
         window.spkmodFBXState.clock = new window.THREE.Clock();
 
-        const injectModel = (container, isSelf) => {
+        const boneAliases = {
+            "bip001_neck": ["bone004", "bone.004", "bip001 neck", "neck"],
+            "bip001_head": ["bone005", "bone.005", "bip001 head", "head"],
+            "bip001_headnub": ["bone006", "bone.006", "bip001 headnub", "headnub"],
+            "bip001_l_finger0": ["bone007", "bone.007", "bip001 l finger0", "l_finger0"],
+            "bip001_l_finger0nub": ["bone008", "bone.008", "bip001 l finger0nub", "l_finger0nub"],
+            "bip001_r_finger0": ["bone009", "bone.009", "bip001 r finger0", "r_finger0"],
+            "bip001_r_finger0nub": ["bone010", "bone.010", "bip001 r finger0nub", "r_finger0nub"],
+            "bip001_l_toe0nub": ["bone002", "bone.002", "bip001 l toe0nub", "l_toe0nub"],
+            "bip001_r_toe0nub": ["bone003", "bone.003", "bip001 r toe0nub", "r_toe0nub"],
+            "bone004": ["bip001_neck", "bip001 neck", "neck"],
+            "bone005": ["bip001_head", "bip001 head", "head"],
+            "bone006": ["bip001_headnub", "bip001 headnub", "headnub"],
+            "bone007": ["bip001_l_finger0", "bip001 l finger0", "l_finger0"],
+            "bone008": ["bip001_l_finger0nub", "bip001 l finger0nub", "l_finger0nub"],
+            "bone009": ["bip001_r_finger0", "bip001 r finger0", "r_finger0"],
+            "bone010": ["bip001_r_finger0nub", "bip001 r finger0nub", "r_finger0nub"],
+            "bone002": ["bip001_l_toe0nub", "bip001 l toe0nub", "l_toe0nub"],
+            "bone003": ["bip001_r_toe0nub", "bip001 r toe0nub", "r_toe0nub"]
+        };
+
+        const injectModel = (container, isSelf, playerObj) => {
             if (!container) return;
             
+            // --- Mode A: Animation-Only FBX (plays directly over existing character) ---
+            if (fbxMeshCount === 0) {
+                const ctrl = isSelf
+                    ? (gameState?.localAvatar?.animationController || gameState?.playerContainer?.controller)
+                    : (playerObj?.avatar?.animationController || playerObj?.container?.controller);
+                if (ctrl) {
+                    if (typeof spkmodPatchControllerForDeath === 'function') spkmodPatchControllerForDeath(ctrl);
+                    lunDeathLocks.add(ctrl);
+                }
+
+                // Map all existing bones in the player's model
+                const boneMap = new Map();
+                container.traverse(child => {
+                    if (child.isBone || child.type === 'Bone') {
+                        boneMap.set(child.name, child);
+                        boneMap.set(child.name.replace(/ /g, '_'), child);
+                        boneMap.set(child.name.replace(/_/g, ' '), child);
+                        boneMap.set(child.name.toLowerCase(), child);
+                        boneMap.set(child.name.replace(/ /g, '_').toLowerCase(), child);
+                        boneMap.set(child.name.replace(/_/g, ' ').toLowerCase(), child);
+                    }
+                    if (child.isSkinnedMesh && child.skeleton && child.skeleton.bones) {
+                        for (const b of child.skeleton.bones) {
+                            if (b && b.name) {
+                                boneMap.set(b.name, b);
+                                boneMap.set(b.name.replace(/ /g, '_'), b);
+                                boneMap.set(b.name.replace(/_/g, ' '), b);
+                                boneMap.set(b.name.toLowerCase(), b);
+                                boneMap.set(b.name.replace(/ /g, '_').toLowerCase(), b);
+                                boneMap.set(b.name.replace(/_/g, ' ').toLowerCase(), b);
+                            }
+                        }
+                    }
+                });
+
+                const retargetedTracks = [];
+                for (const track of object.animations[0].tracks) {
+                    const dotIndex = track.name.indexOf('.');
+                    if (dotIndex === -1) continue;
+                    const trackNode = track.name.substring(0, dotIndex);
+                    const prop = track.name.substring(dotIndex);
+
+                    let matchedBone = boneMap.get(trackNode) || boneMap.get(trackNode.toLowerCase());
+                    if (!matchedBone) {
+                        const lower = trackNode.toLowerCase();
+                        if (boneAliases[lower]) {
+                            for (const alias of boneAliases[lower]) {
+                                if (boneMap.has(alias)) {
+                                    matchedBone = boneMap.get(alias);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (!matchedBone) continue;
+
+                    const isRoot = /pelvis|hips|root/i.test(matchedBone.name);
+                    if (prop.startsWith('.position') && !isRoot) {
+                        // Preserve existing bone lengths for non-root bones
+                        continue;
+                    }
+
+                    const clonedTrack = track.clone();
+                    clonedTrack.name = matchedBone.name + prop;
+
+                    // Normalize root bone position if exported with large Blender unit coordinates
+                    if (prop.startsWith('.position') && isRoot && clonedTrack.values) {
+                        let maxPos = 0;
+                        for (let i = 0; i < clonedTrack.values.length; i++) {
+                            maxPos = Math.max(maxPos, Math.abs(clonedTrack.values[i]));
+                        }
+                        if (maxPos > 5.0) {
+                            for (let i = 0; i < clonedTrack.values.length; i++) {
+                                clonedTrack.values[i] *= 0.01;
+                            }
+                        }
+                    }
+
+                    retargetedTracks.push(clonedTrack);
+                }
+
+                if (retargetedTracks.length === 0) {
+                    if (typeof chatLog !== 'undefined') chatLog("[FBX Importer] Warning: No matching bones found in avatar to animate.");
+                    return;
+                }
+
+                const mixer = new window.THREE.AnimationMixer(container);
+                const clip = new window.THREE.AnimationClip(
+                    object.animations[0].name || "fbxDance",
+                    object.animations[0].duration,
+                    retargetedTracks
+                );
+                const action = mixer.clipAction(clip);
+                action.play();
+
+                window.spkmodFBXState.injectedModels.push({
+                    container: container,
+                    model: null,
+                    hiddenMeshes: [],
+                    mixer: mixer,
+                    controller: ctrl
+                });
+                return;
+            }
+
+            // --- Mode B: Full FBX Model (injects mesh with stolen native shaders) ---
             // Hide original meshes in the container so they don't overlap
             const hiddenMeshes = [];
             container.traverse(child => {
@@ -7449,9 +7599,25 @@ window.spkmodPlayFBX = async function(url, everyone = false, audioUrl = null) {
                 fbxModel.quaternion.setFromAxisAngle(axis, offset);
             }
             
+            // Auto-detect unit scale from mesh geometry/scaling:
+            // Blender default export uses 0.01 child mesh scale with 100 UnitScaleFactor.
+            // Blender 'FBX Units' or 'FBX All' uses 1.0 child mesh scale (100x larger).
+            let autoUnitScale = 1;
+            let sampleMesh = null;
+            fbxModel.traverse(child => {
+                if ((child.isMesh || child.isSkinnedMesh) && !sampleMesh) {
+                    sampleMesh = child;
+                }
+            });
+            if (sampleMesh && sampleMesh.scale.x > 0.5) {
+                // Child mesh is unscaled (1.0), so normalize by 0.01 to match Speaki character scale
+                autoUnitScale = 0.01;
+            }
+
             // Allow scaling
             const scale = window.spkmodFBXScale !== undefined ? window.spkmodFBXScale : 2.3;
-            fbxModel.scale.set(scale, scale, scale);
+            const finalScale = scale * autoUnitScale;
+            fbxModel.scale.set(finalScale, finalScale, finalScale);
 
             // Steal the exact native materials (and their custom toon shaders + outlines) from the player's original hidden meshes!
             const origMats = {};
@@ -7488,7 +7654,6 @@ window.spkmodPlayFBX = async function(url, everyone = false, audioUrl = null) {
                 }
             });
 
-
             container.add(fbxModel);
             
             const mixer = new window.THREE.AnimationMixer(fbxModel);
@@ -7505,14 +7670,14 @@ window.spkmodPlayFBX = async function(url, everyone = false, audioUrl = null) {
 
         const gameAvatar = (gameState?.playerContainer?.container) || (gameState?.localAvatar?.container) || (gameState?.localAvatar?.group) || gameState?.playerContainer;
         if (gameAvatar) {
-            injectModel(gameAvatar, true);
+            injectModel(gameAvatar, true, null);
         }
 
         if (everyone && gameState?.remotePlayers?.remotePlayers) {
             for (const player of gameState.remotePlayers.remotePlayers.values()) {
                 const pContainer = player?.container?.container || player?.container;
                 if (pContainer && pContainer !== gameAvatar) {
-                    injectModel(pContainer, false);
+                    injectModel(pContainer, false, player);
                 }
             }
         }
