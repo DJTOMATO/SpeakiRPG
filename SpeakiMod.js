@@ -766,7 +766,7 @@ function getEffectiveSourceLang(text) {
 	if (spkmodLang === "zh-TW") return "zh-TW";
 	if (spkmodLang === "zh-CN") return "zh-CN";
 	if (spkmodLang === "es-419") return "es";
-	return "en";
+	return "en-US";
 }
 
 var lunBadWordRegex = null;
@@ -9760,9 +9760,17 @@ let lunTranslateLastAt = 0;
 const lunTranslateMinGapMs = 400;
 
 function guessSourceLang(text) {
-	if (/[\uAC00-\uD7A3]/.test(text)) return "ko"; // Hangul
-	if (/[\u3040-\u30FF\u4E00-\u9FFF]/.test(text)) return "ja"; // Kana / Kanji
-	return "en";
+	if (/[\uAC00-\uD7A3]/.test(text)) return "ko"; // Hangul (Korean)
+	if (/[\u3040-\u30FF]/.test(text)) return "ja"; // Hiragana/Katakana (Japanese)
+	if (/[\u4E00-\u9FFF]/.test(text)) return "zh-CN"; // CJK Ideographs (Chinese)
+	if (/[\u0400-\u04FF]/.test(text)) return "ru";
+	if (/[äöüßÄÖÜ]/.test(text)) return "de"; // German
+	if (/[ñ¿¡Ñ]/.test(text)) return "es"; // Spanish
+	if (/[ãõÃÕ]/.test(text)) return "pt"; // Portuguese
+	if (/[œæçàâêîôûèéŒÆÇÀÂÊÎÔÛÈÉ]/.test(text)) return "fr"; // French
+
+	// Default to English if no unique characters are detected
+	return "en-US";
 }
 
 function cleanTranslatedText(text) {
