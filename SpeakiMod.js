@@ -2884,6 +2884,17 @@ function updateDynamicStyles() {
 					<feBlend in="red-shifted" in2="green" mode="screen" result="rg"/>
 					<feBlend in="rg" in2="blue-shifted" mode="screen"/>
 				</filter>
+				<filter id="spkmod-fx-glitch">
+					<feTurbulence type="fractalNoise" baseFrequency="0.04 0.95" numOctaves="1" result="noise" />
+					<feDisplacementMap in="SourceGraphic" in2="noise" scale="12" xChannelSelector="R" yChannelSelector="G" result="distorted" />
+					<feColorMatrix in="distorted" type="matrix" result="red" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"/>
+					<feOffset in="red" dx="4" dy="0" result="red-shifted"/>
+					<feColorMatrix in="distorted" type="matrix" result="blue" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"/>
+					<feOffset in="blue" dx="-4" dy="0" result="blue-shifted"/>
+					<feColorMatrix in="distorted" type="matrix" result="green" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"/>
+					<feBlend in="red-shifted" in2="green" mode="screen" result="rg"/>
+					<feBlend in="rg" in2="blue-shifted" mode="screen"/>
+				</filter>
 			</defs>
 		`;
 		document.body.appendChild(svg);
@@ -2916,6 +2927,18 @@ function updateDynamicStyles() {
 		case "arctic": filterRule = "brightness(108%) contrast(120%) saturate(85%) hue-rotate(160deg) sepia(15%)"; break;
 		case "cosmic": filterRule = "contrast(135%) saturate(230%) hue-rotate(110deg) brightness(110%)"; break;
 		case "filmNoir": filterRule = "grayscale(100%) contrast(210%) brightness(80%)"; break;
+		case "acidTrip": filterRule = "contrast(180%) saturate(450%) hue-rotate(85deg) brightness(115%)"; break;
+		case "radioactive": filterRule = "contrast(220%) saturate(300%) hue-rotate(65deg) brightness(120%)"; break;
+		case "deepFried": filterRule = "contrast(320%) saturate(550%) brightness(130%) hue-rotate(-25deg)"; break;
+		case "alienAbduction": filterRule = "invert(75%) hue-rotate(130deg) saturate(260%) contrast(170%)"; break;
+		case "xRay": filterRule = "invert(100%) grayscale(100%) contrast(260%) brightness(90%)"; break;
+		case "thermal": filterRule = "invert(90%) saturate(450%) hue-rotate(185deg) contrast(190%)"; break;
+		case "virtualBoy": filterRule = "grayscale(100%) brightness(130%) contrast(350%) sepia(100%) hue-rotate(310deg) saturate(1000%)"; break;
+		case "eldritch": filterRule = "contrast(240%) brightness(55%) saturate(190%) hue-rotate(255deg)"; break;
+		case "haunted": filterRule = "grayscale(75%) brightness(135%) contrast(165%) sepia(35%) hue-rotate(65deg) blur(0.5px)"; break;
+		case "glitch": filterRule = "url('#spkmod-fx-glitch') contrast(135%) saturate(200%)"; break;
+		case "kaleido": filterRule = "contrast(135%) saturate(380%) hue-rotate(180deg) brightness(115%)"; break;
+		case "supernova": filterRule = "brightness(165%) contrast(180%) saturate(240%)"; break;
 	}
 	if (lunBgOpacity === "solid") {
 		bgRule = "rgba(10, 10, 10, 0.95)";
@@ -4765,7 +4788,19 @@ document.body.appendChild(
 						buildElement("option", { value: "comicBook", innerText: t("effectComicBook") || "Comic Book" }),
 						buildElement("option", { value: "arctic", innerText: t("effectArctic") || "Arctic Frost" }),
 						buildElement("option", { value: "cosmic", innerText: t("effectCosmic") || "Cosmic Aurora" }),
-						buildElement("option", { value: "filmNoir", innerText: t("effectFilmNoir") || "Film Noir" })
+						buildElement("option", { value: "filmNoir", innerText: t("effectFilmNoir") || "Film Noir" }),
+						buildElement("option", { value: "acidTrip", innerText: t("effectAcidTrip") || "Acid Trip" }),
+						buildElement("option", { value: "radioactive", innerText: t("effectRadioactive") || "Radioactive" }),
+						buildElement("option", { value: "deepFried", innerText: t("effectDeepFried") || "Deep Fried" }),
+						buildElement("option", { value: "alienAbduction", innerText: t("effectAlienAbduction") || "Alien Abduction" }),
+						buildElement("option", { value: "xRay", innerText: t("effectXRay") || "X-Ray Vision" }),
+						buildElement("option", { value: "thermal", innerText: t("effectThermal") || "Thermal Vision" }),
+						buildElement("option", { value: "virtualBoy", innerText: t("effectVirtualBoy") || "Virtual Boy" }),
+						buildElement("option", { value: "eldritch", innerText: t("effectEldritch") || "Eldritch Void" }),
+						buildElement("option", { value: "haunted", innerText: t("effectHaunted") || "Paranormal Cam" }),
+						buildElement("option", { value: "glitch", innerText: t("effectGlitch") || "Glitch Art" }),
+						buildElement("option", { value: "kaleido", innerText: t("effectKaleido") || "Rainbow Prism" }),
+						buildElement("option", { value: "supernova", innerText: t("effectSupernova") || "Supernova" })
 					])
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
@@ -8109,6 +8144,18 @@ function updateLocalEditsUI() {
 	if (editsModalElements.camBtnArctic) setText(editsModalElements.camBtnArctic, "❄️ " + (t("effectArctic") || "Arctic Frost"));
 	if (editsModalElements.camBtnCosmic) setText(editsModalElements.camBtnCosmic, "🌌 " + (t("effectCosmic") || "Cosmic Aurora"));
 	if (editsModalElements.camBtnFilmNoir) setText(editsModalElements.camBtnFilmNoir, "🕵️ " + (t("effectFilmNoir") || "Film Noir"));
+	if (editsModalElements.camBtnAcidTrip) setText(editsModalElements.camBtnAcidTrip, "🍄 " + (t("effectAcidTrip") || "Acid Trip"));
+	if (editsModalElements.camBtnRadioactive) setText(editsModalElements.camBtnRadioactive, "☢️ " + (t("effectRadioactive") || "Radioactive"));
+	if (editsModalElements.camBtnDeepFried) setText(editsModalElements.camBtnDeepFried, "🍗 " + (t("effectDeepFried") || "Deep Fried"));
+	if (editsModalElements.camBtnAlienAbduction) setText(editsModalElements.camBtnAlienAbduction, "🛸 " + (t("effectAlienAbduction") || "Alien Abduction"));
+	if (editsModalElements.camBtnXRay) setText(editsModalElements.camBtnXRay, "💀 " + (t("effectXRay") || "X-Ray Vision"));
+	if (editsModalElements.camBtnThermal) setText(editsModalElements.camBtnThermal, "🌡️ " + (t("effectThermal") || "Thermal Vision"));
+	if (editsModalElements.camBtnVirtualBoy) setText(editsModalElements.camBtnVirtualBoy, "🕶️ " + (t("effectVirtualBoy") || "Virtual Boy"));
+	if (editsModalElements.camBtnEldritch) setText(editsModalElements.camBtnEldritch, "👁️ " + (t("effectEldritch") || "Eldritch Void"));
+	if (editsModalElements.camBtnHaunted) setText(editsModalElements.camBtnHaunted, "👻 " + (t("effectHaunted") || "Paranormal Cam"));
+	if (editsModalElements.camBtnGlitch) setText(editsModalElements.camBtnGlitch, "⚡ " + (t("effectGlitch") || "Glitch Art"));
+	if (editsModalElements.camBtnKaleido) setText(editsModalElements.camBtnKaleido, "🌈 " + (t("effectKaleido") || "Rainbow Prism"));
+	if (editsModalElements.camBtnSupernova) setText(editsModalElements.camBtnSupernova, "💥 " + (t("effectSupernova") || "Supernova"));
 
 	const camBtns = {
 		none: editsModalElements.camBtnNone,
@@ -8137,7 +8184,19 @@ function updateLocalEditsUI() {
 		comicBook: editsModalElements.camBtnComicBook,
 		arctic: editsModalElements.camBtnArctic,
 		cosmic: editsModalElements.camBtnCosmic,
-		filmNoir: editsModalElements.camBtnFilmNoir
+		filmNoir: editsModalElements.camBtnFilmNoir,
+		acidTrip: editsModalElements.camBtnAcidTrip,
+		radioactive: editsModalElements.camBtnRadioactive,
+		deepFried: editsModalElements.camBtnDeepFried,
+		alienAbduction: editsModalElements.camBtnAlienAbduction,
+		xRay: editsModalElements.camBtnXRay,
+		thermal: editsModalElements.camBtnThermal,
+		virtualBoy: editsModalElements.camBtnVirtualBoy,
+		eldritch: editsModalElements.camBtnEldritch,
+		haunted: editsModalElements.camBtnHaunted,
+		glitch: editsModalElements.camBtnGlitch,
+		kaleido: editsModalElements.camBtnKaleido,
+		supernova: editsModalElements.camBtnSupernova
 	};
 	for (const [key, btn] of Object.entries(camBtns)) {
 		if (btn) {
@@ -8586,6 +8645,78 @@ document.body.appendChild(
 						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #e2e8f0;",
 						innerText: "🕵️ " + (t("effectFilmNoir") || "Film Noir"),
 						onclick: () => setCameraEffectLocal("filmNoir")
+					}),
+					editsModalElements.camBtnAcidTrip = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #a855f7;",
+						innerText: "🍄 " + (t("effectAcidTrip") || "Acid Trip"),
+						onclick: () => setCameraEffectLocal("acidTrip")
+					}),
+					editsModalElements.camBtnRadioactive = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #84cc16;",
+						innerText: "☢️ " + (t("effectRadioactive") || "Radioactive"),
+						onclick: () => setCameraEffectLocal("radioactive")
+					}),
+					editsModalElements.camBtnDeepFried = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #f97316;",
+						innerText: "🍗 " + (t("effectDeepFried") || "Deep Fried"),
+						onclick: () => setCameraEffectLocal("deepFried")
+					}),
+					editsModalElements.camBtnAlienAbduction = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #10b981;",
+						innerText: "🛸 " + (t("effectAlienAbduction") || "Alien Abduction"),
+						onclick: () => setCameraEffectLocal("alienAbduction")
+					}),
+					editsModalElements.camBtnXRay = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #38bdf8;",
+						innerText: "💀 " + (t("effectXRay") || "X-Ray Vision"),
+						onclick: () => setCameraEffectLocal("xRay")
+					}),
+					editsModalElements.camBtnThermal = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ef4444;",
+						innerText: "🌡️ " + (t("effectThermal") || "Thermal Vision"),
+						onclick: () => setCameraEffectLocal("thermal")
+					}),
+					editsModalElements.camBtnVirtualBoy = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #dc2626;",
+						innerText: "🕶️ " + (t("effectVirtualBoy") || "Virtual Boy"),
+						onclick: () => setCameraEffectLocal("virtualBoy")
+					}),
+					editsModalElements.camBtnEldritch = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #9333ea;",
+						innerText: "👁️ " + (t("effectEldritch") || "Eldritch Void"),
+						onclick: () => setCameraEffectLocal("eldritch")
+					}),
+					editsModalElements.camBtnHaunted = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #a3e635;",
+						innerText: "👻 " + (t("effectHaunted") || "Paranormal Cam"),
+						onclick: () => setCameraEffectLocal("haunted")
+					}),
+					editsModalElements.camBtnGlitch = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #06b6d4;",
+						innerText: "⚡ " + (t("effectGlitch") || "Glitch Art"),
+						onclick: () => setCameraEffectLocal("glitch")
+					}),
+					editsModalElements.camBtnKaleido = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ec4899;",
+						innerText: "🌈 " + (t("effectKaleido") || "Rainbow Prism"),
+						onclick: () => setCameraEffectLocal("kaleido")
+					}),
+					editsModalElements.camBtnSupernova = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #fde047;",
+						innerText: "💥 " + (t("effectSupernova") || "Supernova"),
+						onclick: () => setCameraEffectLocal("supernova")
 					})
 				])
 			])
@@ -10047,6 +10178,18 @@ spkmodI18nRenderers.push(() => {
 		if (lunPanelElements.cameraEffectSelect.options[24]) lunPanelElements.cameraEffectSelect.options[24].innerText = t("effectArctic") || "Arctic Frost";
 		if (lunPanelElements.cameraEffectSelect.options[25]) lunPanelElements.cameraEffectSelect.options[25].innerText = t("effectCosmic") || "Cosmic Aurora";
 		if (lunPanelElements.cameraEffectSelect.options[26]) lunPanelElements.cameraEffectSelect.options[26].innerText = t("effectFilmNoir") || "Film Noir";
+		if (lunPanelElements.cameraEffectSelect.options[27]) lunPanelElements.cameraEffectSelect.options[27].innerText = t("effectAcidTrip") || "Acid Trip";
+		if (lunPanelElements.cameraEffectSelect.options[28]) lunPanelElements.cameraEffectSelect.options[28].innerText = t("effectRadioactive") || "Radioactive";
+		if (lunPanelElements.cameraEffectSelect.options[29]) lunPanelElements.cameraEffectSelect.options[29].innerText = t("effectDeepFried") || "Deep Fried";
+		if (lunPanelElements.cameraEffectSelect.options[30]) lunPanelElements.cameraEffectSelect.options[30].innerText = t("effectAlienAbduction") || "Alien Abduction";
+		if (lunPanelElements.cameraEffectSelect.options[31]) lunPanelElements.cameraEffectSelect.options[31].innerText = t("effectXRay") || "X-Ray Vision";
+		if (lunPanelElements.cameraEffectSelect.options[32]) lunPanelElements.cameraEffectSelect.options[32].innerText = t("effectThermal") || "Thermal Vision";
+		if (lunPanelElements.cameraEffectSelect.options[33]) lunPanelElements.cameraEffectSelect.options[33].innerText = t("effectVirtualBoy") || "Virtual Boy";
+		if (lunPanelElements.cameraEffectSelect.options[34]) lunPanelElements.cameraEffectSelect.options[34].innerText = t("effectEldritch") || "Eldritch Void";
+		if (lunPanelElements.cameraEffectSelect.options[35]) lunPanelElements.cameraEffectSelect.options[35].innerText = t("effectHaunted") || "Paranormal Cam";
+		if (lunPanelElements.cameraEffectSelect.options[36]) lunPanelElements.cameraEffectSelect.options[36].innerText = t("effectGlitch") || "Glitch Art";
+		if (lunPanelElements.cameraEffectSelect.options[37]) lunPanelElements.cameraEffectSelect.options[37].innerText = t("effectKaleido") || "Rainbow Prism";
+		if (lunPanelElements.cameraEffectSelect.options[38]) lunPanelElements.cameraEffectSelect.options[38].innerText = t("effectSupernova") || "Supernova";
 	}
 
 	if (lunPanelElements.bgOpacityLabel) setText(lunPanelElements.bgOpacityLabel, t("bgOpacityLabel"));

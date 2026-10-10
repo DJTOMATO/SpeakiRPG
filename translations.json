@@ -494,7 +494,19 @@
         "effectComicBook": "Comic Book",
         "effectArctic": "Arctic Frost",
         "effectCosmic": "Cosmic Aurora",
-        "effectFilmNoir": "Film Noir"
+        "effectFilmNoir": "Film Noir",
+        "effectAcidTrip": "Acid Trip",
+        "effectRadioactive": "Radioactive",
+        "effectDeepFried": "Deep Fried",
+        "effectAlienAbduction": "Alien Abduction",
+        "effectXRay": "X-Ray Vision",
+        "effectThermal": "Thermal Vision",
+        "effectVirtualBoy": "Virtual Boy",
+        "effectEldritch": "Eldritch Void",
+        "effectHaunted": "Paranormal Cam",
+        "effectGlitch": "Glitch Art",
+        "effectKaleido": "Rainbow Prism",
+        "effectSupernova": "Supernova"
     },
     "ja": {
         "langName": "日本語",
@@ -1021,7 +1033,19 @@
         "effectComicBook": "コミックポップ",
         "effectArctic": "アークティックフロスト",
         "effectCosmic": "コズミックオーロラ",
-        "effectFilmNoir": "フィルム・ノワール"
+        "effectFilmNoir": "フィルム・ノワール",
+        "effectAcidTrip": "アシッドトリップ",
+        "effectRadioactive": "放射能フォールアウト",
+        "effectDeepFried": "超揚げミーム (Deep Fried)",
+        "effectAlienAbduction": "エイリアン・アブダクション",
+        "effectXRay": "X線レントゲン",
+        "effectThermal": "サーモグラフィ (熱探知)",
+        "effectVirtualBoy": "バーチャルボーイ (深紅)",
+        "effectEldritch": "エルドリッチ・ヴォイド",
+        "effectHaunted": "心霊暗視カメラ",
+        "effectGlitch": "グリッチアート (崩壊バグ)",
+        "effectKaleido": "レインボープリズム",
+        "effectSupernova": "超新星スーパーノヴァ"
     },
     "ko": {
         "langName": "한국어",
@@ -1518,7 +1542,19 @@
         "effectComicBook": "코믹북 팝아트",
         "effectArctic": "북극 한기",
         "effectCosmic": "코스믹 오로라",
-        "effectFilmNoir": "필름 누아르"
+        "effectFilmNoir": "필름 누아르",
+        "effectAcidTrip": "애시드 트립",
+        "effectRadioactive": "방사능 오염",
+        "effectDeepFried": "딥 프라이드 밈",
+        "effectAlienAbduction": "외계인 납치",
+        "effectXRay": "엑스레이 투시",
+        "effectThermal": "열화상 감지",
+        "effectVirtualBoy": "버추얼 보이",
+        "effectEldritch": "엘드리치 보이드",
+        "effectHaunted": "심령 야간 투시경",
+        "effectGlitch": "글리치 아트 (오류)",
+        "effectKaleido": "레인보우 프리즘",
+        "effectSupernova": "초신성 폭발"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -2010,7 +2046,19 @@
         "effectComicBook": "美漫普普風",
         "effectArctic": "極地極寒",
         "effectCosmic": "宇宙極光",
-        "effectFilmNoir": "黑色電影"
+        "effectFilmNoir": "黑色電影",
+        "effectAcidTrip": "迷幻幻覺 (Acid Trip)",
+        "effectRadioactive": "輻射污染",
+        "effectDeepFried": "油炸迷因 (Deep Fried)",
+        "effectAlienAbduction": "外星綁架",
+        "effectXRay": "X光透視",
+        "effectThermal": "熱成像視覺",
+        "effectVirtualBoy": "虛擬男孩 (純紅)",
+        "effectEldritch": "古神虛空 (Eldritch)",
+        "effectHaunted": "靈異夜視鏡",
+        "effectGlitch": "故障藝術 (Glitch)",
+        "effectKaleido": "彩虹稜鏡",
+        "effectSupernova": "超新星爆發"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -2502,7 +2550,19 @@
         "effectComicBook": "美漫波普风",
         "effectArctic": "极地极寒",
         "effectCosmic": "宇宙极光",
-        "effectFilmNoir": "黑色电影"
+        "effectFilmNoir": "黑色电影",
+        "effectAcidTrip": "迷幻幻觉 (Acid Trip)",
+        "effectRadioactive": "辐射污染",
+        "effectDeepFried": "油炸梗图 (Deep Fried)",
+        "effectAlienAbduction": "外星人绑架",
+        "effectXRay": "X光透视",
+        "effectThermal": "热成像视觉",
+        "effectVirtualBoy": "虚拟男孩 (纯红)",
+        "effectEldritch": "古神虚空 (Eldritch)",
+        "effectHaunted": "灵异夜视仪",
+        "effectGlitch": "故障艺术 (Glitch)",
+        "effectKaleido": "彩虹棱镜",
+        "effectSupernova": "超新星爆发"
     },
     "es-419": {
         "langName": "Español",
@@ -2994,6 +3054,18 @@
         "effectComicBook": "Cómic Pop",
         "effectArctic": "Escarcha Ártica",
         "effectCosmic": "Aurora Cósmica",
-        "effectFilmNoir": "Cine Negro"
+        "effectFilmNoir": "Cine Negro",
+        "effectAcidTrip": "Viaje Ácido",
+        "effectRadioactive": "Radiactivo",
+        "effectDeepFried": "Frito Extremo (Meme)",
+        "effectAlienAbduction": "Abducción Alienígena",
+        "effectXRay": "Rayos X",
+        "effectThermal": "Visión Térmica",
+        "effectVirtualBoy": "Virtual Boy",
+        "effectEldritch": "Vacío Primigenio",
+        "effectHaunted": "Cámara Paranormal",
+        "effectGlitch": "Arte Glitch",
+        "effectKaleido": "Prisma Arcoíris",
+        "effectSupernova": "Supernova"
     }
 }
