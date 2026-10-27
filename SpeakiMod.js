@@ -19051,24 +19051,33 @@ const _spkmodQuestPanelSelector = _spkmodPanelSelector;
 const _spkmodQuestButtonSelector =
     ".spkmod-pq-button, .spkmod-star-button, .spkmod-list-button";
 
-function scheduleSpkmodQuestPinScan() {
-    if (_spkmodQuestScanPending) return;
+function createRafThrottler(callback) {
+	let isPending = false;
+	let lastArgs;
 
-    _spkmodQuestScanPending = true;
+	return (...args) => {
+		lastArgs = args;
 
-    requestAnimationFrame(() => {
-        _spkmodQuestScanPending = false;
+		if (isPending) return;
+		isPending = true;
 
-        if (
-            !_spkmodQuestDomState.panelRoot?.isConnected ||
-            !_spkmodQuestDomState.panelBody?.isConnected
-        ) {
-            return;
-        }
-
-        injectPinButtonsIntoQuestList();
-    });
+		requestAnimationFrame(() => {
+			isPending = false;
+			callback(...lastArgs);
+		});
+	};
 }
+
+var scheduleSpkmodQuestPinScan = createRafThrottler(() => {
+	if (
+		!_spkmodQuestDomState.panelRoot?.isConnected ||
+		!_spkmodQuestDomState.panelBody?.isConnected
+	) {
+		return;
+	}
+
+	injectPinButtonsIntoQuestList();
+});
 
 function attachSpkmodPanel(state, panel, callback) {
     if (!panel || !isQuestPanel(panel)) return false;
