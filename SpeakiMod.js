@@ -19021,7 +19021,7 @@ function matchQuestFromTitleText(titleText, item) {
 	const virtualId = "v_" + Math.abs(hash);
 
 	let period = "daily";
-	const activeTab = (_spkmodQuestPanelRoot || document).querySelector(".sr-panel__tabs .sr-btn--secondary, .sr-panel__tabs .active");
+	const activeTab = (_spkmodQuestDomState.panelRoot || document).querySelector(".sr-panel__tabs .sr-btn--secondary, .sr-panel__tabs .active");
 	if (activeTab) {
 		const tabText = (activeTab.textContent || "").toLowerCase();
 		if (tabText.includes("stand") || tabText.includes("perma") || tabText.includes("상시") || tabText.includes("常設") || tabText.includes("permanente")) period = "permanent";
@@ -19041,14 +19041,12 @@ function matchQuestFromTitleText(titleText, item) {
 }
 
 // Cached references for the game quest panel
-let _spkmodQuestPanelRoot = null;
-let _spkmodQuestPanelBody = null;
-let _spkmodQuestDomObserver = null;
-let _spkmodQuestInitObserver = null;
+const _spkmodQuestDomState = {};
 let _spkmodQuestScanPending = false;
 
-const _spkmodQuestPanelSelector =
+const _spkmodPanelSelector =
     ".sr-panel, .sr-modal, .sr-dialog, [role='dialog']";
+const _spkmodQuestPanelSelector = _spkmodPanelSelector;
 
 const _spkmodQuestButtonSelector =
     ".spkmod-pq-button, .spkmod-star-button, .spkmod-list-button";
@@ -19062,8 +19060,8 @@ function scheduleSpkmodQuestPinScan() {
         _spkmodQuestScanPending = false;
 
         if (
-            !_spkmodQuestPanelRoot?.isConnected ||
-            !_spkmodQuestPanelBody?.isConnected
+            !_spkmodQuestDomState.panelRoot?.isConnected ||
+            !_spkmodQuestDomState.panelBody?.isConnected
         ) {
             return;
         }
@@ -19072,30 +19070,30 @@ function scheduleSpkmodQuestPinScan() {
     });
 }
 
-function attachSpkmodQuestPanel(panel) {
+function attachSpkmodPanel(state, panel, callback) {
     if (!panel || !isQuestPanel(panel)) return false;
 
     const body = panel.querySelector(".sr-panel__body");
     if (!body) return false;
 
     if (
-        panel === _spkmodQuestPanelRoot &&
-        body === _spkmodQuestPanelBody &&
-        _spkmodQuestDomObserver
+        panel === state.panelRoot &&
+        body === state.panelBody &&
+        state.DomObserver
     ) {
         return true;
     }
 
-    if (_spkmodQuestDomObserver) {
-        _spkmodQuestDomObserver.disconnect();
-        _spkmodQuestDomObserver = null;
+    if (state.domObserver) {
+        state.domObserver.disconnect();
+        state.domObserver = null;
     }
 
-    _spkmodQuestPanelRoot = panel;
-    _spkmodQuestPanelBody = body;
+    state.panelRoot = panel;
+    state.panelBody = body;
 
-    _spkmodQuestDomObserver = new MutationObserver(records => {
-        const questRowsChanged = records.some(record => {
+    state.domObserver = new MutationObserver(records => {
+        const rowsChanged = records.some(record => {
             const nodes = [
                 ...record.addedNodes,
                 ...record.removedNodes
@@ -19109,55 +19107,55 @@ function attachSpkmodQuestPanel(panel) {
             );
         });
 
-        if (questRowsChanged) {
-            scheduleSpkmodQuestPinScan();
+        if (rowsChanged) {
+            callback(panel, body);
         }
     });
 
-    // Observe only direct children of the quest list body.
-    _spkmodQuestDomObserver.observe(body, {
+    // Observe only direct children of the list body.
+    state.domObserver.observe(body, {
         childList: true
     });
 
-    if (_spkmodQuestInitObserver) {
-        _spkmodQuestInitObserver.disconnect();
-        _spkmodQuestInitObserver = null;
+    if (state.initObserver) {
+        state.initObserver.disconnect();
+        state.initObserver = null;
     }
 
-    scheduleSpkmodQuestPinScan();
+    callback(panel, body);
     return true;
 }
 
-function observeSpkmodQuestPanel() {
+function observeSpkmodPanel(state, callback) {
     // Already initialized: reuse the cached references.
     if (
-        _spkmodQuestPanelRoot?.isConnected &&
-        _spkmodQuestPanelBody?.isConnected &&
-        _spkmodQuestDomObserver
+        state.panelRoot?.isConnected &&
+        state.panelBody?.isConnected &&
+        state.domObserver
     ) {
         return true;
     }
 
     // Find the existing quest panel once.
     for (const panel of document.querySelectorAll(
-        _spkmodQuestPanelSelector
+        _spkmodPanelSelector
     )) {
-        if (attachSpkmodQuestPanel(panel)) {
+        if (attachSpkmodPanel(state, panel, callback)) {
             return true;
         }
     }
 
     // Fallback only if the panel has not been mounted yet.
-    if (!_spkmodQuestInitObserver && document.body) {
-        _spkmodQuestInitObserver = new MutationObserver(records => {
+    if (!state.initObserver && document.body) {
+        state.initObserver = new MutationObserver(records => {
             const possiblePanelAdded = records.some(record =>
                 [...record.addedNodes].some(node => {
                     if (node.nodeType !== 1) return false;
 
                     return (
-                        node.matches?.(_spkmodQuestPanelSelector) ||
-                        node.closest?.(_spkmodQuestPanelSelector) ||
-                        node.querySelector?.(_spkmodQuestPanelSelector)
+                        node.matches?.(_spkmodPanelSelector) ||
+                        node.closest?.(_spkmodPanelSelector) ||
+                        node.querySelector?.(_spkmodPanelSelector)
                     );
                 })
             );
@@ -19165,15 +19163,15 @@ function observeSpkmodQuestPanel() {
             if (!possiblePanelAdded) return;
 
             for (const panel of document.querySelectorAll(
-                _spkmodQuestPanelSelector
+                _spkmodPanelSelector
             )) {
-                if (attachSpkmodQuestPanel(panel)) {
+                if (attachSpkmodPanel(state, panel, callback)) {
                     return;
                 }
             }
         });
 
-        _spkmodQuestInitObserver.observe(document.body, {
+        state.initObserver.observe(document.body, {
             childList: true,
             subtree: true
         });
@@ -19182,9 +19180,13 @@ function observeSpkmodQuestPanel() {
     return false;
 }
 
+function observeSpkmodQuestPanel() {
+	return observeSpkmodPanel(_spkmodQuestDomState, scheduleSpkmodQuestPinScan);
+}
+
 function injectPinButtonsIntoQuestList() {
-    const panel = _spkmodQuestPanelRoot;
-    const panelBody = _spkmodQuestPanelBody;
+    const panel = _spkmodQuestDomState.panelRoot;
+    const panelBody = _spkmodQuestDomState.panelBody;
 
     if (!panel || !panel.isConnected || !panelBody || !panelBody.isConnected) {
         return;
