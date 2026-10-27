@@ -18219,31 +18219,42 @@ function updatePinnedQuestDisplay(quest) {
 	}
 }
 
-function isQuestPanel(panel) {
-	if (!panel) return false;
+function getPanelType(panel) {
+	if (!panel) return null;
 
 	// Check header or panel title
 	const headerEl = panel.querySelector(".sr-panel__header, .sr-modal__header, .sr-dialog__header, header") || panel;
 	const headerText = (headerEl.textContent || "").toLowerCase();
 
-	// 1. Definite negative checks - Shop & non-quest panels
-	const nonQuestKeywords = [
-		"shop", "상점", "ショップ", "商店", "tienda", "boutique", "magasin", "laden",
-		"inventory", "인벤토리", "인벤", "inventario", "bag", "가방",
-		"storage", "warehouse", "창고", "depot",
-		"equipment", "장비",
-		"settings", "setting", "설정", "config", "option",
-		"skills", "skill", "스킬",
-		"mail", "우편", "mailbox",
-		"ranking", "rank", "랭킹", "leaderboard",
-		"party", "파티", "friend", "친구",
-		"bbs", "bulletin", "게시판"
-	];
-	for (const kw of nonQuestKeywords) {
-		if (headerText.includes(kw)) return false;
+	// Check for type-exclusive keywords
+	const exclusiveKeywords = {
+		quests: ["quest", "퀘스트", "クエスト", "任務", "任务", "misión", "mision", "quête", "aufgabe"],
+		shop: ["shop", "상점", "ショップ", "商店", "tienda", "boutique", "magasin", "laden"],
+		inventory: ["inventory", "인벤토리", "인벤", "インベントリ", "背包", "inventario", "bag", "가방"],
+		storage: ["storage", "warehouse", "창고", "depot",],
+		equipment: ["equipment", "장비", "装備", "裝備", "装备"],
+		settings: ["settings", "setting", "설정", "設定", "设置", "config", "option"],
+		skills: ["skills", "skill", "스킬"],
+		mailbox: ["mail", "우편", "郵便箱", "郵便", "信箱", "邮箱", "mailbox"],
+		ranking: ["ranking", "rank", "랭킹", "ランキング", "順位", "排行榜", "排行", "leaderboard"],
+		party: ["party", "파티"],
+		friends: ["friend", "친구", "フレンド", "好友"],
+		bbs: ["bbs", "bulletin", "게시판"]
+	};
+	let result = null;
+	for (const type of Object.keys(exclusiveKeywords)) {
+		if (exclusiveKeywords[type].some(kw => headerText.includes(kw))) {
+				// Return null if the text contains keywords from multiple types
+				if (result != null) return null;
+				result = type;
+				break;
+		}
 	}
 
 	// Also check for shop controls or buttons anywhere in the panel
+	if (result == "shop") {
+		return "shop";
+	}
 	const bodyText = (panel.textContent || "").toLowerCase();
 	if (
 		bodyText.includes("leave shop") ||
@@ -18253,17 +18264,19 @@ function isQuestPanel(panel) {
 		bodyText.includes("balance") ||
 		panel.querySelector(".sr-shop, [class*='shop']")
 	) {
-		return false;
+		if (result == null) {
+			return "shop";
+		} else {
+			// Return null if the header text contains a keyword from a non-shop type
+			return null;
+		}
 	}
 
-	// 2. Positive checks - Quest Panel indicators
-	// A: Quest keyword in title
-	const questKeywords = ["quest", "퀘스트", "クエスト", "任務", "misión", "mision", "quête", "aufgabe"];
-	for (const qKw of questKeywords) {
-		if (headerText.includes(qKw)) return true;
+	if (result != null) {
+		return result;
 	}
 
-	// B: Quest tabs (Daily / Weekly / Standing / Permanent)
+	// Quest tabs (Daily / Weekly / Standing / Permanent)
 	const tabBtns = panel.querySelectorAll(".sr-panel__tabs button, .sr-panel__tabs .sr-btn, .sr-tabs button, .sr-tab");
 	if (tabBtns && tabBtns.length > 0) {
 		for (const tb of tabBtns) {
@@ -18273,12 +18286,16 @@ function isQuestPanel(panel) {
 				txt.includes("week") || txt.includes("주간") || txt.includes("ウィークリー") || txt.includes("semanal") || txt.includes("每周") ||
 				txt.includes("stand") || txt.includes("perma") || txt.includes("상시") || txt.includes("常設") || txt.includes("permanente") || txt.includes("永久")
 			) {
-				return true;
+				return "quest";
 			}
 		}
 	}
 
-	return false;
+	return null;
+}
+
+function isQuestPanel(panel) {
+	return getPanelType(panel) == "quests";
 }
 
 function refreshPinButtons() {
