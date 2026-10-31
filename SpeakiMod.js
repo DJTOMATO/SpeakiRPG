@@ -4259,6 +4259,19 @@ try {
                 localStorage.setItem('sr1_settings', JSON.stringify(s));
             }
         }
+		const restoreVol = window.__speakiMusicState.savedBgmVolume;
+        if (restoreVol > 0) {
+            let tries = 0;
+            const timer = setInterval(() => {
+                tries++;
+                if (typeof window.updateGameSettings === "function") {
+                    clearInterval(timer);
+                    try { window.updateGameSettings({ bgmVolume: restoreVol }); } catch (_) {}
+                } else if (tries > 50) {
+                    clearInterval(timer);
+                }
+            }, 200);
+        }
         localStorage.setItem("spkmod-is-bgm-suppressed", "false");
     }
 } catch (_) {}
@@ -4449,33 +4462,31 @@ function suppressGameBgm(mute) {
         if (state.isBgmSuppressed) return;
 
         // 1. Determine and save user's actual volume
-        let currentVol = getUserActualBgmVolume();
-        if (currentVol === null) {
-            if (typeof window.getGameSettings === "function") {
-                try {
-                    const s = window.getGameSettings();
-                    if (s && typeof s.bgmVolume === "number" && Number.isFinite(s.bgmVolume)) {
-                        currentVol = Math.max(0, Math.min(100, s.bgmVolume));
-                    }
-                } catch (_) {}
-            }
-            if (currentVol === null && slider && slider.value !== '') {
-                const n = Number(slider.value);
-                if (Number.isFinite(n)) currentVol = Math.max(0, Math.min(100, n));
-            }
-            if (currentVol === null) {
-                try {
-                    const raw = localStorage.getItem('sr1_settings');
-                    if (raw) {
-                        const s = JSON.parse(raw);
-                        if (typeof s.bgmVolume === "number" && Number.isFinite(s.bgmVolume)) {
-                            currentVol = Math.max(0, Math.min(100, s.bgmVolume));
-                        }
-                    }
-                } catch (_) {}
-            }
-            if (currentVol === null) currentVol = 70; // Native game default is 70
-        }
+        let currentVol = null;
+		if (typeof window.getGameSettings === "function") {
+			try {
+				const s = window.getGameSettings();
+				if (s && typeof s.bgmVolume === "number" && Number.isFinite(s.bgmVolume)) {
+					currentVol = Math.max(0, Math.min(100, s.bgmVolume));
+				}
+			} catch (_) {}
+		}
+		if (currentVol === null && slider && slider.value !== '') {
+			const n = Number(slider.value);
+			if (Number.isFinite(n)) currentVol = Math.max(0, Math.min(100, n));
+		}
+		if (currentVol === null) {
+			try {
+				const raw = localStorage.getItem('sr1_settings');
+                if (raw) {
+					const s = JSON.parse(raw);
+					if (typeof s.bgmVolume === "number" && Number.isFinite(s.bgmVolume)) {
+						currentVol = Math.max(0, Math.min(100, s.bgmVolume));
+					}
+				}
+			} catch (_) {}
+		}
+		if (currentVol === null) currentVol = getUserActualBgmVolume() ?? 70; // Native game default is 70
 
         setUserActualBgmVolume(currentVol);
         state.isBgmSuppressed = true;
@@ -4939,11 +4950,19 @@ function buildJukeboxUI() {
             state.isPlaying = false;
             state.player.pauseVideo();
             suppressGameBgm(false);
-        } else {
-            state.isChangingTrack = false;
-            suppressGameBgm(true);
-            state.player.playVideo();
-        }
+		} else {
+			state.isChangingTrack = false;
+			const tracks = getActiveJukeboxTracks();
+			const wantVid = tracks[state.currentTrackIndex]?.[0];
+			let loadedVid = null;
+			try { loadedVid = state.player.getVideoData()?.video_id; } catch (_) {}
+			if (wantVid && loadedVid !== wantVid) {
+				playTrackAtIndex(state.currentTrackIndex);
+			} else {
+				suppressGameBgm(true);
+				state.player.playVideo();
+			}
+		}
     });
 
     btnPrev.addEventListener('click', () => {
@@ -7802,7 +7821,8 @@ document.body.appendChild(
 								const remoteContainers = gameState.remotePlayers?.remotePlayers ? 
 									Array.from(gameState.remotePlayers.remotePlayers.values()).map(rp => rp.container) : [];
 								gameState.playerContainer.children.forEach(c => {
-									if (!remoteContainers.includes(c)) c.visible = true;
+									if (remoteContainers.includes(c) || c === gameState.selfMinigameRing) return;
+									c.visible = true;
 								});
 							}
 							if (typeof gameState !== "undefined" && gameState?.cameraController) {
@@ -7907,7 +7927,8 @@ document.body.appendChild(
 								const remoteContainers = gameState.remotePlayers?.remotePlayers ? 
 									Array.from(gameState.remotePlayers.remotePlayers.values()).map(rp => rp.container) : [];
 								gameState.playerContainer.children.forEach(c => {
-									if (!remoteContainers.includes(c)) c.visible = true;
+									if (remoteContainers.includes(c) || c === gameState.selfMinigameRing) return;
+									c.visible = true;
 								});
 							}
 							if (gameState.playerContainer && gameState.cameraController) {
@@ -20994,7 +21015,7 @@ function isQuestPanel(panel) {
 
 	// 2. Positive checks - Quest Panel indicators
 	// A: Quest keyword in title
-	const questKeywords = ["quest", "퀘스트", "クエスト", "任務", "misión", "mision", "quête", "aufgabe"];
+	const questKeywords = ["quest", "퀘스트", "クエスト", "任務", "任务", "misión", "mision", "quête", "aufgabe"];
 	for (const qKw of questKeywords) {
 		if (headerText.includes(qKw)) return true;
 	}
@@ -21005,9 +21026,9 @@ function isQuestPanel(panel) {
 		for (const tb of tabBtns) {
 			const txt = (tb.textContent || "").toLowerCase();
 			if (
-				txt.includes("daily") || txt.includes("일일") || txt.includes("デイリー") || txt.includes("diaria") || txt.includes("每日") ||
-				txt.includes("week") || txt.includes("주간") || txt.includes("ウィークリー") || txt.includes("semanal") || txt.includes("每周") ||
-				txt.includes("stand") || txt.includes("perma") || txt.includes("상시") || txt.includes("常設") || txt.includes("permanente") || txt.includes("永久")
+				txt.includes("daily") || txt.includes("일일") || txt.includes("デイリー") || txt.includes("diaria") || txt.includes("每日") || txt.includes("日常") ||
+				txt.includes("week") || txt.includes("주간") || txt.includes("ウィークリー") || txt.includes("semanal") || txt.includes("每周") || txt.includes("周常") ||
+				txt.includes("stand") || txt.includes("perma") || txt.includes("상시") || txt.includes("常設") || txt.includes("permanente") || txt.includes("永久") || txt.includes("常驻")
 			) {
 				return true;
 			}
@@ -23874,7 +23895,8 @@ const spkmodGameGl = new WeakSet();
 
 function spkmodIsGameGl(gl) {
 	if (spkmodGameGl.has(gl)) return true;
-	if (gl.canvas && gl.canvas.classList && gl.canvas.classList.contains("sr-game-canvas")) {
+	const cl = gl.canvas && gl.canvas.classList;
+	if (cl && (cl.contains("sr-game-canvas") || cl.contains("canvas"))) {
 		spkmodGameGl.add(gl);
 		return true;
 	}
