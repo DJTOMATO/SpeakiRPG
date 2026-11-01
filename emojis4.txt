@@ -11,6 +11,7 @@ t_21,https://i.imgur.com/Z55lTBj.png
 t_8,https://i.imgur.com/KWW9ILd.png
 t_10,https://i.imgur.com/PQLYDQT.png
 t_168,https://i.imgur.com/np7VdEz.gif
+t_145,https://i.imgur.com/I711NLB.gif
 t_11,https://i.imgur.com/q3ybCe9.png
 t_13,https://i.imgur.com/ISmWFoT.png
 t_14,https://i.imgur.com/5oGo46l.png
@@ -55,7 +56,6 @@ t_85,https://i.imgur.com/eTdbmB5.png
 SPK_88,https://i.imgur.com/6H1r2Vz.gif
 SPK_90,https://i.imgur.com/FXCSxsa.png
 SPK_89,https://i.imgur.com/QbCMi8Q.png
-t_150,https://i.imgur.com/BxIxfsl.png
 t_220,https://i.imgur.com/RsN5yoD.png
 t_221,https://i.imgur.com/c9BPc90.png
 t_222,https://i.imgur.com/d2YgBBE.png
@@ -83,3 +83,5 @@ t_215,https://i.imgur.com/UtbnDi0.jpeg
 t_139,https://i.imgur.com/jmLD0BB.png
 t_285,https://i.imgur.com/C8rEDAr.jpeg
 t_286,https://i.imgur.com/JTSQQ22.jpeg
+t_287,https://i.imgur.com/obdWphg.jpeg
+t_288,https://i.imgur.com/ArAt7Ln.jpeg

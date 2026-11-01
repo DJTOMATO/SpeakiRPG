@@ -1505,7 +1505,8 @@ var lunHudElements = {
 	statsModal: null,
 	hotkeysModal: null,
 	effectsModal: null,
-	editsModal: null
+	editsModal: null,
+	jukeboxModal: null
 };
 var eventModalElements = {
 	headerTitle: null,
@@ -1560,6 +1561,7 @@ var lunPanelElements = {
 	walkToPortalBtn: null,
 	headerBtn: null,
 	settingsBtn: null,
+	jukeboxBtn: null,
 	danceBtn: null,
 	autoJumpBtn: null,
 	chowayoBtn: null,
@@ -1578,6 +1580,10 @@ var lunPanelElements = {
 	shakeBtn: null,
 	superShakeBtn: null,
 	hyperShakeBtn: null,
+	pumpkinCartTexBtn: null,
+	pumpkinCartTexBtn1: null,
+	pumpkinCartTexBtn2: null,
+	pumpkinCartTexBtn3: null,
 	pinnedQuestHeader: null,
 	langSelect: null,
 	settingsHeader: null,
@@ -1585,6 +1591,12 @@ var lunPanelElements = {
 	filterToggleInput: null,
 	gmChatToggleLabel: null,
 	gmChatToggleInput: null,
+	friendChatToggleLabel: null,
+	friendChatToggleInput: null,
+	partyChatToggleLabel: null,
+	partyChatToggleInput: null,
+	chatRandomColorsLabel: null,
+	chatRandomColorsToggleInput: null,
 	mentionAlertToggleLabel: null,
 	mentionAlertToggleInput: null,
 	translateToggleLabel: null,
@@ -1604,6 +1616,7 @@ var lunPanelElements = {
 	gamepadSettingsBtn: null,
 	patchNotesBtn: null,
 	eventBtn: null,
+	minigameBtn: null,
 	statsBtn: null,
 	minigameTrackerLabel: null,
 	minigameTrackerToggleInput: null,
@@ -1697,6 +1710,13 @@ function setFriendChatHighlightEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-friend-highlight-enabled", lunFriendChatHighlightEnabled ? "true" : "false");
 }
 
+var lunPartyChatHighlightEnabled = (window.localStorage && localStorage.getItem("spkmod-party-highlight-enabled")) === "true";
+
+function setPartyChatHighlightEnabled(enabled) {
+	lunPartyChatHighlightEnabled = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-party-highlight-enabled", lunPartyChatHighlightEnabled ? "true" : "false");
+}
+
 var lunLastFriendFetchTime = 0;
 var lunFriendFetchInProgress = false;
 
@@ -1713,7 +1733,7 @@ function fetchFriendsList(force = false) {
 	lunFriendFetchInProgress = true;
 	const endpoint = (typeof lunActivePingEndpoint !== 'undefined' && lunActivePingEndpoint) || 
 	                 (typeof window.lunActiveApiEndpoint !== 'undefined' && window.lunActiveApiEndpoint) || 
-	                 "https://relay.overture.io.kr";
+	                 "https://sr1.overture.io.kr";
 	const targetUrl = endpoint + "/api/friend/list";
 	const headers = {};
 	if (token) headers["authorization"] = `Bearer ${token}`;
@@ -2321,6 +2341,15 @@ function setChatTimestampsEnabled(enabled) {
 	if (window.localStorage) localStorage.setItem("spkmod-chat-timestamps", lunChatTimestampsEnabled ? "true" : "false");
 }
 
+var lunChatRandomColorsEnabled = (window.localStorage && localStorage.getItem("spkmod-chat-random-colors")) === "true";
+function setChatRandomColorsEnabled(enabled) {
+	lunChatRandomColorsEnabled = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-chat-random-colors", lunChatRandomColorsEnabled ? "true" : "false");
+	if (typeof document !== "undefined" && document.body) {
+		document.body.classList.toggle("spkmod-chat-player-colors-on", lunChatRandomColorsEnabled);
+	}
+}
+
 var lunLowHpWarningEnabled = (window.localStorage && localStorage.getItem("spkmod-low-hp-warning")) === "true";
 function setLowHpWarningEnabled(enabled) {
 	lunLowHpWarningEnabled = !!enabled;
@@ -2456,7 +2485,11 @@ function updateMuteButtonUI() {
 	const tip = muted ? (t("unmuteBtnTooltip") || "Unmute Game") : (t("muteBtnTooltip") || "Mute Game");
 	if (typeof lunPanelElements !== "undefined" && lunPanelElements.muteBtn) {
 		lunPanelElements.muteBtn.innerText = icon;
-		lunPanelElements.muteBtn.title = tip;
+		if (typeof setSpkmodRichTooltip === "function") {
+			setSpkmodRichTooltip(lunPanelElements.muteBtn, icon + " " + tip);
+		} else {
+			lunPanelElements.muteBtn.title = tip;
+		}
 	}
 	const mobileBtn = document.getElementById("spkmod-mobile-mute-toggle");
 	if (mobileBtn) {
@@ -2506,6 +2539,7 @@ function hookNativeMuteCheckbox() {
 		});
 	}
 }
+
 
 function findGameAudioListener() {
 	try {
@@ -2905,12 +2939,22 @@ function updateMinigameUI() {
 	updateStatsModalLive();
 }
 
-var spkmodTopZIndex = 600000;
+var spkmodTopZIndex = 2147483600;
 
 function bringToFront(element) {
 	if (!element) return;
+	if (element.id === "spkmod-emoji-picker-v2" || element.id === "spkmod-emoji-picker") {
+		element.style.setProperty("z-index", "2147483646", "important");
+		return;
+	}
 	spkmodTopZIndex++;
-	element.style.zIndex = spkmodTopZIndex;
+	if (spkmodTopZIndex >= 2147483640) {
+		spkmodTopZIndex = 2147483601;
+	}
+	element.style.setProperty("z-index", String(spkmodTopZIndex), "important");
+	if (typeof lunEmojiPickerPanel !== "undefined" && lunEmojiPickerPanel && lunEmojiPickerPanel.isConnected) {
+		lunEmojiPickerPanel.style.setProperty("z-index", "2147483646", "important");
+	}
 }
 
 function makeDraggable(element, handles) {
@@ -3098,7 +3142,7 @@ function makeResizable(element, handle, options = {}) {
 	const sizeKey = options.storageKey || (element.id ? ("spkmod-size-" + element.id) : null);
 
 	// Restore saved size if available
-	if (sizeKey && window.localStorage) {
+	if (sizeKey && window.localStorage && options.restoreSize !== false) {
 		try {
 			const saved = localStorage.getItem(sizeKey);
 			if (saved) {
@@ -3194,7 +3238,11 @@ function makeResizable(element, handle, options = {}) {
 			const rect = element.getBoundingClientRect();
 			const finalW = Math.round(rect.width / currentScale);
 			const finalH = Math.round(rect.height / currentScale);
-			localStorage.setItem(sizeKey, JSON.stringify({ width: finalW, height: finalH }));
+			if (typeof options.saveSize === "function") {
+				options.saveSize(finalW, finalH, sizeKey);
+			} else {
+				localStorage.setItem(sizeKey, JSON.stringify({ width: finalW, height: finalH }));
+			}
 		}
 	}
 
@@ -3254,7 +3302,7 @@ function positionModalNicely(modal) {
 			}
 		}
 
-		const approxWidth = modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? 480 : (modal.id === "spkmod-stats-modal" ? 240 : 400));
+		const approxWidth = modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? 480 : (modal.id === "spkmod-stats-modal" ? 240 : (modal.id === "spkmod-jukebox-modal" ? 380 : 400)));
 		let nextLeft = Math.round(rightmostRect.right + 10);
 		let nextTop = Math.max(50, Math.round(rightmostRect.top));
 
@@ -3364,6 +3412,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-bg-opacity",
 	"spkmod-camera-effect",
 	"spkmod-channel-tracker",
+	"spkmod-chat-random-colors",
 	"spkmod-chat-timestamps",
 	"spkmod-currency-tracker",
 	"spkmod-custom-font",
@@ -3372,6 +3421,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-disable-right-click-pinning",
 	"spkmod-discord-rpc",
 	"spkmod-drone-speed",
+	"spkmod-emoji-size",
 	"spkmod-exp-interval-minutes",
 	"spkmod-exp-per-hour",
 	"spkmod-filter-enabled",
@@ -3398,6 +3448,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-name-presets",
 	"spkmod-outgoing-source-lang",
 	"spkmod-panel-left",
+	"spkmod-party-highlight-enabled",
 	"spkmod-pos-spkmod-bbs-modal",
 	"spkmod-pos-spkmod-effects-modal",
 	"spkmod-pos-spkmod-edits-modal",
@@ -3409,9 +3460,18 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-pos-spkmod-map-modal",
 	"spkmod-pos-spkmod-panel",
 	"spkmod-pos-spkmod-patchnotes-modal",
+	"spkmod-pos-spkmod-quests-modal",
 	"spkmod-pos-spkmod-settings-modal",
 	"spkmod-pos-spkmod-stats-modal",
+	"spkmod-pos-spkmod-jukebox-modal",
+	"spkmod-jukebox-favorites",
+	"spkmod-jukebox-playlist-key",
+	"spkmod-jukebox-vol",
+	"spkmod-jukebox-shuffle",
+	"spkmod-jukebox-repeat",
+	"spkmod-jukebox-mini",
 	"spkmod-pumpkin-tracker",
+	"spkmod-quests-modal-open",
 	"spkmod-reset-timer",
 	"spkmod-separate-panel",
 	"spkmod-session-gold",
@@ -3790,6 +3850,1534 @@ var lunHudBackground = (window.localStorage && localStorage.getItem("spkmod-hud-
 
 const SPKMOD_REPO_FONTS_BASE = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/fonts/";
 const SPKMOD_EMOJI_FONT_FALLBACK = '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
+
+// ============================================================================
+// Speaki Jukebox: Global YouTube Music Player
+// Playlist: https://www.youtube.com/watch?v=8kKIzim7ZqU&list=PLrELCdfutHrSkxmdw2t_KD-8aj4VCclah
+// ============================================================================
+
+let SPKMOD_OST_TRACKS = [];
+let SPKMOD_BOLPOP_TRACKS = [];
+
+const SPKMOD_RADIO_URL = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/radio.json";
+
+function applyRadioTrackList(data) {
+    if (!data || typeof data !== "object") return;
+    let updated = false;
+
+    if (Array.isArray(data.ost) && data.ost.length > 0) {
+        SPKMOD_OST_TRACKS = data.ost.map(t => Array.isArray(t) ? t : [t.id || t.videoId || "", t.title || "", t.author || ""]).filter(t => t[0]);
+        if (typeof window !== "undefined") window.SPKMOD_OST_TRACKS = SPKMOD_OST_TRACKS;
+        updated = true;
+    }
+
+    if (Array.isArray(data.bolpop) && data.bolpop.length > 0) {
+        SPKMOD_BOLPOP_TRACKS = data.bolpop.map(t => Array.isArray(t) ? t : [t.id || t.videoId || "", t.title || "", t.author || ""]).filter(t => t[0]);
+        if (typeof window !== "undefined") window.SPKMOD_BOLPOP_TRACKS = SPKMOD_BOLPOP_TRACKS;
+        updated = true;
+    }
+
+    if (updated) {
+        const state = (typeof window !== "undefined") ? window.__speakiMusicState : null;
+        if (state && (!state.currentTrackTitle || state.currentTrackTitle === "Trickcal BGM")) {
+            const tracks = (typeof getActiveJukeboxTracks === "function") ? getActiveJukeboxTracks() : null;
+            if (tracks && tracks.length > 0) {
+                const cur = tracks[state.currentTrackIndex] || tracks[0];
+                state.currentTrackTitle = cur[1];
+                state.currentTrackAuthor = cur[2] || "";
+            }
+        }
+        const modal = (typeof lunHudElements !== "undefined" && lunHudElements) ? lunHudElements.jukeboxModal : null;
+        if (modal) {
+            if (typeof populateJukeboxDrawer === "function") populateJukeboxDrawer(modal);
+            if (typeof updateJukeboxUI === "function") updateJukeboxUI();
+        }
+    }
+}
+
+// Apply cached radio tracks from localStorage if present
+try {
+    if (typeof window !== "undefined" && window.localStorage) {
+        const cached = localStorage.getItem("spkmod-radio-cache");
+        if (cached) {
+            applyRadioTrackList(JSON.parse(cached));
+        }
+    }
+} catch (_) {}
+
+// Fetch remote radio tracks from GitHub
+async function fetchRemoteRadioTracks() {
+    try {
+        const res = await fetch(SPKMOD_RADIO_URL + "?t=" + Date.now());
+        if (res.ok) {
+            const data = await res.json();
+            if (data && (Array.isArray(data.ost) || Array.isArray(data.bolpop))) {
+                applyRadioTrackList(data);
+                if (typeof window !== "undefined" && window.localStorage) {
+                    try {
+                        localStorage.setItem("spkmod-radio-cache", JSON.stringify(data));
+                    } catch (_) {}
+                }
+                console.log("[SpeakiMod+] Radio tracks synchronized with GitHub (radio.json).");
+            }
+        }
+    } catch (e) {
+        console.warn("[SpeakiMod+] Failed to fetch remote radio.json:", e);
+    }
+}
+if (typeof window !== "undefined") {
+    window.SPKMOD_OST_TRACKS = SPKMOD_OST_TRACKS;
+    window.SPKMOD_BOLPOP_TRACKS = SPKMOD_BOLPOP_TRACKS;
+    window.fetchRemoteRadioTracks = fetchRemoteRadioTracks;
+}
+fetchRemoteRadioTracks();
+
+
+// --- Jukebox i18n Helpers ---
+function getJukeboxText(key) {
+    if (typeof t === "function") {
+        const val = t(key);
+        if (val && val !== key) return val;
+    }
+    const enFallbacks = {
+        jukeboxTitle: "Monatium Radio Station",
+        jukeboxBtnTooltip: "Monatium Radio Station (Alt+M)",
+        jukeboxPlaylistOst: "OST",
+        jukeboxPlaylistBolpop: "Bolpop / MADs",
+        jukeboxBolpopTab: "Bolpop",
+        jukeboxPlaylistFavorites: "Favorites",
+        jukeboxBolpopMessage: "Here's some of my Trickcal favorite songs a few added by friends, I hope you enjoy this curated list. With Love, Glas~<br><mark><b>Some songs might contain spoilers so go at your own risk!</b></mark>",
+        jukeboxFavoritesMessage: "Your favorite Trickcal songs playlist. Click ❤️ on any track to add or remove it.",
+        jukeboxFavoritesEmpty: "No favorite songs yet! Click ❤️ on any song to add it to this list.",
+        jukeboxAddFavorite: "Add to favorites",
+        jukeboxRemoveFavorite: "Remove from favorites",
+        jukeboxMiniPlayerExpand: "Expand (Double Right-Click to minimize)",
+        jukeboxTogglePlaylist: "Toggle Playlist",
+        jukeboxClose: "Hide (Alt+M)",
+        jukeboxShuffle: "Shuffle / Random",
+        jukeboxPrev: "Previous",
+        jukeboxPlay: "Play",
+        jukeboxPause: "Pause",
+        jukeboxNext: "Next",
+        jukeboxRepeat: "Repeat Mode",
+        jukeboxMiniPlayerHint: "Double right-click to open Mini-player!",
+        jukeboxMiniPlayerExpandHint: "Double right-click to expand!",
+        jukeboxResizeTooltip: "Drag corner to resize window"
+    };
+    return enFallbacks[key] || key;
+}
+
+// --- Jukebox Thumbnail Preview Tooltip ---
+let lunJukeboxThumbPreview = null;
+function ensureJukeboxThumbPreview() {
+    if (lunJukeboxThumbPreview) return lunJukeboxThumbPreview;
+    lunJukeboxThumbPreview = document.createElement("img");
+    lunJukeboxThumbPreview.id = "spkmod-jukebox-thumb-preview";
+    lunJukeboxThumbPreview.style.cssText = "display: none; position: fixed; width: 380px; height: 214px; max-width: 92vw; max-height: 85vh; border-radius: 12px; box-shadow: 0 16px 40px rgba(0,0,0,0.9); border: 2px solid var(--spkmod-accent, #e8b84b); background: #1a1424; object-fit: cover; z-index: 2147483647 !important; pointer-events: none; transition: opacity 0.15s ease-out;";
+    document.body.appendChild(lunJukeboxThumbPreview);
+    return lunJukeboxThumbPreview;
+}
+
+function positionJukeboxThumbPreview(thumbEl) {
+    if (!thumbEl || !lunJukeboxThumbPreview) return;
+    const rect = thumbEl.getBoundingClientRect();
+    const prevW = 380;
+    const prevH = 214;
+
+    let left = rect.left + rect.width / 2 - prevW / 2;
+    left = Math.max(12, Math.min(left, window.innerWidth - prevW - 12));
+
+    let top = rect.top - prevH - 12;
+    if (top < 12) {
+        top = rect.bottom + 12;
+    }
+    if (top + prevH > window.innerHeight - 12) {
+        top = Math.max(12, window.innerHeight - prevH - 12);
+    }
+
+    lunJukeboxThumbPreview.style.left = Math.round(left) + "px";
+    lunJukeboxThumbPreview.style.top = Math.round(top) + "px";
+}
+
+function showJukeboxThumbPreview(thumbEl) {
+    if (!thumbEl) return;
+    const preview = ensureJukeboxThumbPreview();
+    const src = thumbEl.src || "";
+    if (!src) return;
+
+    const hqSrc = src.replace('/mqdefault.jpg', '/hqdefault.jpg');
+    preview.onerror = () => { preview.src = src; };
+    preview.src = hqSrc;
+    preview.style.display = "block";
+    preview.style.opacity = "1";
+    positionJukeboxThumbPreview(thumbEl);
+}
+
+function hideJukeboxThumbPreview() {
+    if (lunJukeboxThumbPreview) {
+        lunJukeboxThumbPreview.style.display = "none";
+    }
+}
+
+// --- Jukebox Floating Hint Toast ---
+let lunJukeboxHintToast = null;
+let lunJukeboxHintTimeout = null;
+
+function showJukeboxHint(text, x, y) {
+    if (!lunJukeboxHintToast) {
+        lunJukeboxHintToast = document.createElement("div");
+        lunJukeboxHintToast.id = "spkmod-jukebox-hint-toast";
+        lunJukeboxHintToast.style.cssText = "position: fixed; z-index: 2147483647 !important; pointer-events: none; display: none; align-items: center; gap: 6px; background: rgba(26, 20, 36, 0.96); color: #ffdf79; border: 1px solid var(--spkmod-accent, #e8b84b); border-radius: 8px; padding: 6px 12px; font-size: 11px; font-weight: 700; box-shadow: 0 8px 24px rgba(0,0,0,0.85); white-space: nowrap; transition: opacity 0.2s, transform 0.2s; transform: translate(-50%, -100%); font-family: Pretendard, system-ui, sans-serif;";
+        document.body.appendChild(lunJukeboxHintToast);
+    }
+    lunJukeboxHintToast.innerHTML = `🖱️ ${text}`;
+    lunJukeboxHintToast.style.display = "inline-flex";
+    lunJukeboxHintToast.style.opacity = "1";
+
+    const prevW = lunJukeboxHintToast.offsetWidth || 180;
+    const prevH = lunJukeboxHintToast.offsetHeight || 32;
+    let clampedX = Math.max(prevW / 2 + 10, Math.min(x || (window.innerWidth / 2), window.innerWidth - prevW / 2 - 10));
+    let clampedY = Math.max(prevH + 10, (y || 100) - 8);
+
+    lunJukeboxHintToast.style.left = Math.round(clampedX) + "px";
+    lunJukeboxHintToast.style.top = Math.round(clampedY) + "px";
+
+    if (lunJukeboxHintTimeout) clearTimeout(lunJukeboxHintTimeout);
+    lunJukeboxHintTimeout = setTimeout(() => {
+        if (lunJukeboxHintToast) {
+            lunJukeboxHintToast.style.opacity = "0";
+            setTimeout(() => {
+                if (lunJukeboxHintToast) lunJukeboxHintToast.style.display = "none";
+            }, 200);
+        }
+    }, 2000);
+}
+
+function hideJukeboxHint() {
+    if (lunJukeboxHintTimeout) clearTimeout(lunJukeboxHintTimeout);
+    if (lunJukeboxHintToast) {
+        lunJukeboxHintToast.style.display = "none";
+    }
+}
+
+if (typeof window !== "undefined") {
+    window.addEventListener("scroll", () => {
+        hideJukeboxThumbPreview();
+        hideJukeboxHint();
+    }, true);
+    window.addEventListener("touchstart", () => {
+        hideJukeboxThumbPreview();
+        hideJukeboxHint();
+    }, { passive: true, capture: true });
+}
+
+function updateJukeboxI18n() {
+    const modal = lunHudElements && lunHudElements.jukeboxModal;
+    if (!modal) return;
+    const state = window.__speakiMusicState;
+
+    const titleEl = modal.querySelector('#spkmod-jukebox-header-title');
+    if (titleEl) {
+        titleEl.innerHTML = `<span style="font-size:15px;">🎵</span> ${getJukeboxText("jukeboxTitle")}`;
+    }
+
+    const tabOst = modal.querySelector('#spkmod-jukebox-tab-ost');
+    if (tabOst) {
+        tabOst.textContent = `💿 ${getJukeboxText("jukeboxPlaylistOst")}`;
+        tabOst.title = `Trickcal ${getJukeboxText("jukeboxPlaylistOst")}`;
+    }
+
+    const tabBolpop = modal.querySelector('#spkmod-jukebox-tab-bolpop');
+    if (tabBolpop) {
+        tabBolpop.textContent = `🎬 ${getJukeboxText("jukeboxBolpopTab")}`;
+        tabBolpop.title = getJukeboxText("jukeboxPlaylistBolpop");
+    }
+
+    const tabFav = modal.querySelector('#spkmod-jukebox-tab-fav');
+    if (tabFav) {
+        tabFav.title = getJukeboxText("jukeboxPlaylistFavorites");
+    }
+
+    const drawerBtn = modal.querySelector('#spkmod-jukebox-drawer-btn');
+    if (drawerBtn) {
+        drawerBtn.title = getJukeboxText("jukeboxTogglePlaylist");
+    }
+
+    const closeBtn = modal.querySelector('#spkmod-jukebox-close-btn');
+    if (closeBtn) {
+        closeBtn.title = getJukeboxText("jukeboxClose");
+    }
+
+    const miniExpandBtn = modal.querySelector('#spkmod-jukebox-mini-expand');
+    if (miniExpandBtn) {
+        miniExpandBtn.title = getJukeboxText("jukeboxMiniPlayerExpand");
+    }
+
+    const btnShuffle = modal.querySelector('#spkmod-jukebox-shuffle');
+    if (btnShuffle) {
+        btnShuffle.title = getJukeboxText("jukeboxShuffle");
+    }
+
+    const btnPrev = modal.querySelector('#spkmod-jukebox-prev');
+    if (btnPrev) {
+        btnPrev.title = getJukeboxText("jukeboxPrev");
+    }
+
+    const btnPlay = modal.querySelector('#spkmod-jukebox-play');
+    if (btnPlay) {
+        btnPlay.title = (state && state.isPlaying) ? getJukeboxText("jukeboxPause") : getJukeboxText("jukeboxPlay");
+    }
+
+    const btnNext = modal.querySelector('#spkmod-jukebox-next');
+    if (btnNext) {
+        btnNext.title = getJukeboxText("jukeboxNext");
+    }
+
+    const btnRepeat = modal.querySelector('#spkmod-jukebox-repeat');
+    if (btnRepeat) {
+        btnRepeat.title = getJukeboxText("jukeboxRepeat");
+    }
+
+    const msgCard = modal.querySelector('#spkmod-jukebox-bolpop-msg');
+    if (msgCard) {
+        msgCard.innerHTML = `💌 <i>${getJukeboxText("jukeboxBolpopMessage")}</i>`;
+    }
+
+    const favMsg = modal.querySelector('#spkmod-jukebox-fav-msg');
+    if (favMsg) {
+        favMsg.innerHTML = `❤️ <i>${getJukeboxText("jukeboxFavoritesMessage")}</i>`;
+    }
+
+    const favEmpty = modal.querySelector('#spkmod-jukebox-fav-empty');
+    if (favEmpty) {
+        favEmpty.innerHTML = `🤍 <i>${getJukeboxText("jukeboxFavoritesEmpty")}</i>`;
+    }
+
+    const curVid = state && getActiveJukeboxTracks()[state.currentTrackIndex]?.[0];
+    const heartBtn = modal.querySelector('#spkmod-jukebox-heart-btn');
+    if (heartBtn && curVid) {
+        const isFav = isJukeboxTrackFavorite(curVid);
+        heartBtn.textContent = isFav ? '❤️' : '🤍';
+        heartBtn.title = isFav ? getJukeboxText("jukeboxRemoveFavorite") : getJukeboxText("jukeboxAddFavorite");
+    }
+
+    const rowHearts = modal.querySelectorAll('.spkmod-jb-row-heart');
+    rowHearts.forEach(btn => {
+        const isFav = btn.textContent === '❤️';
+        btn.title = isFav ? getJukeboxText("jukeboxRemoveFavorite") : getJukeboxText("jukeboxAddFavorite");
+    });
+
+    const hintText = (state && state.isMiniMode) ? getJukeboxText("jukeboxMiniPlayerExpandHint") : getJukeboxText("jukeboxMiniPlayerHint");
+    const header = modal.querySelector('#spkmod-jukebox-header');
+    const trackInfo = modal.querySelector('#spkmod-jukebox-track-info');
+    if (header) {
+        header.title = hintText;
+        if (typeof setSpkmodRichTooltip === 'function') {
+            setSpkmodRichTooltip(header, '🖱️ ' + hintText);
+        }
+    }
+    if (trackInfo) {
+        trackInfo.title = hintText;
+        if (typeof setSpkmodRichTooltip === 'function') {
+            setSpkmodRichTooltip(trackInfo, '🖱️ ' + hintText);
+        }
+    }
+
+    const resizeHandle = modal.querySelector('#spkmod-jukebox-resize-handle');
+    if (resizeHandle) {
+        resizeHandle.title = getJukeboxText("jukeboxResizeTooltip");
+    }
+
+    if (typeof updateHudIconTooltips === "function") {
+        updateHudIconTooltips();
+    }
+}
+
+if (typeof spkmodI18nRenderers !== "undefined") {
+    spkmodI18nRenderers.push(() => {
+        updateJukeboxI18n();
+    });
+}
+
+window.__speakiMusicState = window.__speakiMusicState || {
+    player: null,
+    isReady: false,
+    isPlaying: false,
+    activePlaylistKey: (window.localStorage && localStorage.getItem("spkmod-jukebox-playlist-key")) || "ost",
+    currentTrackIndex: 0,
+    currentTrackTitle: "",
+    currentTrackAuthor: "",
+    duration: 0,
+    currentTime: 0,
+    volume: (window.localStorage && parseInt(localStorage.getItem("spkmod-jukebox-vol"), 10)) || 75,
+    savedBgmVolume: null,
+    isBgmSuppressed: false,
+    isSuppressingBgmInternal: false,
+    isChangingTrack: false,
+    changeTrackTimeout: null,
+    shuffle: (window.localStorage && localStorage.getItem("spkmod-jukebox-shuffle") === "true") || false,
+    repeatMode: (window.localStorage && localStorage.getItem("spkmod-jukebox-repeat")) || "all",
+    updateInterval: null,
+    modalVisible: (window.localStorage && localStorage.getItem("spkmod-jukebox-visible") === "true") || false,
+    isMiniMode: (window.localStorage && localStorage.getItem("spkmod-jukebox-mini") === "true") || false
+};
+
+// --- Jukebox Favorites Management ---
+let lunJukeboxFavoriteIds = new Set();
+
+function loadJukeboxFavorites() {
+    try {
+        const raw = (window.localStorage && localStorage.getItem("spkmod-jukebox-favorites"));
+        if (raw) {
+            const list = JSON.parse(raw);
+            if (Array.isArray(list)) {
+                lunJukeboxFavoriteIds = new Set(list.map(item => Array.isArray(item) ? item[0] : (item && item.vid ? item.vid : item)));
+                return;
+            }
+        }
+    } catch (_) {}
+    lunJukeboxFavoriteIds = new Set();
+}
+loadJukeboxFavorites();
+
+// Clean up suppressed state if player closed tab or reloaded mid-song
+try {
+    const wasSuppressed = (window.localStorage && localStorage.getItem("spkmod-is-bgm-suppressed") === "true");
+    const rawSaved = (window.localStorage && localStorage.getItem("spkmod-user-bgm-volume"));
+    if (rawSaved !== null && rawSaved !== "") {
+        const n = Number(rawSaved);
+        if (Number.isFinite(n) && n >= 0 && n <= 100) {
+            window.__speakiMusicState.savedBgmVolume = n;
+        }
+    }
+    if (wasSuppressed && typeof window.__speakiMusicState.savedBgmVolume === "number") {
+        const raw = (window.localStorage && localStorage.getItem('sr1_settings'));
+        if (raw) {
+            const s = JSON.parse(raw);
+            if (s && s.bgmVolume === 0 && window.__speakiMusicState.savedBgmVolume > 0) {
+                s.bgmVolume = window.__speakiMusicState.savedBgmVolume;
+                localStorage.setItem('sr1_settings', JSON.stringify(s));
+            }
+        }
+        localStorage.setItem("spkmod-is-bgm-suppressed", "false");
+    }
+} catch (_) {}
+
+function findJukeboxTrackByVid(vid) {
+    if (!vid) return null;
+    for (const t of SPKMOD_BOLPOP_TRACKS) {
+        if (t[0] === vid) return t;
+    }
+    for (const t of SPKMOD_OST_TRACKS) {
+        if (t[0] === vid) return [t[0], t[1], t[2] || ""];
+    }
+    return null;
+}
+
+function getJukeboxFavoriteTracks() {
+    try {
+        const raw = (window.localStorage && localStorage.getItem("spkmod-jukebox-favorites"));
+        if (raw) {
+            const list = JSON.parse(raw);
+            if (Array.isArray(list)) {
+                return list.map(item => {
+                    if (Array.isArray(item)) return [item[0], item[1], item[2] || ""];
+                    if (item && item.vid) return [item.vid, item.title, item.author || ""];
+                    const found = findJukeboxTrackByVid(item);
+                    return found || [item, "Favorite Track", ""];
+                });
+            }
+        }
+    } catch (_) {}
+    return [];
+}
+
+function isJukeboxTrackFavorite(vid) {
+    if (!vid) return false;
+    return lunJukeboxFavoriteIds.has(vid);
+}
+
+function toggleJukeboxFavorite(track) {
+    if (!track) return false;
+    const vid = Array.isArray(track) ? track[0] : (track.vid || track);
+    if (!vid) return false;
+
+    let favorites = getJukeboxFavoriteTracks();
+    const isFav = lunJukeboxFavoriteIds.has(vid);
+
+    if (isFav) {
+        favorites = favorites.filter(t => t[0] !== vid);
+        lunJukeboxFavoriteIds.delete(vid);
+    } else {
+        const found = findJukeboxTrackByVid(vid);
+        const title = found ? found[1] : (Array.isArray(track) ? track[1] : (track.title || "Track"));
+        const author = found ? (found[2] || "") : (Array.isArray(track) ? (track[2] || "") : (track.author || ""));
+        favorites.push([vid, title, author]);
+        lunJukeboxFavoriteIds.add(vid);
+    }
+
+    try {
+        if (window.localStorage) {
+            localStorage.setItem("spkmod-jukebox-favorites", JSON.stringify(favorites));
+        }
+    } catch (_) {}
+
+    return !isFav;
+}
+
+function getActiveJukeboxTracks() {
+    const state = window.__speakiMusicState;
+    if (state.activePlaylistKey === "favorites") {
+        return getJukeboxFavoriteTracks();
+    }
+    return (state.activePlaylistKey === "bolpop") ? SPKMOD_BOLPOP_TRACKS : SPKMOD_OST_TRACKS;
+}
+
+// Initial track metadata
+(function() {
+    const state = window.__speakiMusicState;
+    const tracks = getActiveJukeboxTracks();
+    if (!state.currentTrackTitle && tracks && tracks.length > 0) {
+        state.currentTrackTitle = tracks[0][1];
+        state.currentTrackAuthor = tracks[0][2] || "";
+    }
+})();
+
+function cleanJukeboxTitle(title) {
+    if (!title) return 'Track';
+    return title
+        .replace(/^\[?\s*Trickc?al\s+Revive\s+Soundtrack\s*\]?\s*/i, '')
+        .replace(/[-–—]?\s*ddocchi\s*/gi, '')
+        .replace(/[-–—]?\s*ddochi\s*/gi, '')
+        .trim();
+}
+
+function findJukeboxBgmNodes() {
+    const nodes = [];
+    try {
+        const gs = window.gameState || (typeof gameState !== 'undefined' ? gameState : null);
+        const camera = gs?.camera || gs?.speakovHost?.camera || gs?.miningHost?.camera;
+        if (camera) {
+            camera.traverse(child => {
+                if (child && (child.isAudio || child.type === 'Audio') && child.loop) {
+                    nodes.push(child);
+                }
+            });
+        }
+    } catch (_) {}
+    return nodes;
+}
+
+function getUserActualBgmVolume() {
+    const state = window.__speakiMusicState;
+    if (typeof state.savedBgmVolume === "number" && Number.isFinite(state.savedBgmVolume) && state.savedBgmVolume >= 0 && state.savedBgmVolume <= 100) {
+        return state.savedBgmVolume;
+    }
+    try {
+        if (window.localStorage) {
+            const raw = localStorage.getItem("spkmod-user-bgm-volume");
+            if (raw !== null && raw !== "") {
+                const n = Number(raw);
+                if (Number.isFinite(n) && n >= 0 && n <= 100) {
+                    state.savedBgmVolume = n;
+                    return n;
+                }
+            }
+        }
+    } catch (_) {}
+    return null;
+}
+
+function setUserActualBgmVolume(vol) {
+    if (typeof vol !== "number" || !Number.isFinite(vol)) return;
+    const clamped = Math.max(0, Math.min(100, Math.round(vol)));
+    const state = window.__speakiMusicState;
+    state.savedBgmVolume = clamped;
+    try {
+        if (window.localStorage) {
+            localStorage.setItem("spkmod-user-bgm-volume", String(clamped));
+        }
+    } catch (_) {}
+}
+
+function hookNativeSettingsVolume() {
+    const state = window.__speakiMusicState;
+    if (typeof window.updateGameSettings === "function" && !window.updateGameSettings.__spkmodBgmHooked) {
+        const origUpdate = window.updateGameSettings;
+        const wrapped = function(patch) {
+            if (patch && typeof patch.bgmVolume === "number" && Number.isFinite(patch.bgmVolume)) {
+                if (!state.isSuppressingBgmInternal) {
+                    setUserActualBgmVolume(patch.bgmVolume);
+                }
+            }
+            return origUpdate.apply(this, arguments);
+        };
+        wrapped.__spkmodBgmHooked = true;
+        window.updateGameSettings = wrapped;
+    }
+}
+
+function findNativeBgmSlider() {
+    const inputs = Array.from(document.querySelectorAll('input[type="range"]'));
+    for (const input of inputs) {
+        if (input.id && input.id.startsWith('spkmod-')) continue;
+        const row = input.closest('.sr-panel__row') || input.parentElement;
+        const text = (row?.textContent || '').toLowerCase();
+        if (text.includes('bgm') || text.includes('music') || text.includes('배경음') || text.includes('音楽') || text.includes('音樂')) {
+            if (!input.__spkmodBgmHooked) {
+                input.__spkmodBgmHooked = true;
+                input.addEventListener('input', () => {
+                    const val = Number(input.value);
+                    if (Number.isFinite(val) && !window.__speakiMusicState.isSuppressingBgmInternal) {
+                        setUserActualBgmVolume(val);
+                    }
+                });
+            }
+            return input;
+        }
+    }
+    return null;
+}
+
+function suppressGameBgm(mute) {
+    const state = window.__speakiMusicState;
+    hookNativeSettingsVolume();
+    const slider = findNativeBgmSlider();
+    const nodes = findJukeboxBgmNodes();
+
+    if (mute) {
+        if (state.isBgmSuppressed) return;
+
+        // 1. Determine and save user's actual volume
+        let currentVol = getUserActualBgmVolume();
+        if (currentVol === null) {
+            if (typeof window.getGameSettings === "function") {
+                try {
+                    const s = window.getGameSettings();
+                    if (s && typeof s.bgmVolume === "number" && Number.isFinite(s.bgmVolume)) {
+                        currentVol = Math.max(0, Math.min(100, s.bgmVolume));
+                    }
+                } catch (_) {}
+            }
+            if (currentVol === null && slider && slider.value !== '') {
+                const n = Number(slider.value);
+                if (Number.isFinite(n)) currentVol = Math.max(0, Math.min(100, n));
+            }
+            if (currentVol === null) {
+                try {
+                    const raw = localStorage.getItem('sr1_settings');
+                    if (raw) {
+                        const s = JSON.parse(raw);
+                        if (typeof s.bgmVolume === "number" && Number.isFinite(s.bgmVolume)) {
+                            currentVol = Math.max(0, Math.min(100, s.bgmVolume));
+                        }
+                    }
+                } catch (_) {}
+            }
+            if (currentVol === null) currentVol = 70; // Native game default is 70
+        }
+
+        setUserActualBgmVolume(currentVol);
+        state.isBgmSuppressed = true;
+        try {
+            if (window.localStorage) localStorage.setItem("spkmod-is-bgm-suppressed", "true");
+        } catch (_) {}
+
+        state.isSuppressingBgmInternal = true;
+        try {
+            if (slider) {
+                slider.value = '0';
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (typeof window.updateGameSettings === "function") {
+                try { window.updateGameSettings({ bgmVolume: 0 }); } catch (_) {}
+            } else {
+                try {
+                    const raw = localStorage.getItem('sr1_settings');
+                    if (raw) {
+                        const s = JSON.parse(raw);
+                        s.bgmVolume = 0;
+                        localStorage.setItem('sr1_settings', JSON.stringify(s));
+                    }
+                } catch (_) {}
+            }
+        } finally {
+            state.isSuppressingBgmInternal = false;
+        }
+
+        nodes.forEach(node => {
+            if (node.gain?.gain) {
+                node.__savedGain = node.gain.gain.value;
+                node.gain.gain.value = 0;
+            }
+        });
+    } else {
+        if (!state.isBgmSuppressed) return;
+        state.isBgmSuppressed = false;
+        try {
+            if (window.localStorage) localStorage.setItem("spkmod-is-bgm-suppressed", "false");
+        } catch (_) {}
+
+        let restoreVol = getUserActualBgmVolume();
+        if (restoreVol === null || !Number.isFinite(restoreVol)) {
+            restoreVol = 70;
+        }
+        restoreVol = Math.max(0, Math.min(100, restoreVol));
+
+        state.isSuppressingBgmInternal = true;
+        try {
+            if (slider) {
+                slider.value = String(restoreVol);
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (typeof window.updateGameSettings === "function") {
+                try { window.updateGameSettings({ bgmVolume: restoreVol }); } catch (_) {}
+            } else {
+                try {
+                    const raw = localStorage.getItem('sr1_settings');
+                    if (raw) {
+                        const s = JSON.parse(raw);
+                        s.bgmVolume = restoreVol;
+                        localStorage.setItem('sr1_settings', JSON.stringify(s));
+                    }
+                } catch (_) {}
+            }
+        } finally {
+            state.isSuppressingBgmInternal = false;
+        }
+
+        nodes.forEach(node => {
+            if (node.gain?.gain) {
+                node.gain.gain.value = (node.__savedGain !== undefined && node.__savedGain > 0)
+                    ? node.__savedGain
+                    : (restoreVol / 100);
+            }
+        });
+    }
+}
+
+function initYouTubeApi(cb) {
+    if (window.YT && window.YT.Player) {
+        cb();
+        return;
+    }
+    const origReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = function() {
+        if (typeof origReady === 'function') origReady();
+        cb();
+    };
+    if (!document.getElementById('__yt_iframe_api_script')) {
+        const tag = document.createElement('script');
+        tag.id = '__yt_iframe_api_script';
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(tag);
+    }
+}
+
+function createYtContainer() {
+    let container = document.getElementById('spkmod-yt-iframe-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'spkmod-yt-iframe-container';
+        container.style.cssText = 'position:fixed;bottom:-500px;left:-500px;width:240px;height:160px;opacity:0.01;pointer-events:none;z-index:-1000;';
+        container.innerHTML = '<div id="spkmod-yt-player-target"></div>';
+        document.body.appendChild(container);
+    }
+    return 'spkmod-yt-player-target';
+}
+
+function formatJukeboxTime(sec) {
+    if (!sec || isNaN(sec)) return '00:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function playTrackAtIndex(idx, userInitiated = true) {
+    const state = window.__speakiMusicState;
+    const tracks = getActiveJukeboxTracks();
+    if (!tracks || tracks.length === 0) return;
+
+    idx = (idx + tracks.length) % tracks.length;
+    state.currentTrackIndex = idx;
+    const item = tracks[idx];
+    state.currentTrackTitle = item[1];
+    state.currentTrackAuthor = item[2] || "";
+
+    state.isChangingTrack = true;
+    suppressGameBgm(true);
+    if (state.changeTrackTimeout) clearTimeout(state.changeTrackTimeout);
+    state.changeTrackTimeout = setTimeout(() => {
+        if (state.isChangingTrack && !state.isPlaying) {
+            state.isChangingTrack = false;
+            suppressGameBgm(false);
+        }
+    }, 10000);
+
+    updateJukeboxUI();
+
+    if (state.player && state.isReady) {
+        try {
+            state.player.loadVideoById({
+                videoId: item[0],
+                startSeconds: 0
+            });
+        } catch (_) {}
+    }
+}
+
+function playNext() {
+    const state = window.__speakiMusicState;
+    const tracks = getActiveJukeboxTracks();
+    if (!tracks || tracks.length === 0) return;
+
+    if (state.shuffle) {
+        let randIdx = Math.floor(Math.random() * tracks.length);
+        if (tracks.length > 1 && randIdx === state.currentTrackIndex) {
+            randIdx = (randIdx + 1) % tracks.length;
+        }
+        playTrackAtIndex(randIdx);
+    } else {
+        playTrackAtIndex(state.currentTrackIndex + 1);
+    }
+}
+
+function playPrev() {
+    const state = window.__speakiMusicState;
+    playTrackAtIndex(state.currentTrackIndex - 1);
+}
+
+function toggleMiniPlayer(forceMini) {
+    const modal = lunHudElements.jukeboxModal;
+    if (!modal) return;
+    const state = window.__speakiMusicState;
+
+    state.isMiniMode = (typeof forceMini === "boolean") ? forceMini : !state.isMiniMode;
+    if (state.isMiniMode) {
+        modal.classList.add("spkmod-mini-mode");
+    } else {
+        modal.classList.remove("spkmod-mini-mode");
+    }
+    if (window.localStorage) {
+        localStorage.setItem("spkmod-jukebox-mini", state.isMiniMode ? "true" : "false");
+    }
+    hideJukeboxHint();
+    hideJukeboxThumbPreview();
+    updateJukeboxI18n();
+}
+
+function switchJukeboxPlaylist(key, autoPlay = false) {
+    const state = window.__speakiMusicState;
+    if (state.activePlaylistKey === key && !autoPlay) return;
+
+    state.activePlaylistKey = key;
+    state.currentTrackIndex = 0;
+    if (window.localStorage) localStorage.setItem("spkmod-jukebox-playlist-key", key);
+
+    const tracks = getActiveJukeboxTracks();
+    const item = tracks[0] || ["", getJukeboxText(key === 'favorites' ? "jukeboxFavoritesEmpty" : "jukeboxNoTracks"), ""];
+    state.currentTrackTitle = item[1];
+    state.currentTrackAuthor = item[2] || "";
+
+    if (key === 'favorites' && (!tracks || tracks.length === 0)) {
+        if (state.changeTrackTimeout) clearTimeout(state.changeTrackTimeout);
+        state.isChangingTrack = false;
+        state.isPlaying = false;
+        if (state.player && state.isReady) {
+            try { state.player.stopVideo(); } catch (_) {}
+        }
+        suppressGameBgm(false);
+    } else if (autoPlay) {
+        state.isChangingTrack = true;
+        suppressGameBgm(true);
+    }
+
+    const modal = lunHudElements.jukeboxModal;
+    if (modal) {
+        const tabOst = modal.querySelector('#spkmod-jukebox-tab-ost');
+        const tabBolpop = modal.querySelector('#spkmod-jukebox-tab-bolpop');
+        const tabFav = modal.querySelector('#spkmod-jukebox-tab-fav');
+        const msgCard = modal.querySelector('#spkmod-jukebox-bolpop-msg');
+        const favMsgCard = modal.querySelector('#spkmod-jukebox-fav-msg');
+
+        if (tabOst) {
+            tabOst.style.background = (key === 'ost') ? '#e8b84b' : '#3e3052';
+            tabOst.style.color = (key === 'ost') ? '#1a1424' : '#ffc94a';
+        }
+        if (tabBolpop) {
+            tabBolpop.style.background = (key === 'bolpop') ? '#e8b84b' : '#3e3052';
+            tabBolpop.style.color = (key === 'bolpop') ? '#1a1424' : '#ffc94a';
+        }
+        if (tabFav) {
+            tabFav.style.background = (key === 'favorites') ? '#e8b84b' : '#3e3052';
+            tabFav.style.color = (key === 'favorites') ? '#1a1424' : '#ff4d6d';
+        }
+        if (msgCard) {
+            msgCard.style.display = (key === 'bolpop') ? 'block' : 'none';
+            msgCard.innerHTML = `💌 <i>${getJukeboxText("jukeboxBolpopMessage")}</i>`;
+        }
+        if (favMsgCard) {
+            favMsgCard.style.display = (key === 'favorites' && tracks.length > 0) ? 'block' : 'none';
+            favMsgCard.innerHTML = `❤️ <i>${getJukeboxText("jukeboxFavoritesMessage")}</i>`;
+        }
+        populateJukeboxDrawer(modal);
+    }
+    updateJukeboxUI();
+
+    if (autoPlay && state.player && state.isReady && tracks.length > 0) {
+        playTrackAtIndex(0);
+    }
+}
+
+function buildJukeboxUI() {
+    if (lunHudElements.jukeboxModal) return lunHudElements.jukeboxModal;
+
+    const state = window.__speakiMusicState;
+
+    // Restore saved dimensions & drawer state
+    let savedW = 380;
+    let savedH = 420;
+    try {
+        const rawSize = localStorage.getItem("spkmod-size-spkmod-jukebox-modal");
+        if (rawSize) {
+            const sz = JSON.parse(rawSize);
+            if (sz.width) savedW = Math.max(340, Math.min(Math.round(window.innerWidth * 0.98), parseInt(sz.width, 10)));
+            if (sz.height) savedH = Math.max(260, Math.min(Math.round(window.innerHeight * 0.95), parseInt(sz.height, 10)));
+        }
+    } catch (_) {}
+
+    let isDrawerOpen = false;
+    try {
+        isDrawerOpen = localStorage.getItem("spkmod-jukebox-drawer-open") === "true";
+    } catch (_) {}
+
+    // Load persisted coordinates or default nicely without setting bottom/right
+    let initLeft = Math.max(10, window.innerWidth - (savedW + 30));
+    let initTop = Math.max(10, window.innerHeight - (isDrawerOpen ? savedH + 30 : 280));
+    try {
+        const raw = localStorage.getItem("spkmod-pos-spkmod-jukebox-modal");
+        if (raw) {
+            const p = JSON.parse(raw);
+            const l = parseFloat(p.left);
+            const t = parseFloat(p.top);
+            if (!isNaN(l) && !isNaN(t)) {
+                initLeft = Math.min(Math.max(10, l), window.innerWidth - 80);
+                initTop = Math.min(Math.max(10, t), window.innerHeight - 80);
+            }
+        }
+    } catch (_) {}
+
+    const modal = buildElement("div", {
+        id: "spkmod-jukebox-modal",
+        className: "spkmod-music-modal" + (state.modalVisible ? "" : " hidden") + (state.isMiniMode ? " spkmod-mini-mode" : ""),
+        style: `position: fixed; left: ${initLeft}px; top: ${initTop}px; bottom: auto !important; right: auto !important; width: ${savedW}px; height: ${isDrawerOpen ? savedH + 'px' : 'auto'}; max-width: 98vw; max-height: 95vh; background: linear-gradient(180deg, #2a2038 0%, #1a1424 100%); border: 2px solid var(--spkmod-accent, #e8b84b); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.15); font-family: Pretendard, system-ui, -apple-system, sans-serif; color: #fff; z-index: 2147483600 !important; padding: 14px 16px; box-sizing: border-box; user-select: none; display: flex; flex-direction: column; gap: 10px; overflow: hidden;`
+    });
+
+    const activeTracks = getActiveJukeboxTracks();
+    const curVid = activeTracks[state.currentTrackIndex]?.[0] || '8kKIzim7ZqU';
+
+    modal.innerHTML = `
+        <div id="spkmod-jukebox-header" style="display:flex;justify-content:space-between;align-items:center;cursor:move;border-bottom:1px solid rgba(232,184,75,0.3);padding-bottom:8px;">
+            <div id="spkmod-jukebox-header-title" style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;color:#ffc94a;">
+                <span style="font-size:15px;">🎵</span> ${getJukeboxText("jukeboxTitle")}
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;">
+                <button id="spkmod-jukebox-tab-ost" title="Trickcal ${getJukeboxText('jukeboxPlaylistOst')}" style="background:${state.activePlaylistKey === 'ost' ? '#e8b84b' : '#3e3052'};color:${state.activePlaylistKey === 'ost' ? '#1a1424' : '#ffc94a'};border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;font-weight:700;">💿 ${getJukeboxText('jukeboxPlaylistOst')}</button>
+                <button id="spkmod-jukebox-tab-bolpop" title="${getJukeboxText('jukeboxPlaylistBolpop')}" style="background:${state.activePlaylistKey === 'bolpop' ? '#e8b84b' : '#3e3052'};color:${state.activePlaylistKey === 'bolpop' ? '#1a1424' : '#ffc94a'};border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;font-weight:700;">🎬 ${getJukeboxText('jukeboxBolpopTab')}</button>
+                <button id="spkmod-jukebox-tab-fav" title="${getJukeboxText('jukeboxPlaylistFavorites')}" style="background:${state.activePlaylistKey === 'favorites' ? '#e8b84b' : '#3e3052'};color:${state.activePlaylistKey === 'favorites' ? '#1a1424' : '#ff4d6d'};border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:2px 7px;font-size:11px;font-weight:700;">❤️</button>
+                <button id="spkmod-jukebox-drawer-btn" title="${getJukeboxText('jukeboxTogglePlaylist')}" style="background:#3e3052;border:1px solid #7c6894;color:#ffc94a;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;">📜</button>
+                <button id="spkmod-jukebox-close-btn" title="${getJukeboxText('jukeboxClose')}" style="background:transparent;border:none;color:#aaa;cursor:pointer;font-size:15px;line-height:1;padding:0 2px;">✕</button>
+            </div>
+        </div>
+
+        <div id="spkmod-jukebox-track-info" style="display:flex;align-items:center;gap:12px;background:rgba(0,0,0,0.32);padding:10px 12px;border-radius:12px;overflow:hidden;cursor:move;flex-shrink:0;min-height:62px;box-sizing:border-box;">
+            <button class="spkmod-mini-expand-btn" id="spkmod-jukebox-mini-expand" title="${getJukeboxText('jukeboxMiniPlayerExpand')}" style="background:#e8b84b;border:none;color:#1a1424;border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:12px;display:none;align-items:center;justify-content:center;flex-shrink:0;">⛶</button>
+            <img id="spkmod-jukebox-thumb" src="https://img.youtube.com/vi/${curVid}/mqdefault.jpg" style="width:52px;height:52px;border-radius:8px;object-fit:cover;border:1px solid rgba(232,184,75,0.4);flex-shrink:0;background:#1a1424;cursor:zoom-in;pointer-events:auto;">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;justify-content:center;">
+                <div id="spkmod-jukebox-title" style="font-size:13.5px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3;">
+                    ${state.currentTrackTitle}
+                </div>
+                <div id="spkmod-jukebox-author" style="font-size:11.5px;color:#e8b84b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:${state.currentTrackAuthor ? 'block' : 'none'};line-height:1.2;">
+                    ${state.currentTrackAuthor}
+                </div>
+            </div>
+            <button id="spkmod-jukebox-heart-btn" title="${isJukeboxTrackFavorite(curVid) ? getJukeboxText('jukeboxRemoveFavorite') : getJukeboxText('jukeboxAddFavorite')}" style="background:transparent;border:none;cursor:pointer;font-size:18px;line-height:1;padding:6px;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;flex-shrink:0;">${isJukeboxTrackFavorite(curVid) ? '❤️' : '🤍'}</button>
+        </div>
+
+        <div id="spkmod-jukebox-seek-row" style="display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span id="spkmod-jukebox-time-cur" style="font-size:11px;color:#aaa;min-width:34px;">00:00</span>
+                <input id="spkmod-jukebox-seek" type="range" min="0" max="100" value="0" style="flex:1;height:5px;accent-color:#e8b84b;cursor:pointer;">
+                <span id="spkmod-jukebox-time-dur" style="font-size:11px;color:#aaa;min-width:34px;text-align:right;">00:00</span>
+            </div>
+        </div>
+
+        <div id="spkmod-jukebox-controls-row" style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <button id="spkmod-jukebox-shuffle" title="${getJukeboxText('jukeboxShuffle')}" style="background:${state.shuffle ? '#e8b84b' : '#3b2d4f'};border:1px solid #5a4675;color:${state.shuffle ? '#1a1424' : '#bbb'};border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;">🔀</button>
+                <button id="spkmod-jukebox-prev" title="${getJukeboxText('jukeboxPrev')}" style="background:#3b2d4f;border:1px solid #5a4675;color:#fff;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">⏮</button>
+                <button id="spkmod-jukebox-play" title="${state.isPlaying ? getJukeboxText('jukeboxPause') : getJukeboxText('jukeboxPlay')}" style="background:#e8b84b;border:none;color:#1a1424;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:17px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(232,184,75,0.4);">▶</button>
+                <button id="spkmod-jukebox-next" title="${getJukeboxText('jukeboxNext')}" style="background:#3b2d4f;border:1px solid #5a4675;color:#fff;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">⏭</button>
+                <button id="spkmod-jukebox-repeat" title="${getJukeboxText('jukeboxRepeat')}" style="background:${state.repeatMode !== 'off' ? '#e8b84b' : '#3b2d4f'};border:1px solid #5a4675;color:${state.repeatMode !== 'off' ? '#1a1424' : '#bbb'};border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;">${state.repeatMode === 'one' ? '🔂' : '🔁'}</button>
+            </div>
+            <div id="spkmod-jukebox-vol-box" style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.25);padding:4px 8px;border-radius:12px;">
+                <span id="spkmod-jukebox-vol-icon" style="font-size:13px;">🔊</span>
+                <input id="spkmod-jukebox-vol" type="range" min="0" max="100" value="${state.volume}" style="width:65px;height:4px;accent-color:#e8b84b;cursor:pointer;">
+            </div>
+        </div>
+
+        <div id="spkmod-jukebox-drawer" style="display:${isDrawerOpen ? 'block' : 'none'};flex:1 1 auto;min-height:100px;overflow-y:auto;background:rgba(0,0,0,0.35);border:1px solid #4a3861;border-radius:8px;padding:6px;font-size:12px;margin-top:4px;">
+            <div id="spkmod-jukebox-bolpop-msg" style="background:rgba(232,184,75,0.12);border:1px solid rgba(232,184,75,0.35);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:#ffdf79;line-height:1.45;display:${state.activePlaylistKey === 'bolpop' ? 'block' : 'none'};">
+                💌 <i>${getJukeboxText("jukeboxBolpopMessage")}</i>
+            </div>
+            <div id="spkmod-jukebox-fav-msg" style="background:rgba(255,77,109,0.12);border:1px solid rgba(255,77,109,0.35);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:#ff9ebb;line-height:1.45;display:${(state.activePlaylistKey === 'favorites' && activeTracks.length > 0) ? 'block' : 'none'};">
+                ❤️ <i>${getJukeboxText("jukeboxFavoritesMessage")}</i>
+            </div>
+            <div id="spkmod-jukebox-items" style="display:flex;flex-direction:column;gap:3px;"></div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    lunHudElements.jukeboxModal = modal;
+
+    const header = modal.querySelector('#spkmod-jukebox-header');
+    const trackInfo = modal.querySelector('#spkmod-jukebox-track-info');
+    if (typeof makeDraggable === 'function') {
+        makeDraggable(modal, [header, trackInfo]);
+    }
+
+    // Corner resize handle
+    const resizeHandle = buildElement("div", {
+        id: "spkmod-jukebox-resize-handle",
+        title: getJukeboxText("jukeboxResizeTooltip") || "Drag corner to resize window",
+        style: "position: absolute; right: 0; bottom: 0; width: 16px; height: 16px; cursor: nwse-resize; user-select: none; z-index: 100; display: flex; align-items: flex-end; justify-content: flex-end; padding: 0 2px 2px 0; touch-action: none;"
+    }, [
+        buildElement("span", {
+            innerHTML: `<svg viewBox="0 0 10 10" width="10" height="10" style="opacity: 0.65; display: block; pointer-events: none;"><path d="M9 1 L1 9 M9 5 L5 9 M9 9 L9 9" stroke="#e8b84b" stroke-width="1.2" stroke-linecap="round"/></svg>`
+        })
+    ]);
+    modal.appendChild(resizeHandle);
+
+    if (typeof makeResizable === 'function') {
+        makeResizable(modal, resizeHandle, {
+            minWidth: 340,
+            minHeight: 260,
+            restoreSize: false,
+            onResize: (newW, newH) => {
+                savedW = newW;
+                if (drawer.style.display === 'none' && newH > 220) {
+                    drawer.style.display = 'block';
+                    if (window.localStorage) localStorage.setItem("spkmod-jukebox-drawer-open", "true");
+                }
+                if (drawer.style.display !== 'none') {
+                    savedH = newH;
+                }
+            },
+            saveSize: (finalW, finalH, key) => {
+                savedW = finalW;
+                if (drawer.style.display !== 'none') {
+                    savedH = finalH;
+                    if (window.localStorage) {
+                        localStorage.setItem(key, JSON.stringify({ width: finalW, height: finalH }));
+                    }
+                } else {
+                    if (window.localStorage) {
+                        localStorage.setItem(key, JSON.stringify({ width: finalW, height: savedH }));
+                    }
+                }
+            }
+        });
+    }
+
+    // Double right-click toggle mini player (single right-click shows hint)
+    let lastRightClickTime = 0;
+    modal.addEventListener('contextmenu', (e) => {
+        const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+        if (tag === 'input' || tag === 'textarea') return;
+        e.preventDefault();
+        const now = Date.now();
+        if (now - lastRightClickTime < 450) {
+            lastRightClickTime = 0;
+            hideJukeboxHint();
+            toggleMiniPlayer();
+        } else {
+            lastRightClickTime = now;
+            const hint = state.isMiniMode ? getJukeboxText("jukeboxMiniPlayerExpandHint") : getJukeboxText("jukeboxMiniPlayerHint");
+            showJukeboxHint(hint, e.clientX, e.clientY);
+        }
+    });
+
+    modal.addEventListener("mouseleave", () => {
+        hideJukeboxThumbPreview();
+    });
+
+    modal.addEventListener("wheel", (e) => { e.stopPropagation(); }, { passive: true });
+    modal.addEventListener("touchmove", (e) => { e.stopPropagation(); }, { passive: true });
+    modal.addEventListener("keydown", (e) => { e.stopPropagation(); });
+
+    // Buttons
+    const btnPlay = modal.querySelector('#spkmod-jukebox-play');
+    const btnPrev = modal.querySelector('#spkmod-jukebox-prev');
+    const btnNext = modal.querySelector('#spkmod-jukebox-next');
+    const btnShuffle = modal.querySelector('#spkmod-jukebox-shuffle');
+    const btnRepeat = modal.querySelector('#spkmod-jukebox-repeat');
+    const seekBar = modal.querySelector('#spkmod-jukebox-seek');
+    const volSlider = modal.querySelector('#spkmod-jukebox-vol');
+    const drawerBtn = modal.querySelector('#spkmod-jukebox-drawer-btn');
+    const closeBtn = modal.querySelector('#spkmod-jukebox-close-btn');
+    const drawer = modal.querySelector('#spkmod-jukebox-drawer');
+    const tabOst = modal.querySelector('#spkmod-jukebox-tab-ost');
+    const tabBolpop = modal.querySelector('#spkmod-jukebox-tab-bolpop');
+    const tabFav = modal.querySelector('#spkmod-jukebox-tab-fav');
+    const miniExpandBtn = modal.querySelector('#spkmod-jukebox-mini-expand');
+    const nowPlayingHeartBtn = modal.querySelector('#spkmod-jukebox-heart-btn');
+
+    btnPlay.addEventListener('click', () => {
+        if (!state.player || !state.isReady) return;
+        if (state.isPlaying) {
+            state.isChangingTrack = false;
+            if (state.changeTrackTimeout) clearTimeout(state.changeTrackTimeout);
+            state.isPlaying = false;
+            state.player.pauseVideo();
+            suppressGameBgm(false);
+        } else {
+            state.isChangingTrack = false;
+            suppressGameBgm(true);
+            state.player.playVideo();
+        }
+    });
+
+    btnPrev.addEventListener('click', () => {
+        playPrev();
+    });
+
+    btnNext.addEventListener('click', () => {
+        playNext();
+    });
+
+    btnShuffle.addEventListener('click', () => {
+        state.shuffle = !state.shuffle;
+        btnShuffle.style.background = state.shuffle ? '#e8b84b' : '#3b2d4f';
+        btnShuffle.style.color = state.shuffle ? '#1a1424' : '#bbb';
+        if (window.localStorage) localStorage.setItem("spkmod-jukebox-shuffle", state.shuffle ? "true" : "false");
+    });
+
+    btnRepeat.addEventListener('click', () => {
+        if (state.repeatMode === 'all') state.repeatMode = 'one';
+        else if (state.repeatMode === 'one') state.repeatMode = 'off';
+        else state.repeatMode = 'all';
+
+        btnRepeat.textContent = (state.repeatMode === 'one' ? '🔂' : '🔁');
+        btnRepeat.style.background = (state.repeatMode !== 'off' ? '#e8b84b' : '#3b2d4f');
+        btnRepeat.style.color = (state.repeatMode !== 'off' ? '#1a1424' : '#bbb');
+        if (window.localStorage) localStorage.setItem("spkmod-jukebox-repeat", state.repeatMode);
+    });
+
+    seekBar.addEventListener('input', () => {
+        if (!state.player || !state.duration) return;
+        state.player.seekTo((seekBar.value / 100) * state.duration, true);
+    });
+
+    volSlider.addEventListener('input', () => {
+        state.volume = Number(volSlider.value);
+        if (state.player && state.isReady) state.player.setVolume(state.volume);
+        modal.querySelector('#spkmod-jukebox-vol-icon').textContent = state.volume === 0 ? '🔇' : (state.volume < 50 ? '🔉' : '🔊');
+        if (window.localStorage) localStorage.setItem("spkmod-jukebox-vol", String(state.volume));
+    });
+
+    drawerBtn.addEventListener('click', () => {
+        const isCurrentlyOpen = drawer.style.display !== 'none';
+        if (isCurrentlyOpen) {
+            drawer.style.display = 'none';
+            modal.style.height = 'auto';
+            if (window.localStorage) localStorage.setItem("spkmod-jukebox-drawer-open", "false");
+        } else {
+            drawer.style.display = 'block';
+            modal.style.height = savedH + 'px';
+            if (window.localStorage) localStorage.setItem("spkmod-jukebox-drawer-open", "true");
+        }
+    });
+
+    closeBtn.addEventListener('click', () => {
+        hideJukeboxHint();
+        hideJukeboxThumbPreview();
+        modal.classList.add('hidden');
+        state.modalVisible = false;
+        if (window.localStorage) localStorage.setItem("spkmod-jukebox-visible", "false");
+    });
+
+    const thumbImg = modal.querySelector('#spkmod-jukebox-thumb');
+    if (thumbImg) {
+        thumbImg.addEventListener('mouseenter', () => {
+            showJukeboxThumbPreview(thumbImg);
+        });
+        thumbImg.addEventListener('mouseleave', () => {
+            hideJukeboxThumbPreview();
+        });
+    }
+
+    if (tabOst) {
+        tabOst.addEventListener('click', () => {
+            switchJukeboxPlaylist('ost', state.isPlaying);
+        });
+    }
+
+    if (tabBolpop) {
+        tabBolpop.addEventListener('click', () => {
+            switchJukeboxPlaylist('bolpop', state.isPlaying);
+        });
+    }
+
+    if (tabFav) {
+        tabFav.addEventListener('click', () => {
+            switchJukeboxPlaylist('favorites', state.isPlaying);
+        });
+    }
+
+    if (nowPlayingHeartBtn) {
+        nowPlayingHeartBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const tracks = getActiveJukeboxTracks();
+            const cur = tracks[state.currentTrackIndex] || findJukeboxTrackByVid(state.player?.getVideoData()?.video_id) || [state.player?.getVideoData()?.video_id, state.currentTrackTitle, state.currentTrackAuthor];
+            if (!cur[0]) return;
+            const isNowFav = toggleJukeboxFavorite(cur);
+            nowPlayingHeartBtn.textContent = isNowFav ? '❤️' : '🤍';
+            nowPlayingHeartBtn.title = isNowFav ? getJukeboxText("jukeboxRemoveFavorite") : getJukeboxText("jukeboxAddFavorite");
+
+            if (state.activePlaylistKey === 'favorites') {
+                const updatedTracks = getActiveJukeboxTracks();
+                if (state.currentTrackIndex >= updatedTracks.length) {
+                    state.currentTrackIndex = Math.max(0, updatedTracks.length - 1);
+                }
+                const scroll = drawer ? drawer.scrollTop : 0;
+                populateJukeboxDrawer(modal);
+                if (drawer) drawer.scrollTop = scroll;
+                updateJukeboxUI();
+            } else {
+                const rows = modal.querySelectorAll('.spkmod-pl-item');
+                const row = rows[state.currentTrackIndex];
+                if (row) {
+                    const rowHeart = row.querySelector('.spkmod-jb-row-heart');
+                    if (rowHeart) {
+                        rowHeart.textContent = isNowFav ? '❤️' : '🤍';
+                        rowHeart.title = isNowFav ? getJukeboxText("jukeboxRemoveFavorite") : getJukeboxText("jukeboxAddFavorite");
+                    }
+                }
+            }
+        });
+        nowPlayingHeartBtn.addEventListener('mouseenter', () => { nowPlayingHeartBtn.style.transform = 'scale(1.25)'; });
+        nowPlayingHeartBtn.addEventListener('mouseleave', () => { nowPlayingHeartBtn.style.transform = 'scale(1)'; });
+    }
+
+    if (miniExpandBtn) {
+        miniExpandBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideJukeboxHint();
+            hideJukeboxThumbPreview();
+            toggleMiniPlayer(false);
+        });
+    }
+
+    populateJukeboxDrawer(modal);
+    updateJukeboxI18n();
+    return modal;
+}
+
+function populateJukeboxDrawer(modal) {
+    modal = modal || lunHudElements.jukeboxModal;
+    if (!modal) return;
+    const listContainer = modal.querySelector('#spkmod-jukebox-items');
+    if (!listContainer) return;
+    const drawer = modal.querySelector('#spkmod-jukebox-drawer');
+    const nowPlayingHeartBtn = modal.querySelector('#spkmod-jukebox-heart-btn');
+    listContainer.innerHTML = '';
+
+    const state = window.__speakiMusicState;
+    const tracks = getActiveJukeboxTracks();
+
+    if (state.activePlaylistKey === 'favorites' && (!tracks || tracks.length === 0)) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.id = 'spkmod-jukebox-fav-empty';
+        emptyDiv.style.cssText = 'padding:16px 12px;text-align:center;color:#bcaecf;font-size:11.5px;line-height:1.5;';
+        emptyDiv.innerHTML = `🤍 <i>${getJukeboxText("jukeboxFavoritesEmpty")}</i>`;
+        listContainer.appendChild(emptyDiv);
+        return;
+    }
+
+    tracks.forEach(([vid, title, author], idx) => {
+        const row = document.createElement('div');
+        row.className = 'spkmod-pl-item';
+        row.style.cssText = 'padding:5px 8px;border-radius:5px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background 0.15s;display:flex;align-items:center;justify-content:space-between;gap:6px;';
+
+        const titleSpan = document.createElement('span');
+        titleSpan.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;';
+        titleSpan.textContent = `${idx + 1}. ${title}`;
+        row.appendChild(titleSpan);
+
+        if (author) {
+            const authorSpan = document.createElement('span');
+            authorSpan.style.cssText = 'font-size:10px;color:#ffc94a;opacity:0.9;white-space:nowrap;margin-right:2px;max-width:110px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;';
+            authorSpan.textContent = author;
+            row.appendChild(authorSpan);
+        }
+
+        const isFav = isJukeboxTrackFavorite(vid);
+        const rowHeartBtn = document.createElement('button');
+        rowHeartBtn.className = 'spkmod-jb-row-heart';
+        rowHeartBtn.style.cssText = 'background:transparent;border:none;cursor:pointer;font-size:13px;padding:1px 4px;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:transform 0.15s;flex-shrink:0;';
+        rowHeartBtn.textContent = isFav ? '❤️' : '🤍';
+        rowHeartBtn.title = isFav ? getJukeboxText("jukeboxRemoveFavorite") : getJukeboxText("jukeboxAddFavorite");
+
+        rowHeartBtn.addEventListener('mouseenter', () => { rowHeartBtn.style.transform = 'scale(1.25)'; });
+        rowHeartBtn.addEventListener('mouseleave', () => { rowHeartBtn.style.transform = 'scale(1)'; });
+        rowHeartBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isNowFav = toggleJukeboxFavorite([vid, title, author]);
+            rowHeartBtn.textContent = isNowFav ? '❤️' : '🤍';
+            rowHeartBtn.title = isNowFav ? getJukeboxText("jukeboxRemoveFavorite") : getJukeboxText("jukeboxAddFavorite");
+
+            // Sync now-playing heart if this track is currently active
+            const curTracks = getActiveJukeboxTracks();
+            if (curTracks[state.currentTrackIndex]?.[0] === vid && nowPlayingHeartBtn) {
+                nowPlayingHeartBtn.textContent = isNowFav ? '❤️' : '🤍';
+                nowPlayingHeartBtn.title = isNowFav ? getJukeboxText("jukeboxRemoveFavorite") : getJukeboxText("jukeboxAddFavorite");
+            }
+
+            if (state.activePlaylistKey === 'favorites') {
+                const updatedTracks = getActiveJukeboxTracks();
+                if (state.currentTrackIndex >= updatedTracks.length) {
+                    state.currentTrackIndex = Math.max(0, updatedTracks.length - 1);
+                }
+                const scroll = drawer ? drawer.scrollTop : 0;
+                populateJukeboxDrawer(modal);
+                if (drawer) drawer.scrollTop = scroll;
+                updateJukeboxUI();
+            }
+        });
+        row.appendChild(rowHeartBtn);
+
+        row.title = title + (author ? ' - ' + author : '');
+        row.addEventListener('click', () => {
+            playTrackAtIndex(idx);
+        });
+        listContainer.appendChild(row);
+    });
+}
+
+function updateJukeboxUI() {
+    const modal = lunHudElements.jukeboxModal;
+    if (!modal) return;
+    const state = window.__speakiMusicState;
+    const tracks = getActiveJukeboxTracks();
+    const curVid = tracks[state.currentTrackIndex]?.[0] || '';
+
+    const btnPlay = modal.querySelector('#spkmod-jukebox-play');
+    const titleEl = modal.querySelector('#spkmod-jukebox-title');
+    const authorEl = modal.querySelector('#spkmod-jukebox-author');
+    const thumbImg = modal.querySelector('#spkmod-jukebox-thumb');
+    const timeCur = modal.querySelector('#spkmod-jukebox-time-cur');
+    const timeDur = modal.querySelector('#spkmod-jukebox-time-dur');
+    const seekBar = modal.querySelector('#spkmod-jukebox-seek');
+    const heartBtn = modal.querySelector('#spkmod-jukebox-heart-btn');
+
+    if (btnPlay) {
+        btnPlay.textContent = state.isPlaying ? '⏸' : '▶';
+        btnPlay.title = state.isPlaying ? getJukeboxText("jukeboxPause") : getJukeboxText("jukeboxPlay");
+    }
+    if (titleEl && state.currentTrackTitle) titleEl.textContent = state.currentTrackTitle;
+    if (authorEl) {
+        authorEl.textContent = state.currentTrackAuthor || '';
+        authorEl.style.display = state.currentTrackAuthor ? 'block' : 'none';
+    }
+    if (heartBtn && curVid) {
+        const isFav = isJukeboxTrackFavorite(curVid);
+        heartBtn.textContent = isFav ? '❤️' : '🤍';
+        heartBtn.title = isFav ? getJukeboxText("jukeboxRemoveFavorite") : getJukeboxText("jukeboxAddFavorite");
+    }
+
+    const favMsg = modal.querySelector('#spkmod-jukebox-fav-msg');
+    if (favMsg) {
+        favMsg.style.display = (state.activePlaylistKey === 'favorites' && tracks.length > 0) ? 'block' : 'none';
+    }
+    if (thumbImg && curVid) {
+        const targetSrc = `https://img.youtube.com/vi/${curVid}/mqdefault.jpg`;
+        if (thumbImg.src !== targetSrc) {
+            thumbImg.src = targetSrc;
+            if (lunJukeboxThumbPreview && lunJukeboxThumbPreview.style.display === "block") {
+                showJukeboxThumbPreview(thumbImg);
+            }
+        }
+    }
+    if (timeCur) timeCur.textContent = formatJukeboxTime(state.currentTime);
+    if (timeDur) timeDur.textContent = formatJukeboxTime(state.duration);
+    if (seekBar && state.duration > 0 && !seekBar.matches(':active')) {
+        seekBar.value = Math.min(100, Math.floor((state.currentTime / state.duration) * 100));
+    }
+
+    const drawerItems = modal.querySelectorAll('.spkmod-pl-item');
+    drawerItems.forEach((el, idx) => {
+        if (idx === state.currentTrackIndex) {
+            el.style.background = '#e8b84b';
+            el.style.color = '#1a1424';
+            el.style.fontWeight = 'bold';
+        } else {
+            el.style.background = 'transparent';
+            el.style.color = '#ddd';
+            el.style.fontWeight = 'normal';
+        }
+    });
+}
+
+function initJukeboxPlayer() {
+    const targetId = createYtContainer();
+    buildJukeboxUI();
+    const state = window.__speakiMusicState;
+    const initialTracks = getActiveJukeboxTracks();
+    const firstVid = initialTracks[state.currentTrackIndex]?.[0] || '8kKIzim7ZqU';
+
+    initYouTubeApi(() => {
+        state.player = new YT.Player(targetId, {
+            height: '160',
+            width: '240',
+            videoId: firstVid,
+            playerVars: {
+                autoplay: 0,
+                controls: 0,
+                disablekb: 1,
+                fs: 0,
+                enablejsapi: 1,
+                origin: window.location.origin
+            },
+            events: {
+                onReady: () => {
+                    state.isReady = true;
+                    state.player.setVolume(state.volume);
+                },
+                onError: (e) => {
+                    console.warn("[SpeakiMod+] Jukebox player error:", e.data);
+                    state.isChangingTrack = false;
+                    if (state.changeTrackTimeout) {
+                        clearTimeout(state.changeTrackTimeout);
+                        state.changeTrackTimeout = null;
+                    }
+                    if (state.isPlaying) {
+                        playNext();
+                    } else {
+                        suppressGameBgm(false);
+                    }
+                },
+                onStateChange: (e) => {
+                    if (e.data === 1) { // Playing
+                        state.isChangingTrack = false;
+                        if (state.changeTrackTimeout) {
+                            clearTimeout(state.changeTrackTimeout);
+                            state.changeTrackTimeout = null;
+                        }
+                        state.isPlaying = true;
+                        suppressGameBgm(true);
+
+                        const curVid = state.player.getVideoData()?.video_id;
+                        const tracks = getActiveJukeboxTracks();
+                        const foundIdx = curVid ? tracks.findIndex(t => t[0] === curVid) : -1;
+                        if (foundIdx !== -1) {
+                            state.currentTrackIndex = foundIdx;
+                            state.currentTrackTitle = tracks[foundIdx][1];
+                            state.currentTrackAuthor = tracks[foundIdx][2] || '';
+                        } else {
+                            const data = state.player.getVideoData();
+                            state.currentTrackTitle = cleanJukeboxTitle(data?.title || 'Trickcal BGM');
+                            state.currentTrackAuthor = (state.activePlaylistKey === 'ost') ? '' : (data?.author || '');
+                        }
+                        state.duration = state.player.getDuration() || 0;
+
+                        if (!state.updateInterval) {
+                            state.updateInterval = setInterval(() => {
+                                if (state.player && state.isPlaying) {
+                                    state.currentTime = state.player.getCurrentTime() || 0;
+                                    state.duration = state.player.getDuration() || state.duration;
+                                    updateJukeboxUI();
+                                }
+                            }, 300);
+                        }
+                    } else if (e.data === 2) { // Paused
+                        if (state.isChangingTrack) {
+                            return;
+                        }
+                        state.isPlaying = false;
+                        suppressGameBgm(false);
+                        if (state.updateInterval) {
+                            clearInterval(state.updateInterval);
+                            state.updateInterval = null;
+                        }
+                    } else if (e.data === 3 || e.data === -1) { // Buffering or Unstarted
+                        if (state.isChangingTrack || state.isPlaying) {
+                            suppressGameBgm(true);
+                        }
+                    } else if (e.data === 0) { // Track Ended
+                        if (state.repeatMode === 'one') {
+                            state.player.seekTo(0, true);
+                            state.player.playVideo();
+                        } else if (state.shuffle) {
+                            playNext();
+                        } else if (state.repeatMode === 'all') {
+                            playNext();
+                        } else if (state.repeatMode === 'off' && state.currentTrackIndex < getActiveJukeboxTracks().length - 1) {
+                            playNext();
+                        } else {
+                            state.isChangingTrack = false;
+                            if (state.changeTrackTimeout) {
+                                clearTimeout(state.changeTrackTimeout);
+                                state.changeTrackTimeout = null;
+                            }
+                            state.isPlaying = false;
+                            suppressGameBgm(false);
+                        }
+                    }
+                    updateJukeboxUI();
+                }
+            }
+        });
+    });
+}
+
+function toggleMusicPlayer(forceState) {
+    if (!lunHudElements.jukeboxModal) {
+        initJukeboxPlayer();
+    }
+    const modal = lunHudElements.jukeboxModal;
+    if (!modal) return;
+    const state = window.__speakiMusicState;
+
+    const isHidden = modal.classList.contains("hidden");
+    const targetShow = (typeof forceState === "boolean") ? forceState : isHidden;
+
+    if (targetShow) {
+        modal.classList.remove("hidden");
+        state.modalVisible = true;
+        if (window.localStorage) localStorage.setItem("spkmod-jukebox-visible", "true");
+    } else {
+        modal.classList.add("hidden");
+        state.modalVisible = false;
+        if (window.localStorage) localStorage.setItem("spkmod-jukebox-visible", "false");
+    }
+}
+window.toggleMusicPlayer = toggleMusicPlayer;
+
+// Auto-restore modal if user left it open on previous session
+setTimeout(() => {
+    try {
+        const wasOpen = localStorage.getItem("spkmod-jukebox-visible") === "true";
+        if (wasOpen) {
+            toggleMusicPlayer(true);
+        }
+    } catch (_) {}
+}, 1500);
+
+
+
+
+
+
+
 const SPKMOD_VALID_FONT_PRESETS = new Set([
 	"default",
 	"trickcalPop",
@@ -4714,7 +6302,6 @@ function updateStatsModalLive() {
 }
 
 
-
 function updateDynamicStyles() {
 	let bgRule = "rgba(0, 0, 0, 0.75)";
 	let blurRule = "blur(4px)";
@@ -4880,9 +6467,9 @@ function updateDynamicStyles() {
 		${customFontRules}
 				#app { filter: ${filterRule}; }
 		#app > *:not(.sr-game-canvas):not(canvas):not(.sr-click-ripple-layer) { zoom: ${lunGameUiScale} !important; }
-		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
+		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, #spkmod-jukebox-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq, body > #spkmod-panel { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
-		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn, .spkmod-friend-panel-menu {
+		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, #spkmod-jukebox-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn, .spkmod-friend-panel-menu {
 			background: var(--spkmod-bg) !important;
 			backdrop-filter: var(--spkmod-blur) !important;
 			border-color: var(--spkmod-accent) !important;
@@ -4992,17 +6579,36 @@ document.head.appendChild(buildElement(
 			pointer-events: auto;
 		}
 		.sr-chatbox__body-text.spkmod-translated-line { color: #ffd54a !important; -webkit-text-fill-color: #ffd54a !important;  }
+		body.spkmod-chat-player-colors-on .sr-chatbox__sender.spkmod-colored-msg-el,
+		body.spkmod-chat-player-colors-on .sr-chatbox__body-text.spkmod-colored-msg-el:not(.spkmod-gmdt-line),
+		body.spkmod-chat-player-colors-on .sr-chatbox__body-text.spkmod-translated-line.spkmod-colored-msg-el {
+			color: var(--spkmod-msg-color) !important;
+			-webkit-text-fill-color: var(--spkmod-msg-color) !important;
+			text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85) !important;
+		}
+		body.spkmod-chat-player-colors-on .sr-chatbox__sender.spkmod-friend-sender.spkmod-colored-msg-el {
+			text-shadow: 0 0 6px rgba(77, 208, 225, 0.45), 0 1px 2px rgba(0, 0, 0, 0.85) !important;
+		}
+		body.spkmod-chat-player-colors-on .sr-chatbox__sender.spkmod-party-sender.spkmod-colored-msg-el {
+			text-shadow: 0 0 6px rgba(105, 240, 174, 0.45), 0 1px 2px rgba(0, 0, 0, 0.85) !important;
+		}
+		body.spkmod-chat-player-colors-on .sr-chatbox__sender.spkmod-gm-sender.spkmod-colored-msg-el {
+			text-shadow: 0 0 6px rgba(255, 167, 38, 0.45), 0 1px 2px rgba(0, 0, 0, 0.85) !important;
+		}
 		.sr-chatbox__row.spkmod-mention-line {
 			background: rgba(255, 200, 0, 0.15) !important;
 			border-left: 3px solid #ffcc00 !important;
 		}
-		.sr-chatbox__row.spkmod-mention-line .sr-chatbox__body-text {
+		body .sr-chatbox__row.spkmod-mention-line .sr-chatbox__body-text {
 			font-weight: bold !important;
 			color: #fffacd !important;
+			-webkit-text-fill-color: #fffacd !important;
 			text-shadow: 1px 1px 2px #000, 0 0 4px #ffaa00 !important;
 		}
 		.sr-chatbox__body-text.spkmod-gmdt-line { font-weight: 800 !important; color: #ffa726 !important; -webkit-text-fill-color: #ffa726 !important; text-shadow: 0 0 6px rgba(255, 167, 38, 0.45) !important; }
 		.sr-chatbox__sender.spkmod-friend-sender { color: #4dd0e1 !important; -webkit-text-fill-color: #4dd0e1 !important; font-weight: bold !important; text-shadow: 0 0 6px rgba(77, 208, 225, 0.45) !important; }
+		.sr-chatbox__sender.spkmod-party-sender { color: #69f0ae !important; -webkit-text-fill-color: #69f0ae !important; font-weight: bold !important; text-shadow: 0 0 6px rgba(105, 240, 174, 0.45) !important; }
+		.sr-chatbox__sender.spkmod-gm-sender { color: #ffa726 !important; -webkit-text-fill-color: #ffa726 !important; font-weight: bold !important; text-shadow: 0 0 6px rgba(255, 167, 38, 0.45) !important; }
 		.sr-chatbox__body-text.spkmod-clickable-line { cursor: pointer !important; pointer-events: auto !important;}
 		#spkmod-footer {
 			border-top: 1px solid #DDD;
@@ -5313,10 +6919,123 @@ document.head.appendChild(buildElement(
 			from { opacity: 0.7; transform: scale(0.98); }
 			to { opacity: 1.0; transform: scale(1.02); }
 		}
-		#spkmod-hud.hidden, .hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden, #spkmod-stats-modal.hidden, #spkmod-effects-modal.hidden, #spkmod-edits-modal.hidden, #spkmod-quests-modal.hidden {
+		#spkmod-hud.hidden, .hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden, #spkmod-stats-modal.hidden, #spkmod-effects-modal.hidden, #spkmod-edits-modal.hidden, #spkmod-quests-modal.hidden, #spkmod-jukebox-modal.hidden {
 			display: none !important;
 		}
 		
+		#spkmod-hud, #spkmod-drag-btn, .spkmod-quick-btn,
+		#spkmod-settings-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal,
+		#spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal,
+		#spkmod-edits-modal, #spkmod-quests-modal, #spkmod-map-modal,
+		#spkmod-jukebox-modal, .spkmod-music-modal {
+			z-index: 2147483600 !important;
+		}
+
+		#spkmod-emoji-picker-v2, #spkmod-emoji-picker,
+		#spkmod-custom-dialog-backdrop,
+		#spkmod-poll-modal, #spkmod-telemetry-modal, #spkmod-decalogue-tos {
+			z-index: 2147483646 !important;
+		}
+
+		#spkmod-global-emoji-preview,
+		#spkmod-jukebox-thumb-preview,
+		#spkmod-jukebox-hint-toast {
+			z-index: 2147483647 !important;
+		}
+
+		#spkmod-jukebox-modal:not(.spkmod-mini-mode) {
+			min-width: 340px;
+			min-height: 220px;
+		}
+		#spkmod-jukebox-modal.spkmod-mini-mode {
+			width: 290px !important;
+			height: 42px !important;
+			min-width: 0 !important;
+			max-width: 290px !important;
+			min-height: 0 !important;
+			max-height: 42px !important;
+			padding: 4px 10px !important;
+			border-radius: 24px !important;
+			flex-direction: row !important;
+			align-items: center !important;
+			gap: 8px !important;
+			overflow: hidden !important;
+		}
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-header,
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-seek-row,
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-drawer,
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-vol-box,
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-shuffle,
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-repeat,
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-author,
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-heart-btn,
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-resize-handle {
+			display: none !important;
+		}
+		#spkmod-jukebox-resize-handle:hover svg path {
+			stroke: #ffc94a;
+			opacity: 1;
+		}
+
+		#spkmod-jukebox-drawer::-webkit-scrollbar {
+			width: 6px;
+		}
+		#spkmod-jukebox-drawer::-webkit-scrollbar-track {
+			background: rgba(0, 0, 0, 0.25);
+			border-radius: 4px;
+		}
+		#spkmod-jukebox-drawer::-webkit-scrollbar-thumb {
+			background: rgba(232, 184, 75, 0.45);
+			border-radius: 4px;
+		}
+		#spkmod-jukebox-drawer::-webkit-scrollbar-thumb:hover {
+			background: rgba(232, 184, 75, 0.75);
+		}
+		#spkmod-jukebox-bolpop-msg mark {
+			background: #e8b84b;
+			color: #1a1424;
+			padding: 1px 5px;
+			border-radius: 4px;
+			font-weight: 700;
+			display: inline-block;
+			margin-top: 4px;
+		}
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-thumb {
+			width: 28px !important;
+			height: 28px !important;
+			border-radius: 50% !important;
+		}
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-track-info {
+			padding: 0 !important;
+			background: transparent !important;
+			flex: 1 !important;
+			min-width: 0 !important;
+			min-height: 0 !important;
+		}
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-title {
+			font-size: 11px !important;
+		}
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-controls-row {
+			padding: 0 !important;
+			gap: 4px !important;
+			flex-shrink: 0 !important;
+		}
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-controls-row button {
+			width: 26px !important;
+			height: 26px !important;
+			font-size: 12px !important;
+		}
+		#spkmod-jukebox-modal.spkmod-mini-mode #spkmod-jukebox-play {
+			width: 30px !important;
+			height: 30px !important;
+			font-size: 14px !important;
+		}
+		#spkmod-jukebox-modal.spkmod-mini-mode .spkmod-mini-expand-btn {
+			display: flex !important;
+		}
+		.spkmod-mini-expand-btn {
+			display: none;
+		}
 		
 		body.spkmod-ui-hidden #spkmod-hud,
 		body.spkmod-ui-hidden #spkmod-pq,
@@ -5331,6 +7050,7 @@ document.head.appendChild(buildElement(
 		body.spkmod-ui-hidden #spkmod-effects-modal,
 		body.spkmod-ui-hidden #spkmod-edits-modal,
 		body.spkmod-ui-hidden #spkmod-quests-modal,
+		body.spkmod-ui-hidden #spkmod-jukebox-modal,
 		body.spkmod-ui-hidden #spkmod-info-modal,
 		body.spkmod-ui-hidden #spkmod-translate-picker {
 			display: none !important;
@@ -6370,7 +8090,6 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: (typeof isGameMuted === "function" && isGameMuted()) ? "🔇" : "🔊",
-					title: (typeof isGameMuted === "function" && isGameMuted()) ? (t("unmuteBtnTooltip") || "Unmute Game") : (t("muteBtnTooltip") || "Mute Game"),
 					onclick: _ => {
 						if (typeof toggleGameMute === "function") toggleGameMute();
 					}
@@ -6380,7 +8099,6 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;" + (window.lunInvisibilityActive ? " background: #5a2e2e !important;" : ""),
 					innerText: "👻",
-					title: t("invisibleBtn") || "Invisible Self",
 					onclick: _ => {
 						if (window.spkmodToggleInvisibility) window.spkmodToggleInvisibility();
 					}
@@ -6390,7 +8108,6 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "⚙️",
-					title: t("settingsBtnTooltip"),
 					onclick: _ => {
 						toggleSettingsModal();
 					}
@@ -6400,7 +8117,6 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "⌨️",
-					title: t("hotkeysModalTitle") || "Hotkeys",
 					onclick: _ => {
 						toggleHotkeysModal();
 					}
@@ -6410,7 +8126,6 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "📰",
-					title: t("patchNotesBtnTooltip"),
 					onclick: _ => {
 						togglePatchNotesModal();
 					}
@@ -6419,18 +8134,21 @@ document.body.appendChild(
 					id: "spkmod-bbs-btn",
 					className: "spkmod-panel-btn",
 					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer; position: relative;",
-					innerText: "💬",
-					title: t("bbsBtnTooltip") || "SpeakiBBS",
 					onclick: _ => {
 						if (typeof toggleBbsModal === "function") toggleBbsModal();
 					}
-				}),
+				}, [
+					buildElement("span", {
+						id: "spkmod-bbs-btn-icon",
+						style: "display: inline-flex; align-items: center; justify-content: center; pointer-events: none;",
+						innerHTML: renderSpkmodInlineEmojis(":t_280:", "height: 20px; width: 20px; object-fit: contain; display: block; pointer-events: none; user-select: none;")
+					})
+				]),
 				lunPanelElements.infoBtn = buildElement("button", {
 					id: "spkmod-info-btn",
 					className: "spkmod-panel-btn",
 					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "ℹ️",
-					title: t("infoBtnTooltip") === "infoBtnTooltip" ? "Info & News" : t("infoBtnTooltip"),
 					onclick: _ => {
 						toggleInfoModal();
 					}
@@ -6439,12 +8157,11 @@ document.body.appendChild(
 			buildElement("div", {
 				className: "spkmod-panel-cat"
 			}, [
-				buildElement("button", {
+				lunPanelElements.minigameBtn = buildElement("button", {
 					id: "spkmod-minigame-btn",
 					className: "spkmod-panel-btn",
 					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "🎮",
-					title: t("eventInfoBtnTooltip"),
 					onclick: () => {
 						lunHudElements.eventModal.classList.add("hidden");
 						window.gameState.onNpcInteract("minigame")
@@ -6455,7 +8172,6 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "🎉",
-					title: t("eventInfoBtnTooltip"),
 					onclick: _ => {
 						toggleEventModal();
 					}
@@ -6465,7 +8181,6 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "🗺️",
-					title: t("mapModalTitle"),
 					onclick: _ => {
 						toggleMapModal();
 					}
@@ -6475,7 +8190,6 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
 					innerText: "⏱️",
-					title: t("statsBtnTooltip"),
 					onclick: _ => {
 						toggleStatsModal();
 					}
@@ -6485,9 +8199,18 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer; position: relative;",
 					innerText: "📋",
-					title: t("questsBtnTooltip") || "Quests Checklist",
 					onclick: _ => {
 						if (typeof toggleQuestsModal === "function") toggleQuestsModal();
+					}
+				}),
+				lunPanelElements.jukeboxBtn = buildElement("button", {
+					id: "spkmod-jukebox-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer;",
+					innerText: "🎵",
+					title: (typeof getJukeboxText === "function" ? getJukeboxText("jukeboxBtnTooltip") : (typeof t === "function" ? t("jukeboxBtnTooltip") : null)) || "Monatium Radio Station (Alt+M)",
+					onclick: _ => {
+						if (typeof toggleMusicPlayer === "function") toggleMusicPlayer();
 					}
 				}),
 				lunPanelElements.dragBtn = buildElement("button", {
@@ -6495,7 +8218,6 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: grab;",
 					innerText: "⚓",
-					title: t("dragMenuTooltip"),
 					ondblclick: (e) => {
 						const isLocked = lunHudElements.hud.dataset.spkmodLocked === "true";
 						if (isLocked) {
@@ -6509,12 +8231,18 @@ document.body.appendChild(
 							e.target.style.cursor = "not-allowed";
 							if (window.localStorage) localStorage.setItem("spkmod-hud-locked", "true");
 						}
+						if (typeof updateHudIconTooltips === "function") {
+							updateHudIconTooltips();
+						}
 					}
 				})
 			])
 		])
 	])
 );
+if (typeof updateHudIconTooltips === "function") {
+	updateHudIconTooltips();
+}
 
 
 let lastPinnedQuestTap = 0;
@@ -6693,6 +8421,32 @@ document.body.appendChild(
 						onchange: e => {
 							setFriendChatHighlightEnabled(e.target.checked);
 							if (e.target.checked) fetchFriendsList(true);
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.partyChatToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: (function() { const s = t("partyChatToggleLabel"); return (!s || s === "partyChatToggleLabel") ? "Highlight Party Members in Chat" : s; })()
+					}),
+					lunPanelElements.partyChatToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunPartyChatHighlightEnabled,
+						onchange: e => {
+							setPartyChatHighlightEnabled(e.target.checked);
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.chatRandomColorsLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: (function() { const s = t("chatRandomColorsToggleLabel"); return (!s || s === "chatRandomColorsToggleLabel") ? "Colorize Player Messages" : s; })()
+					}),
+					lunPanelElements.chatRandomColorsToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunChatRandomColorsEnabled,
+						onchange: e => {
+							setChatRandomColorsEnabled(e.target.checked);
 						}
 					})
 				]),
@@ -7215,6 +8969,8 @@ let lunEmojiTab = "standard";
 const LUN_EMOJIS = ["👍","👎","👋","🙏","👏","🙌","🤝","😊","😂","🤣","😍","😎","🤔","😅","😭","🥺","🔥","💯","❤️","✨","🎉","💀","👀","🗣️","💰","💎","🟣","⭐","❌","✅", "💪", "🤷", "🤦", "🎈", "🎂", "🥳", "🙄", "🤐", "🥵", "🥶", "🤯", "😴", "🤮", "🤡", "👻", "👽", "💩", "🤖", "🎃"];
 let lunEmojiFreq = JSON.parse((window.localStorage && localStorage.getItem("spkmod-emoji-freq")) || "{}");
 let lunEmojiFavorites = JSON.parse((window.localStorage && localStorage.getItem("spkmod-emoji-fav")) || "[]");
+let lunEmojiSize = parseInt((window.localStorage && localStorage.getItem("spkmod-emoji-size")) || "35", 10);
+if (isNaN(lunEmojiSize) || lunEmojiSize < 20 || lunEmojiSize > 80) lunEmojiSize = 35;
 
 function toggleFavoriteEmoji(id) {
     if (lunEmojiFavorites.includes(id)) {
@@ -7249,6 +9005,11 @@ function loadEmojiCatalogFile(url, targetObj) {
         if (typeof renderBbsPosts === "function" && typeof lunHudElements !== "undefined" && lunHudElements && lunHudElements.bbsModal && !lunHudElements.bbsModal.classList.contains("hidden")) {
             renderBbsPosts();
         }
+        if (typeof updateBbsI18n === "function") updateBbsI18n();
+        const bbsIconSpan = document.getElementById("spkmod-bbs-btn-icon");
+        if (bbsIconSpan && typeof renderSpkmodInlineEmojis === "function") {
+            bbsIconSpan.innerHTML = renderSpkmodInlineEmojis(":t_280:", "height: 20px; width: 20px; object-fit: contain; display: block; pointer-events: none; user-select: none;");
+        }
     };
     fetch(url).then(res => {
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -7272,6 +9033,178 @@ loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/
 
 var lunTrickcal3Emojis = {};
 loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis4.txt", lunTrickcal3Emojis);
+
+function renderSpkmodInlineEmojis(text, imgStyle) {
+    if (!text || typeof text !== "string") return "";
+    const escaped = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    const spkmodAllEmojis = {
+        t_280: "https://i.imgur.com/tCrOOr5.png",
+        SPK_88: "https://i.imgur.com/6H1r2Vz.gif",
+        ...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}),
+        ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}),
+        ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}),
+        ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {})
+    };
+    const styleAttr = imgStyle || "height: 1.35em; width: 1.35em; object-fit: contain; vertical-align: middle; margin-right: 2px; display: inline-block; pointer-events: none; user-select: none;";
+    return escaped.replace(/:([a-zA-Z0-9_+-]+):/g, (match, ename) => {
+        const eurl = spkmodAllEmojis[ename];
+        if (!eurl) return match;
+        return `<img src="${eurl}" alt=":${ename}:" draggable="false" style="${styleAttr}" onerror="this.onerror=null; this.style.opacity='0.4';">`;
+    });
+}
+window.renderSpkmodInlineEmojis = renderSpkmodInlineEmojis;
+
+function spkmodIsTouchOrMobile() {
+    if (typeof spkmodIsMobile === "function" && spkmodIsMobile()) return true;
+    if (typeof window.speakiMobile !== "undefined") return true;
+    if (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches && (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0)) return true;
+    return false;
+}
+
+function ensureSpkmodRichTooltipEl() {
+    let el = document.getElementById("spkmod-rich-tooltip");
+    if (!el && document.body) {
+        el = document.createElement("div");
+        el.id = "spkmod-rich-tooltip";
+        el.style.cssText = "position: fixed; z-index: 2147483647; pointer-events: none; display: none; align-items: center; gap: 5px; background: rgba(15, 23, 42, 0.96); color: #f8fafc; border: 1px solid var(--spkmod-accent, #ffd54a); border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.65); white-space: nowrap; transform: translate(-50%, -100%);";
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
+function setSpkmodRichTooltip(elem, rawText) {
+    if (!elem) return;
+    elem.removeAttribute("title");
+    elem.dataset.spkRichTooltip = rawText || "";
+    if (!elem.__spkRichTooltipBound) {
+        elem.__spkRichTooltipBound = true;
+        const showTip = (e) => {
+            // Never display hover tooltips on mobile or touch devices
+            if (spkmodIsTouchOrMobile()) return;
+            if (e && e.pointerType === "touch") return;
+
+            const txt = elem.dataset.spkRichTooltip;
+            if (!txt) return;
+            const tip = ensureSpkmodRichTooltipEl();
+            if (!tip) return;
+            tip.innerHTML = renderSpkmodInlineEmojis(txt, "height: 16px; width: 16px; object-fit: contain; vertical-align: middle; display: inline-block; pointer-events: none; user-select: none;");
+            tip.style.display = "inline-flex";
+            const rect = elem.getBoundingClientRect();
+            let left = rect.left + rect.width / 2;
+            let top = rect.top - 6;
+            tip.style.transform = "translate(-50%, -100%)";
+            if (top < 30) {
+                top = rect.bottom + 6;
+                tip.style.transform = "translate(-50%, 0)";
+            }
+            const tipWidth = tip.offsetWidth || 80;
+            left = Math.max(tipWidth / 2 + 6, Math.min(window.innerWidth - tipWidth / 2 - 6, left));
+            tip.style.left = left + "px";
+            tip.style.top = top + "px";
+        };
+        const hideTip = () => {
+            const tip = document.getElementById("spkmod-rich-tooltip");
+            if (tip) tip.style.display = "none";
+        };
+        elem.addEventListener("mouseenter", showTip);
+        elem.addEventListener("mouseleave", hideTip);
+        elem.addEventListener("pointerdown", hideTip);
+        elem.addEventListener("touchstart", hideTip, { passive: true });
+        elem.addEventListener("blur", hideTip);
+    }
+}
+window.setSpkmodRichTooltip = setSpkmodRichTooltip;
+
+function updateHudIconTooltips() {
+    if (typeof setSpkmodRichTooltip !== "function" || typeof lunPanelElements === "undefined" || !lunPanelElements) return;
+
+    // 1. Mute button
+    if (lunPanelElements.muteBtn) {
+        const muted = typeof isGameMuted === "function" && isGameMuted();
+        const icon = muted ? "🔇" : "🔊";
+        const tip = muted ? (t("unmuteBtnTooltip") || "Unmute Game") : (t("muteBtnTooltip") || "Mute Game");
+        setSpkmodRichTooltip(lunPanelElements.muteBtn, icon + " " + tip);
+    }
+
+    // 2. Invisible button
+    if (lunPanelElements.invisibleBtn) {
+        const raw = t("invisibleBtn") || "Invisible Self";
+        const clean = raw.replace(/^👻\s*/, '');
+        setSpkmodRichTooltip(lunPanelElements.invisibleBtn, "👻 " + clean);
+    }
+
+    // 3. Settings button
+    if (lunPanelElements.settingsBtn) {
+        setSpkmodRichTooltip(lunPanelElements.settingsBtn, "⚙️ " + (t("settingsBtnTooltip") || "Settings (F2)"));
+    }
+
+    // 4. Hotkeys button
+    if (lunPanelElements.hotkeysBtn) {
+        setSpkmodRichTooltip(lunPanelElements.hotkeysBtn, "⌨️ " + (t("hotkeysModalTitle") || "Hotkeys"));
+    }
+
+    // 5. Patch Notes button
+    if (lunPanelElements.patchNotesBtn) {
+        setSpkmodRichTooltip(lunPanelElements.patchNotesBtn, "📰 " + (t("patchNotesBtnTooltip") || "Game Patch Notes"));
+    }
+
+    // 6. BBS / DarkNet button
+    if (lunPanelElements.bbsBtn) {
+        const rawTip = t("bbsBtnTooltip");
+        const tipStr = (!rawTip || rawTip === "bbsBtnTooltip") ? ":t_280: DarkNet" : (rawTip.includes(":t_280:") ? rawTip : ":t_280: " + rawTip);
+        setSpkmodRichTooltip(lunPanelElements.bbsBtn, tipStr);
+    }
+
+    // 7. Info button
+    if (lunPanelElements.infoBtn) {
+        const tip = t("infoBtnTooltip");
+        const clean = (!tip || tip === "infoBtnTooltip") ? "Info & News" : tip;
+        setSpkmodRichTooltip(lunPanelElements.infoBtn, "ℹ️ " + clean.replace(/^ℹ️\s*/, ''));
+    }
+
+    // 8. Minigame button
+    if (lunPanelElements.minigameBtn) {
+        setSpkmodRichTooltip(lunPanelElements.minigameBtn, "🎮 " + (t("eventMinigameTitle") || "Minigame"));
+    }
+
+    // 9. Event button
+    if (lunPanelElements.eventBtn) {
+        setSpkmodRichTooltip(lunPanelElements.eventBtn, "🎉 " + (t("eventInfoBtnTooltip") || "Event Info"));
+    }
+
+    // 10. Map button
+    if (lunPanelElements.mapBtn) {
+        setSpkmodRichTooltip(lunPanelElements.mapBtn, "🗺️ " + (t("mapModalTitle") || "World Map"));
+    }
+
+    // 11. Stats button
+    if (lunPanelElements.statsBtn) {
+        setSpkmodRichTooltip(lunPanelElements.statsBtn, "⏱️ " + (t("statsBtnTooltip") || "Session Stats & Tracker"));
+    }
+
+    // 12. Quests button
+    if (lunPanelElements.questsBtn) {
+        setSpkmodRichTooltip(lunPanelElements.questsBtn, "📋 " + (t("questsBtnTooltip") || "Quests Checklist"));
+    }
+
+    // 13. Jukebox button
+    if (lunPanelElements.jukeboxBtn) {
+        const tip = (typeof getJukeboxText === "function" ? getJukeboxText("jukeboxBtnTooltip") : t("jukeboxBtnTooltip")) || "Monatium Radio Station (Alt+M)";
+        setSpkmodRichTooltip(lunPanelElements.jukeboxBtn, "🎵 " + tip);
+    }
+
+    // 14. Drag / Lock button
+    if (lunPanelElements.dragBtn) {
+        const isLocked = lunHudElements && lunHudElements.hud && lunHudElements.hud.dataset.spkmodLocked === "true";
+        const tip = t("dragMenuTooltip") || "Drag Menu";
+        setSpkmodRichTooltip(lunPanelElements.dragBtn, (isLocked ? "🔒 " : "⚓ ") + tip);
+    }
+}
+window.updateHudIconTooltips = updateHudIconTooltips;
 
 function parseCustomEmojisToHtml(html) {
     if (!html || typeof html !== "string") return html;
@@ -7341,7 +9274,7 @@ function createSpeakiAvatarController({ document, store, getPlayer, getCatalog, 
 		.sr-player-card__portrait-wrap > .sr-player-card__class-badge { z-index:2; }
 		.spkmod-avatar-button:focus-visible { outline:3px solid #ffd54a; outline-offset:3px; }
 		.spkmod-avatar-button img, .spkmod-avatar-preview img, .spkmod-avatar-choice img { display:block; width:100%; height:100%; object-fit:cover; object-position:center; border-radius:50%; }
-		.spkmod-avatar-dialog { box-sizing:border-box; width:min(480px, calc(100vw - 28px)); max-height:85vh; padding:20px; color:#f8fafc; background:#172033; border:1px solid #475569; border-radius:16px; font:14px/1.5 sans-serif; box-shadow:0 20px 60px #0008; }
+		.spkmod-avatar-dialog { box-sizing:border-box; width:min(480px, calc(100vw - 28px)); max-height:85vh; padding:20px; color:#f8fafc; background:#172033; border:1px solid #475569; border-radius:16px; font:14px/1.5 sans-serif; box-shadow:0 20px 60px #0008; overscroll-behavior:contain; overflow-y:auto; }
 		.spkmod-avatar-dialog::backdrop { background:#0008; }
 		.spkmod-avatar-dialog h2 { margin:0; font-size:20px; }
 		.spkmod-avatar-dialog p { color:#bac6d8; margin:8px 0 16px; }
@@ -7353,7 +9286,7 @@ function createSpeakiAvatarController({ document, store, getPlayer, getCatalog, 
 		.spkmod-avatar-tabs, .spkmod-avatar-actions { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
 		.spkmod-avatar-dialog button[aria-pressed="true"] { border-color:#ffd54a; background:#51462b; }
 		.spkmod-avatar-search { box-sizing:border-box; width:100%; padding:9px 12px; border-radius:8px; border:1px solid #52627b; background:#0f172a; color:inherit; }
-		.spkmod-avatar-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(56px,1fr)); gap:10px; max-height:240px; overflow-y:auto; padding:6px; margin-top:12px; }
+		.spkmod-avatar-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(56px,1fr)); gap:10px; max-height:240px; overflow-y:auto; padding:6px; margin-top:12px; overscroll-behavior:contain; }
 		.spkmod-avatar-grid .spkmod-avatar-choice { padding:0; width:56px; height:56px; border-radius:50%; overflow:hidden; border:2px solid transparent; background:#334155; }
 		.spkmod-avatar-status { min-height:1.5em; color:#fcd34d; margin-top:8px; }
 		.spkmod-avatar-actions { justify-content:flex-end; margin-bottom:0; }
@@ -7493,6 +9426,20 @@ function createSpeakiAvatarController({ document, store, getPlayer, getCatalog, 
 			}
 		};
 		modal.addEventListener("cancel", e => { e.preventDefault(); close(); });
+		// Prevent wheel/touch inside the avatar dialog from zooming the game camera
+		const scrollDelta = (e) => (e.deltaMode === 1 ? e.deltaY * 33 : (e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY));
+		modal.addEventListener("wheel", (e) => {
+			e.stopPropagation();
+			if (grid && e.target !== grid && !grid.contains(e.target)) {
+				grid.scrollTop += scrollDelta(e);
+			}
+		}, { passive: true });
+		modal.addEventListener("touchmove", (e) => e.stopPropagation(), { passive: true });
+		modal.addEventListener("mousedown", (e) => e.stopPropagation());
+		modal.addEventListener("pointerdown", (e) => e.stopPropagation());
+		grid.addEventListener("wheel", (e) => e.stopPropagation(), { passive: true });
+		grid.addEventListener("touchmove", (e) => e.stopPropagation(), { passive: true });
+
 		// Keep typing and Escape inside the dialog rather than triggering game/mod shortcuts.
 		modal.addEventListener("keydown", e => {
 			e.stopPropagation();
@@ -7574,7 +9521,22 @@ function toggleEmojiPicker(anchorBtn) {
     const isMobile = typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android/i.test(navigator.userAgent));
     const defaultW = isMobile ? "360px" : "420px";
     const defaultH = isMobile ? "320px" : "420px";
-    lunEmojiPickerPanel.style.cssText = `position: fixed; width: ${defaultW}; height: ${defaultH}; max-width: 95vw; max-height: 80vh; min-width: 200px; min-height: 150px; resize: both; overflow: hidden; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 9999999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;`;
+    lunEmojiPickerPanel.style.cssText = `position: fixed; width: ${defaultW}; height: ${defaultH}; max-width: 95vw; max-height: 80vh; min-width: 200px; min-height: 150px; resize: both; overflow: hidden; background: rgba(20, 20, 20, 0.95); border: 1px solid #555; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 2147483646 !important; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;`;
+    lunEmojiPickerPanel.style.setProperty("z-index", "2147483646", "important");
+    const emojiSizeKey = "spkmod-size-spkmod-emoji-picker-v2";
+
+    try {
+        const savedSize = window.localStorage && localStorage.getItem(emojiSizeKey);
+        if (savedSize) {
+            const parsedSize = JSON.parse(savedSize);
+            const sw = parseInt(parsedSize && parsedSize.width, 10);
+            const sh = parseInt(parsedSize && parsedSize.height, 10);
+            if (!isNaN(sw) && !isNaN(sh)) {
+                lunEmojiPickerPanel.style.width = Math.max(200, Math.min(Math.round(window.innerWidth * 0.95), sw)) + "px";
+                lunEmojiPickerPanel.style.height = Math.max(150, Math.min(Math.round(window.innerHeight * 0.8), sh)) + "px";
+            }
+        }
+    } catch (_) {}
     
     if (!(window.localStorage && localStorage.getItem("spkmod-pos-spkmod-emoji-picker-v2"))) {
         if (isMobile) {
@@ -7617,6 +9579,24 @@ function toggleEmojiPicker(anchorBtn) {
 
     renderEmojiGrid();
     document.body.appendChild(lunEmojiPickerPanel);
+    lunEmojiPickerPanel.style.setProperty("z-index", "2147483646", "important");
+
+    if (typeof ResizeObserver !== "undefined" && window.localStorage) {
+        const panelEl = lunEmojiPickerPanel;
+        const cs = getComputedStyle(panelEl);
+        let lastW = Math.round(parseFloat(cs.width)) || 0;
+        let lastH = Math.round(parseFloat(cs.height)) || 0;
+        const sizeObserver = new ResizeObserver(() => {
+            if (!panelEl.isConnected) { sizeObserver.disconnect(); return; }
+            const c = getComputedStyle(panelEl);
+            const w = Math.round(parseFloat(c.width));
+            const h = Math.round(parseFloat(c.height));
+            if (!w || !h || (w === lastW && h === lastH)) return;
+            lastW = w; lastH = h;
+            try { localStorage.setItem(emojiSizeKey, JSON.stringify({ width: w, height: h })); } catch (_) {}
+        });
+        sizeObserver.observe(panelEl);
+    }
     
     const closeHandler = (e) => {
         if (!lunEmojiPickerPanel) return;
@@ -7742,7 +9722,41 @@ function renderEmojiGrid() {
     btnFav.onclick = (e) => { lunEmojiTab = 'fav'; renderEmojiGrid(); };
     header.appendChild(btnFav);
 
+    const btnSizePlus = document.createElement("button");
+    btnSizePlus.innerText = "+";
+    btnSizePlus.title = t("emojiSizeIncreaseTooltip") || "Increase emoji size (+)";
+    btnSizePlus.style.cssText = `flex: 0 0 22px; width: 22px; padding: 2px 0; cursor: ${lunEmojiSize >= 80 ? 'default' : 'pointer'}; border-radius: 4px; background: rgba(255,255,255,0.08); border: 1px solid #555; color: #fff; font-size: 13px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; line-height: 1; user-select: none; opacity: ${lunEmojiSize >= 80 ? '0.4' : '1'};`;
+    btnSizePlus.onmouseenter = () => { if (lunEmojiSize < 80) btnSizePlus.style.background = "rgba(255,255,255,0.2)"; };
+    btnSizePlus.onmouseleave = () => { if (lunEmojiSize < 80) btnSizePlus.style.background = "rgba(255,255,255,0.08)"; };
+    btnSizePlus.onclick = (e) => {
+        e.stopPropagation();
+        if (lunEmojiSize >= 80) return;
+        lunEmojiSize = Math.min(80, (lunEmojiSize || 35) + 5);
+        if (window.localStorage) localStorage.setItem("spkmod-emoji-size", String(lunEmojiSize));
+        renderEmojiGrid();
+    };
+
+    const btnSizeMinus = document.createElement("button");
+    btnSizeMinus.innerText = "−";
+    btnSizeMinus.title = t("emojiSizeDecreaseTooltip") || "Decrease emoji size (−)";
+    btnSizeMinus.style.cssText = `flex: 0 0 22px; width: 22px; padding: 2px 0; cursor: ${lunEmojiSize <= 20 ? 'default' : 'pointer'}; border-radius: 4px; background: rgba(255,255,255,0.08); border: 1px solid #555; color: #fff; font-size: 13px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; line-height: 1; user-select: none; opacity: ${lunEmojiSize <= 20 ? '0.4' : '1'};`;
+    btnSizeMinus.onmouseenter = () => { if (lunEmojiSize > 20) btnSizeMinus.style.background = "rgba(255,255,255,0.2)"; };
+    btnSizeMinus.onmouseleave = () => { if (lunEmojiSize > 20) btnSizeMinus.style.background = "rgba(255,255,255,0.08)"; };
+    btnSizeMinus.onclick = (e) => {
+        e.stopPropagation();
+        if (lunEmojiSize <= 20) return;
+        lunEmojiSize = Math.max(20, (lunEmojiSize || 35) - 5);
+        if (window.localStorage) localStorage.setItem("spkmod-emoji-size", String(lunEmojiSize));
+        renderEmojiGrid();
+    };
+
+    header.appendChild(btnSizePlus);
+    header.appendChild(btnSizeMinus);
+
     grid.innerHTML = "";
+    const curCustomSize = lunEmojiSize || 35;
+    const curStdSize = Math.max(16, curCustomSize - 4);
+    const curStdFontSize = Math.max(12, Math.round(curCustomSize * 0.55));
     
     if (lunEmojiTab === 'fav') {
         if (lunEmojiFavorites.length === 0) {
@@ -7765,7 +9779,7 @@ function renderEmojiGrid() {
                     btn.title = `:${name}:`;
                     btn.className = "spkmod-custom-emoji";
                     btn.setAttribute("data-url", url);
-                    btn.style.cssText = "width: 35px; height: 35px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; padding: 2px;";
+                    btn.style.cssText = `width: ${curCustomSize}px; height: ${curCustomSize}px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; padding: 2px;`;
                     btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
                     btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
                     const img = document.createElement("img");
@@ -7777,7 +9791,7 @@ function renderEmojiGrid() {
                     };
                 } else {
                     btn.innerText = id;
-                    btn.style.cssText = "width: 31px; height: 31px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: 19px; display: flex; align-items: center; justify-content: center; transition: background 0.1s;";
+                    btn.style.cssText = `width: ${curStdSize}px; height: ${curStdSize}px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: ${curStdFontSize}px; display: flex; align-items: center; justify-content: center; transition: background 0.1s;`;
                     btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
                     btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
                     btn.onclick = (e) => {
@@ -7798,7 +9812,7 @@ function renderEmojiGrid() {
         sorted.forEach(emoji => {
             const btn = document.createElement("button");
             btn.innerText = emoji;
-            btn.style.cssText = "width: 31px; height: 31px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: 19px; display: flex; align-items: center; justify-content: center; transition: background 0.1s;";
+            btn.style.cssText = `width: ${curStdSize}px; height: ${curStdSize}px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: ${curStdFontSize}px; display: flex; align-items: center; justify-content: center; transition: background 0.1s;`;
             btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
             btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
             btn.onclick = (e) => {
@@ -7820,7 +9834,7 @@ function renderEmojiGrid() {
             btn.title = `:${name}:`;
             btn.className = "spkmod-custom-emoji";
             btn.setAttribute("data-url", url);
-            btn.style.cssText = "width: 35px; height: 35px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; padding: 2px;";
+            btn.style.cssText = `width: ${curCustomSize}px; height: ${curCustomSize}px; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; padding: 2px;`;
             btn.onmouseenter = () => btn.style.background = "rgba(255,255,255,0.2)";
             btn.onmouseleave = () => btn.style.background = "rgba(255,255,255,0.1)";
             
@@ -7949,7 +9963,7 @@ window.showPollModal = function(forceLang) {
 
     const overlay = document.createElement("div");
     overlay.id = "spkmod-poll-modal";
-    overlay.style.cssText = "position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.93); z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; color: white;";
+    overlay.style.cssText = "position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.93); z-index: 2147483646 !important; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; color: white;";
 
     overlay.addEventListener("wheel", (e) => { e.stopPropagation(); }, { passive: true });
     overlay.addEventListener("touchmove", (e) => { e.stopPropagation(); }, { passive: true });
@@ -8344,7 +10358,7 @@ window.showTelemetryConsentModal = function(forceLang) {
 
     const overlay = document.createElement("div");
     overlay.id = "spkmod-telemetry-modal";
-    overlay.style.cssText = "position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.90); z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; color: white;";
+    overlay.style.cssText = "position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.90); z-index: 2147483646 !important; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; color: white;";
 
     overlay.addEventListener("wheel", (e) => { e.stopPropagation(); }, { passive: true });
     overlay.addEventListener("touchmove", (e) => { e.stopPropagation(); }, { passive: true });
@@ -8564,7 +10578,7 @@ window.checkDecalogueToS = function(forceLang) {
 
     const overlay = document.createElement("div");
     overlay.id = "spkmod-decalogue-tos";
-    overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.95); z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; color: white;";
+    overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.95); z-index: 2147483646 !important; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; color: white;";
 
     const content = document.createElement("div");
     content.style.cssText = "background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);";
@@ -8840,6 +10854,8 @@ function renderInfoUI() {
 }
 
 // ============================================================================
+
+
 // FLOATING ACTION BUTTONS (Right-Click to Summon / Clean / LocalStorage Saved)
 // ============================================================================
 
@@ -9024,7 +11040,14 @@ function spkmodSpawnFloatingButton(sourceBtn, initialX, initialY, isRestoring = 
 
     // Text Label Container
     const labelSpan = document.createElement("span");
-    labelSpan.innerText = (sourceBtn.innerText || sourceBtn.textContent || "Action").trim();
+    const rawLabelText = (sourceBtn.innerText || sourceBtn.textContent || "").trim();
+    if (rawLabelText) {
+        labelSpan.innerText = rawLabelText;
+    } else if (sourceBtn.innerHTML) {
+        labelSpan.innerHTML = sourceBtn.innerHTML;
+    } else {
+        labelSpan.innerText = "Action";
+    }
     floatingBtn.appendChild(labelSpan);
 
     // Subtle drag/pin badge
@@ -9036,7 +11059,12 @@ function spkmodSpawnFloatingButton(sourceBtn, initialX, initialY, isRestoring = 
     // Dynamic state synchronizer: keep label and style updated in real-time
     const observer = new MutationObserver(() => {
         if (sourceBtn) {
-            labelSpan.innerText = (sourceBtn.innerText || sourceBtn.textContent || "Action").trim();
+            const updatedText = (sourceBtn.innerText || sourceBtn.textContent || "").trim();
+            if (updatedText) {
+                labelSpan.innerText = updatedText;
+            } else if (sourceBtn.innerHTML) {
+                labelSpan.innerHTML = sourceBtn.innerHTML;
+            }
             if (sourceBtn.style.color) {
                 floatingBtn.style.color = sourceBtn.style.color;
             }
@@ -9098,6 +11126,9 @@ function spkmodSpawnFloatingButton(sourceBtn, initialX, initialY, isRestoring = 
         }
 
         if (!isDragging && e.button === 0) {
+            if (spkmodTouchPinTriggered || floatingBtn.__spkmodDismissed || !floatingBtn.parentNode) {
+                return;
+            }
             // Click animation
             floatingBtn.style.transform = "scale(0.92)";
             setTimeout(() => {
@@ -9146,6 +11177,7 @@ function spkmodSpawnFloatingButton(sourceBtn, initialX, initialY, isRestoring = 
 
 function spkmodRemoveFloatingButton(floatingBtn) {
     if (!floatingBtn) return;
+    floatingBtn.__spkmodDismissed = true;
     if (floatingBtn.__spkmodObserver) {
         floatingBtn.__spkmodObserver.disconnect();
         floatingBtn.__spkmodObserver = null;
@@ -9183,26 +11215,155 @@ setTimeout(spkmodRestoreFloatingButtons, 600);
 setTimeout(spkmodRestoreFloatingButtons, 1800);
 setTimeout(spkmodRestoreFloatingButtons, 3500);
 
-// Global Double Right-Click Delegate for summoning buttons outside HUD
+// Mobile Touch "Hold to Pin" (Long-Press) Detector & Desktop Double Right-Click Delegate
+let spkmodTouchHoldTimer = null;
+let spkmodTouchHoldTarget = null;
+let spkmodTouchStartX = 0;
+let spkmodTouchStartY = 0;
+let spkmodTouchPinTriggered = false;
+
+function spkmodTriggerTouchPin(btn, clientX, clientY) {
+    if (!btn) return;
+    if (typeof lunDisableRightClickPinning !== "undefined" && lunDisableRightClickPinning) return;
+
+    spkmodTouchPinTriggered = true;
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+        try { navigator.vibrate(40); } catch (_) {}
+    }
+
+    if (btn.dataset.spkmodFloating === "true" || btn.classList.contains("spkmod-floating-button")) {
+        spkmodRemoveFloatingButton(btn);
+    } else {
+        spkmodSpawnFloatingButton(btn, clientX, clientY);
+    }
+
+    setTimeout(() => {
+        spkmodTouchPinTriggered = false;
+    }, 450);
+}
+
+document.addEventListener("touchstart", (e) => {
+    // Dismiss rich tooltip on mobile touch
+    const tip = document.getElementById("spkmod-rich-tooltip");
+    if (tip) tip.style.display = "none";
+
+    if (!e.touches || e.touches.length !== 1) {
+        if (spkmodTouchHoldTimer) {
+            clearTimeout(spkmodTouchHoldTimer);
+            spkmodTouchHoldTimer = null;
+            spkmodTouchHoldTarget = null;
+        }
+        return;
+    }
+
+    const touch = e.touches[0];
+    const btn = touch.target && touch.target.closest ? touch.target.closest("button.spkmod-panel-btn, #spkmod-effects-modal button, #spkmod-hud button, #spkmod-panel button, .spkmod-quick-btn, .spkmod-floating-button") : null;
+    if (!btn) {
+        if (spkmodTouchHoldTimer) {
+            clearTimeout(spkmodTouchHoldTimer);
+            spkmodTouchHoldTimer = null;
+            spkmodTouchHoldTarget = null;
+        }
+        return;
+    }
+
+    // Ignore window close buttons, drag handles, or emoji picker items
+    if (btn.innerText === "✕" || btn.id === "spkmod-drag-btn" || btn.id === "spkmod-close-btn" || btn.closest("#spkmod-emoji-picker")) return;
+
+    if (typeof lunDisableRightClickPinning !== "undefined" && lunDisableRightClickPinning) return;
+
+    spkmodTouchHoldTarget = btn;
+    spkmodTouchStartX = touch.clientX;
+    spkmodTouchStartY = touch.clientY;
+    spkmodTouchPinTriggered = false;
+
+    if (spkmodTouchHoldTimer) clearTimeout(spkmodTouchHoldTimer);
+    spkmodTouchHoldTimer = setTimeout(() => {
+        spkmodTouchHoldTimer = null;
+        if (spkmodTouchHoldTarget) {
+            spkmodTriggerTouchPin(spkmodTouchHoldTarget, spkmodTouchStartX, spkmodTouchStartY);
+            spkmodTouchHoldTarget = null;
+        }
+    }, 500);
+}, { passive: true, capture: true });
+
+document.addEventListener("touchmove", (e) => {
+    if (!spkmodTouchHoldTimer || !e.touches || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    const dist = Math.hypot(touch.clientX - spkmodTouchStartX, touch.clientY - spkmodTouchStartY);
+    if (dist > 12) {
+        clearTimeout(spkmodTouchHoldTimer);
+        spkmodTouchHoldTimer = null;
+        spkmodTouchHoldTarget = null;
+    }
+}, { passive: true, capture: true });
+
+document.addEventListener("touchend", (e) => {
+    if (spkmodTouchHoldTimer) {
+        clearTimeout(spkmodTouchHoldTimer);
+        spkmodTouchHoldTimer = null;
+        spkmodTouchHoldTarget = null;
+    }
+    if (spkmodTouchPinTriggered) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+}, { capture: true });
+
+document.addEventListener("touchcancel", () => {
+    if (spkmodTouchHoldTimer) {
+        clearTimeout(spkmodTouchHoldTimer);
+        spkmodTouchHoldTimer = null;
+        spkmodTouchHoldTarget = null;
+    }
+}, { passive: true, capture: true });
+
+// Prevent accidental clicks on button release after holding to pin
+document.addEventListener("click", (e) => {
+    if (spkmodTouchPinTriggered) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+    }
+}, true);
+
+// Global Double Right-Click Delegate for summoning buttons outside HUD (Desktop) & contextmenu handshake (Mobile)
 let spkmodLastRightClickBtn = null;
 let spkmodLastRightClickTime = 0;
 
 document.addEventListener("contextmenu", (e) => {
-    const btn = e.target.closest("button.spkmod-panel-btn, #spkmod-effects-modal button, #spkmod-hud button, .spkmod-quick-btn, .spkmod-floating-button");
+    if (spkmodTouchPinTriggered) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+    }
+
+    const btn = e.target.closest("button.spkmod-panel-btn, #spkmod-effects-modal button, #spkmod-hud button, #spkmod-panel button, .spkmod-quick-btn, .spkmod-floating-button");
     if (!btn) return;
     
     // Ignore window close buttons, drag handles, or emoji picker items
     if (btn.innerText === "✕" || btn.id === "spkmod-drag-btn" || btn.id === "spkmod-close-btn" || btn.closest("#spkmod-emoji-picker")) return;
 
-    // If right-clicked a floating button itself, handled by its own listener
+    if (typeof lunDisableRightClickPinning !== "undefined" && lunDisableRightClickPinning) {
+        return;
+    }
+
+    // Handshake: If mobile long-press dispatched a contextmenu while hold timer is active
+    if (spkmodTouchHoldTimer && spkmodTouchHoldTarget === btn) {
+        e.preventDefault();
+        e.stopPropagation();
+        clearTimeout(spkmodTouchHoldTimer);
+        spkmodTouchHoldTimer = null;
+        spkmodTouchHoldTarget = null;
+        spkmodTriggerTouchPin(btn, e.clientX, e.clientY);
+        return;
+    }
+
+    // If right-clicked a floating button itself on desktop, handled by its own listener
     if (btn.dataset.spkmodFloating === "true" || btn.classList.contains("spkmod-floating-button")) return;
 
     e.preventDefault();
     e.stopPropagation();
-
-    if (typeof lunDisableRightClickPinning !== "undefined" && lunDisableRightClickPinning) {
-        return;
-    }
 
     const now = Date.now();
     if (spkmodLastRightClickBtn === btn && (now - spkmodLastRightClickTime) <= 500) {
@@ -9214,10 +11375,6 @@ document.addEventListener("contextmenu", (e) => {
         spkmodLastRightClickTime = now;
     }
 }, true);
-
-
-
-
 
 
 const lunJumpAnimMs = 500;
@@ -11567,8 +13724,395 @@ window.spkmodResetAvatarColors = function() {
 	}
 
 	window.spkmodSanitizeRemotePlayers();
+	if (typeof window.spkmodTogglePumpkinCartTexture === 'function') {
+		window.spkmodTogglePumpkinCartTexture(false);
+	}
 	if (typeof chatLog === 'function') chatLog("[FX] Reset all avatar custom dyes and effects (Self + Other players).");
 	if (typeof updateLocalEditsUI === 'function') updateLocalEditsUI();
+};
+
+
+// ============================================================================
+// PUMPKIN CART TEXTURE REPLACEMENT SKINS (:SPK_88:, 1, 2, 3)
+// ============================================================================
+const SPKMOD_PUMPKIN_CART_ORIG_TEX = "https://speakirpg.overture.io.kr/models/mount_pumpkin_cart_halloween/HW_Map_Body.png";
+
+const SPKMOD_PUMPKIN_CART_SKINS = {
+	uifi: { id: "uifi", label: ":SPK_88:", file: "test.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/test.png" },
+	1: { id: "1", label: "1️⃣", file: "test2.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/test2.png" },
+	2: { id: "2", label: "2️⃣", file: "test3.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/test3.png" },
+	3: { id: "3", label: "3️⃣", file: "test4.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/test4.png" },
+	4: { id: "4", label: "4️⃣ ", file: "dancing.webp", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/dancing.webp" }
+};
+
+window.spkmodActivePumpkinSkin = null;
+window.spkmodPumpkinCartTexReplaced = false;
+const _spkmodCartImages = {};
+let _spkmodOriginalCartImage = null;
+let _spkmodCartAnimationLoopId = null;
+let _spkmodCartAnimFrames = null;
+let _spkmodCartAnimCanvas = null;
+let _spkmodCartAnimCurrentIndex = 0;
+
+function spkmodStopCartAnimation() {
+	if (_spkmodCartAnimationLoopId) {
+		clearTimeout(_spkmodCartAnimationLoopId);
+		_spkmodCartAnimationLoopId = null;
+	}
+	if (Array.isArray(_spkmodCartAnimFrames)) {
+		for (const frame of _spkmodCartAnimFrames) {
+			if (frame && frame.bitmap && typeof frame.bitmap.close === "function") {
+				try { frame.bitmap.close(); } catch (_) {}
+			}
+		}
+		_spkmodCartAnimFrames = null;
+	}
+	_spkmodCartAnimCurrentIndex = 0;
+}
+
+function spkmodIsAnimatedUrl(url) {
+	if (typeof url !== "string") return false;
+	const clean = url.split("?")[0].toLowerCase();
+	return clean.endsWith(".webp") || clean.endsWith(".gif") || clean.endsWith(".apng");
+}
+
+async function spkmodDecodeAnimatedImage(url) {
+	if (typeof window.ImageDecoder === "undefined") {
+		throw new Error("ImageDecoder not supported in this environment");
+	}
+	const res = await fetch(url, { mode: "cors" });
+	if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+	const data = await res.arrayBuffer();
+	const clean = url.split("?")[0].toLowerCase();
+	let type = "image/webp";
+	if (clean.endsWith(".gif")) type = "image/gif";
+	else if (clean.endsWith(".apng")) type = "image/png";
+
+	const decoder = new window.ImageDecoder({ data, type });
+	await decoder.tracks.ready;
+	const track = decoder.tracks.selectedTrack;
+	const frameCount = (track && track.frameCount) ? track.frameCount : 1;
+
+	const frames = [];
+	for (let i = 0; i < frameCount; i++) {
+		const frameResult = await decoder.decode({ frameIndex: i });
+		const durationMicro = frameResult.image.duration;
+		const durationMs = (typeof durationMicro === "number" && durationMicro > 0)
+			? Math.max(16, Math.round(durationMicro / 1000))
+			: 83; // default ~12 fps (83ms)
+		frames.push({
+			bitmap: frameResult.image,
+			duration: durationMs,
+			width: frameResult.image.displayWidth || 512,
+			height: frameResult.image.displayHeight || 512
+		});
+	}
+	return frames;
+}
+
+function spkmodStartCartAnimation(frames, skinKey) {
+	spkmodStopCartAnimation();
+	if (!frames || frames.length === 0) return;
+
+	_spkmodCartAnimFrames = frames;
+	const width = frames[0].width || 512;
+	const height = frames[0].height || 512;
+
+	if (!_spkmodCartAnimCanvas) {
+		_spkmodCartAnimCanvas = document.createElement("canvas");
+	}
+	_spkmodCartAnimCanvas.width = width;
+	_spkmodCartAnimCanvas.height = height;
+	const ctx = _spkmodCartAnimCanvas.getContext("2d");
+
+	ctx.clearRect(0, 0, width, height);
+	ctx.drawImage(frames[0].bitmap, 0, 0, width, height);
+	spkmodApplyPumpkinCartTextureToScene(true, _spkmodCartAnimCanvas);
+
+	if (frames.length <= 1) return;
+
+	_spkmodCartAnimCurrentIndex = 0;
+	function tick() {
+		if (window.spkmodActivePumpkinSkin !== skinKey) {
+			spkmodStopCartAnimation();
+			return;
+		}
+		_spkmodCartAnimCurrentIndex = (_spkmodCartAnimCurrentIndex + 1) % _spkmodCartAnimFrames.length;
+		const curFrame = _spkmodCartAnimFrames[_spkmodCartAnimCurrentIndex];
+		ctx.clearRect(0, 0, width, height);
+		ctx.drawImage(curFrame.bitmap, 0, 0, width, height);
+
+		if (typeof gameState !== "undefined" && gameState && gameState.scene) {
+			gameState.scene.traverse(child => {
+				if (child.isMesh && child.material) {
+					const mats = Array.isArray(child.material) ? child.material : [child.material];
+					for (const m of mats) {
+						if (m && m.map && m.map.image === _spkmodCartAnimCanvas) {
+							m.map.needsUpdate = true;
+						}
+					}
+				}
+			});
+		}
+
+		_spkmodCartAnimationLoopId = setTimeout(tick, curFrame.duration);
+	}
+
+	_spkmodCartAnimationLoopId = setTimeout(tick, frames[0].duration);
+}
+
+window.spkmodPlayAnimatedCartTexture = function (url, skinKey = "custom_anim") {
+	spkmodEnsurePumpkinCartHooks();
+	window.spkmodActivePumpkinSkin = skinKey;
+	window.spkmodPumpkinCartTexReplaced = true;
+	spkmodDecodeAnimatedImage(url).then(frames => {
+		if (window.spkmodActivePumpkinSkin === skinKey) {
+			spkmodStartCartAnimation(frames, skinKey);
+		}
+	}).catch(err => {
+		console.warn("[SpeakiMod] Animated texture error:", err);
+		const img = new Image();
+		img.crossOrigin = "anonymous";
+		img.onload = () => {
+			if (window.spkmodActivePumpkinSkin === skinKey) {
+				spkmodApplyPumpkinCartTextureToScene(true, img);
+			}
+		};
+		img.src = url;
+	});
+	spkmodUpdatePumpkinCartButtonStyles();
+};
+
+function spkmodGetCurrentPumpkinSkinUrl() {
+	if (!window.spkmodActivePumpkinSkin) return null;
+	const skin = SPKMOD_PUMPKIN_CART_SKINS[window.spkmodActivePumpkinSkin];
+	return skin ? skin.url : null;
+}
+
+function spkmodEnsurePumpkinCartHooks() {
+	if (window.__spkmodPumpkinCartHooksInstalled) return;
+	window.__spkmodPumpkinCartHooksInstalled = true;
+
+	const imgProto = typeof HTMLImageElement !== 'undefined' ? HTMLImageElement.prototype : null;
+	if (imgProto) {
+		const desc = Object.getOwnPropertyDescriptor(imgProto, "src");
+		if (desc && desc.set) {
+			const origSrcSet = desc.set;
+			Object.defineProperty(imgProto, "src", {
+				set: function (val) {
+					const targetUrl = spkmodGetCurrentPumpkinSkinUrl();
+					if (targetUrl && typeof val === "string" && val.includes("HW_Map_Body.png")) {
+						val = targetUrl;
+					}
+					return origSrcSet.call(this, val);
+				},
+				get: desc.get,
+				configurable: true,
+				enumerable: true
+			});
+		}
+	}
+
+	if (typeof window.fetch === "function") {
+		const origFetch = window.fetch;
+		window.fetch = function (resource, config) {
+			const targetUrl = spkmodGetCurrentPumpkinSkinUrl();
+			if (targetUrl) {
+				if (typeof resource === "string" && resource.includes("HW_Map_Body.png")) {
+					resource = targetUrl;
+				} else if (resource && typeof resource.url === "string" && resource.url.includes("HW_Map_Body.png")) {
+					resource = new Request(targetUrl, resource);
+				}
+			}
+			return origFetch.apply(this, arguments);
+		};
+	}
+
+	if (typeof XMLHttpRequest !== "undefined" && XMLHttpRequest.prototype && XMLHttpRequest.prototype.open) {
+		const origXhrOpen = XMLHttpRequest.prototype.open;
+		XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+			const targetUrl = spkmodGetCurrentPumpkinSkinUrl();
+			if (targetUrl && typeof url === "string" && url.includes("HW_Map_Body.png")) {
+				url = targetUrl;
+			}
+			return origXhrOpen.call(this, method, url, ...rest);
+		};
+	}
+}
+
+function spkmodGetCartSkinImage(skinKey, callback) {
+	const skin = SPKMOD_PUMPKIN_CART_SKINS[skinKey];
+	if (!skin) return;
+	if (_spkmodCartImages[skinKey] && _spkmodCartImages[skinKey].complete) {
+		callback(_spkmodCartImages[skinKey]);
+		return;
+	}
+	const img = new Image();
+	img.crossOrigin = "anonymous";
+	img.onload = () => {
+		_spkmodCartImages[skinKey] = img;
+		callback(img);
+	};
+	img.src = skin.url;
+}
+
+function spkmodGetOriginalCartImage(callback) {
+	if (_spkmodOriginalCartImage && _spkmodOriginalCartImage.complete) {
+		callback(_spkmodOriginalCartImage);
+		return;
+	}
+	const img = new Image();
+	img.crossOrigin = "anonymous";
+	img.onload = () => {
+		_spkmodOriginalCartImage = img;
+		callback(img);
+	};
+	img.onerror = () => {
+		const img2 = new Image();
+		img2.onload = () => {
+			_spkmodOriginalCartImage = img2;
+			callback(img2);
+		};
+		img2.src = SPKMOD_PUMPKIN_CART_ORIG_TEX;
+	};
+	img.src = SPKMOD_PUMPKIN_CART_ORIG_TEX;
+}
+
+function spkmodApplyPumpkinCartTextureToScene(enable, targetImage) {
+	if (typeof gameState === "undefined" || !gameState) return;
+	const scene = gameState.scene;
+	if (!scene || typeof scene.traverse !== "function") return;
+
+	const applyToMat = (mat, childName) => {
+		if (!mat) return;
+		const mats = Array.isArray(mat) ? mat : [mat];
+		for (const m of mats) {
+			if (!m) continue;
+			const cName = (childName || "").toLowerCase();
+			const mName = (m.name || "").toLowerCase();
+			const imgSrc = (m.map && m.map.image && typeof m.map.image.src === "string") ? m.map.image.src : "";
+			const isCartMap = (m.map && m.map.image && (
+				imgSrc.includes("HW_Map_Body") || imgSrc.includes("test") || imgSrc.includes("mount_pumpkin_cart") ||
+				mName.includes("hw_map_body") || mName.includes("pumpkin")
+			)) || cName.includes("pumpkin") || cName.includes("hw_map");
+
+			if (isCartMap || (m.__spkmodOrigCartImage !== undefined) || (m.__spkmodOrigCartMap !== undefined)) {
+				if (m.__spkmodOrigCartImage === undefined && m.map && m.map.image) {
+					m.__spkmodOrigCartImage = m.map.image;
+				}
+				if (m.__spkmodOrigCartMap === undefined && m.map) {
+					m.__spkmodOrigCartMap = m.map;
+				}
+				if (enable) {
+					if (targetImage) {
+						if (m.map) {
+							m.map.image = targetImage;
+							m.map.needsUpdate = true;
+						}
+					}
+					m.needsUpdate = true;
+				} else {
+					const origImg = m.__spkmodOrigCartImage || _spkmodOriginalCartImage;
+					if (origImg && m.map) {
+						m.map.image = origImg;
+						m.map.needsUpdate = true;
+					} else if (m.__spkmodOrigCartMap) {
+						m.map = m.__spkmodOrigCartMap;
+						if (m.map) m.map.needsUpdate = true;
+					}
+					m.needsUpdate = true;
+				}
+			}
+		}
+	};
+
+	scene.traverse(child => {
+		if (child.isMesh && child.material) {
+			applyToMat(child.material, child.name);
+		}
+	});
+}
+
+function spkmodUpdatePumpkinCartButtonStyles() {
+	if (typeof lunPanelElements === "undefined" || !lunPanelElements) return;
+	const btnMap = {
+		uifi: lunPanelElements.pumpkinCartTexBtn,
+		1: lunPanelElements.pumpkinCartTexBtn1,
+		2: lunPanelElements.pumpkinCartTexBtn2,
+		3: lunPanelElements.pumpkinCartTexBtn3
+	};
+	for (const [key, btn] of Object.entries(btnMap)) {
+		if (!btn) continue;
+		const isCurrent = window.spkmodActivePumpkinSkin === key;
+		btn.style.border = isCurrent ? "1px solid #4ade80" : "";
+		btn.style.boxShadow = isCurrent ? "0 0 8px rgba(74, 222, 128, 0.45)" : "";
+	}
+}
+window.spkmodUpdatePumpkinCartButtonStyles = spkmodUpdatePumpkinCartButtonStyles;
+
+window.spkmodSelectPumpkinCartSkin = function (skinKey) {
+	spkmodEnsurePumpkinCartHooks();
+
+	if (skinKey === null || skinKey === undefined || window.spkmodActivePumpkinSkin === skinKey) {
+		window.spkmodActivePumpkinSkin = null;
+		window.spkmodPumpkinCartTexReplaced = false;
+		spkmodStopCartAnimation();
+		if (!_spkmodOriginalCartImage) {
+			spkmodGetOriginalCartImage(() => {
+				spkmodApplyPumpkinCartTextureToScene(false);
+			});
+		} else {
+			spkmodApplyPumpkinCartTextureToScene(false);
+		}
+		spkmodUpdatePumpkinCartButtonStyles();
+		if (typeof chatLog === "function") {
+			chatLog("🎃 Pumpkin Cart Texture: RESTORED (Original)");
+		}
+		return;
+	}
+
+	const skin = SPKMOD_PUMPKIN_CART_SKINS[skinKey];
+	if (!skin) return;
+
+	window.spkmodActivePumpkinSkin = skinKey;
+	window.spkmodPumpkinCartTexReplaced = true;
+
+	if (spkmodIsAnimatedUrl(skin.url)) {
+		spkmodDecodeAnimatedImage(skin.url).then(frames => {
+			if (window.spkmodActivePumpkinSkin === skinKey) {
+				spkmodStartCartAnimation(frames, skinKey);
+			}
+		}).catch(err => {
+			console.warn("[SpeakiMod] Animated texture decode error, falling back to static:", err);
+			spkmodGetCartSkinImage(skinKey, img => {
+				if (window.spkmodActivePumpkinSkin === skinKey) {
+					spkmodApplyPumpkinCartTextureToScene(true, img);
+				}
+			});
+		});
+	} else {
+		spkmodStopCartAnimation();
+		spkmodGetCartSkinImage(skinKey, img => {
+			if (window.spkmodActivePumpkinSkin === skinKey) {
+				spkmodApplyPumpkinCartTextureToScene(true, img);
+			}
+		});
+	}
+	spkmodUpdatePumpkinCartButtonStyles();
+
+	if (typeof chatLog === "function") {
+		chatLog(`🎃 Pumpkin Cart Texture (${skin.label}): INJECTED (${skin.file})`);
+	}
+};
+
+window.spkmodTogglePumpkinCartTexture = function (forcedState) {
+	if (forcedState === false) {
+		window.spkmodSelectPumpkinCartSkin(null);
+	} else if (forcedState === true) {
+		window.spkmodSelectPumpkinCartSkin("uifi");
+	} else {
+		window.spkmodSelectPumpkinCartSkin(window.spkmodActivePumpkinSkin ? null : "uifi");
+	}
 };
 
 // ============================================================================
@@ -12258,9 +14802,14 @@ window.spkmodPlayGather = function() {
 // STEP PARTICLE TRAIL (Stars, Rainbow, Hearts)
 // ============================================================================
 
+const _spkSavedTrailEnabled = (typeof window !== 'undefined' && window.localStorage)
+	? localStorage.getItem('spkmod-step-trail-enabled') === 'true'
+	: false;
+const _spkSavedTrailType = (typeof window !== 'undefined' && window.localStorage && localStorage.getItem('spkmod-step-trail-type')) || 'stars';
+
 window.spkmodStepTrail = {
-	enabled: false,
-	type: 'stars',
+	enabled: _spkSavedTrailEnabled,
+	type: ['stars', 'rainbow', 'hearts'].includes(_spkSavedTrailType) ? _spkSavedTrailType : 'stars',
 	distAccum: 0,
 	lastPos: null,
 	animId: null
@@ -12339,6 +14888,13 @@ window.spkmodToggleStepTrail = function(enabled, type) {
 		window.spkmodStepTrail.enabled = !window.spkmodStepTrail.enabled;
 	}
 
+	if (window.localStorage) {
+		try {
+			localStorage.setItem('spkmod-step-trail-enabled', window.spkmodStepTrail.enabled ? 'true' : 'false');
+			localStorage.setItem('spkmod-step-trail-type', window.spkmodStepTrail.type || 'stars');
+		} catch (_) {}
+	}
+
 	if (window.spkmodStepTrail.animId) {
 		cancelAnimationFrame(window.spkmodStepTrail.animId);
 		window.spkmodStepTrail.animId = null;
@@ -12357,6 +14913,11 @@ window.spkmodToggleStepTrail = function(enabled, type) {
 
 window.spkmodSetTrailType = function(type) {
 	window.spkmodStepTrail.type = type;
+	if (window.localStorage) {
+		try {
+			localStorage.setItem('spkmod-step-trail-type', type);
+		} catch (_) {}
+	}
 	if (!window.spkmodStepTrail.enabled) {
 		window.spkmodToggleStepTrail(true, type);
 	} else {
@@ -12364,6 +14925,10 @@ window.spkmodSetTrailType = function(type) {
 		if (typeof updateLocalEditsUI === 'function') updateLocalEditsUI();
 	}
 };
+
+if (window.spkmodStepTrail.enabled && !window.spkmodStepTrail.animId) {
+	window.spkmodStepTrail.animId = requestAnimationFrame(spkmodStepTrailLoop);
+}
 
 window.spkmodBurstSpamActive = false;
 window.spkmodBurstSpamInterval = null;
@@ -12419,7 +14984,6 @@ window.spkmodToggleBurstSpam = function(forceState) {
 
 	if (typeof updateLocalEditsUI === 'function') updateLocalEditsUI();
 };
-
 
 
 const mapModalElements = {};
@@ -12967,10 +15531,10 @@ const SPKMOD_DYE_COLORS = [
 	{ id: "Gold", key: "dyeColorGold", name: "Gold", hex: "#facc15", emoji: "🟡" },
 	{ id: "Purple", key: "dyeColorPurple", name: "Purple", hex: "#8b5cf6", emoji: "🟣" },
 	{ id: "HotPink", key: "dyeColorHotPink", name: "Hot Pink", hex: "#ec4899", emoji: "🌸" },
-	{ id: "Cyan", key: "dyeColorCyan", name: "Cyan", hex: "#06b6d4", emoji: "🩵" },
+	{ id: "Cyan", key: "dyeColorCyan", name: "Cyan", hex: "#06b6d4", emoji: "💎" },
 	{ id: "Orange", key: "dyeColorOrange", name: "Orange", hex: "#f97316", emoji: "🧡" },
 	{ id: "Mint", key: "dyeColorMint", name: "Mint", hex: "#14b8a6", emoji: "🌿" },
-	{ id: "Amber", key: "dyeColorAmber", name: "Amber", hex: "#d97706", emoji: "🟣" },
+	{ id: "Amber", key: "dyeColorAmber", name: "Amber", hex: "#d97706", emoji: "🔶" },
 	{ id: "Pearl", key: "dyeColorPearl", name: "Pearl", hex: "#ffffff", emoji: "⚪" },
 	{ id: "Obsidian", key: "dyeColorObsidian", name: "Obsidian", hex: "#18181b", emoji: "⚫" },
 	{ id: "Magenta", key: "dyeColorMagenta", name: "Magenta", hex: "#f43f5e", emoji: "🍇" },
@@ -12978,7 +15542,7 @@ const SPKMOD_DYE_COLORS = [
 	{ id: "Sepia", key: "dyeColorSepia", name: "Sepia", hex: "#b45309", emoji: "☕" },
 	{ id: "Lavender", key: "dyeColorLavender", name: "Lavender", hex: "#a78bfa", emoji: "🔮" },
 	{ id: "Lime", key: "dyeColorLime", name: "Lime", hex: "#84cc16", emoji: "🍀" },
-	{ id: "Indigo", key: "dyeColorIndigo", name: "Indigo", hex: "#4f46e5", emoji: "🫐" }
+	{ id: "Indigo", key: "dyeColorIndigo", name: "Indigo", hex: "#4f46e5", emoji: "🌌" }
 ];
 
 document.body.appendChild(
@@ -13029,6 +15593,53 @@ document.body.appendChild(
 					innerText: t("flyEveryoneBtn"),
 					onclick: () => window.spkmodTriggerFlyEveryone && window.spkmodTriggerFlyEveryone()
 				}),
+				buildElement("div", { style: "display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px;" }, [
+					lunPanelElements.pumpkinCartTexBtn = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
+						innerHTML: (typeof renderSpkmodInlineEmojis === "function" ? renderSpkmodInlineEmojis(":SPK_88:", "height: 20px; width: 20px; object-fit: contain; vertical-align: middle; display: inline-block; pointer-events: none;") : "🎃"),
+						title: "Pumpkin Cart Skin: Ui (:SPK_88:) (test.png)",
+						onclick: () => {
+							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("uifi");
+						}
+					}),
+					lunPanelElements.pumpkinCartTexBtn1 = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
+						innerText: "1️⃣",
+						title: "Pumpkin Cart Skin: 1 (test2.png)",
+						onclick: () => {
+							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("1");
+						}
+					}),
+					lunPanelElements.pumpkinCartTexBtn2 = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
+						innerText: "2️⃣",
+						title: "Pumpkin Cart Skin: 2 (test3.png)",
+						onclick: () => {
+							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("2");
+						}
+					}),
+					lunPanelElements.pumpkinCartTexBtn3 = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
+						innerText: "3️⃣",
+						title: "Pumpkin Cart Skin: 3 (test4.png)",
+						onclick: () => {
+							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("3");
+						}
+					}),
+					lunPanelElements.pumpkinCartTexBtn3 = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
+						innerText: "4️⃣",
+						title: "Pumpkin Cart Skin: 4 (dancing.webp)",
+						onclick: () => {
+							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("4"); // lol im retarded
+						}
+					})
+				]),
 
 				// 🍳 Cooking & Kitchen Animations
 				buildElement("div", { style: "display: flex; flex-direction: column; gap: 4px; border-top: 1px solid #555; padding-top: 6px;" }, [
@@ -13556,12 +16167,12 @@ function updateLocalEditsUI() {
 	if (editsModalElements.chromaBtnYellow) setText(editsModalElements.chromaBtnYellow, "🟡 " + (t("skyColorYellow") || "Neon Yellow"));
 	if (editsModalElements.chromaBtnOrange) setText(editsModalElements.chromaBtnOrange, "🧡 " + (t("skyColorOrange") || "Vivid Orange"));
 	if (editsModalElements.chromaBtnPink) setText(editsModalElements.chromaBtnPink, "🌸 " + (t("skyColorPink") || "Soft Pink"));
-	if (editsModalElements.chromaBtnCyan) setText(editsModalElements.chromaBtnCyan, "🩵 " + (t("skyColorCyan") || "Electric Cyan"));
+	if (editsModalElements.chromaBtnCyan) setText(editsModalElements.chromaBtnCyan, "💎 " + (t("skyColorCyan") || "Electric Cyan"));
 	if (editsModalElements.chromaBtnMint) setText(editsModalElements.chromaBtnMint, "🌿 " + (t("skyColorMint") || "Mint Green"));
 	if (editsModalElements.chromaBtnPurple) setText(editsModalElements.chromaBtnPurple, "💜 " + (t("skyColorPurple") || "Deep Purple"));
-	if (editsModalElements.chromaBtnAmber) setText(editsModalElements.chromaBtnAmber, "🟣 " + (t("skyColorAmber") || "Warm Amber"));
+	if (editsModalElements.chromaBtnAmber) setText(editsModalElements.chromaBtnAmber, "🔶 " + (t("skyColorAmber") || "Warm Amber"));
 	if (editsModalElements.chromaBtnCrimson) setText(editsModalElements.chromaBtnCrimson, "🍷 " + (t("skyColorCrimson") || "Crimson Wine"));
-	if (editsModalElements.chromaBtnSlate) setText(editsModalElements.chromaBtnSlate, "🩶 " + (t("skyColorSlate") || "Studio Slate"));
+	if (editsModalElements.chromaBtnSlate) setText(editsModalElements.chromaBtnSlate, "🔘 " + (t("skyColorSlate") || "Studio Slate"));
 	if (editsModalElements.chromaBtnSepia) setText(editsModalElements.chromaBtnSepia, "☕ " + (t("skyColorSepia") || "Warm Sepia"));
 
 	const chromaBtns = {
@@ -13749,7 +16360,7 @@ function updateLocalEditsUI() {
 	if (editsModalElements.camBtnGameboy) setText(editsModalElements.camBtnGameboy, "👾 " + (t("effectGameboy") || "Monatium Boy"));
 	if (editsModalElements.camBtnBloodMoon) setText(editsModalElements.camBtnBloodMoon, "🩸 " + (t("effectBloodMoon") || "Blood Moon"));
 	if (editsModalElements.camBtnSynthwave) setText(editsModalElements.camBtnSynthwave, "🔮 " + (t("effectSynthwave") || "Synthwave"));
-	if (editsModalElements.camBtnUnderwater) setText(editsModalElements.camBtnUnderwater, "🫧 " + (t("effectUnderwater") || "Aqua Fantasy"));
+	if (editsModalElements.camBtnUnderwater) setText(editsModalElements.camBtnUnderwater, "🌊 " + (t("effectUnderwater") || "Aqua Fantasy"));
 	if (editsModalElements.camBtnGoldenHour) setText(editsModalElements.camBtnGoldenHour, "☀️ " + (t("effectGoldenHour") || "Golden Hour"));
 	if (editsModalElements.camBtnComicBook) setText(editsModalElements.camBtnComicBook, "💥 " + (t("effectComicBook") || "Comic Book"));
 	if (editsModalElements.camBtnArctic) setText(editsModalElements.camBtnArctic, "❄️ " + (t("effectArctic") || "Arctic Frost"));
@@ -14048,6 +16659,7 @@ function updateLocalEditsUI() {
 	if (editsModalElements.stepTrailStarsBtn) setText(editsModalElements.stepTrailStarsBtn, t("stepTrailStars") || "⭐ Stars");
 	if (editsModalElements.stepTrailRainbowBtn) setText(editsModalElements.stepTrailRainbowBtn, t("stepTrailRainbow") || "🌈 Rainbow");
 	if (editsModalElements.stepTrailHeartsBtn) setText(editsModalElements.stepTrailHeartsBtn, t("stepTrailHearts") || "💖 Hearts");
+	if (window.spkmodUpdatePumpkinCartButtonStyles) window.spkmodUpdatePumpkinCartButtonStyles();
 }
 
 function toggleLocalEditsModal() {
@@ -14171,7 +16783,7 @@ document.body.appendChild(
 					editsModalElements.chromaBtnCyan = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #38bdf8;",
-						innerText: "🩵 " + (t("skyColorCyan") || "Electric Cyan"),
+						innerText: "💎 " + (t("skyColorCyan") || "Electric Cyan"),
 						onclick: () => { applyChromaKeyColor("cyan", true); updateLocalEditsUI(); }
 					}),
 					editsModalElements.chromaBtnMint = buildElement("button", {
@@ -14189,7 +16801,7 @@ document.body.appendChild(
 					editsModalElements.chromaBtnAmber = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #fbbf24;",
-						innerText: "🟣 " + (t("skyColorAmber") || "Warm Amber"),
+						innerText: "🔶 " + (t("skyColorAmber") || "Warm Amber"),
 						onclick: () => { applyChromaKeyColor("amber", true); updateLocalEditsUI(); }
 					}),
 					editsModalElements.chromaBtnCrimson = buildElement("button", {
@@ -14201,7 +16813,7 @@ document.body.appendChild(
 					editsModalElements.chromaBtnSlate = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #94a3b8;",
-						innerText: "🩶 " + (t("skyColorSlate") || "Studio Slate"),
+						innerText: "🔘 " + (t("skyColorSlate") || "Studio Slate"),
 						onclick: () => { applyChromaKeyColor("slate", true); updateLocalEditsUI(); }
 					}),
 					editsModalElements.chromaBtnSepia = buildElement("button", {
@@ -14566,7 +17178,7 @@ document.body.appendChild(
 					editsModalElements.camBtnUnderwater = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #22d3ee;",
-						innerText: "🫧 " + (t("effectUnderwater") || "Aqua Fantasy"),
+						innerText: "🌊 " + (t("effectUnderwater") || "Aqua Fantasy"),
 						onclick: () => setCameraEffectLocal("underwater")
 					}),
 					editsModalElements.camBtnGoldenHour = buildElement("button", {
@@ -14716,6 +17328,7 @@ setTimeout(() => {
 		makeDraggable(lunHudElements.patchNotesModal, [patchNotesModalElements.headerTitle]);
 	}
 }, 500);
+
 
 // --- SPEAKI BBS (COMMUNITY BULLETIN BOARD) ---
 var bbsModalElements = {
@@ -15350,7 +17963,7 @@ function spkmodPrompt({ title = "Enter Value", label = "", defaultValue = "", pl
 
 		const backdrop = document.createElement("div");
 		backdrop.id = "spkmod-custom-dialog-backdrop";
-		backdrop.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(2px); z-index: 9999999; display: flex; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-sizing: border-box; padding: 12px;";
+		backdrop.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(2px); z-index: 2147483646 !important; display: flex; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-sizing: border-box; padding: 12px;";
 
 		const dialog = document.createElement("div");
 		dialog.style.cssText = "background: #1e293b; border: 1px solid #475569; border-radius: 8px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); width: 340px; max-width: 92vw; padding: 16px; color: #f1f5f9; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box;";
@@ -15464,7 +18077,7 @@ function spkmodConfirm({ title = "Confirm", message = "Are you sure?", confirmTe
 
 		const backdrop = document.createElement("div");
 		backdrop.id = "spkmod-custom-dialog-backdrop";
-		backdrop.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(2px); z-index: 9999999; display: flex; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-sizing: border-box; padding: 12px;";
+		backdrop.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(2px); z-index: 2147483646 !important; display: flex; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-sizing: border-box; padding: 12px;";
 
 		const dialog = document.createElement("div");
 		dialog.style.cssText = "background: #1e293b; border: 1px solid #475569; border-radius: 8px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); width: 320px; max-width: 92vw; padding: 16px; color: #f1f5f9; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box;";
@@ -16221,8 +18834,14 @@ document.body.appendChild(
 		}, [
 			buildElement("div", { style: "display: flex; align-items: center; gap: 6px; cursor: move; user-select: none;" }, [
 				bbsModalElements.headerTitle = buildElement("span", {
-					innerText: "💬 " + (t("bbsTitle") || "SpeakiBBS"),
-					style: "font-weight: bold; font-size: 12px; cursor: move; user-select: none;"
+					innerHTML: (function() {
+						const raw = t("bbsTitle");
+						const titleStr = (!raw || raw === "bbsTitle") ? ":t_280: DarkNet" : (raw.includes(":t_280:") ? raw : ":t_280: " + raw);
+						return typeof renderSpkmodInlineEmojis === "function"
+							? renderSpkmodInlineEmojis(titleStr, "height: 18px; width: 18px; object-fit: contain; vertical-align: middle; margin-right: 4px; display: inline-block; pointer-events: none; user-select: none;")
+							: titleStr;
+					})(),
+					style: "font-weight: bold; font-size: 12px; cursor: move; user-select: none; display: inline-flex; align-items: center;"
 				}),
 				bbsModalElements.countBadge = buildElement("span", {
 					innerText: "0",
@@ -16403,6 +19022,9 @@ document.body.appendChild(
 							}
 							window.lunEmojiTargetInput = bbsModalElements.input;
 							toggleEmojiPicker(bbsModalElements.emojiBtn);
+							if (typeof lunEmojiPickerPanel !== "undefined" && lunEmojiPickerPanel) {
+								lunEmojiPickerPanel.style.setProperty("z-index", "2147483646", "important");
+							}
 						}
 					}
 				}),
@@ -16509,7 +19131,13 @@ updateBbsComposerState();
 applyBbsThemeVisuals();
 function updateBbsI18n() {
 	if (bbsModalElements.headerTitle) {
-		bbsModalElements.headerTitle.innerText = "💬 " + (t("bbsTitle") || "SpeakiBBS");
+		const raw = t("bbsTitle");
+		const titleStr = (!raw || raw === "bbsTitle") ? ":t_280: DarkNet" : (raw.includes(":t_280:") ? raw : ":t_280: " + raw);
+		if (typeof renderSpkmodInlineEmojis === "function") {
+			bbsModalElements.headerTitle.innerHTML = renderSpkmodInlineEmojis(titleStr, "height: 18px; width: 18px; object-fit: contain; vertical-align: middle; margin-right: 4px; display: inline-block; pointer-events: none; user-select: none;");
+		} else {
+			bbsModalElements.headerTitle.innerText = titleStr;
+		}
 	}
 	if (bbsModalElements.emojiBtn) {
 		bbsModalElements.emojiBtn.title = t("bbsEmojiBtnTooltip") || "Insert emoji";
@@ -16519,7 +19147,13 @@ function updateBbsI18n() {
 		bbsModalElements.submitBtn.innerText = "📤 " + (t("bbsPostBtn") || "Post");
 	}
 	if (typeof lunPanelElements !== "undefined" && lunPanelElements.bbsBtn) {
-		lunPanelElements.bbsBtn.title = t("bbsBtnTooltip") || "SpeakiBBS";
+		const rawTip = t("bbsBtnTooltip");
+		const tipStr = (!rawTip || rawTip === "bbsBtnTooltip") ? ":t_280: DarkNet" : (rawTip.includes(":t_280:") ? rawTip : ":t_280: " + rawTip);
+		if (typeof setSpkmodRichTooltip === "function") {
+			setSpkmodRichTooltip(lunPanelElements.bbsBtn, tipStr);
+		} else {
+			lunPanelElements.bbsBtn.title = tipStr;
+		}
 	}
 	if (bbsModalElements.iconOnlyLabel) {
 		bbsModalElements.iconOnlyLabel.innerText = t("bbsIconOnlyLabel") || "Icons only";
@@ -16709,6 +19343,7 @@ let gamepadModalElements = {
 };
 
 window.__showGamepadDiagram = false;
+
 
 function openGamepadModal() {
 	if (lunHudElements.gamepadModal) {
@@ -17596,7 +20231,101 @@ async function translateChatText(text, source, target) {
 	return run;
 }
 
-function maybeTranslateChatMessage(id, name, msg) {
+const LUN_CHAT_PLAYER_PALETTE = [
+	"#ff9eaa", // Soft Rose
+	"#ffd54a", // Warm Gold
+	"#90caf9", // Soft Sky Blue
+	"#ce93d8", // Light Orchid
+	"#ffab91", // Peach Apricot
+	"#fff59d", // Lemon Cream
+	"#9fa8da", // Soft Periwinkle
+	"#f48fb1", // Bubblegum Pink
+	"#d1c4e9", // Lavender Mist
+	"#ffcc80"  // Warm Amber
+];
+const LUN_CHAT_FRIEND_COLOR = "#4dd0e1";
+const LUN_CHAT_PARTY_COLOR = "#69f0ae";
+const lunChatPlayerColorMap = new Map();
+let lunLastChatSpeaker = null;
+let lunLastChatColor = null;
+
+function isPartyMemberChatSpeaker(id, name) {
+	if (id === -1337 || id === -1338) return false;
+	const cleanName = typeof name === "string" ? name.trim() : "";
+	if (!cleanName) return false;
+	if (typeof gameState !== "undefined" && gameState?.myPlayerId != null && id != null && id === gameState.myPlayerId) {
+		return false;
+	}
+	const lowerKey = cleanName.toLowerCase();
+	const myName = ((typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name)) || (typeof document !== "undefined" ? document.querySelector(".sr-player-card__name")?.innerText : "") || "").trim().toLowerCase();
+	if (myName && lowerKey === myName) return false;
+	if (typeof document === "undefined") return false;
+	const partyEls = document.querySelectorAll(".sr-party__name");
+	if (!partyEls || partyEls.length === 0) return false;
+
+	let altKey = "";
+	if (id != null && typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.get) {
+		const rp = gameState.remotePlayers.remotePlayers.get(id);
+		if (rp?.info) {
+			const rpName = (rp.info.name || "").trim().toLowerCase();
+			const rpOrig = (rp.info.__spkmodOrigName || "").trim().toLowerCase();
+			if (rpName && rpName !== lowerKey) altKey = rpName;
+			else if (rpOrig && rpOrig !== lowerKey) altKey = rpOrig;
+		}
+	}
+
+	for (let i = 0; i < partyEls.length; i++) {
+		const pName = (partyEls[i].innerText || partyEls[i].textContent || "").trim().toLowerCase();
+		if (pName && (pName === lowerKey || (altKey && pName === altKey))) return true;
+	}
+	return false;
+}
+
+function resolveChatMessageColor(id, name) {
+	if (id === -1337 || id === -1338) return null;
+	const cleanName = typeof name === "string" ? name.trim() : "";
+	if (!cleanName) return null;
+	const lowerKey = cleanName.toLowerCase();
+
+	if (typeof lunGmChatHighlightEnabled !== "undefined" && lunGmChatHighlightEnabled && cleanName.toUpperCase() === "GMDT") {
+		lunLastChatSpeaker = lowerKey;
+		lunLastChatColor = "#ffa726";
+		return "#ffa726";
+	}
+
+	if (typeof lunPartyChatHighlightEnabled !== "undefined" && lunPartyChatHighlightEnabled && isPartyMemberChatSpeaker(id, cleanName)) {
+		lunLastChatSpeaker = lowerKey;
+		lunLastChatColor = LUN_CHAT_PARTY_COLOR;
+		return LUN_CHAT_PARTY_COLOR;
+	}
+
+	if (typeof lunFriendChatHighlightEnabled !== "undefined" && lunFriendChatHighlightEnabled && typeof lunFriendNicknames !== "undefined" && lunFriendNicknames.has(lowerKey)) {
+		lunLastChatSpeaker = lowerKey;
+		lunLastChatColor = LUN_CHAT_FRIEND_COLOR;
+		return LUN_CHAT_FRIEND_COLOR;
+	}
+
+	if (lunLastChatSpeaker === lowerKey && lunLastChatColor && lunLastChatColor !== LUN_CHAT_PARTY_COLOR && lunLastChatColor !== LUN_CHAT_FRIEND_COLOR && lunLastChatColor !== "#ffa726") {
+		return lunLastChatColor;
+	}
+
+	let color = lunChatPlayerColorMap.get(lowerKey);
+	if (!color || color === lunLastChatColor) {
+		const candidates = LUN_CHAT_PLAYER_PALETTE.filter(c => c !== lunLastChatColor);
+		color = candidates[Math.floor(Math.random() * candidates.length)];
+		lunChatPlayerColorMap.set(lowerKey, color);
+	}
+
+	lunLastChatSpeaker = lowerKey;
+	lunLastChatColor = color;
+	return color;
+}
+
+if (typeof lunChatRandomColorsEnabled !== "undefined" && lunChatRandomColorsEnabled && typeof document !== "undefined" && document.body) {
+	document.body.classList.add("spkmod-chat-player-colors-on");
+}
+
+function maybeTranslateChatMessage(id, name, msg, assignedColor) {
 	if (!lunTranslateEnabled) return;
 	if (id === -1337 || id === -1338) return; // skip SpeakiMod's own system/translation lines
 	if (typeof msg !== "string" || !msg.trim()) return;
@@ -17605,7 +20334,7 @@ function maybeTranslateChatMessage(id, name, msg) {
 	const source = guessSourceLang(msg);
 	translateChatText(msg, source, lunTranslateTarget).then(translated => {
 		if (!translated) return;
-		appendColoredChatLine(-1338, `↳ ${name}`, translated);
+		appendColoredChatLine(-1338, `↳ ${name}`, translated, assignedColor);
 	});
 }	
 
@@ -17958,6 +20687,14 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.resolutionOverrideLabel && typeof lunResolutionOverrideLabel === "function") setText(lunPanelElements.resolutionOverrideLabel, lunResolutionOverrideLabel());
 	if (lunPanelElements.gmChatToggleLabel) setText(lunPanelElements.gmChatToggleLabel, t("gmChatToggleLabel"));
 	if (lunPanelElements.friendChatToggleLabel) setText(lunPanelElements.friendChatToggleLabel, t("friendChatToggleLabel"));
+	if (lunPanelElements.partyChatToggleLabel) {
+		const s = t("partyChatToggleLabel");
+		setText(lunPanelElements.partyChatToggleLabel, (!s || s === "partyChatToggleLabel") ? "Highlight Party Members in Chat" : s);
+	}
+	if (lunPanelElements.chatRandomColorsLabel) {
+		const s = t("chatRandomColorsToggleLabel");
+		setText(lunPanelElements.chatRandomColorsLabel, (!s || s === "chatRandomColorsToggleLabel") ? "Colorize Player Messages" : s);
+	}
 	if (lunPanelElements.mentionAlertToggleLabel) setText(lunPanelElements.mentionAlertToggleLabel, t("mentionAlertToggleLabel"));
 	if (lunPanelElements.mentionPingToggleLabel) setText(lunPanelElements.mentionPingToggleLabel, t("mentionPingToggleLabel"));
 	if (lunPanelElements.hideKnownBotsLabel) setText(lunPanelElements.hideKnownBotsLabel, t("hideKnownBotsToggleLabel"));
@@ -17986,11 +20723,9 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.minigameTrackerLabel) setText(lunPanelElements.minigameTrackerLabel, t("minigameTrackerToggleLabel"));
 	if (lunPanelElements.settingsCatGeneral) setText(lunPanelElements.settingsCatGeneral, "💬 " + t("settingsCatGeneral"));
 	if (lunPanelElements.settingsCatHUD) setText(lunPanelElements.settingsCatHUD, "📊 " + t("settingsCatHUD"));
-	if (lunPanelElements.eventBtn) lunPanelElements.eventBtn.title = t("eventInfoBtnTooltip");
-	if (lunPanelElements.patchNotesBtn) lunPanelElements.patchNotesBtn.title = t("patchNotesBtnTooltip");
-	if (lunPanelElements.bbsBtn) lunPanelElements.bbsBtn.title = t("bbsBtnTooltip");
-	if (lunPanelElements.mapBtn) lunPanelElements.mapBtn.title = t("mapModalTitle");
-	if (lunPanelElements.questsBtn) lunPanelElements.questsBtn.title = t("questsBtnTooltip") || "Quests Checklist";
+	if (typeof updateHudIconTooltips === "function") {
+		updateHudIconTooltips();
+	}
 	if (typeof mapModalElements !== "undefined" && mapModalElements.titleLabel) mapModalElements.titleLabel.innerText = t("mapModalTitle");
 	if (window.questsModalElements && window.questsModalElements.headerTitle) {
 		window.questsModalElements.headerTitle.innerText = "📋 " + (t("questsModalTitle") || "Quests Checklist");
@@ -18142,6 +20877,7 @@ var lunPinnedQuestPeriod = null;
 var lunPinnedQuestId = 0;
 var lunPinnedQuestContent = null;
 var lunPinnedQuestNextQueryTick = 0;
+
 
 function getQuestDisplayText(quest) {
 	if (!quest) return "";
@@ -18633,9 +21369,11 @@ var questsModalElements = window.questsModalElements = window.questsModalElement
 function buildQuestsModal() {
 	if (lunHudElements.questsModal) return;
 
+	const shouldBeOpen = (window.localStorage && localStorage.getItem("spkmod-quests-modal-open")) === "true";
+
 	lunHudElements.questsModal = buildElement("div", {
 		id: "spkmod-quests-modal",
-		className: "hidden",
+		className: shouldBeOpen ? "" : "hidden",
 		style: `display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; box-sizing: border-box; min-width: 380px; max-width: 95vw; max-height: 80vh; background: #000C; border: ${spkmodBorderWidth} solid #DDD; border-radius: 8px; position: fixed; z-index: 600000; color: #FFF; user-select: none;`
 	}, [
 		// Header Row
@@ -18686,6 +21424,7 @@ function buildQuestsModal() {
 					onclick: (e) => {
 						e.stopPropagation();
 						lunHudElements.questsModal.classList.add("hidden");
+						if (window.localStorage) localStorage.setItem("spkmod-quests-modal-open", "false");
 					}
 				})
 			])
@@ -18973,14 +21712,24 @@ window.toggleQuestsModal = function() {
 		if (typeof bringToFront === "function") bringToFront(lunHudElements.questsModal);
 		if (typeof fetchAllQuests === "function") fetchAllQuests();
 		renderQuestChecklist();
+		if (window.localStorage) localStorage.setItem("spkmod-quests-modal-open", "true");
 	} else {
 		lunHudElements.questsModal.classList.add("hidden");
+		if (window.localStorage) localStorage.setItem("spkmod-quests-modal-open", "false");
 	}
 };
 
 // Initialize Quests Modal structure
 setTimeout(() => {
 	buildQuestsModal();
+	const shouldBeOpen = (window.localStorage && localStorage.getItem("spkmod-quests-modal-open")) === "true";
+	if (shouldBeOpen && lunHudElements.questsModal) {
+		if (typeof positionModalNicely === "function") positionModalNicely(lunHudElements.questsModal);
+		lunHudElements.questsModal.classList.remove("hidden");
+		if (typeof bringToFront === "function") bringToFront(lunHudElements.questsModal);
+		if (typeof fetchAllQuests === "function") fetchAllQuests();
+		if (typeof renderQuestChecklist === "function") renderQuestChecklist();
+	}
 }, 600);
 
 function matchQuestFromTitleText(titleText, item) {
@@ -19510,6 +22259,8 @@ if (!window.__beyBladeLoopRunning) {
 
 	requestAnimationFrame(beyBladeRenderLoop);
 }
+
+
 // --- MOD PLAYERS TELEMETRY & HOURLY PING ---
 var lunModPlayersCounts = { count1h: null, count24h: null, count7d: null, countAllTime: null };
 var lunLastTelemetryPingTime = 0;
@@ -20348,6 +23099,7 @@ var hkChatBoxAppend = (id, name, msg) => {
 	if (typeof gameState !== "undefined" && gameState?.chatBox?.append) return gameState.chatBox.append(id, name, msg);
 };
 
+
 function hookGameStateOnce() {
 	if (typeof gameState === "undefined" || !gameState) return false;
 	if (gameState.__speakiGameStateHooked) return true;
@@ -20942,6 +23694,10 @@ function hookGameStateOnce() {
 				}
 			}
 
+			const assignedMsgColor = (id !== -1337 && id !== -1338 && filteredMsg && filteredMsg.trim())
+				? resolveChatMessageColor(id, name)
+				: null;
+
 			if (filteredMsg && filteredMsg.trim()) {
 				observeNextChatNode(filteredMsg, (bodyText, rowNode) => {
 					if (isMention) {
@@ -20967,6 +23723,10 @@ function hookGameStateOnce() {
 					}
 
 					if (id !== -1337 && id !== -1338) {
+						if (assignedMsgColor) {
+							bodyText.style.setProperty("--spkmod-msg-color", assignedMsgColor);
+							bodyText.classList.add("spkmod-colored-msg-el");
+						}
 						bodyText.classList.add("spkmod-clickable-line");
 						bodyText.title = t("clickToTranslateTooltip");
 						bodyText.addEventListener("click", (e) => {
@@ -20979,14 +23739,23 @@ function hookGameStateOnce() {
 									insertEmojiIntoChat(tag);
 								}
 							} else {
-								forceTranslateMessage(name, filteredMsg);
+								forceTranslateMessage(name, filteredMsg, assignedMsgColor);
 							}
 						});
 						
-						const senderEl = rowNode.classList?.contains("sr-chatbox__sender") ? rowNode : rowNode.querySelector?.(".sr-chatbox__sender");
+						const rowEl = (rowNode && rowNode.closest?.(".sr-chatbox__row")) || bodyText.closest?.(".sr-chatbox__row") || rowNode;
+						const senderEl = rowEl?.classList?.contains("sr-chatbox__sender") ? rowEl : rowEl?.querySelector?.(".sr-chatbox__sender");
 						if (senderEl) {
-							if (lunFriendChatHighlightEnabled && name && lunFriendNicknames.has(name.trim().toLowerCase())) {
+							if (lunGmChatHighlightEnabled && name && name.trim().toUpperCase() === "GMDT") {
+								senderEl.classList.add("spkmod-gm-sender");
+							} else if (typeof lunPartyChatHighlightEnabled !== "undefined" && lunPartyChatHighlightEnabled && isPartyMemberChatSpeaker(id, name)) {
+								senderEl.classList.add("spkmod-party-sender");
+							} else if (lunFriendChatHighlightEnabled && name && lunFriendNicknames.has(name.trim().toLowerCase())) {
 								senderEl.classList.add("spkmod-friend-sender");
+							}
+							if (assignedMsgColor) {
+								senderEl.style.setProperty("--spkmod-msg-color", assignedMsgColor);
+								senderEl.classList.add("spkmod-colored-msg-el");
 							}
 							let currentText = senderEl.innerText;
 							
@@ -21015,7 +23784,7 @@ function hookGameStateOnce() {
 				});
 			}
 
-			maybeTranslateChatMessage(id, name, filteredMsg);
+			maybeTranslateChatMessage(id, name, filteredMsg, assignedMsgColor);
 			return result;
 		};
 		gameState.chatBox.__speakiAppendHooked = true;
@@ -21033,12 +23802,22 @@ function hookGameStateOnce() {
 window.hookGameStateOnce = hookGameStateOnce;
 hookGameStateOnce();
 
-function appendColoredChatLine(id, name, text) {
+function appendColoredChatLine(id, name, text, customColor) {
 	const scrollEl = updateChatScrollTracking();
 	const wasAtBottom = !lunChatUserScrolledUp && (!scrollEl || (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight <= 45));
 
-	observeNextChatNode(text, (bodyText) => {
+	observeNextChatNode(text, (bodyText, rowNode) => {
 		bodyText.classList.add("spkmod-translated-line");
+		if (customColor) {
+			bodyText.style.setProperty("--spkmod-msg-color", customColor);
+			bodyText.classList.add("spkmod-colored-msg-el");
+			const rowEl = (rowNode && rowNode.closest?.(".sr-chatbox__row")) || bodyText.closest?.(".sr-chatbox__row") || rowNode;
+			const senderEl = rowEl?.classList?.contains("sr-chatbox__sender") ? rowEl : rowEl?.querySelector?.(".sr-chatbox__sender");
+			if (senderEl) {
+				senderEl.style.setProperty("--spkmod-msg-color", customColor);
+				senderEl.classList.add("spkmod-colored-msg-el");
+			}
+		}
 
 		const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}), ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {})};
 		if (Object.keys(spkmodAllEmojis).length > 0) {
@@ -21111,7 +23890,7 @@ function showTranslateSourcePicker(guess, onPick) {
 	document.body.appendChild(picker);
 }
 
-function forceTranslateMessage(name, msg) {
+function forceTranslateMessage(name, msg, assignedColor) {
 	const guess = guessSourceLang(msg);
 	showTranslateSourcePicker(guess, source => {
 		translateChatText(msg, source, lunTranslateTarget).then(translated => {
@@ -21119,7 +23898,7 @@ function forceTranslateMessage(name, msg) {
 				chatLog(t("translateFailedMsg"));
 				return;
 			}
-			appendColoredChatLine(-1338, `↳ ${name}`, translated);
+			appendColoredChatLine(-1338, `↳ ${name}`, translated, assignedColor);
 		});
 	});
 }
@@ -21676,6 +24455,22 @@ window.addEventListener("keydown", e => {
 });
 
 window.addEventListener("keydown", e => {
+	if (e.altKey && (e.key === "m" || e.key === "M" || e.code === "KeyM")) {
+		const active = document.activeElement;
+		if (active) {
+			const tag = active.tagName ? active.tagName.toLowerCase() : "";
+			if (tag === "input" || tag === "textarea" || active.isContentEditable) {
+				return;
+			}
+		}
+		e.preventDefault();
+		if (typeof toggleMusicPlayer === "function") {
+			toggleMusicPlayer();
+		}
+	}
+});
+
+window.addEventListener("keydown", e => {
 	if (e.key !== "Escape" && e.code !== "Escape") return;
 
 	const newsModal = document.getElementById("spkmod-news-modal");
@@ -21709,7 +24504,8 @@ window.addEventListener("keydown", e => {
 			lunHudElements.patchNotesModal,
 			lunHudElements.bbsModal,
 			lunHudElements.eventModal,
-			lunHudElements.statsModal
+			lunHudElements.statsModal,
+			lunHudElements.jukeboxModal
 		].filter(m => m && !m.classList.contains("hidden"));
 
 		if (candidateModals.length > 0) {
@@ -21776,6 +24572,10 @@ function ensureEmojiTooltip() {
 	};
 
 	document.addEventListener("mouseover", (e) => {
+		if (typeof spkmodIsMobile === "function" && spkmodIsMobile()) return;
+		if (typeof window.speakiMobile !== "undefined") return;
+		if (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches && (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0)) return;
+
 		const target = e.target.closest('.spkmod-custom-emoji');
 		if (target) {
 			const url = target.getAttribute("data-url");
@@ -21801,6 +24601,13 @@ function ensureEmojiTooltip() {
 			lunEmojiPreviewTooltip.style.display = "none";
 		}
 	});
+
+	window.addEventListener("touchstart", () => {
+		if (lunEmojiPreviewTooltip) {
+			lunEmojiPreviewCurrentTarget = null;
+			lunEmojiPreviewTooltip.style.display = "none";
+		}
+	}, { passive: true, capture: true });
 
 	window.addEventListener("scroll", () => {
 		if (lunEmojiPreviewTooltip) {
@@ -21963,10 +24770,6 @@ if (typeof spkmodI18nRenderers !== 'undefined') {
 }
 
 
-
-
-
-
 const SPKMOD_ACCOUNTS_KEY = "spkmod-saved-accounts";
 const SPKMOD_DISMISS_KEY = "spkmod-dismiss-ql-prompt";
 
@@ -22111,7 +24914,7 @@ function ensureQuickLoginStyles() {
 			width: 320px;
 			max-height: 85vh;
 			overflow-y: auto;
-			z-index: 9999999;
+			z-index: 2147483646 !important;
 			background: var(--sr-color-panel-bg, #1a1b26);
 			color: var(--sr-color-text, #ffffff);
 			border: .1875rem solid var(--sr-color-border-strong, #3a3b4e);

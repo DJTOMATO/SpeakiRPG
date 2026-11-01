@@ -4,6 +4,21 @@
 
 # [다운로드](https://github.com/DJTOMATO/SpeakiRPG/releases) | [디스코드 참여](https://discord.gg/bruZhcwqRx)
 
+<div align="center">
+
+### 🎥 추천 영상: Speakimod+ 기능 소개!
+[![Speakimod+ 기능 소개!](https://img.youtube.com/vi/ekxvWkYELm8/maxresdefault.jpg)](https://www.youtube.com/watch?v=ekxvWkYELm8)
+
+**[▶️ YouTube에서 시청하기: 欲しい機能がきっとある！MOD紹介 Introducing Speakimod+! Speakimod+ 소개! [CC:Eng]](https://www.youtube.com/watch?v=ekxvWkYELm8)**  
+*크리에이터 **おあげ** 님이 제작한 SpeakiMod+ 편의 기능 및 UI 가이드 영상입니다! (영어 자막 지원)*
+
+> ⚠️ *GM으로부터 사용 허가를 받은 모드이며 악용 가능한 기능은 배제되어 있습니다. 만약 악용 소지가 있는 기능을 발견하신다면 제작자 Glas 또는 모드 디스코드에 제보해주시고 사용을 자제해주세요.*
+
+</div>
+
+---
+
+
 **Speaki RPG Desktop**은 브라우저 기반 MMORPG 게임인 **Speaki RPG**를 위한 맞춤형 데스크톱 앱이자 런처입니다. 브라우저 탭에서 게임을 꺼내 데스크톱에서 즐길 수 있도록 해주며, 멋진 Discord 연동 기능과 친구들이 실시간으로 게임 진행 상황을 확인할 수 있는 다양한 재미있는 기능들을 제공합니다!
 
 **면책 조항 (Disclaimer)**: 본 클라이언트 및 모드는 수익 창출이나 기부를 받지 않습니다. 게임 자체도 기부를 받거나 수익을 창출하지 않습니다. 돈을 요구하는 사람은 사칭범입니다!

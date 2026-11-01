@@ -7,7 +7,8 @@
     "test": "node --test",
     "start": "electron .",
     "build": "electron-builder",
-    "build:win": "electron-builder --win --publish never",
+    "build:win": "electron-builder --win --x64 --publish never",
+    "build:win:arm64": "electron-builder --win --arm64 --config.nsis.oneClick=false --config.nsis.allowToChangeInstallationDirectory=true --publish never",
     "build:mac": "electron-builder --mac --publish never",
     "build:linux": "electron-builder --linux --publish never"
   },
@@ -28,9 +29,27 @@
   },
   "build": {
     "appId": "com.glas.speakirpg",
+    "npmRebuild": false,
     "win": {
-      "target": "nsis",
-      "icon": "icon.ico"
+      "target": [
+        {
+          "target": "nsis"
+        },
+        {
+          "target": "zip"
+        }
+      ],
+      "icon": "icon.ico",
+      "artifactName": "${productName}-${version}-win-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SpeakiRPG",
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
     },
     "mac": {
       "target": [

@@ -3,6 +3,7 @@ name: Build/Release Electron App
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -16,11 +17,23 @@ jobs:
           - os: macos-latest
             build_script: build:mac
             artifact_name: mac-installer
-            artifact_path: dist/*.dmg
+            artifact_path: |
+              dist/*.dmg
+              dist/*.zip
           - os: windows-latest
             build_script: build:win
-            artifact_name: windows-installer
-            artifact_path: dist/*.exe
+            artifact_name: windows-x64-installer
+            artifact_path: |
+              dist/*x64*.exe
+              dist/*x64*.zip
+              dist/*.exe
+              dist/*.zip
+          - os: windows-latest
+            build_script: build:win:arm64
+            artifact_name: windows-arm64-installer
+            artifact_path: |
+              dist/*arm64*.exe
+              dist/*arm64*.zip
           - os: ubuntu-latest
             build_script: build:linux
             artifact_name: linux-installer
@@ -51,4 +64,3 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: ${{ matrix.artifact_path }}
-

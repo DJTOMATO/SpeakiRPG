@@ -7,7 +7,22 @@
 
 
 
-#  -> [下载 / Download](https://github.com/DJTOMATO/SpeakiRPG/releases) | [加入 Discord](https://discord.gg/bruZhcwqRx) <- 
+#  -> [下载 / Download](https://github.com/DJTOMATO/SpeakiRPG/releases) | [加入 Discord](https://discord.gg/bruZhcwqRx) <-
+
+<div align="center">
+
+### 🎥 精选视频：Speakimod+ 功能介绍！
+[![Speakimod+ 功能介绍！](https://img.youtube.com/vi/ekxvWkYELm8/maxresdefault.jpg)](https://www.youtube.com/watch?v=ekxvWkYELm8)
+
+**[▶️ 在 YouTube 上观看: 欲しい機能がきっとある！MOD紹介 Introducing Speakimod+! Speakimod+ 소개! [CC:Eng]](https://www.youtube.com/watch?v=ekxvWkYELm8)**  
+*由创作者 **おあげ** 制作的 SpeakiMod+ 功能详细介绍与导览视频！（支持英文字幕）*
+
+> ⚠️ *本模组为 GM 许可使用的合法模组，破坏游戏平衡的功能均已被剔除。若您在游玩过程中发现任何可能造成漏洞或滥用的功能，请向作者 Glas 或至 Mod Discord 反馈，并请勿滥用。*
+
+</div>
+
+---
+ 
 
 **Speaki RPG Desktop** 是一款专为网页 MMORPG **Speaki RPG** 设计的自订桌面应用程式与启动器。它能将游戏从浏览器分页中独立出来，并提供出色的 Discord 状态整合以及多种趣味功能，让你的好友能即时看到你的练等与冒险进度！
 

@@ -7,7 +7,22 @@
 
 
 
-#  -> [Download | ダウンロード | 다운로드 | 下載](https://github.com/DJTOMATO/SpeakiRPG/releases) | [Discord](https://discord.gg/bruZhcwqRx) <- 
+#  -> [Download | ダウンロード | 다운로드 | 下載](https://github.com/DJTOMATO/SpeakiRPG/releases) | [Discord](https://discord.gg/bruZhcwqRx) <-
+
+<div align="center">
+
+### 🎥 Featured Video: Introducing Speakimod+!
+[![Introducing Speakimod+!](https://img.youtube.com/vi/ekxvWkYELm8/maxresdefault.jpg)](https://www.youtube.com/watch?v=ekxvWkYELm8)
+
+**[▶️ Watch on YouTube: 欲しい機能がきっとある！MOD紹介 Introducing Speakimod+! Speakimod+ 소개! [CC:Eng]](https://www.youtube.com/watch?v=ekxvWkYELm8)**  
+*A video walkthrough showcasing the features of SpeakiMod+ by community creator **おあげ**! (English subtitles available)*
+
+> ⚠️ *Note: SpeakiMod+ is officially permitted by the game GM with unfair exploits removed. If you discover any unintended exploits, please report them to Glas or via the Mod Discord and refrain from abusing them.*
+
+</div>
+
+---
+ 
 
 **Speaki RPG Desktop** is a custom desktop app and launcher for the browser MMORPG **Speaki RPG**. It brings the game out of your browser tab and adds awesome Discord integration plus extra fun features so your friends can see your grinding progress in real time!
 

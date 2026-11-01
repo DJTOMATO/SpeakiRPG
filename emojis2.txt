@@ -16,8 +16,6 @@ t_63,https://i.imgur.com/Co8NeUe.gif
 t_29,https://i.imgur.com/ZzM0sc6.png
 t_163,https://i.imgur.com/P2nwt2u.jpeg
 t_214,https://i.imgur.com/ZHUW5eS.png
-t_114,https://i.imgur.com/LB2LEal.gif
-t_67,https://i.imgur.com/43CZGNE.gif
 t_2,https://i.imgur.com/KqZ1yba.gif
 t_119,https://i.imgur.com/TGqHN43.gif
 t_96,https://i.imgur.com/YzdgxFE.gif
