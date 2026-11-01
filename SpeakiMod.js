@@ -22091,14 +22091,21 @@ function buildRadioButtonList(name, options) {
 			flex-wrap: wrap;
 			gap: 2px;
 		`
-	}, options.map(({ value, checked, innerText }) => buildElement("label", {}, [
+	}, options.map(({
+		value,
+		translateKey,
+		defaultChecked
+	}) => buildElement("label", {}, [
 		buildElement("input", {
 			type: "radio",
 			name,
 			value,
-			checked: Boolean(checked),
+			defaultChecked: Boolean(defaultChecked)
 		}),
-		document.createTextNode(innerText)
+		buildElement("span", {
+			dataset: { spkmodI18n: translateKey },
+			innerText: t(translateKey)
+		})
 	])));
 }
 
@@ -22109,19 +22116,20 @@ function buildSpkmodFriendSortForm() {
 			border: 0 none;
 			padding: 2px;
 		`,
+		dataset: { spkmodI18n: "sortBy" },
 		innerText: t("sortBy")
 	});
 	const sortBy = buildRadioButtonList("spkmod-friend-sort-by", [
-		{ value: "lastLogin", innerText: t("lastLogin"), checked: true },
-		{ value: "playerName", innerText: t("playerName") },
-		{ value: "level", innerText: t("level") },
-		{ value: "zoneId", innerText: t("zoneIdPlain") },
-		{ value: "channel", innerText: t("channel") }
+		{ value: "lastLogin", translateKey: "lastLogin", defaultChecked: true },
+		{ value: "playerName", translateKey: "playerName" },
+		{ value: "level", translateKey: "level" },
+		{ value: "zoneId", translateKey: "zoneIdPlain" },
+		{ value: "channel", translateKey: "channel" }
 	]);
 	sortBy.style.borderBottom = "1px solid #808080";
 	const sortDirection = buildRadioButtonList("spkmod-frined-sort-direction", [
-		{ value: "ascending", innerText: t("ascendingOrder"), checked: true },
-		{ value: "descending", innerText: t("descendingOrder") }
+		{ value: "ascending", translateKey: "ascendingOrder", defaultChecked: true },
+		{ value: "descending", translateKey: "descendingOrder" }
 	]);
 	return buildElement("div", {}, [title, sortBy, sortDirection]);
 }
@@ -22189,6 +22197,7 @@ const addSpkmodFriendMenuBtn = createRafThrottler((panel, panelBody) => {
 	if (sectionTitle != null && !sectionTitle.querySelector(":scope > [data-spkmod-friend-panel-btn]")) {
 		sectionTitle.style.position = "relative";
 		const btn = buildElement("button", {
+			id: "spkmod-friend-menu-btn",
 			type: "button",
 			style: `
 				position: absolute;
@@ -22212,6 +22221,20 @@ const addSpkmodFriendMenuBtn = createRafThrottler((panel, panelBody) => {
 });
 
 const observeSpkmodFriendPanel = createPanelObserver("friends", addSpkmodFriendMenuBtn);
+
+if (typeof spkmodI18nRenderers !== "undefined") {
+    spkmodI18nRenderers.push(() => {
+		const btn = document.getElementById("spkmod-friend-menu-btn");
+		if (btn != null) {
+			btn.innerText = t("sortAndFilter");
+		}
+		if (_spkmodFriendPanelMenu != null) {
+			for (const elem of _spkmodFriendPanelMenu.querySelectorAll("[data-spkmod-i18n]")) {
+				elem.innerText = t(elem.getAttribute("data-spkmod-i18n"));
+			}
+		}
+	});
+}
 
 function onGameDataUpdate() {
 

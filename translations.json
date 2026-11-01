@@ -717,7 +717,16 @@
         "jukeboxFavoritesEmpty": "No favorite songs yet! Click ❤️ on any song to add it to this list.",
         "jukeboxAddFavorite": "Add to favorites",
         "jukeboxRemoveFavorite": "Remove from favorites",
-        "jukeboxResizeTooltip": "Drag corner to resize window"
+        "jukeboxResizeTooltip": "Drag corner to resize window",
+        "sortAndFilter": "Sort and Filter...",
+        "sortBy": "Sort by",
+        "lastLogin": "Last Login",
+        "playerName": "Player Name",
+        "level": "Level",
+        "zoneIdPlain": "Zone ID",
+        "channel": "Channel",
+        "ascendingOrder": "Ascending",
+        "descendingOrder": "Descending"
     },
     "ja": {
         "langName": "日本語",
@@ -1467,7 +1476,16 @@
         "jukeboxFavoritesEmpty": "お気に入りの曲がまだありません！曲の❤️をクリックして追加してください。",
         "jukeboxAddFavorite": "お気に入りに追加",
         "jukeboxRemoveFavorite": "お気に入りから削除",
-        "jukeboxResizeTooltip": "角をドラッグしてウィンドウサイズを変更"
+        "jukeboxResizeTooltip": "角をドラッグしてウィンドウサイズを変更",
+        "sortAndFilter": "並べ替えと絞り込み...",
+        "sortBy": "並べ替え方式",
+        "lastLogin": "最終ログイン",
+        "playerName": "プレイヤー名",
+        "level": "レベル",
+        "zoneIdPlain": "エリアID",
+        "channel": "チャンネル",
+        "ascendingOrder": "昇順",
+        "descendingOrder": "降順"
     },
     "ko": {
         "langName": "한국어",
@@ -2187,7 +2205,16 @@
         "jukeboxFavoritesEmpty": "아직 즐겨찾기한 곡이 없습니다! 곡 목록의 ❤️를 눌러 추가해 보세요.",
         "jukeboxAddFavorite": "즐겨찾기에 추가",
         "jukeboxRemoveFavorite": "즐겨찾기에서 제거",
-        "jukeboxResizeTooltip": "모서리를 드래그하여 창 크기 조절"
+        "jukeboxResizeTooltip": "모서리를 드래그하여 창 크기 조절",
+        "sortAndFilter": "정렬 및 필터...",
+        "sortBy": "정렬 기준",
+        "lastLogin": "마지막 로그인",
+        "playerName": "플레이어 이름",
+        "level": "레벨",
+        "zoneIdPlain": "존 ID",
+        "channel": "채널",
+        "ascendingOrder": "오름차순",
+        "descendingOrder": "내림차순"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -2907,7 +2934,16 @@
         "jukeboxFavoritesEmpty": "尚無收藏的歌曲！點擊歌曲旁邊的 ❤️ 即可加入此清單。",
         "jukeboxAddFavorite": "加入我的最愛",
         "jukeboxRemoveFavorite": "從我的最愛移除",
-        "jukeboxResizeTooltip": "拖曳邊角調整視窗大小"
+        "jukeboxResizeTooltip": "拖曳邊角調整視窗大小",
+        "sortAndFilter": "排序與篩選...",
+        "sortBy": "排序方式",
+        "lastLogin": "最後登入",
+        "playerName": "玩家名字",
+        "level": "等級",
+        "zoneIdPlain": "區域 ID",
+        "channel": "頻道",
+        "ascendingOrder": "升序",
+        "descendingOrder": "降序"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -3627,7 +3663,16 @@
         "jukeboxFavoritesEmpty": "暂无收藏的歌曲！点击歌曲旁边的 ❤️ 即可添加到此列表。",
         "jukeboxAddFavorite": "添加到我的收藏",
         "jukeboxRemoveFavorite": "从我的收藏移除",
-        "jukeboxResizeTooltip": "拖拽边角调整窗口大小"
+        "jukeboxResizeTooltip": "拖拽边角调整窗口大小",
+        "sortAndFilter": "排序和筛选...",
+        "sortBy": "排序方式",
+        "lastLogin": "最后登录",
+        "playerName": "玩家名字",
+        "level": "等级",
+        "zoneIdPlain": "区域 ID",
+        "channel": "频道",
+        "ascendingOrder": "升序",
+        "descendingOrder": "降序"
     },
     "es-419": {
         "langName": "Español",
@@ -4347,6 +4392,15 @@
         "jukeboxFavoritesEmpty": "¡Aún no hay canciones favoritas! Haz clic en ❤️ en cualquier canción para agregarla aquí.",
         "jukeboxAddFavorite": "Añadir a favoritos",
         "jukeboxRemoveFavorite": "Quitar de favoritos",
-        "jukeboxResizeTooltip": "Arrastra la esquina para redimensionar la ventana"
+        "jukeboxResizeTooltip": "Arrastra la esquina para redimensionar la ventana",
+        "sortAndFilter": "Ordenar y filtrar...",
+        "sortBy": "Ordenar por",
+        "lastLogin": "Último inicio de sesión",
+        "playerName": "Nombre",
+        "level": "Nivel",
+        "zoneIdPlain": "ID de zona",
+        "channel": "Canal",
+        "ascendingOrder": "Orden ascendente",
+        "descendingOrder": "Orden descendente"
     }
 }
