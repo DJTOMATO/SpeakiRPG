@@ -4882,7 +4882,7 @@ function updateDynamicStyles() {
 		#app > *:not(.sr-game-canvas):not(canvas):not(.sr-click-ripple-layer) { zoom: ${lunGameUiScale} !important; }
 		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq, body > #spkmod-panel { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
-		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
+		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn, .spkmod-friend-panel-menu {
 			background: var(--spkmod-bg) !important;
 			backdrop-filter: var(--spkmod-blur) !important;
 			border-color: var(--spkmod-accent) !important;
@@ -19080,8 +19080,6 @@ var scheduleSpkmodQuestPinScan = createRafThrottler(() => {
 });
 
 function attachSpkmodPanel(state, panel, callback) {
-    if (!panel || !isQuestPanel(panel)) return false;
-
     const body = panel.querySelector(".sr-panel__body");
     if (!body) return false;
 
@@ -19135,7 +19133,7 @@ function attachSpkmodPanel(state, panel, callback) {
     return true;
 }
 
-function observeSpkmodPanel(state, callback) {
+function observeSpkmodPanel(state, panelType, callback) {
     // Already initialized: reuse the cached references.
     if (
         state.panelRoot?.isConnected &&
@@ -19149,7 +19147,10 @@ function observeSpkmodPanel(state, callback) {
     for (const panel of document.querySelectorAll(
         _spkmodPanelSelector
     )) {
-        if (attachSpkmodPanel(state, panel, callback)) {
+        if (
+			getPanelType(panel) == panelType &&
+			attachSpkmodPanel(state, panel, callback)
+		) {
             return true;
         }
     }
@@ -19174,7 +19175,10 @@ function observeSpkmodPanel(state, callback) {
             for (const panel of document.querySelectorAll(
                 _spkmodPanelSelector
             )) {
-                if (attachSpkmodPanel(state, panel, callback)) {
+                if (
+					getPanelType(panel) == panelType &&
+					attachSpkmodPanel(state, panel, callback)
+				) {
                     return;
                 }
             }
@@ -19189,8 +19193,13 @@ function observeSpkmodPanel(state, callback) {
     return false;
 }
 
+function createPanelObserver(panelType, callback) {
+	const state = {};
+	return () => observeSpkmodPanel(state, panelType, callback);
+}
+
 function observeSpkmodQuestPanel() {
-	return observeSpkmodPanel(_spkmodQuestDomState, scheduleSpkmodQuestPinScan);
+	return observeSpkmodPanel(_spkmodQuestDomState, "quests", scheduleSpkmodQuestPinScan);
 }
 
 function injectPinButtonsIntoQuestList() {
@@ -19321,6 +19330,139 @@ function injectPinButtonsIntoQuestList() {
 			}
     });
 }
+
+let _spkmodFriendPanelMenu = null;
+
+function buildRadioButtonList(name, options) {
+	return buildElement("div", {
+		style: `
+			padding: 2px;
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			gap: 2px;
+		`
+	}, options.map(({ value, checked, innerText }) => buildElement("label", {}, [
+		buildElement("input", {
+			type: "radio",
+			name,
+			value,
+			checked: Boolean(checked),
+		}),
+		document.createTextNode(innerText)
+	])));
+}
+
+function buildSpkmodFriendSortForm() {
+	const title = buildElement("p", {
+		style: `
+			margin: 0;
+			border: 0 none;
+			padding: 2px;
+		`,
+		innerText: t("sortBy")
+	});
+	const sortBy = buildRadioButtonList("spkmod-friend-sort-by", [
+		{ value: "lastLogin", innerText: t("lastLogin"), checked: true },
+		{ value: "playerName", innerText: t("playerName") },
+		{ value: "level", innerText: t("level") },
+		{ value: "zoneId", innerText: t("zoneIdPlain") },
+		{ value: "channel", innerText: t("channel") }
+	]);
+	sortBy.style.borderBottom = "1px solid #808080";
+	const sortDirection = buildRadioButtonList("spkmod-frined-sort-direction", [
+		{ value: "ascending", innerText: t("ascendingOrder"), checked: true },
+		{ value: "descending", innerText: t("descendingOrder") }
+	]);
+	return buildElement("div", {}, [title, sortBy, sortDirection]);
+}
+
+function buildSpkmodFriendPanelMenu() {
+	const menu = buildElement("div", {
+		className: "spkmod-friend-panel-menu hidden",
+		style: `
+			position: fixed;
+			border: ${spkmodBorderWidth} solid;
+			border-radius: 8px;
+			width: 300px;
+			padding: 4px;
+			background-color: #000000;
+			color: #FFFFFF;
+		`
+	}, [
+		buildSpkmodFriendSortForm()
+	]);
+	menu.setAttribute("data-spkmod-friend-menu", "");
+	return menu;
+}
+
+function getSpkmodFriendPanelMenu() {
+	if (_spkmodFriendPanelMenu != null) return _spkmodFriendPanelMenu;
+
+	const menu = buildSpkmodFriendPanelMenu();
+	document.body.appendChild(menu);
+
+	document.addEventListener("pointerdown", e => {
+		if (!menu.classList.contains("hidden") && !menu.contains(e.target) && !e.target.hasAttribute("data-spkmod-friend-panel-btn")) {
+			menu.classList.add("hidden");
+		}
+	});
+	document.addEventListener("wheel", e => {
+		if (!menu.classList.contains("hidden") && !menu.contains(e.target)) {
+			menu.classList.add("hidden");
+		}
+	}, true);
+
+	_spkmodFriendPanelMenu = menu;
+	return menu;
+}
+
+function toggleSpkmodFriendPanelMenu(btn, panel) {
+	const menu = getSpkmodFriendPanelMenu();
+	const hidden = menu.classList.toggle("hidden");
+	if (hidden) return;
+
+	const rect = btn.getBoundingClientRect();
+	menu.style.top = `${rect.bottom}px`;
+	menu.style.left = `${rect.left}px`;
+
+	const panelZIndex = window.getComputedStyle(panel).zIndex;
+	if (panelZIndex != null && /^-?[0-9]+$/.test(panelZIndex)) {
+		menu.style.zIndex = Number(panelZIndex) + 1;
+	}
+}
+
+const addSpkmodFriendMenuBtn = createRafThrottler((panel, panelBody) => {
+	if (!panel || !panel.isConnected || !panelBody || !panelBody.isConnected) return;
+
+	const sectionTitle = panelBody.querySelector(".sr-panel__section-title:first-child");
+
+	if (sectionTitle != null && !sectionTitle.querySelector(":scope > [data-spkmod-friend-panel-btn]")) {
+		sectionTitle.style.position = "relative";
+		const btn = buildElement("button", {
+			type: "button",
+			style: `
+				position: absolute;
+				bottom: 0;
+				right: 0;
+				background-color: #000000;
+				color: #FFFFFF;
+				border: 0 none;
+				border-radius: 4px;
+				padding: 3px 6px;
+			`,
+			innerText: t("sortAndFilter"),
+			onclick: e => {
+				e.preventDefault();
+				toggleSpkmodFriendPanelMenu(btn, panel);
+			}
+		});
+		btn.setAttribute("data-spkmod-friend-panel-btn", "");
+		sectionTitle.appendChild(btn);
+	}
+});
+
+const observeSpkmodFriendPanel = createPanelObserver("friends", addSpkmodFriendMenuBtn);
 
 function onGameDataUpdate() {
 
@@ -22519,6 +22661,9 @@ function onInGameReady() {
 	}
 	if (typeof observeSpkmodQuestPanel === "function") {
 	    observeSpkmodQuestPanel();
+	}
+	if (typeof observeSpkmodFriendPanel === "function") {
+		observeSpkmodFriendPanel();
 	}
 	const hudEl = document.getElementById("spkmod-hud");
 	if (hudEl) hudEl.classList.remove("hidden");
