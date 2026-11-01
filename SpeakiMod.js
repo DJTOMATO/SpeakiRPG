@@ -22169,6 +22169,9 @@ function getSpkmodFriendPanelMenu() {
 			menu.classList.add("hidden");
 		}
 	}, true);
+	window.addEventListener("blur", () => {
+		menu.classList.add("hidden");
+	});
 
 	_spkmodFriendPanelMenu = menu;
 	return menu;
