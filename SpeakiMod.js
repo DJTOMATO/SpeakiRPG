@@ -1444,6 +1444,41 @@ function getZoneName(zoneId) {
 	return `Zone ${zoneId}`;
 }
 
+let _zoneNameToIdMap = null;
+function getZoneIdFromName(zoneName) {
+	const fromFallback = zoneName.match(/^(?:Zone|존|ゾーン|區域|区域) (\d+)$/)?.[1];
+	if (fromFallback != null) return fromFallback;
+
+	if (_zoneNameToIdMap == null) {
+		_zoneNameToIdMap = new Map();
+
+		if (typeof window.i18nMap === "object" && window.i18nMap != null) {
+			for (const langTranslation of Object.values(window.i18nMap)) {
+				if (typeof langTranslation === "object") {
+					for (const key of Object.keys(langTranslation)) {
+						const zoneId = key.match(/^content.zone.(\d+).name$/)?.[1];
+						if (zoneId != null && !_zoneNameToIdMap.has(langTranslation[key])) {
+							_zoneNameToIdMap.set(langTranslation[key], Number(zoneId));
+						}
+					}
+				}
+			}
+		}
+
+		for (const langTranslation of Object.values(spkmodTranslations)) {
+			if (langTranslation != null && langTranslation.mapLocations != null && typeof langTranslation.mapLocations === "object") {
+				for (const zoneId of Object.keys(langTranslation.mapLocations)) {
+					if (!_zoneNameToIdMap.has(langTranslation.mapLocations[zoneId])) {
+						_zoneNameToIdMap.set(langTranslation.mapLocations[zoneId], Number(zoneId));
+					}
+				}
+			}
+		}
+	}
+
+	return _zoneNameToIdMap.get(zoneName);
+}
+
 var spkmodI18nRenderers = [];
 function refreshI18n() {
 	spkmodI18nRenderers.forEach(fn => fn());
@@ -22080,9 +22115,13 @@ function injectPinButtonsIntoQuestList() {
     });
 }
 
+let _spkmodFriendPanelBody = null;
 let _spkmodFriendPanelMenu = null;
+let _spkmodFriendPanelSortBy = "lastLogin";
+let _spkmodFriendPanelSortAscending = true;
+let _spkmodFriendOriginalOrder = null;
 
-function buildRadioButtonList(name, options) {
+function buildRadioButtonList(name, options, onchange) {
 	return buildElement("div", {
 		style: `
 			padding: 2px;
@@ -22100,7 +22139,8 @@ function buildRadioButtonList(name, options) {
 			type: "radio",
 			name,
 			value,
-			defaultChecked: Boolean(defaultChecked)
+			defaultChecked: Boolean(defaultChecked),
+			onchange: () => onchange(value)
 		}),
 		buildElement("span", {
 			dataset: { spkmodI18n: translateKey },
@@ -22125,12 +22165,18 @@ function buildSpkmodFriendSortForm() {
 		{ value: "level", translateKey: "level" },
 		{ value: "zoneId", translateKey: "zoneIdPlain" },
 		{ value: "channel", translateKey: "channel" }
-	]);
+	], value => {
+		_spkmodFriendPanelSortBy = value;
+		sortFriendList(false);
+	});
 	sortBy.style.borderBottom = "1px solid #808080";
 	const sortDirection = buildRadioButtonList("spkmod-frined-sort-direction", [
 		{ value: "ascending", translateKey: "ascendingOrder", defaultChecked: true },
 		{ value: "descending", translateKey: "descendingOrder" }
-	]);
+	], value => {
+		_spkmodFriendPanelSortAscending = (value == "ascending");
+		sortFriendList(false);
+	});
 	return buildElement("div", {}, [title, sortBy, sortDirection]);
 }
 
@@ -22192,8 +22238,127 @@ function toggleSpkmodFriendPanelMenu(btn, panel) {
 	}
 }
 
+function getOnlineFriendPresenceFromText(text) {
+	const prefix = "📍 "
+	const prefixRemoved = text.startsWith(prefix) ? text.slice(prefix.length) : text;
+	const statusItems = prefixRemoved.split(" · ");
+	const presence = {
+		online: true,
+		zoneId: null,
+		channel: null
+	};
+
+	// If the zone exists
+	if (statusItems.length >= 2) {
+		const zoneName = statusItems[0];
+		presence.zoneId = getZoneIdFromName(zoneName) ?? null;
+
+		// If the channel exists
+		if (statusItems.length == 3) {
+			const channelString = statusItems[1].match(/\d+/)?.[0];
+			presence.channel = channelString ? Number(channelString) : null;
+		}
+	}
+
+	return presence;
+}
+
+function getFriendPropertiesFromElement(friendElem) {
+	const titleElem = friendElem.querySelector(".sr-list-item__title");
+	const levelElem = friendElem.querySelector(".sr-party__level");
+	const presenceElem = friendElem.querySelector(".sr-list-item__subtitle");
+
+	const name = titleElem.textContent;
+
+	const levelString = levelElem.textContent.match(/^Lv\.(\d+)$/)?.[1];
+	const level = levelString ? Number(levelString) : null;
+
+	const online = !friendElem.classList.contains("sr-friend__row--offline");
+	const presence = online ? getOnlineFriendPresenceFromText(presenceElem.textContent) : {
+		online: false,
+		zoneId: null,
+		channel: null
+	};
+
+	return {
+		name,
+		level,
+		...presence
+	}
+}
+
+// A function comparing numbers that places null at the end
+function compareFriendNumberProperties(a, b, sign) {
+	if (a == null) {
+		return b == null ? 0 : 1;
+	} else {
+		return b == null ? -1 : sign * (a - b);
+	}
+}
+
+function compareFriendProperties(a, b) {
+	const sign = _spkmodFriendPanelSortAscending ? 1 : -1;
+
+	switch (_spkmodFriendPanelSortBy) {
+		case "lastLogin":
+			return 0;
+		case "playerName":
+			if (a.name < b.name) return -sign;
+			if (a.name > b.name) return sign;
+			return 0;
+		case "level":
+			return compareFriendNumberProperties(a.level, b.level, sign);
+		case "zoneId":
+			return compareFriendNumberProperties(a.zoneId, b.zoneId, sign);
+		case "channel":
+			return compareFriendNumberProperties(a.channel, b.channel, sign);
+	}
+}
+
+function sortFriendList(isOriginalOrder) {
+	if (!_spkmodFriendPanelBody || !_spkmodFriendPanelBody.isConnected) return;
+	if (isOriginalOrder && _spkmodFriendPanelSortBy == "lastLogin" && _spkmodFriendPanelSortAscending == "ascending") return;
+
+	const sectionTitles = _spkmodFriendPanelBody.querySelectorAll(".sr-panel__section-title");
+	const sectionTitle1 = sectionTitles[0];
+	const sectionTitle2 = sectionTitles[1];
+	if (sectionTitle1 == null || sectionTitle2 == null) return;
+
+	let items;
+	if (isOriginalOrder) {
+		items = [];
+		for (let item = sectionTitle1.nextElementSibling; item !== sectionTitle2; item = item.nextElementSibling) {
+			if (item.matches(".sr-list-item")) items.push(item);
+		}
+		_spkmodFriendOriginalOrder = [...items];
+	} else if (_spkmodFriendOriginalOrder) {
+		items = [..._spkmodFriendOriginalOrder];
+	} else {
+		return;
+	}
+	if (items.length == 0) return;
+
+	if (_spkmodFriendPanelSortBy == "lastLogin") {
+		if (!_spkmodFriendPanelSortAscending) items.reverse();
+	} else {
+		const properties = new Map();
+		for (const item of items) {
+			properties.set(item, getFriendPropertiesFromElement(item));
+		}
+		items.sort((a, b) => compareFriendProperties(
+			properties.get(a),
+			properties.get(b)
+		));
+	}
+
+	for (const item of items) {
+		_spkmodFriendPanelBody.insertBefore(item, sectionTitle2);
+	}
+}
+
 const addSpkmodFriendMenuBtn = createRafThrottler((panel, panelBody) => {
 	if (!panel || !panel.isConnected || !panelBody || !panelBody.isConnected) return;
+	_spkmodFriendPanelBody = panelBody;
 
 	const sectionTitle = panelBody.querySelector(".sr-panel__section-title:first-child");
 
@@ -22220,6 +22385,7 @@ const addSpkmodFriendMenuBtn = createRafThrottler((panel, panelBody) => {
 		});
 		btn.setAttribute("data-spkmod-friend-panel-btn", "");
 		sectionTitle.appendChild(btn);
+		sortFriendList(true);
 	}
 });
 
