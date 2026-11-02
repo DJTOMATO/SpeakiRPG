@@ -22115,11 +22115,17 @@ function injectPinButtonsIntoQuestList() {
     });
 }
 
+const _spkmodFriendPanelBorder = "1px solid #808080";
 let _spkmodFriendPanelBody = null;
 let _spkmodFriendPanelMenu = null;
 let _spkmodFriendPanelSortBy = "lastLogin";
 let _spkmodFriendPanelSortAscending = true;
 let _spkmodFriendOriginalOrder = null;
+const _spkmodFriendPanelFilterPresence = {
+	online: true,
+	offline: true
+};
+let _spkmodFriendPanelFilterPlayerName = "";
 
 function buildRadioButtonList(name, options, onchange) {
 	return buildElement("div", {
@@ -22149,6 +22155,37 @@ function buildRadioButtonList(name, options, onchange) {
 	])));
 }
 
+function buildCheckBoxList(name, options, onchange) {
+	return buildElement("div", {
+		style: `
+			padding: 2px;
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			gap: 2px;
+		`
+	}, options.map(({
+		value,
+		translateKey,
+		defaultChecked
+	}) => {
+		const input = buildElement("input", {
+			type: "checkbox",
+			name,
+			value,
+			defaultChecked: Boolean(defaultChecked),
+		});
+		input.addEventListener("change", () => onchange(value, input.checked));
+		return buildElement("label", {}, [
+			input,
+			buildElement("span", {
+				dataset: { spkmodI18n: translateKey },
+				innerText: t(translateKey)
+			})
+		])
+	}));
+}
+
 function buildSpkmodFriendSortForm() {
 	const title = buildElement("p", {
 		style: `
@@ -22169,7 +22206,7 @@ function buildSpkmodFriendSortForm() {
 		_spkmodFriendPanelSortBy = value;
 		sortFriendList(false);
 	});
-	sortBy.style.borderBottom = "1px solid #808080";
+	sortBy.style.borderBottom = _spkmodFriendPanelBorder;
 	const sortDirection = buildRadioButtonList("spkmod-frined-sort-direction", [
 		{ value: "ascending", translateKey: "ascendingOrder", defaultChecked: true },
 		{ value: "descending", translateKey: "descendingOrder" }
@@ -22177,7 +22214,44 @@ function buildSpkmodFriendSortForm() {
 		_spkmodFriendPanelSortAscending = (value == "ascending");
 		sortFriendList(false);
 	});
+	sortDirection.style.borderBottom = _spkmodFriendPanelBorder;
 	return buildElement("div", {}, [title, sortBy, sortDirection]);
+}
+
+function buildSpkmodFriendFilterForm() {
+	const title = buildElement("p", {
+		style: `
+			margin: 0;
+			border: 0 none;
+			padding: 2px;
+		`,
+		dataset: { spkmodI18n: "filterOptions" },
+		innerText: t("filterOptions")
+	});
+	const presence = buildCheckBoxList("spkmod-friend-filter-presence", [
+		{ value: "online", translateKey: "online", defaultChecked: true },
+		{ value: "offline", translateKey: "offline", defaultChecked: true }
+	], (value, checked) => {
+		_spkmodFriendPanelFilterPresence[value] = checked;
+		filterFriendList();
+	});
+	presence.style.borderBottom = _spkmodFriendPanelBorder;
+	const playerNameInput = buildElement("input", { type: "text" });
+	playerNameInput.addEventListener("input", () => {
+		_spkmodFriendPanelFilterPlayerName = playerNameInput.value.toLowerCase();
+		filterFriendList();
+	});
+	const playerName = buildElement("div", {}, [
+		buildElement("label", {}, [
+			document.createTextNode(t("playerName") + " "),
+			playerNameInput
+		])
+	]);
+	return buildElement("div", {
+		style: `
+			margin-top: 1em;
+		`
+	}, [title, presence, playerName]);
 }
 
 function buildSpkmodFriendPanelMenu() {
@@ -22193,7 +22267,8 @@ function buildSpkmodFriendPanelMenu() {
 			color: #FFFFFF;
 		`
 	}, [
-		buildSpkmodFriendSortForm()
+		buildSpkmodFriendSortForm(),
+		buildSpkmodFriendFilterForm()
 	]);
 	menu.setAttribute("data-spkmod-friend-menu", "");
 	return menu;
@@ -22239,6 +22314,13 @@ function toggleSpkmodFriendPanelMenu(btn, panel) {
 }
 
 function getOnlineFriendPresenceFromText(text) {
+	if (text == null) {
+		return {
+			online: false,
+			zoneId: null,
+			channel: null
+		};
+	}
 	const prefix = "📍 "
 	const prefixRemoved = text.startsWith(prefix) ? text.slice(prefix.length) : text;
 	const statusItems = prefixRemoved.split(" · ");
@@ -22268,13 +22350,13 @@ function getFriendPropertiesFromElement(friendElem) {
 	const levelElem = friendElem.querySelector(".sr-party__level");
 	const presenceElem = friendElem.querySelector(".sr-list-item__subtitle");
 
-	const name = titleElem.textContent;
+	const name = titleElem?.textContent;
 
-	const levelString = levelElem.textContent.match(/^Lv\.(\d+)$/)?.[1];
+	const levelString = levelElem?.textContent.match(/^Lv\.(\d+)$/)?.[1];
 	const level = levelString ? Number(levelString) : null;
 
 	const online = !friendElem.classList.contains("sr-friend__row--offline");
-	const presence = online ? getOnlineFriendPresenceFromText(presenceElem.textContent) : {
+	const presence = online ? getOnlineFriendPresenceFromText(presenceElem?.textContent) : {
 		online: false,
 		zoneId: null,
 		channel: null
@@ -22356,6 +22438,58 @@ function sortFriendList(isOriginalOrder) {
 	}
 }
 
+function testFriendListItemFilter(elem) {
+	const properties = getFriendPropertiesFromElement(elem);
+	if (properties.online && !_spkmodFriendPanelFilterPresence.online) return false;
+	if (!properties.online && !_spkmodFriendPanelFilterPresence.offline) return false;
+	if (!properties.name?.toLowerCase()?.includes(_spkmodFriendPanelFilterPlayerName)) return false;
+	return true;
+}
+
+function filterFriendList() {
+	if (!_spkmodFriendPanelBody || !_spkmodFriendPanelBody.isConnected) return;
+
+	const sectionTitles = _spkmodFriendPanelBody.querySelectorAll(".sr-panel__section-title");
+	const sectionTitle1 = sectionTitles[0];
+	const sectionTitle2 = sectionTitles[1];
+	if (sectionTitle1 == null || sectionTitle2 == null) return;
+
+	const items = [];
+	for (let item = sectionTitle1.nextElementSibling; item !== sectionTitle2; item = item.nextElementSibling) {
+		if (item.matches(".sr-list-item")) items.push(item);
+	}
+	if (items.length == 0) return;
+
+	let hasShownItem = false;
+	for (const item of items) {
+		const shown = testFriendListItemFilter(item);
+		item.classList.toggle("hidden", !shown);
+		if (shown) hasShownItem = true;
+	}
+
+	const existingMessage = _spkmodFriendPanelBody.querySelector("[data-spkmod-no-friends-match-filter]");
+	if (hasShownItem) {
+		if (existingMessage) existingMessage.classList.add("hidden");
+		return;
+	}
+
+	if (existingMessage) {
+		existingMessage.classList.remove("hidden");
+		return;
+	}
+
+	const message = buildElement("div", {
+		className: "sr-state",
+		dataset: { spkmodNoFriendsMatchFilter: "" }
+	}, [
+		buildElement("div", {
+			className: "sr-state__text",
+			textContent: t("noFriendsMatchFilter")
+		})
+	]);
+	_spkmodFriendPanelBody.insertBefore(message, sectionTitle2);
+}
+
 const addSpkmodFriendMenuBtn = createRafThrottler((panel, panelBody) => {
 	if (!panel || !panel.isConnected || !panelBody || !panelBody.isConnected) return;
 	_spkmodFriendPanelBody = panelBody;
@@ -22386,6 +22520,7 @@ const addSpkmodFriendMenuBtn = createRafThrottler((panel, panelBody) => {
 		btn.setAttribute("data-spkmod-friend-panel-btn", "");
 		sectionTitle.appendChild(btn);
 		sortFriendList(true);
+		filterFriendList();
 	}
 });
 
