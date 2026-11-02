@@ -71,9 +71,9 @@ async function patchScript(og, src) {
 	const m_getToken = m_tokenMatch[1] || "null";
 	const m_refreshMatch = code.match(/function (\w+)\(\)\{if\(\w+\)return \w+;let \w+=\w+\(\)\.finally\(\(\)=>\{\w+=null\}/) || [];
 	const m_refreshToken = m_refreshMatch[1] || "null";
-
+	
 	code = code.replace(
-		/function (\w+)\(\)\{let (\w+);if\((\w+)\(\)\)(\w+)=(\w+)\(\)\.resolutionScale;else\{let (\w+)=window\.devicePixelRatio;/,
+		/function ([\w$]+)\(\)\{let ([\w$]+);if\(([\w$]+)\(\)\)([\w$]+)=([\w$]+)\(\)\.resolutionScale;else\{let ([\w$]+)=window\.devicePixelRatio;/,
 		(_m, fn, e, isMobileLayout, e2, getSettings, dpr) =>
 			`function ${fn}(){if(window.spkmodResolutionOverride>1&&${isMobileLayout}())return Math.min(window.spkmodResolutionOverride,4);let ${e};if(${isMobileLayout}())${e2}=${getSettings}().resolutionScale;else{let ${dpr}=window.devicePixelRatio;`
 	);
