@@ -1323,10 +1323,19 @@ function setTranslateTarget(target) {
 	if (typeof renderBbsPosts === "function") renderBbsPosts();
 }
 var lunTranslateEmail = (window.localStorage && localStorage.getItem("spkmod-translate-email")) || "";
+var lunTranslateEngine = (window.localStorage && localStorage.getItem("spkmod-translate-engine")) || "google";
 var lunMyMemoryQuotaHit = window.localStorage && localStorage.getItem("spkmod-mymemory-quota") === new Date().toDateString();
+var lunGoogleQuotaHit = window.localStorage && localStorage.getItem("spkmod-google-quota") === new Date().toDateString();
 function setTranslateEmail(email) {
 	lunTranslateEmail = (email || "").trim();
 	if (window.localStorage) localStorage.setItem("spkmod-translate-email", lunTranslateEmail);
+}
+function setTranslateEngine(engine) {
+	lunTranslateEngine = (engine === "mymemory") ? "mymemory" : "google";
+	if (window.localStorage) localStorage.setItem("spkmod-translate-engine", lunTranslateEngine);
+	if (typeof lunPanelElements !== "undefined" && lunPanelElements.translateEngineSelect) {
+		lunPanelElements.translateEngineSelect.value = lunTranslateEngine;
+	}
 }
 
 var lunOutgoingSourceLang = (window.localStorage && localStorage.getItem("spkmod-outgoing-source-lang")) || "auto";
@@ -1637,6 +1646,8 @@ var lunPanelElements = {
 	translateToggleLabel: null,
 	translateToggleInput: null,
 	translateTargetSelect: null,
+	translateEngineLabel: null,
+	translateEngineSelect: null,
 	outgoingTranslateLabel: null,
 	outgoingTranslateSelect: null,
 	translateEmailInput: null,
@@ -3512,6 +3523,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-session-gold",
 	"spkmod-translate-enabled",
 	"spkmod-translate-target",
+	"spkmod-translate-engine",
 	"spkmod-ui-scale",
 	"spkmod-uiscale",
 	"spkmod-window-pos"
@@ -4294,6 +4306,19 @@ try {
                 localStorage.setItem('sr1_settings', JSON.stringify(s));
             }
         }
+		const restoreVol = window.__speakiMusicState.savedBgmVolume;
+        if (restoreVol > 0) {
+            let tries = 0;
+            const timer = setInterval(() => {
+                tries++;
+                if (typeof window.updateGameSettings === "function") {
+                    clearInterval(timer);
+                    try { window.updateGameSettings({ bgmVolume: restoreVol }); } catch (_) {}
+                } else if (tries > 50) {
+                    clearInterval(timer);
+                }
+            }, 200);
+        }
         localStorage.setItem("spkmod-is-bgm-suppressed", "false");
     }
 } catch (_) {}
@@ -4484,33 +4509,31 @@ function suppressGameBgm(mute) {
         if (state.isBgmSuppressed) return;
 
         // 1. Determine and save user's actual volume
-        let currentVol = getUserActualBgmVolume();
-        if (currentVol === null) {
-            if (typeof window.getGameSettings === "function") {
-                try {
-                    const s = window.getGameSettings();
-                    if (s && typeof s.bgmVolume === "number" && Number.isFinite(s.bgmVolume)) {
-                        currentVol = Math.max(0, Math.min(100, s.bgmVolume));
-                    }
-                } catch (_) {}
-            }
-            if (currentVol === null && slider && slider.value !== '') {
-                const n = Number(slider.value);
-                if (Number.isFinite(n)) currentVol = Math.max(0, Math.min(100, n));
-            }
-            if (currentVol === null) {
-                try {
-                    const raw = localStorage.getItem('sr1_settings');
-                    if (raw) {
-                        const s = JSON.parse(raw);
-                        if (typeof s.bgmVolume === "number" && Number.isFinite(s.bgmVolume)) {
-                            currentVol = Math.max(0, Math.min(100, s.bgmVolume));
-                        }
-                    }
-                } catch (_) {}
-            }
-            if (currentVol === null) currentVol = 70; // Native game default is 70
-        }
+        let currentVol = null;
+		if (typeof window.getGameSettings === "function") {
+			try {
+				const s = window.getGameSettings();
+				if (s && typeof s.bgmVolume === "number" && Number.isFinite(s.bgmVolume)) {
+					currentVol = Math.max(0, Math.min(100, s.bgmVolume));
+				}
+			} catch (_) {}
+		}
+		if (currentVol === null && slider && slider.value !== '') {
+			const n = Number(slider.value);
+			if (Number.isFinite(n)) currentVol = Math.max(0, Math.min(100, n));
+		}
+		if (currentVol === null) {
+			try {
+				const raw = localStorage.getItem('sr1_settings');
+                if (raw) {
+					const s = JSON.parse(raw);
+					if (typeof s.bgmVolume === "number" && Number.isFinite(s.bgmVolume)) {
+						currentVol = Math.max(0, Math.min(100, s.bgmVolume));
+					}
+				}
+			} catch (_) {}
+		}
+		if (currentVol === null) currentVol = getUserActualBgmVolume() ?? 70; // Native game default is 70
 
         setUserActualBgmVolume(currentVol);
         state.isBgmSuppressed = true;
@@ -4974,11 +4997,19 @@ function buildJukeboxUI() {
             state.isPlaying = false;
             state.player.pauseVideo();
             suppressGameBgm(false);
-        } else {
-            state.isChangingTrack = false;
-            suppressGameBgm(true);
-            state.player.playVideo();
-        }
+		} else {
+			state.isChangingTrack = false;
+			const tracks = getActiveJukeboxTracks();
+			const wantVid = tracks[state.currentTrackIndex]?.[0];
+			let loadedVid = null;
+			try { loadedVid = state.player.getVideoData()?.video_id; } catch (_) {}
+			if (wantVid && loadedVid !== wantVid) {
+				playTrackAtIndex(state.currentTrackIndex);
+			} else {
+				suppressGameBgm(true);
+				state.player.playVideo();
+			}
+		}
     });
 
     btnPrev.addEventListener('click', () => {
@@ -7837,7 +7868,8 @@ document.body.appendChild(
 								const remoteContainers = gameState.remotePlayers?.remotePlayers ? 
 									Array.from(gameState.remotePlayers.remotePlayers.values()).map(rp => rp.container) : [];
 								gameState.playerContainer.children.forEach(c => {
-									if (!remoteContainers.includes(c)) c.visible = true;
+									if (remoteContainers.includes(c) || c === gameState.selfMinigameRing) return;
+									c.visible = true;
 								});
 							}
 							if (typeof gameState !== "undefined" && gameState?.cameraController) {
@@ -7942,7 +7974,8 @@ document.body.appendChild(
 								const remoteContainers = gameState.remotePlayers?.remotePlayers ? 
 									Array.from(gameState.remotePlayers.remotePlayers.values()).map(rp => rp.container) : [];
 								gameState.playerContainer.children.forEach(c => {
-									if (!remoteContainers.includes(c)) c.visible = true;
+									if (remoteContainers.includes(c) || c === gameState.selfMinigameRing) return;
+									c.visible = true;
 								});
 							}
 							if (gameState.playerContainer && gameState.cameraController) {
@@ -8545,6 +8578,24 @@ document.body.appendChild(
 						checked: lunTranslateEnabled,
 						onchange: e => setTranslateEnabled(e.target.checked)
 					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.translateEngineLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: t("translateEngineLabel")
+					}),
+					lunPanelElements.translateEngineSelect = buildElement("select", {
+						className: "spkmod-panel-combo",
+						value: lunTranslateEngine,
+						onchange: e => setTranslateEngine(e.target.value)
+					}, [
+						{ value: "google", label: "Google" },
+						{ value: "mymemory", label: "MyMemory" }
+					].map(item => buildElement("option", {
+						value: item.value,
+						innerText: item.label,
+						selected: item.value === lunTranslateEngine
+					})))
 				]),
 				buildElement("div", { className: "spkmod-panel-cat", style: "gap: 4px;" }, [
 					buildElement("span", {
@@ -20177,49 +20228,16 @@ async function translateChatText(text, source, target) {
 		try {
 			let translated = null;
 			let apiStatus = 200;
-			let useFallback = false;
 
-			// Primary API: MyMemory
+			const engine = (typeof lunTranslateEngine === "string" && lunTranslateEngine === "mymemory") ? "mymemory" : "google";
+
 			const isMyMemoryQuotaHit = (typeof lunMyMemoryQuotaHit !== "undefined" && lunMyMemoryQuotaHit) ||
 				(window.localStorage && localStorage.getItem("spkmod-mymemory-quota") === new Date().toDateString());
 
-			if (isMyMemoryQuotaHit) {
-				useFallback = true;
-			} else {
-				try {
-					const params = new URLSearchParams({ q: safeText, langpair: `${source}|${target}` });
-					if (lunTranslateEmail) params.set("de", lunTranslateEmail);
-					if (window.localStorage && localStorage.getItem("spkmod-translate-email")) params.set("de", localStorage.getItem("spkmod-translate-email"));
-					
-					const res = await fetch(`https://api.mymemory.translated.net/get?${params}`);
-					if (!res.ok) {
-						useFallback = true;
-						if (res.status === 429 || res.status === 403) {
-							lunMyMemoryQuotaHit = true;
-							if (typeof window !== "undefined") window.lunMyMemoryQuotaHit = true;
-							if (window.localStorage) localStorage.setItem("spkmod-mymemory-quota", new Date().toDateString());
-							console.log("[SpeakiMod+] MyMemory daily quota reached (HTTP " + res.status + "); seamlessly falling back to Google Translate.");
-						}
-					} else {
-						const data = await res.json();
-						if (data?.responseStatus === 429 || data?.responseStatus === 403) {
-							useFallback = true;
-							lunMyMemoryQuotaHit = true;
-							if (typeof window !== "undefined") window.lunMyMemoryQuotaHit = true;
-							if (window.localStorage) localStorage.setItem("spkmod-mymemory-quota", new Date().toDateString());
-							console.log("[SpeakiMod+] MyMemory daily quota reached; seamlessly falling back to Google Translate.");
-						} else {
-							translated = cleanTranslatedText(data?.responseData?.translatedText);
-							if (!translated || data.responseStatus !== 200) useFallback = true;
-						}
-					}
-				} catch (err) {
-					useFallback = true;
-				}
-			}
+			const isGoogleQuotaHit = (typeof lunGoogleQuotaHit !== "undefined" && lunGoogleQuotaHit) ||
+				(window.localStorage && localStorage.getItem("spkmod-google-quota") === new Date().toDateString());
 
-			// Fallback API: Google Translate
-			if (useFallback) {
+			const callGoogle = async () => {
 				try {
 					const gtTarget = (target === "es-419") ? "es" : target;
 					const gtUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(gtTarget)}&dt=t&q=${encodeURIComponent(safeText)}`;
@@ -20227,30 +20245,110 @@ async function translateChatText(text, source, target) {
 					if (gtRes.ok) {
 						const gtData = await gtRes.json();
 						if (gtData && gtData[0]) {
-							translated = "";
+							let resText = "";
 							for (let i = 0; i < gtData[0].length; i++) {
-								if (gtData[0][i] && gtData[0][i][0]) translated += gtData[0][i][0];
+								if (gtData[0][i] && gtData[0][i][0]) resText += gtData[0][i][0];
 							}
-							translated = cleanTranslatedText(translated);
+							resText = cleanTranslatedText(resText);
+							if (resText) return { text: resText, status: 200 };
 						}
-					} else {
-						if (gtRes.status === 429) {
-							apiStatus = 429;
-						}
+						return { text: null, status: 200 };
 					}
+					if (gtRes.status === 429) {
+						lunGoogleQuotaHit = true;
+						if (typeof window !== "undefined") window.lunGoogleQuotaHit = true;
+						if (window.localStorage) localStorage.setItem("spkmod-google-quota", new Date().toDateString());
+						console.log("[SpeakiMod+] Google Translate quota reached (HTTP 429); seamlessly falling back to MyMemory.");
+					}
+					return { text: null, status: gtRes.status };
 				} catch (err) {
-					console.warn("[SpeakiMod+] Google Translate fallback error:", err);
+					console.warn("[SpeakiMod+] Google Translate request error:", err);
+					return { text: null, status: 0 };
+				}
+			};
+
+			const callMyMemory = async () => {
+				try {
+					const params = new URLSearchParams({ q: safeText, langpair: `${source}|${target}` });
+					if (lunTranslateEmail) params.set("de", lunTranslateEmail);
+					if (window.localStorage && localStorage.getItem("spkmod-translate-email")) params.set("de", localStorage.getItem("spkmod-translate-email"));
+					
+					const res = await fetch(`https://api.mymemory.translated.net/get?${params}`);
+					if (!res.ok) {
+						if (res.status === 429 || res.status === 403) {
+							lunMyMemoryQuotaHit = true;
+							if (typeof window !== "undefined") window.lunMyMemoryQuotaHit = true;
+							if (window.localStorage) localStorage.setItem("spkmod-mymemory-quota", new Date().toDateString());
+							console.log("[SpeakiMod+] MyMemory daily quota reached (HTTP " + res.status + "); seamlessly falling back to Google Translate.");
+						}
+						return { text: null, status: res.status };
+					}
+					const data = await res.json();
+					if (data?.responseStatus === 429 || data?.responseStatus === 403) {
+						lunMyMemoryQuotaHit = true;
+						if (typeof window !== "undefined") window.lunMyMemoryQuotaHit = true;
+						if (window.localStorage) localStorage.setItem("spkmod-mymemory-quota", new Date().toDateString());
+						console.log("[SpeakiMod+] MyMemory daily quota reached; seamlessly falling back to Google Translate.");
+						return { text: null, status: data.responseStatus };
+					}
+					const resText = cleanTranslatedText(data?.responseData?.translatedText);
+					if (!resText || data.responseStatus !== 200) {
+						return { text: null, status: data?.responseStatus || 200 };
+					}
+					return { text: resText, status: 200 };
+				} catch (err) {
+					console.warn("[SpeakiMod+] MyMemory request error:", err);
+					return { text: null, status: 0 };
+				}
+			};
+
+			if (engine === "mymemory") {
+				// Primary: MyMemory
+				if (!isMyMemoryQuotaHit) {
+					const mmRes = await callMyMemory();
+					if (mmRes.text) {
+						translated = mmRes.text;
+					} else {
+						if (mmRes.status === 429 || mmRes.status === 403) apiStatus = mmRes.status;
+					}
+				}
+				// Fallback: Google Translate
+				if (!translated && !isGoogleQuotaHit) {
+					const gtRes = await callGoogle();
+					if (gtRes.text) {
+						translated = gtRes.text;
+					} else {
+						if (gtRes.status === 429) apiStatus = 429;
+					}
+				}
+			} else {
+				// Primary: Google Translate
+				if (!isGoogleQuotaHit) {
+					const gtRes = await callGoogle();
+					if (gtRes.text) {
+						translated = gtRes.text;
+					} else {
+						if (gtRes.status === 429) apiStatus = 429;
+					}
+				}
+				// Fallback: MyMemory
+				if (!translated && !isMyMemoryQuotaHit) {
+					const mmRes = await callMyMemory();
+					if (mmRes.text) {
+						translated = mmRes.text;
+					} else {
+						if (mmRes.status === 429 || mmRes.status === 403) apiStatus = mmRes.status;
+					}
 				}
 			}
 
 			if (!translated) {
-				if (apiStatus === 429) {
+				if (apiStatus === 429 || (isGoogleQuotaHit && isMyMemoryQuotaHit)) {
 					setTranslateEnabled(false);
 					chatLog(t("translateQuotaHitMsg"));
 				}
 				return null;
 			}
-
 			// Check against the stripped text, so it doesn't just re-translate identical text
 			if (translated.trim().toLowerCase() === safeText.toLowerCase()) return null;
 
@@ -20892,6 +20990,7 @@ spkmodI18nRenderers.push(() => {
 	updateMovementButtonsUI();
 
 	if (lunPanelElements.translateToggleLabel) setText(lunPanelElements.translateToggleLabel, t("translateToggleLabel"));
+	if (lunPanelElements.translateEngineLabel) setText(lunPanelElements.translateEngineLabel, t("translateEngineLabel"));
 	if (lunPanelElements.translateEmailInput) lunPanelElements.translateEmailInput.placeholder = t("translateEmailPlaceholder");
 	if (lunPanelElements.translateEmailInfo) lunPanelElements.translateEmailInfo.innerText = t("translateEmailTooltip");
 	if (lunPanelElements.outgoingTranslateLabel) setText(lunPanelElements.outgoingTranslateLabel, t("outgoingTranslateLabel"));
@@ -21053,9 +21152,9 @@ function getPanelType(panel) {
 		for (const tb of tabBtns) {
 			const txt = (tb.textContent || "").toLowerCase();
 			if (
-				txt.includes("daily") || txt.includes("일일") || txt.includes("デイリー") || txt.includes("diaria") || txt.includes("每日") ||
-				txt.includes("week") || txt.includes("주간") || txt.includes("ウィークリー") || txt.includes("semanal") || txt.includes("每周") ||
-				txt.includes("stand") || txt.includes("perma") || txt.includes("상시") || txt.includes("常設") || txt.includes("permanente") || txt.includes("永久")
+				txt.includes("daily") || txt.includes("일일") || txt.includes("デイリー") || txt.includes("diaria") || txt.includes("每日") || txt.includes("日常") ||
+				txt.includes("week") || txt.includes("주간") || txt.includes("ウィークリー") || txt.includes("semanal") || txt.includes("每周") || txt.includes("周常") ||
+				txt.includes("stand") || txt.includes("perma") || txt.includes("상시") || txt.includes("常設") || txt.includes("permanente") || txt.includes("永久") || txt.includes("常驻")
 			) {
 				return "quest";
 			}
@@ -24398,7 +24497,8 @@ const spkmodGameGl = new WeakSet();
 
 function spkmodIsGameGl(gl) {
 	if (spkmodGameGl.has(gl)) return true;
-	if (gl.canvas && gl.canvas.classList && gl.canvas.classList.contains("sr-game-canvas")) {
+	const cl = gl.canvas && gl.canvas.classList;
+	if (cl && (cl.contains("sr-game-canvas") || cl.contains("canvas"))) {
 		spkmodGameGl.add(gl);
 		return true;
 	}
