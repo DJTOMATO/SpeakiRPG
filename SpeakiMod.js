@@ -2110,21 +2110,27 @@ function updateKnownBotVisibility() {
 		if (player?.container) {
 			const accId = player.info?.userId || player.info?.id || player.info?.playerId;
 			const isBot = lunHideKnownBotsEnabled && isKnownBotName(player.info?.name, player.info?.level, accId);
-            const isBlocked = isBlockedUser(player.info?.name);
-			player.container.visible = !(lunHideAllOtherPlayers || isBot || isBlocked);
+			const isBlocked = isBlockedUser(player.info?.name);
+			const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(player.info?.name);
+			const hideBySolitude = lunHideAllOtherPlayers && !isWhitelisted;
+			player.container.visible = !(hideBySolitude || isBot || isBlocked);
 		}
 	});
 	if (lunHideAllOtherPlayers) {
 		if (gameState?.remotePetRegistry?.pets) {
 			for (const pet of gameState.remotePetRegistry.pets.values()) {
-				if (pet?.root) pet.root.visible = false;
-				else if (pet?.container) pet.container.visible = false;
+				const ownerName = pet?.info?.ownerName || pet?.ownerName || pet?.info?.name;
+				const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(ownerName);
+				if (pet?.root) pet.root.visible = isWhitelisted;
+				else if (pet?.container) pet.container.visible = isWhitelisted;
 			}
 		}
 		if (gameState?.remoteDroneCoreRegistry?.droneCores) {
 			for (const drone of gameState.remoteDroneCoreRegistry.droneCores.values()) {
-				if (drone?.root) drone.root.visible = false;
-				else if (drone?.container) drone.container.visible = false;
+				const ownerName = drone?.info?.ownerName || drone?.ownerName || drone?.info?.name;
+				const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(ownerName);
+				if (drone?.root) drone.root.visible = isWhitelisted;
+				else if (drone?.container) drone.container.visible = isWhitelisted;
 			}
 		}
 	} else {
@@ -2199,13 +2205,40 @@ function isBlockedUserBubbleSource(source) {
 	return false;
 }
 
+function isSolitudeWhitelistedContainer(container) {
+	if (!container || !gameState?.remotePlayers?.remotePlayers || typeof isSolitudeWhitelisted !== "function") return false;
+	let current = container;
+	while (current) {
+		for (const player of gameState.remotePlayers.remotePlayers.values()) {
+			if (player?.container === current) return isSolitudeWhitelisted(player.info?.name);
+		}
+		current = current.parent;
+	}
+	return false;
+}
+
+function isSolitudeWhitelistedBubbleSource(source) {
+	if (!source || !gameState?.remotePlayers?.remotePlayers || typeof isSolitudeWhitelisted !== "function") return false;
+	if (isSolitudeWhitelistedContainer(source) || isSolitudeWhitelistedContainer(source.container)) return true;
+	if (isSolitudeWhitelisted(source.info?.name)) return true;
+	if (isSolitudeWhitelisted(source.name)) return true;
+
+	for (const player of gameState.remotePlayers.remotePlayers.values()) {
+		const playerInfo = player?.info;
+		if (playerInfo && (source === playerInfo.playerId || source === playerInfo.id || source === playerInfo.userId)) {
+			return isSolitudeWhitelisted(playerInfo.name);
+		}
+	}
+	return false;
+}
+
 function hookKnownBotHeartEmotes() {
 	const bloomEffects = gameState?.bloomEffects;
 	if (!bloomEffects || typeof bloomEffects.spawnHearts !== "function" || bloomEffects.__speakiKnownBotHooked) return;
 
 	const originalSpawnHearts = bloomEffects.spawnHearts.bind(bloomEffects);
 	bloomEffects.spawnHearts = function(container, ...args) {
-		if (lunHideAllOtherPlayers) return;
+		if (lunHideAllOtherPlayers && !isSolitudeWhitelistedContainer(container)) return;
 		if (lunHideKnownBotsEnabled && isKnownBotContainer(container)) return;
 		if (isBlockedUserContainer(container)) return;
 		return originalSpawnHearts(container, ...args);
@@ -2274,9 +2307,10 @@ function resolveRemotePlayerById(playerId) {
 }
 
 function isSilencedPlayer(player) {
-    if (lunHideAllOtherPlayers) return true;
     if (!player) return false;
     const name = player.info?.name || player.name;
+    const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(name);
+    if (lunHideAllOtherPlayers && !isWhitelisted) return true;
     if (!name || typeof name !== "string") return false;
     const lower = name.trim().toLocaleLowerCase();
     if (!lower) return false;
@@ -3445,6 +3479,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-gamepad-rumble",
 	"spkmod-gamepad-unlocked",
 	"spkmod-gmchat-enabled",
+	"spkmod-hide-all-players",
 	"spkmod-hide-known-bots",
 	"spkmod-hide-player-levels",
 	"spkmod-hide-verbose-chat",
@@ -3486,6 +3521,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-reset-timer",
 	"spkmod-separate-panel",
 	"spkmod-session-gold",
+	"spkmod-solitude-whitelist",
 	"spkmod-translate-enabled",
 	"spkmod-translate-target",
 	"spkmod-translate-engine",
@@ -5707,6 +5743,7 @@ var lunChromaKeyColor = (window.localStorage && localStorage.getItem("spkmod-chr
 var lunChromaFloorShape = (window.localStorage && localStorage.getItem("spkmod-chroma-floor-shape")) || "off";
 var lunChromaFloorScale = parseFloat((window.localStorage && localStorage.getItem("spkmod-chroma-floor-scale")) || "1.0") || 1.0;
 var lunHideAllOtherPlayers = (window.localStorage && localStorage.getItem("spkmod-hide-all-players") === "true") || false;
+var lunSolitudeWhitelist = (window.localStorage && localStorage.getItem("spkmod-solitude-whitelist")) || "";
 var lunLockedFacialExpression = (window.localStorage && localStorage.getItem("spkmod-locked-facial-expression")) || "none";
 var lunAllPlayersFacialExpression = "none";
 var lunTargetFacialExpressions = new Map();
@@ -5981,6 +6018,32 @@ function setHideAllOtherPlayers(enabled) {
 	}
 	if (typeof chatLog === "function") {
 		chatLog("Solitude Mode: " + (lunHideAllOtherPlayers ? "ON" : "OFF"));
+	}
+}
+
+function getSolitudeWhitelistNames() {
+	if (!lunSolitudeWhitelist || typeof lunSolitudeWhitelist !== "string") return [];
+	return lunSolitudeWhitelist
+		.split(",")
+		.map(name => name.trim().toLocaleLowerCase())
+		.filter(Boolean);
+}
+
+function isSolitudeWhitelisted(name) {
+	if (!name || typeof name !== "string") return false;
+	const clean = name.trim().toLocaleLowerCase();
+	if (!clean) return false;
+	const list = getSolitudeWhitelistNames();
+	return list.includes(clean);
+}
+
+function setSolitudeWhitelist(namesStr) {
+	lunSolitudeWhitelist = typeof namesStr === "string" ? namesStr : "";
+	if (window.localStorage) {
+		localStorage.setItem("spkmod-solitude-whitelist", lunSolitudeWhitelist);
+	}
+	if (typeof updateKnownBotVisibility === "function") {
+		updateKnownBotVisibility();
 	}
 }
 
@@ -16304,18 +16367,23 @@ function updateLocalEditsUI() {
 		}
 	});
 
-	// Solitude Toggle Button
-	if (editsModalElements.solitudeToggleBtn) {
-		if (lunHideAllOtherPlayers) {
-			setText(editsModalElements.solitudeToggleBtn, t("solitudeToggleOn") || "Alone Mode: ON (Only You Visible)");
-			editsModalElements.solitudeToggleBtn.style.borderColor = "#55ff55";
-			editsModalElements.solitudeToggleBtn.style.background = "rgba(85, 255, 85, 0.2)";
-			editsModalElements.solitudeToggleBtn.style.color = "#aaffaa";
-		} else {
-			setText(editsModalElements.solitudeToggleBtn, t("solitudeToggleOff") || "Alone Mode: OFF (All Players Visible)");
-			editsModalElements.solitudeToggleBtn.style.borderColor = "#555";
-			editsModalElements.solitudeToggleBtn.style.background = "";
-			editsModalElements.solitudeToggleBtn.style.color = "#ffffff";
+	// Solitude Toggle Controls
+	if (editsModalElements.solitudeHeader) {
+		setText(editsModalElements.solitudeHeader, "👤 " + (t("solitudeHeader") || "Solitude (Alone Mode)"));
+	}
+	if (editsModalElements.solitudeCheckbox) {
+		editsModalElements.solitudeCheckbox.checked = !!lunHideAllOtherPlayers;
+	}
+	if (editsModalElements.solitudeCheckboxLabel) {
+		setText(editsModalElements.solitudeCheckboxLabel, t("solitudeEnabledCheckbox") || "Enable Solitude Mode (Hide all players)");
+	}
+	if (editsModalElements.solitudeWhitelistLabel) {
+		setText(editsModalElements.solitudeWhitelistLabel, t("solitudeWhitelistLabel") || "Whitelist (Names separated by comma):");
+	}
+	if (editsModalElements.solitudeWhitelistInput) {
+		editsModalElements.solitudeWhitelistInput.placeholder = t("solitudeWhitelistPlaceholder") || "e.g. Player1, Player2...";
+		if (document.activeElement !== editsModalElements.solitudeWhitelistInput) {
+			editsModalElements.solitudeWhitelistInput.value = lunSolitudeWhitelist || "";
 		}
 	}
 
@@ -16945,20 +17013,40 @@ document.body.appendChild(
 			]),
 
 			// Section 2: Solitude Mode (Alone Mode)
-			buildElement("div", { style: "display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid #555; padding-bottom: 8px;" }, [
+			buildElement("div", { style: "display: flex; flex-direction: column; gap: 6px; border-bottom: 1px solid #555; padding-bottom: 8px;" }, [
 				editsModalElements.solitudeHeader = buildElement("div", {
 					className: "spkmod-panel-cat-header",
 					innerText: "👤 " + (t("solitudeHeader") || "Solitude (Alone Mode)"),
 					style: "margin-top: 0px;"
 				}),
-				editsModalElements.solitudeToggleBtn = buildElement("button", {
-					className: "spkmod-panel-btn",
-					style: "padding: 7px; font-size: 11px; font-weight: bold; width: 100%;",
-					innerText: lunHideAllOtherPlayers ? (t("solitudeToggleOn") || "Alone Mode: ON (Only You Visible)") : (t("solitudeToggleOff") || "Alone Mode: OFF (All Players Visible)"),
-					onclick: () => {
-						setHideAllOtherPlayers(!lunHideAllOtherPlayers);
-					}
-				})
+				buildElement("label", { style: "display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; font-size: 11px; font-weight: bold; color: #fff;" }, [
+					editsModalElements.solitudeCheckbox = buildElement("input", {
+						type: "checkbox",
+						checked: !!lunHideAllOtherPlayers,
+						style: "cursor: pointer; width: 14px; height: 14px; accent-color: #ffd54a; margin: 0;",
+						onchange: (e) => {
+							setHideAllOtherPlayers(e.target.checked);
+						}
+					}),
+					editsModalElements.solitudeCheckboxLabel = buildElement("span", {
+						innerText: t("solitudeEnabledCheckbox") || "Enable Solitude Mode (Hide all players)"
+					})
+				]),
+				buildElement("div", { style: "display: flex; flex-direction: column; gap: 3px; margin-top: 2px;" }, [
+					editsModalElements.solitudeWhitelistLabel = buildElement("span", {
+						style: "font-size: 10px; color: #bbb;",
+						innerText: t("solitudeWhitelistLabel") || "Whitelist (Names separated by comma):"
+					}),
+					editsModalElements.solitudeWhitelistInput = buildElement("input", {
+						type: "text",
+						placeholder: t("solitudeWhitelistPlaceholder") || "e.g. Player1, Player2...",
+						value: lunSolitudeWhitelist || "",
+						style: "width: 100%; box-sizing: border-box; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid #555; background: #111; color: #fff;",
+						oninput: (e) => {
+							setSolitudeWhitelist(e.target.value);
+						}
+					})
+				])
 			]),
 
 			// Section 3: Facial Expression Lock
@@ -22400,7 +22488,8 @@ function tick() {
 		gameState.chatBubbles.show = (e, t, n) => {
 			if (lunHideAllOtherPlayers) {
 				const isLocal = (e === gameState.playerContainer || e === gameState.localAvatar || e === gameState.myPlayerId);
-				if (!isLocal) return;
+				const isWhitelisted = typeof isSolitudeWhitelistedBubbleSource === "function" && isSolitudeWhitelistedBubbleSource(e);
+				if (!isLocal && !isWhitelisted) return;
 			}
 			if (lunHideKnownBotsEnabled && isKnownBotBubbleSource(e)) return;
 			if (typeof isBlockedUserBubbleSource === 'function' && isBlockedUserBubbleSource(e)) return;
