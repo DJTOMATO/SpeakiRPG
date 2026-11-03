@@ -22127,6 +22127,14 @@ const _spkmodFriendPanelFilterPresence = {
 };
 let _spkmodFriendPanelFilterPlayerName = "";
 
+function resetSpkmodFriendPanelSortAndFilter() {
+	_spkmodFriendPanelSortBy = "lastLogin";
+	_spkmodFriendPanelSortAscending = true;
+	_spkmodFriendPanelFilterPresence.online = true;
+	_spkmodFriendPanelFilterPresence.offline = true;
+	_spkmodFriendPanelFilterPlayerName = "";
+}
+
 function buildRadioButtonList(name, options, onchange) {
 	return buildElement("div", {
 		style: `
@@ -22255,6 +22263,28 @@ function buildSpkmodFriendFilterForm() {
 }
 
 function buildSpkmodFriendPanelMenu() {
+	const form = buildElement("form", {}, [
+		buildSpkmodFriendSortForm(),
+		buildSpkmodFriendFilterForm(),
+		buildElement("div", {
+			style: `
+				margin-top: 1em;
+			`
+		}, [
+			buildElement("button", {
+				className: "spkmod-panel-btn",
+				type: "button",
+				innerText: t("resetSelections"),
+				onclick: e => {
+					e.preventDefault();
+					form.reset();
+					resetSpkmodFriendPanelSortAndFilter();
+					sortFriendList(false);
+					filterFriendList();
+				}
+			})
+		])
+	]);
 	const menu = buildElement("div", {
 		className: "spkmod-friend-panel-menu hidden",
 		style: `
@@ -22266,10 +22296,7 @@ function buildSpkmodFriendPanelMenu() {
 			background-color: #000000;
 			color: #FFFFFF;
 		`
-	}, [
-		buildSpkmodFriendSortForm(),
-		buildSpkmodFriendFilterForm()
-	]);
+	}, [form]);
 	menu.setAttribute("data-spkmod-friend-menu", "");
 	return menu;
 }
