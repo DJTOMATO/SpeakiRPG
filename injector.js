@@ -61,7 +61,9 @@ async function patchScript(og, src) {
 	let code = await (await fetch(src)).text();
 
 	// Identify minified i18n function
-	const m_i18n = (code.match(/function (\w+?)\(e\)\s*\{\s*let \w+\s*=\s*\w+\[\w+\(\)\];\s*return Object\.prototype\.hasOwnProperty.call\(\w+,\s*e\)\s*\?\s*\w+\[e\]\s*:/) || [])[1] || "null";
+	const m_i18n_all = code.match(/function (\w+?)\(e\)\s*\{\s*let \w+\s*=\s*(\w+)\[\w+\(\)\];\s*return Object\.prototype\.hasOwnProperty.call\(\w+,\s*e\)\s*\?\s*\w+\[e\]\s*:/) || [];
+	const m_i18n = m_i18n_all[1] || "null";
+	const m_i18nMap = m_i18n_all[2] || "null";
 	const m_settingsMatch = code.match(/case[\x60'"]muteAll[\x60'"]\s*:\s*(\w+)\(\{muteAll:!(\w+)\(\)\.muteAll\}\)/) || [];
 	const m_updateSettings = m_settingsMatch[1] || "null";
 	const m_getSettings = m_settingsMatch[2] || "null";
@@ -92,7 +94,7 @@ async function patchScript(og, src) {
 	// Layer A: Internal GameState method hook on connect(e)
 	const reqChannelPattern = /connect\(([^)]*)\)\s*\{\s*this\.requestedChannel\s*=/;
 	if (reqChannelPattern.test(code)) {
-		code = code.replace(reqChannelPattern, `connect($1){window.speakiInjectorVer = 2; window.gameState = this; window.getAudioListener = () => ${m_vc}; window.i18n = ${m_i18n}; window.getGameSettings = ${m_getSettings}; window.updateGameSettings = ${m_updateSettings}; window.getNativeAuthToken = ${m_getToken}; window.refreshAuthToken = ${m_refreshToken}; this.requestedChannel=`);
+		code = code.replace(reqChannelPattern, `connect($1){window.speakiInjectorVer = 2; window.gameState = this; window.getAudioListener = () => ${m_vc}; window.i18n = ${m_i18n}; window.i18nMap = ${m_i18nMap}; window.getGameSettings = ${m_getSettings}; window.updateGameSettings = ${m_updateSettings}; window.getNativeAuthToken = ${m_getToken}; window.refreshAuthToken = ${m_refreshToken}; this.requestedChannel=`);
 	}
 
 	// Layer B: Internal GameState method hook on handleLogin(e)
