@@ -144,6 +144,7 @@ SPK_85,https://i.imgur.com/xOIlwWv.gif
 SPK_86,https://i.imgur.com/fQ60kES.gif
 SPK_87,https://i.imgur.com/vAHnVK3.gif
 SPK_91,https://i.imgur.com/396gHGz.png
+t_292,https://i.imgur.com/5J1G3jH.jpeg
 spk_92,https://i.imgur.com/2GJVoOs.png
 spk_93,https://i.imgur.com/cETMXRx.png
 spk_94,https://i.imgur.com/OqOLrIw.png
