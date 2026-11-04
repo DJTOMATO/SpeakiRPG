@@ -22300,8 +22300,8 @@ function buildSpkmodFriendSortForm() {
 			border: 0 none;
 			padding: 2px;
 		`,
-		dataset: { spkmodI18n: "sortBy" },
-		innerText: t("sortBy")
+		dataset: { spkmodI18n: "sortOptions" },
+		innerText: t("sortOptions")
 	});
 	const sortBy = buildRadioButtonList("spkmod-friend-sort-by", [
 		{ value: "lastLogin", translateKey: "lastLogin", defaultChecked: true },
@@ -22350,7 +22350,11 @@ function buildSpkmodFriendFilterForm() {
 	});
 	const playerName = buildElement("div", {}, [
 		buildElement("label", {}, [
-			document.createTextNode(t("playerName") + " "),
+			buildElement("span", {
+				dataset: { spkmodI18n: "playerName" },
+				innerText: t("playerName")
+			}),
+			document.createTextNode(" "),
 			playerNameInput
 		])
 	]);
@@ -22373,6 +22377,7 @@ function buildSpkmodFriendPanelMenu() {
 			buildElement("button", {
 				className: "spkmod-panel-btn",
 				type: "button",
+				dataset: { spkmodI18n: "resetSelections" },
 				innerText: t("resetSelections"),
 				onclick: e => {
 					e.preventDefault();
@@ -22610,6 +22615,7 @@ function filterFriendList() {
 	}, [
 		buildElement("div", {
 			className: "sr-state__text",
+			dataset: { spkmodI18n: "noFriendsMatchFilter" },
 			textContent: t("noFriendsMatchFilter")
 		})
 	]);
@@ -22625,7 +22631,6 @@ const addSpkmodFriendMenuBtn = createRafThrottler((panel, panelBody) => {
 	if (sectionTitle != null && !sectionTitle.querySelector(":scope > [data-spkmod-friend-panel-btn]")) {
 		sectionTitle.style.position = "relative";
 		const btn = buildElement("button", {
-			id: "spkmod-friend-menu-btn",
 			type: "button",
 			style: `
 				position: absolute;
@@ -22637,13 +22642,16 @@ const addSpkmodFriendMenuBtn = createRafThrottler((panel, panelBody) => {
 				border-radius: 4px;
 				padding: 3px 6px;
 			`,
+			dataset: {
+				spkmodFriendPanelBtn: "",
+				spkmodI18n: "sortAndFilter",
+			},
 			innerText: t("sortAndFilter"),
 			onclick: e => {
 				e.preventDefault();
 				toggleSpkmodFriendPanelMenu(btn, panel);
 			}
 		});
-		btn.setAttribute("data-spkmod-friend-panel-btn", "");
 		sectionTitle.appendChild(btn);
 		sortFriendList(true);
 		filterFriendList();
@@ -22654,9 +22662,10 @@ const observeSpkmodFriendPanel = createPanelObserver("friends", addSpkmodFriendM
 
 if (typeof spkmodI18nRenderers !== "undefined") {
     spkmodI18nRenderers.push(() => {
-		const btn = document.getElementById("spkmod-friend-menu-btn");
-		if (btn != null) {
-			btn.innerText = t("sortAndFilter");
+		if (_spkmodFriendPanelBody != null) {
+			for (const elem of _spkmodFriendPanelBody.querySelectorAll("[data-spkmod-i18n]")) {
+				elem.innerText = t(elem.getAttribute("data-spkmod-i18n"));
+			}
 		}
 		if (_spkmodFriendPanelMenu != null) {
 			for (const elem of _spkmodFriendPanelMenu.querySelectorAll("[data-spkmod-i18n]")) {
