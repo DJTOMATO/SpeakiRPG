@@ -1037,6 +1037,17 @@ const DEFAULT_RAIDS = [
 		"name": "Earthshaker Sealed Altar"
 	},
 	{
+		"raidId": 8,
+		"templateZoneId": 910,
+		"altarZoneId": 303,
+		"altarX": 534,
+		"altarZ": -884,
+		"bossMonsterId": 1393,
+		"bossLevel": 85,
+		"requiredLevel": 85,
+		"name": "Errand Lane Sealed Altar"
+	},
+	{
 		"raidId": 10,
 		"templateZoneId": 910,
 		"altarZoneId": 306,
@@ -1049,7 +1060,7 @@ const DEFAULT_RAIDS = [
 	}
 ];
 
-const DEFAULT_WORLD_ZONES = [{"zoneId": 1, "minX": 0, "maxX": 100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 2, "minX": 100, "maxX": 200, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 3, "minX": 200, "maxX": 300, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 4, "minX": 300, "maxX": 430, "minZ": 60, "maxZ": 140, "requiredQuestCode": null}, {"zoneId": 5, "minX": 430, "maxX": 560, "minZ": 60, "maxZ": 140, "requiredQuestCode": null}, {"zoneId": 6, "minX": 560, "maxX": 660, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 7, "minX": 660, "maxX": 760, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 8, "minX": 760, "maxX": 960, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 9, "minX": 960, "maxX": 1140, "minZ": 40, "maxZ": 160, "requiredQuestCode": null}, {"zoneId": 10, "minX": 1140, "maxX": 1360, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 11, "minX": 2000, "maxX": 2040, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 12, "minX": 2100, "maxX": 2140, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 13, "minX": 2200, "maxX": 2240, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 101, "minX": 100, "maxX": 300, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 102, "minX": 350, "maxX": 450, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 103, "minX": 550, "maxX": 650, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 104, "minX": 712.5, "maxX": 787.5, "minZ": 212.5, "maxZ": 287.5, "requiredQuestCode": "MQ_BOSS_WORLDTREE"}, {"zoneId": 105, "minX": 850, "maxX": 950, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 106, "minX": 1050, "maxX": 1150, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 107, "minX": 1250, "maxX": 1350, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 108, "minX": 1400, "maxX": 1600, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 181, "minX": 2300, "maxX": 2340, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 182, "minX": 2400, "maxX": 2440, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 201, "minX": 120, "maxX": 280, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 202, "minX": 340, "maxX": 460, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 203, "minX": 520, "maxX": 680, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 204, "minX": 725, "maxX": 775, "minZ": -75, "maxZ": -25, "requiredQuestCode": "MQ2_CORE3"}, {"zoneId": 205, "minX": 840, "maxX": 960, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 206, "minX": 1040, "maxX": 1160, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 207, "minX": 1240, "maxX": 1360, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 208, "minX": 1440, "maxX": 1560, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 209, "minX": 1620, "maxX": 1780, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 281, "minX": 2500, "maxX": 2540, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 282, "minX": 2588, "maxX": 2652, "minZ": -12, "maxZ": 52, "requiredQuestCode": null}, {"zoneId": 900, "minX": 0, "maxX": 1200, "minZ": 0, "maxZ": 25, "requiredQuestCode": null}, {"zoneId": 901, "minX": 0, "maxX": 100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 902, "minX": 0, "maxX": 50, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 903, "minX": 0, "maxX": 120, "minZ": 0, "maxZ": 90, "requiredQuestCode": null}, {"zoneId": 905, "minX": 0, "maxX": 40, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 910, "minX": 2700, "maxX": 2740, "minZ": 0, "maxZ": 30, "requiredQuestCode": null}, {"zoneId": 301, "minX": 0, "maxX": 140, "minZ": -900, "maxZ": -760, "requiredQuestCode": null}, {"zoneId": 302, "minX": 220, "maxX": 320, "minZ": -940, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 303, "minX": 400, "maxX": 550, "minZ": -900, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 304, "minX": 620, "maxX": 690, "minZ": -855, "maxZ": -785, "requiredQuestCode": "MQ3_THUNDER3"}, {"zoneId": 305, "minX": 730, "maxX": 890, "minZ": -940, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 306, "minX": 930, "maxX": 1070, "minZ": -910, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 307, "minX": 1150, "maxX": 1310, "minZ": -900, "maxZ": -800, "requiredQuestCode": null}, {"zoneId": 308, "minX": 1350, "maxX": 1480, "minZ": -950, "maxZ": -800, "requiredQuestCode": null}, {"zoneId": 309, "minX": 1550, "maxX": 1710, "minZ": -940, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 909, "minX": 1.4, "maxX": 22.6, "minZ": 1.4, "maxZ": 12.6, "requiredQuestCode": null}, {"zoneId": 950, "minX": 3000, "maxX": 3100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}];
+const DEFAULT_WORLD_ZONES = [{"zoneId": 1, "minX": 0, "maxX": 100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 2, "minX": 100, "maxX": 200, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 3, "minX": 200, "maxX": 300, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 4, "minX": 300, "maxX": 430, "minZ": 60, "maxZ": 140, "requiredQuestCode": null}, {"zoneId": 5, "minX": 430, "maxX": 560, "minZ": 60, "maxZ": 140, "requiredQuestCode": null}, {"zoneId": 6, "minX": 560, "maxX": 660, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 7, "minX": 660, "maxX": 760, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 8, "minX": 760, "maxX": 960, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 9, "minX": 960, "maxX": 1140, "minZ": 40, "maxZ": 160, "requiredQuestCode": null}, {"zoneId": 10, "minX": 1140, "maxX": 1360, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 11, "minX": 2000, "maxX": 2040, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 12, "minX": 2100, "maxX": 2140, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 13, "minX": 2200, "maxX": 2240, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 101, "minX": 100, "maxX": 300, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 102, "minX": 350, "maxX": 450, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 103, "minX": 550, "maxX": 650, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 104, "minX": 712.5, "maxX": 787.5, "minZ": 212.5, "maxZ": 287.5, "requiredQuestCode": "MQ_BOSS_WORLDTREE"}, {"zoneId": 105, "minX": 850, "maxX": 950, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 106, "minX": 1050, "maxX": 1150, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 107, "minX": 1250, "maxX": 1350, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 108, "minX": 1400, "maxX": 1600, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 181, "minX": 2300, "maxX": 2340, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 182, "minX": 2400, "maxX": 2440, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 201, "minX": 120, "maxX": 280, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 202, "minX": 340, "maxX": 460, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 203, "minX": 520, "maxX": 680, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 204, "minX": 725, "maxX": 775, "minZ": -75, "maxZ": -25, "requiredQuestCode": "MQ2_CORE3"}, {"zoneId": 205, "minX": 840, "maxX": 960, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 206, "minX": 1040, "maxX": 1160, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 207, "minX": 1240, "maxX": 1360, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 208, "minX": 1440, "maxX": 1560, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 209, "minX": 1620, "maxX": 1780, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 281, "minX": 2500, "maxX": 2540, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 282, "minX": 2588, "maxX": 2652, "minZ": -12, "maxZ": 52, "requiredQuestCode": null}, {"zoneId": 900, "minX": 0, "maxX": 1200, "minZ": 0, "maxZ": 25, "requiredQuestCode": null}, {"zoneId": 901, "minX": 0, "maxX": 100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 902, "minX": 0, "maxX": 50, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 903, "minX": 0, "maxX": 120, "minZ": 0, "maxZ": 90, "requiredQuestCode": null}, {"zoneId": 905, "minX": 0, "maxX": 40, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 910, "minX": 2700, "maxX": 2740, "minZ": 0, "maxZ": 30, "requiredQuestCode": null}, {"zoneId": 911, "minX": -2048, "maxX": 2048, "minZ": -2048, "maxZ": 2048, "requiredQuestCode": null}, {"zoneId": 301, "minX": 0, "maxX": 140, "minZ": -900, "maxZ": -760, "requiredQuestCode": null}, {"zoneId": 302, "minX": 220, "maxX": 320, "minZ": -940, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 303, "minX": 400, "maxX": 550, "minZ": -900, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 304, "minX": 620, "maxX": 690, "minZ": -855, "maxZ": -785, "requiredQuestCode": "MQ3_THUNDER3"}, {"zoneId": 305, "minX": 730, "maxX": 890, "minZ": -940, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 306, "minX": 930, "maxX": 1070, "minZ": -910, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 307, "minX": 1150, "maxX": 1310, "minZ": -900, "maxZ": -800, "requiredQuestCode": null}, {"zoneId": 308, "minX": 1350, "maxX": 1480, "minZ": -950, "maxZ": -800, "requiredQuestCode": null}, {"zoneId": 309, "minX": 1550, "maxX": 1710, "minZ": -940, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 909, "minX": 1.4, "maxX": 22.6, "minZ": 1.4, "maxZ": 12.6, "requiredQuestCode": null}, {"zoneId": 950, "minX": 3000, "maxX": 3100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 283, "minX": 2800, "maxX": 2840, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}];
 
 var spkmodConstants = (function() {
 	try {
@@ -1079,6 +1090,10 @@ window.WorldZones = WorldZones;
 				}
 				if (data.raids) {
 					window.spkmodRaids = data.raids;
+				}
+				if (data.zones && Array.isArray(data.zones)) {
+					WorldZones = data.zones;
+					window.WorldZones = WorldZones;
 				}
 				if (data.zones && Array.isArray(data.zones)) {
 					WorldZones = data.zones;
@@ -2145,21 +2160,27 @@ function updateKnownBotVisibility() {
 		if (player?.container) {
 			const accId = player.info?.userId || player.info?.id || player.info?.playerId;
 			const isBot = lunHideKnownBotsEnabled && isKnownBotName(player.info?.name, player.info?.level, accId);
-            const isBlocked = isBlockedUser(player.info?.name);
-			player.container.visible = !(lunHideAllOtherPlayers || isBot || isBlocked);
+			const isBlocked = isBlockedUser(player.info?.name);
+			const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(player.info?.name);
+			const hideBySolitude = lunHideAllOtherPlayers && !isWhitelisted;
+			player.container.visible = !(hideBySolitude || isBot || isBlocked);
 		}
 	});
 	if (lunHideAllOtherPlayers) {
 		if (gameState?.remotePetRegistry?.pets) {
 			for (const pet of gameState.remotePetRegistry.pets.values()) {
-				if (pet?.root) pet.root.visible = false;
-				else if (pet?.container) pet.container.visible = false;
+				const ownerName = pet?.info?.ownerName || pet?.ownerName || pet?.info?.name;
+				const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(ownerName);
+				if (pet?.root) pet.root.visible = isWhitelisted;
+				else if (pet?.container) pet.container.visible = isWhitelisted;
 			}
 		}
 		if (gameState?.remoteDroneCoreRegistry?.droneCores) {
 			for (const drone of gameState.remoteDroneCoreRegistry.droneCores.values()) {
-				if (drone?.root) drone.root.visible = false;
-				else if (drone?.container) drone.container.visible = false;
+				const ownerName = drone?.info?.ownerName || drone?.ownerName || drone?.info?.name;
+				const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(ownerName);
+				if (drone?.root) drone.root.visible = isWhitelisted;
+				else if (drone?.container) drone.container.visible = isWhitelisted;
 			}
 		}
 	} else {
@@ -2234,13 +2255,40 @@ function isBlockedUserBubbleSource(source) {
 	return false;
 }
 
+function isSolitudeWhitelistedContainer(container) {
+	if (!container || !gameState?.remotePlayers?.remotePlayers || typeof isSolitudeWhitelisted !== "function") return false;
+	let current = container;
+	while (current) {
+		for (const player of gameState.remotePlayers.remotePlayers.values()) {
+			if (player?.container === current) return isSolitudeWhitelisted(player.info?.name);
+		}
+		current = current.parent;
+	}
+	return false;
+}
+
+function isSolitudeWhitelistedBubbleSource(source) {
+	if (!source || !gameState?.remotePlayers?.remotePlayers || typeof isSolitudeWhitelisted !== "function") return false;
+	if (isSolitudeWhitelistedContainer(source) || isSolitudeWhitelistedContainer(source.container)) return true;
+	if (isSolitudeWhitelisted(source.info?.name)) return true;
+	if (isSolitudeWhitelisted(source.name)) return true;
+
+	for (const player of gameState.remotePlayers.remotePlayers.values()) {
+		const playerInfo = player?.info;
+		if (playerInfo && (source === playerInfo.playerId || source === playerInfo.id || source === playerInfo.userId)) {
+			return isSolitudeWhitelisted(playerInfo.name);
+		}
+	}
+	return false;
+}
+
 function hookKnownBotHeartEmotes() {
 	const bloomEffects = gameState?.bloomEffects;
 	if (!bloomEffects || typeof bloomEffects.spawnHearts !== "function" || bloomEffects.__speakiKnownBotHooked) return;
 
 	const originalSpawnHearts = bloomEffects.spawnHearts.bind(bloomEffects);
 	bloomEffects.spawnHearts = function(container, ...args) {
-		if (lunHideAllOtherPlayers) return;
+		if (lunHideAllOtherPlayers && !isSolitudeWhitelistedContainer(container)) return;
 		if (lunHideKnownBotsEnabled && isKnownBotContainer(container)) return;
 		if (isBlockedUserContainer(container)) return;
 		return originalSpawnHearts(container, ...args);
@@ -2309,9 +2357,10 @@ function resolveRemotePlayerById(playerId) {
 }
 
 function isSilencedPlayer(player) {
-    if (lunHideAllOtherPlayers) return true;
     if (!player) return false;
     const name = player.info?.name || player.name;
+    const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(name);
+    if (lunHideAllOtherPlayers && !isWhitelisted) return true;
     if (!name || typeof name !== "string") return false;
     const lower = name.trim().toLocaleLowerCase();
     if (!lower) return false;
@@ -3480,6 +3529,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-gamepad-rumble",
 	"spkmod-gamepad-unlocked",
 	"spkmod-gmchat-enabled",
+	"spkmod-hide-all-players",
 	"spkmod-hide-known-bots",
 	"spkmod-hide-player-levels",
 	"spkmod-hide-verbose-chat",
@@ -3521,6 +3571,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-reset-timer",
 	"spkmod-separate-panel",
 	"spkmod-session-gold",
+	"spkmod-solitude-whitelist",
 	"spkmod-translate-enabled",
 	"spkmod-translate-target",
 	"spkmod-translate-engine",
@@ -5742,6 +5793,7 @@ var lunChromaKeyColor = (window.localStorage && localStorage.getItem("spkmod-chr
 var lunChromaFloorShape = (window.localStorage && localStorage.getItem("spkmod-chroma-floor-shape")) || "off";
 var lunChromaFloorScale = parseFloat((window.localStorage && localStorage.getItem("spkmod-chroma-floor-scale")) || "1.0") || 1.0;
 var lunHideAllOtherPlayers = (window.localStorage && localStorage.getItem("spkmod-hide-all-players") === "true") || false;
+var lunSolitudeWhitelist = (window.localStorage && localStorage.getItem("spkmod-solitude-whitelist")) || "";
 var lunLockedFacialExpression = (window.localStorage && localStorage.getItem("spkmod-locked-facial-expression")) || "none";
 var lunAllPlayersFacialExpression = "none";
 var lunTargetFacialExpressions = new Map();
@@ -6016,6 +6068,32 @@ function setHideAllOtherPlayers(enabled) {
 	}
 	if (typeof chatLog === "function") {
 		chatLog("Solitude Mode: " + (lunHideAllOtherPlayers ? "ON" : "OFF"));
+	}
+}
+
+function getSolitudeWhitelistNames() {
+	if (!lunSolitudeWhitelist || typeof lunSolitudeWhitelist !== "string") return [];
+	return lunSolitudeWhitelist
+		.split(",")
+		.map(name => name.trim().toLocaleLowerCase())
+		.filter(Boolean);
+}
+
+function isSolitudeWhitelisted(name) {
+	if (!name || typeof name !== "string") return false;
+	const clean = name.trim().toLocaleLowerCase();
+	if (!clean) return false;
+	const list = getSolitudeWhitelistNames();
+	return list.includes(clean);
+}
+
+function setSolitudeWhitelist(namesStr) {
+	lunSolitudeWhitelist = typeof namesStr === "string" ? namesStr : "";
+	if (window.localStorage) {
+		localStorage.setItem("spkmod-solitude-whitelist", lunSolitudeWhitelist);
+	}
+	if (typeof updateKnownBotVisibility === "function") {
+		updateKnownBotVisibility();
 	}
 }
 
@@ -9120,6 +9198,9 @@ loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/
 var lunTrickcal3Emojis = {};
 loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis4.txt", lunTrickcal3Emojis);
 
+var lunTrickcal4Emojis = {};
+loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis5.txt", lunTrickcal4Emojis);
+
 function renderSpkmodInlineEmojis(text, imgStyle) {
     if (!text || typeof text !== "string") return "";
     const escaped = text
@@ -9133,7 +9214,8 @@ function renderSpkmodInlineEmojis(text, imgStyle) {
         ...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}),
         ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}),
         ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}),
-        ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {})
+        ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}),
+        ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {})
     };
     const styleAttr = imgStyle || "height: 1.35em; width: 1.35em; object-fit: contain; vertical-align: middle; margin-right: 2px; display: inline-block; pointer-events: none; user-select: none;";
     return escaped.replace(/:([a-zA-Z0-9_+-]+):/g, (match, ename) => {
@@ -9298,7 +9380,8 @@ function parseCustomEmojisToHtml(html) {
         ...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}),
         ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}),
         ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}),
-        ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {})
+        ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}),
+        ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {})
     };
     if (Object.keys(spkmodAllEmojis).length === 0) return html;
     for (const [ename, eurl] of Object.entries(spkmodAllEmojis)) {
@@ -9324,7 +9407,7 @@ function getSpeakiAvatarPlayer(state) {
 }
 
 function validSpeakiAvatar(value) {
-	return value && ["custom", "trickcal", "trickcal2", "trickcal3"].includes(value.pack)
+	return value && ["custom", "trickcal", "trickcal2", "trickcal3", "trickcal4"].includes(value.pack)
 		&& typeof value.name === "string" && value.name.length > 0 && value.name.length <= 100;
 }
 
@@ -9484,7 +9567,7 @@ function createSpeakiAvatarController({ document, store, getPlayer, getCatalog, 
 			}
 			if (!grid.children.length) grid.textContent = text("avatarEmpty");
 		}
-		for (const [key, label] of [["custom", "avatarCustom"], ["trickcal", "Trickcal"], ["trickcal2", "Trickcal 2"], ["trickcal3", "Trickcal 3"]]) {
+		for (const [key, label] of [["custom", "avatarCustom"], ["trickcal", "Trickcal"], ["trickcal2", "Trickcal 2"], ["trickcal3", "Trickcal 3"], ["trickcal4", "Trickcal 4"]]) {
 			const tab = element("button", "", key === "custom" ? text(label) : label);
 			tab.setAttribute("aria-pressed", String(pack === key));
 			tab.onclick = () => {
@@ -9582,7 +9665,7 @@ const spkmodAvatarController = createSpeakiAvatarController({
 	document,
 	store: spkmodAvatarStore,
 	getPlayer: () => getSpeakiAvatarPlayer(window.gameState),
-	getCatalog: () => ({ custom: lunCustomEmojis, trickcal: lunTrickcalEmojis, trickcal2: lunTrickcal2Emojis, trickcal3: lunTrickcal3Emojis }),
+	getCatalog: () => ({ custom: lunCustomEmojis, trickcal: lunTrickcalEmojis, trickcal2: lunTrickcal2Emojis, trickcal3: lunTrickcal3Emojis, trickcal4: lunTrickcal4Emojis }),
 	translate: key => t(key)
 });
 
@@ -9795,12 +9878,18 @@ function renderEmojiGrid() {
     btnTrickcal3.innerText = "🍀 " + t("emojiTabTrickcal3", "Trick 3");
     btnTrickcal3.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'trickcal3' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
     btnTrickcal3.onclick = (e) => { lunEmojiTab = 'trickcal3'; renderEmojiGrid(); };
+
+    const btnTrickcal4 = document.createElement("button");
+    btnTrickcal4.innerText = "🍀 " + t("emojiTabTrickcal4", "Trick 4");
+    btnTrickcal4.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'trickcal4' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
+    btnTrickcal4.onclick = (e) => { lunEmojiTab = 'trickcal4'; renderEmojiGrid(); };
     
     header.appendChild(btnStd);
     header.appendChild(btnCus);
     header.appendChild(btnTrickcal);
     header.appendChild(btnTrickcal2);
     header.appendChild(btnTrickcal3);
+    header.appendChild(btnTrickcal4);
 
     const btnFav = document.createElement("button");
     btnFav.innerText = t("emojiTabFav", "Fav");
@@ -9858,6 +9947,7 @@ function renderEmojiGrid() {
                 if (typeof lunTrickcalEmojis !== 'undefined' && lunTrickcalEmojis[id]) { isCustom = true; url = lunTrickcalEmojis[id]; }
                 else if (typeof lunTrickcal2Emojis !== 'undefined' && lunTrickcal2Emojis[id]) { isCustom = true; url = lunTrickcal2Emojis[id]; }
                 else if (typeof lunTrickcal3Emojis !== 'undefined' && lunTrickcal3Emojis[id]) { isCustom = true; url = lunTrickcal3Emojis[id]; }
+                else if (typeof lunTrickcal4Emojis !== 'undefined' && lunTrickcal4Emojis[id]) { isCustom = true; url = lunTrickcal4Emojis[id]; }
                 else if (typeof lunCustomEmojis !== 'undefined' && lunCustomEmojis[id]) { isCustom = true; url = lunCustomEmojis[id]; }
                 
                 const btn = document.createElement("button");
@@ -9914,7 +10004,7 @@ function renderEmojiGrid() {
             grid.appendChild(btn);
         });
     } else {
-        const targetEmojis = lunEmojiTab === 'trickcal' ? lunTrickcalEmojis : (lunEmojiTab === 'trickcal2' ? lunTrickcal2Emojis : (lunEmojiTab === 'trickcal3' ? lunTrickcal3Emojis : lunCustomEmojis));
+        const targetEmojis = lunEmojiTab === 'trickcal' ? lunTrickcalEmojis : (lunEmojiTab === 'trickcal2' ? lunTrickcal2Emojis : (lunEmojiTab === 'trickcal3' ? lunTrickcal3Emojis : (lunEmojiTab === 'trickcal4' ? lunTrickcal4Emojis : lunCustomEmojis)));
         Object.entries(targetEmojis).forEach(([name, url]) => {
             const btn = document.createElement("button");
             btn.title = `:${name}:`;
@@ -16339,18 +16429,23 @@ function updateLocalEditsUI() {
 		}
 	});
 
-	// Solitude Toggle Button
-	if (editsModalElements.solitudeToggleBtn) {
-		if (lunHideAllOtherPlayers) {
-			setText(editsModalElements.solitudeToggleBtn, t("solitudeToggleOn") || "Alone Mode: ON (Only You Visible)");
-			editsModalElements.solitudeToggleBtn.style.borderColor = "#55ff55";
-			editsModalElements.solitudeToggleBtn.style.background = "rgba(85, 255, 85, 0.2)";
-			editsModalElements.solitudeToggleBtn.style.color = "#aaffaa";
-		} else {
-			setText(editsModalElements.solitudeToggleBtn, t("solitudeToggleOff") || "Alone Mode: OFF (All Players Visible)");
-			editsModalElements.solitudeToggleBtn.style.borderColor = "#555";
-			editsModalElements.solitudeToggleBtn.style.background = "";
-			editsModalElements.solitudeToggleBtn.style.color = "#ffffff";
+	// Solitude Toggle Controls
+	if (editsModalElements.solitudeHeader) {
+		setText(editsModalElements.solitudeHeader, "👤 " + (t("solitudeHeader") || "Solitude (Alone Mode)"));
+	}
+	if (editsModalElements.solitudeCheckbox) {
+		editsModalElements.solitudeCheckbox.checked = !!lunHideAllOtherPlayers;
+	}
+	if (editsModalElements.solitudeCheckboxLabel) {
+		setText(editsModalElements.solitudeCheckboxLabel, t("solitudeEnabledCheckbox") || "Enable Solitude Mode (Hide all players)");
+	}
+	if (editsModalElements.solitudeWhitelistLabel) {
+		setText(editsModalElements.solitudeWhitelistLabel, t("solitudeWhitelistLabel") || "Whitelist (Names separated by comma):");
+	}
+	if (editsModalElements.solitudeWhitelistInput) {
+		editsModalElements.solitudeWhitelistInput.placeholder = t("solitudeWhitelistPlaceholder") || "e.g. Player1, Player2...";
+		if (document.activeElement !== editsModalElements.solitudeWhitelistInput) {
+			editsModalElements.solitudeWhitelistInput.value = lunSolitudeWhitelist || "";
 		}
 	}
 
@@ -16980,20 +17075,40 @@ document.body.appendChild(
 			]),
 
 			// Section 2: Solitude Mode (Alone Mode)
-			buildElement("div", { style: "display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid #555; padding-bottom: 8px;" }, [
+			buildElement("div", { style: "display: flex; flex-direction: column; gap: 6px; border-bottom: 1px solid #555; padding-bottom: 8px;" }, [
 				editsModalElements.solitudeHeader = buildElement("div", {
 					className: "spkmod-panel-cat-header",
 					innerText: "👤 " + (t("solitudeHeader") || "Solitude (Alone Mode)"),
 					style: "margin-top: 0px;"
 				}),
-				editsModalElements.solitudeToggleBtn = buildElement("button", {
-					className: "spkmod-panel-btn",
-					style: "padding: 7px; font-size: 11px; font-weight: bold; width: 100%;",
-					innerText: lunHideAllOtherPlayers ? (t("solitudeToggleOn") || "Alone Mode: ON (Only You Visible)") : (t("solitudeToggleOff") || "Alone Mode: OFF (All Players Visible)"),
-					onclick: () => {
-						setHideAllOtherPlayers(!lunHideAllOtherPlayers);
-					}
-				})
+				buildElement("label", { style: "display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; font-size: 11px; font-weight: bold; color: #fff;" }, [
+					editsModalElements.solitudeCheckbox = buildElement("input", {
+						type: "checkbox",
+						checked: !!lunHideAllOtherPlayers,
+						style: "cursor: pointer; width: 14px; height: 14px; accent-color: #ffd54a; margin: 0;",
+						onchange: (e) => {
+							setHideAllOtherPlayers(e.target.checked);
+						}
+					}),
+					editsModalElements.solitudeCheckboxLabel = buildElement("span", {
+						innerText: t("solitudeEnabledCheckbox") || "Enable Solitude Mode (Hide all players)"
+					})
+				]),
+				buildElement("div", { style: "display: flex; flex-direction: column; gap: 3px; margin-top: 2px;" }, [
+					editsModalElements.solitudeWhitelistLabel = buildElement("span", {
+						style: "font-size: 10px; color: #bbb;",
+						innerText: t("solitudeWhitelistLabel") || "Whitelist (Names separated by comma):"
+					}),
+					editsModalElements.solitudeWhitelistInput = buildElement("input", {
+						type: "text",
+						placeholder: t("solitudeWhitelistPlaceholder") || "e.g. Player1, Player2...",
+						value: lunSolitudeWhitelist || "",
+						style: "width: 100%; box-sizing: border-box; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid #555; background: #111; color: #fff;",
+						oninput: (e) => {
+							setSolitudeWhitelist(e.target.value);
+						}
+					})
+				])
 			]),
 
 			// Section 3: Facial Expression Lock
@@ -22942,7 +23057,8 @@ function tick() {
 		gameState.chatBubbles.show = (e, t, n) => {
 			if (lunHideAllOtherPlayers) {
 				const isLocal = (e === gameState.playerContainer || e === gameState.localAvatar || e === gameState.myPlayerId);
-				if (!isLocal) return;
+				const isWhitelisted = typeof isSolitudeWhitelistedBubbleSource === "function" && isSolitudeWhitelistedBubbleSource(e);
+				if (!isLocal && !isWhitelisted) return;
 			}
 			if (lunHideKnownBotsEnabled && isKnownBotBubbleSource(e)) return;
 			if (typeof isBlockedUserBubbleSource === 'function' && isBlockedUserBubbleSource(e)) return;
@@ -24179,7 +24295,7 @@ function hookGameStateOnce() {
 						bodyText.classList.add("spkmod-gmdt-line");
 					}
 
-					const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}), ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {})};
+					const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}), ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}), ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {})};
 					if (Object.keys(spkmodAllEmojis).length > 0) {
 						let html = bodyText.innerHTML;
 						let changed = false;
@@ -24290,7 +24406,7 @@ function appendColoredChatLine(id, name, text, customColor) {
 			}
 		}
 
-		const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}), ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {})};
+		const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}), ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}), ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {})};
 		if (Object.keys(spkmodAllEmojis).length > 0) {
 			let html = bodyText.innerHTML;
 			let changed = false;
@@ -25130,7 +25246,7 @@ document.addEventListener("keydown", (e) => {
             let hasCustomEmoji = false;
             for (const match of matches) {
                 const name = match.slice(1, -1);
-                if (lunCustomEmojis[name] || (typeof lunTrickcalEmojis !== 'undefined' && lunTrickcalEmojis[name]) || (typeof lunTrickcal2Emojis !== 'undefined' && lunTrickcal2Emojis[name]) || (typeof lunTrickcal3Emojis !== 'undefined' && lunTrickcal3Emojis[name])) {
+                if (lunCustomEmojis[name] || (typeof lunTrickcalEmojis !== 'undefined' && lunTrickcalEmojis[name]) || (typeof lunTrickcal2Emojis !== 'undefined' && lunTrickcal2Emojis[name]) || (typeof lunTrickcal3Emojis !== 'undefined' && lunTrickcal3Emojis[name]) || (typeof lunTrickcal4Emojis !== 'undefined' && lunTrickcal4Emojis[name])) {
                     hasCustomEmoji = true;
                     break;
                 }
@@ -25157,6 +25273,11 @@ document.addEventListener("keydown", (e) => {
                     }
                     if (typeof lunTrickcal3Emojis !== 'undefined') {
                         for (const name of Object.keys(lunTrickcal3Emojis)) {
+                            val = val.split(`:${name}:`).join("");
+                        }
+                    }
+                    if (typeof lunTrickcal4Emojis !== 'undefined') {
+                        for (const name of Object.keys(lunTrickcal4Emojis)) {
                             val = val.split(`:${name}:`).join("");
                         }
                     }
