@@ -22321,7 +22321,6 @@ function buildSpkmodFriendSortForm() {
 		_spkmodFriendPanelSortAscending = (value == "ascending");
 		sortFriendList(false);
 	});
-	sortDirection.style.borderBottom = _spkmodFriendPanelBorder;
 	return buildElement("div", {}, [title, sortBy, sortDirection]);
 }
 
@@ -22396,9 +22395,10 @@ function buildSpkmodFriendPanelMenu() {
 			border: ${spkmodBorderWidth} solid;
 			border-radius: 8px;
 			width: 300px;
-			padding: 4px;
+			padding: 1em;
 			background-color: #000000;
 			color: #FFFFFF;
+			font-size: 12px;
 		`
 	}, [form]);
 	menu.setAttribute("data-spkmod-friend-menu", "");
@@ -22434,9 +22434,18 @@ function toggleSpkmodFriendPanelMenu(btn, panel) {
 	const hidden = menu.classList.toggle("hidden");
 	if (hidden) return;
 
-	const rect = btn.getBoundingClientRect();
-	menu.style.top = `${rect.bottom}px`;
-	menu.style.left = `${rect.left}px`;
+	const menuRect = menu.getBoundingClientRect();
+	const btnRect = btn.getBoundingClientRect();
+	if (btnRect.bottom + menuRect.height <= document.documentElement.clientHeight) {
+		menu.style.top = `${btnRect.bottom}px`;
+	} else {
+		menu.style.top = `${btnRect.top - menuRect.height}px`;
+	}
+	if (btnRect.left + menuRect.width <= document.documentElement.clientWidth) {
+		menu.style.left = `${btnRect.left}px`;
+	} else {
+		menu.style.left = `${btnRect.right - menuRect.width}px`;
+	}
 
 	const panelZIndex = window.getComputedStyle(panel).zIndex;
 	if (panelZIndex != null && /^-?[0-9]+$/.test(panelZIndex)) {
