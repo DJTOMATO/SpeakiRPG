@@ -9148,6 +9148,9 @@ loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/
 var lunTrickcal3Emojis = {};
 loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis4.txt", lunTrickcal3Emojis);
 
+var lunTrickcal4Emojis = {};
+loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis5.txt", lunTrickcal4Emojis);
+
 function renderSpkmodInlineEmojis(text, imgStyle) {
     if (!text || typeof text !== "string") return "";
     const escaped = text
@@ -9161,7 +9164,8 @@ function renderSpkmodInlineEmojis(text, imgStyle) {
         ...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}),
         ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}),
         ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}),
-        ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {})
+        ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}),
+        ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {})
     };
     const styleAttr = imgStyle || "height: 1.35em; width: 1.35em; object-fit: contain; vertical-align: middle; margin-right: 2px; display: inline-block; pointer-events: none; user-select: none;";
     return escaped.replace(/:([a-zA-Z0-9_+-]+):/g, (match, ename) => {
@@ -9326,7 +9330,8 @@ function parseCustomEmojisToHtml(html) {
         ...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}),
         ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}),
         ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}),
-        ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {})
+        ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}),
+        ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {})
     };
     if (Object.keys(spkmodAllEmojis).length === 0) return html;
     for (const [ename, eurl] of Object.entries(spkmodAllEmojis)) {
@@ -9352,7 +9357,7 @@ function getSpeakiAvatarPlayer(state) {
 }
 
 function validSpeakiAvatar(value) {
-	return value && ["custom", "trickcal", "trickcal2", "trickcal3"].includes(value.pack)
+	return value && ["custom", "trickcal", "trickcal2", "trickcal3", "trickcal4"].includes(value.pack)
 		&& typeof value.name === "string" && value.name.length > 0 && value.name.length <= 100;
 }
 
@@ -9512,7 +9517,7 @@ function createSpeakiAvatarController({ document, store, getPlayer, getCatalog, 
 			}
 			if (!grid.children.length) grid.textContent = text("avatarEmpty");
 		}
-		for (const [key, label] of [["custom", "avatarCustom"], ["trickcal", "Trickcal"], ["trickcal2", "Trickcal 2"], ["trickcal3", "Trickcal 3"]]) {
+		for (const [key, label] of [["custom", "avatarCustom"], ["trickcal", "Trickcal"], ["trickcal2", "Trickcal 2"], ["trickcal3", "Trickcal 3"], ["trickcal4", "Trickcal 4"]]) {
 			const tab = element("button", "", key === "custom" ? text(label) : label);
 			tab.setAttribute("aria-pressed", String(pack === key));
 			tab.onclick = () => {
@@ -9610,7 +9615,7 @@ const spkmodAvatarController = createSpeakiAvatarController({
 	document,
 	store: spkmodAvatarStore,
 	getPlayer: () => getSpeakiAvatarPlayer(window.gameState),
-	getCatalog: () => ({ custom: lunCustomEmojis, trickcal: lunTrickcalEmojis, trickcal2: lunTrickcal2Emojis, trickcal3: lunTrickcal3Emojis }),
+	getCatalog: () => ({ custom: lunCustomEmojis, trickcal: lunTrickcalEmojis, trickcal2: lunTrickcal2Emojis, trickcal3: lunTrickcal3Emojis, trickcal4: lunTrickcal4Emojis }),
 	translate: key => t(key)
 });
 
@@ -9823,12 +9828,18 @@ function renderEmojiGrid() {
     btnTrickcal3.innerText = "🍀 " + t("emojiTabTrickcal3", "Trick 3");
     btnTrickcal3.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'trickcal3' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
     btnTrickcal3.onclick = (e) => { lunEmojiTab = 'trickcal3'; renderEmojiGrid(); };
+
+    const btnTrickcal4 = document.createElement("button");
+    btnTrickcal4.innerText = "🍀 " + t("emojiTabTrickcal4", "Trick 4");
+    btnTrickcal4.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'trickcal4' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
+    btnTrickcal4.onclick = (e) => { lunEmojiTab = 'trickcal4'; renderEmojiGrid(); };
     
     header.appendChild(btnStd);
     header.appendChild(btnCus);
     header.appendChild(btnTrickcal);
     header.appendChild(btnTrickcal2);
     header.appendChild(btnTrickcal3);
+    header.appendChild(btnTrickcal4);
 
     const btnFav = document.createElement("button");
     btnFav.innerText = t("emojiTabFav", "Fav");
@@ -9886,6 +9897,7 @@ function renderEmojiGrid() {
                 if (typeof lunTrickcalEmojis !== 'undefined' && lunTrickcalEmojis[id]) { isCustom = true; url = lunTrickcalEmojis[id]; }
                 else if (typeof lunTrickcal2Emojis !== 'undefined' && lunTrickcal2Emojis[id]) { isCustom = true; url = lunTrickcal2Emojis[id]; }
                 else if (typeof lunTrickcal3Emojis !== 'undefined' && lunTrickcal3Emojis[id]) { isCustom = true; url = lunTrickcal3Emojis[id]; }
+                else if (typeof lunTrickcal4Emojis !== 'undefined' && lunTrickcal4Emojis[id]) { isCustom = true; url = lunTrickcal4Emojis[id]; }
                 else if (typeof lunCustomEmojis !== 'undefined' && lunCustomEmojis[id]) { isCustom = true; url = lunCustomEmojis[id]; }
                 
                 const btn = document.createElement("button");
@@ -9942,7 +9954,7 @@ function renderEmojiGrid() {
             grid.appendChild(btn);
         });
     } else {
-        const targetEmojis = lunEmojiTab === 'trickcal' ? lunTrickcalEmojis : (lunEmojiTab === 'trickcal2' ? lunTrickcal2Emojis : (lunEmojiTab === 'trickcal3' ? lunTrickcal3Emojis : lunCustomEmojis));
+        const targetEmojis = lunEmojiTab === 'trickcal' ? lunTrickcalEmojis : (lunEmojiTab === 'trickcal2' ? lunTrickcal2Emojis : (lunEmojiTab === 'trickcal3' ? lunTrickcal3Emojis : (lunEmojiTab === 'trickcal4' ? lunTrickcal4Emojis : lunCustomEmojis)));
         Object.entries(targetEmojis).forEach(([name, url]) => {
             const btn = document.createElement("button");
             btn.title = `:${name}:`;
@@ -23726,7 +23738,7 @@ function hookGameStateOnce() {
 						bodyText.classList.add("spkmod-gmdt-line");
 					}
 
-					const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}), ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {})};
+					const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}), ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}), ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {})};
 					if (Object.keys(spkmodAllEmojis).length > 0) {
 						let html = bodyText.innerHTML;
 						let changed = false;
@@ -23837,7 +23849,7 @@ function appendColoredChatLine(id, name, text, customColor) {
 			}
 		}
 
-		const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}), ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {})};
+		const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}), ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}), ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {})};
 		if (Object.keys(spkmodAllEmojis).length > 0) {
 			let html = bodyText.innerHTML;
 			let changed = false;
@@ -24677,7 +24689,7 @@ document.addEventListener("keydown", (e) => {
             let hasCustomEmoji = false;
             for (const match of matches) {
                 const name = match.slice(1, -1);
-                if (lunCustomEmojis[name] || (typeof lunTrickcalEmojis !== 'undefined' && lunTrickcalEmojis[name]) || (typeof lunTrickcal2Emojis !== 'undefined' && lunTrickcal2Emojis[name]) || (typeof lunTrickcal3Emojis !== 'undefined' && lunTrickcal3Emojis[name])) {
+                if (lunCustomEmojis[name] || (typeof lunTrickcalEmojis !== 'undefined' && lunTrickcalEmojis[name]) || (typeof lunTrickcal2Emojis !== 'undefined' && lunTrickcal2Emojis[name]) || (typeof lunTrickcal3Emojis !== 'undefined' && lunTrickcal3Emojis[name]) || (typeof lunTrickcal4Emojis !== 'undefined' && lunTrickcal4Emojis[name])) {
                     hasCustomEmoji = true;
                     break;
                 }
@@ -24704,6 +24716,11 @@ document.addEventListener("keydown", (e) => {
                     }
                     if (typeof lunTrickcal3Emojis !== 'undefined') {
                         for (const name of Object.keys(lunTrickcal3Emojis)) {
+                            val = val.split(`:${name}:`).join("");
+                        }
+                    }
+                    if (typeof lunTrickcal4Emojis !== 'undefined') {
+                        for (const name of Object.keys(lunTrickcal4Emojis)) {
                             val = val.split(`:${name}:`).join("");
                         }
                     }
