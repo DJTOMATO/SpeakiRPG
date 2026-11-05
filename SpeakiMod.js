@@ -22631,7 +22631,7 @@ function filterFriendList() {
 	_spkmodFriendPanelBody.insertBefore(message, sectionTitle2);
 }
 
-const addSpkmodFriendMenuBtn = createRafThrottler((panel, panelBody) => {
+const renderSpkmodFriendPanel = createRafThrottler((panel, panelBody) => {
 	if (!panel || !panel.isConnected || !panelBody || !panelBody.isConnected) return;
 	_spkmodFriendPanelBody = panelBody;
 
@@ -22667,7 +22667,7 @@ const addSpkmodFriendMenuBtn = createRafThrottler((panel, panelBody) => {
 	}
 });
 
-const observeSpkmodFriendPanel = createPanelObserver("friends", addSpkmodFriendMenuBtn);
+const observeSpkmodFriendPanel = createPanelObserver("friends", renderSpkmodFriendPanel);
 
 if (typeof spkmodI18nRenderers !== "undefined") {
     spkmodI18nRenderers.push(() => {
