@@ -1468,6 +1468,41 @@ function getZoneName(zoneId) {
 	return `Zone ${zoneId}`;
 }
 
+let _zoneNameToIdMap = null;
+function getZoneIdFromName(zoneName) {
+	const fromFallback = zoneName.match(/^(?:Zone|존|ゾーン|區域|区域) (\d+)$/)?.[1];
+	if (fromFallback != null) return fromFallback;
+
+	if (_zoneNameToIdMap == null) {
+		_zoneNameToIdMap = new Map();
+
+		if (typeof window.i18nMap === "object" && window.i18nMap != null) {
+			for (const langTranslation of Object.values(window.i18nMap)) {
+				if (typeof langTranslation === "object") {
+					for (const key of Object.keys(langTranslation)) {
+						const zoneId = key.match(/^content.zone.(\d+).name$/)?.[1];
+						if (zoneId != null && !_zoneNameToIdMap.has(langTranslation[key])) {
+							_zoneNameToIdMap.set(langTranslation[key], Number(zoneId));
+						}
+					}
+				}
+			}
+		}
+
+		for (const langTranslation of Object.values(spkmodTranslations)) {
+			if (langTranslation != null && langTranslation.mapLocations != null && typeof langTranslation.mapLocations === "object") {
+				for (const zoneId of Object.keys(langTranslation.mapLocations)) {
+					if (!_zoneNameToIdMap.has(langTranslation.mapLocations[zoneId])) {
+						_zoneNameToIdMap.set(langTranslation.mapLocations[zoneId], Number(zoneId));
+					}
+				}
+			}
+		}
+	}
+
+	return _zoneNameToIdMap.get(zoneName);
+}
+
 var spkmodI18nRenderers = [];
 function refreshI18n() {
 	spkmodI18nRenderers.forEach(fn => fn());
@@ -6578,7 +6613,7 @@ function updateDynamicStyles() {
 		#app > *:not(.sr-game-canvas):not(canvas):not(.sr-click-ripple-layer) { zoom: ${lunGameUiScale} !important; }
 		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, #spkmod-jukebox-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq, body > #spkmod-panel { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
-		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, #spkmod-jukebox-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn {
+		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, #spkmod-jukebox-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn, .spkmod-friend-panel-menu {
 			background: var(--spkmod-bg) !important;
 			backdrop-filter: var(--spkmod-blur) !important;
 			border-color: var(--spkmod-accent) !important;
@@ -21169,31 +21204,42 @@ function updatePinnedQuestDisplay(quest) {
 	}
 }
 
-function isQuestPanel(panel) {
-	if (!panel) return false;
+function getPanelType(panel) {
+	if (!panel) return null;
 
 	// Check header or panel title
 	const headerEl = panel.querySelector(".sr-panel__header, .sr-modal__header, .sr-dialog__header, header") || panel;
 	const headerText = (headerEl.textContent || "").toLowerCase();
 
-	// 1. Definite negative checks - Shop & non-quest panels
-	const nonQuestKeywords = [
-		"shop", "상점", "ショップ", "商店", "tienda", "boutique", "magasin", "laden",
-		"inventory", "인벤토리", "인벤", "inventario", "bag", "가방",
-		"storage", "warehouse", "창고", "depot",
-		"equipment", "장비",
-		"settings", "setting", "설정", "config", "option",
-		"skills", "skill", "스킬",
-		"mail", "우편", "mailbox",
-		"ranking", "rank", "랭킹", "leaderboard",
-		"party", "파티", "friend", "친구",
-		"bbs", "bulletin", "게시판"
-	];
-	for (const kw of nonQuestKeywords) {
-		if (headerText.includes(kw)) return false;
+	// Check for type-exclusive keywords
+	const exclusiveKeywords = {
+		quests: ["quest", "퀘스트", "クエスト", "任務", "任务", "misión", "mision", "quête", "aufgabe"],
+		shop: ["shop", "상점", "ショップ", "商店", "tienda", "boutique", "magasin", "laden"],
+		inventory: ["inventory", "인벤토리", "인벤", "インベントリ", "背包", "inventario", "bag", "가방"],
+		storage: ["storage", "warehouse", "창고", "depot",],
+		equipment: ["equipment", "장비", "装備", "裝備", "装备"],
+		settings: ["settings", "setting", "설정", "設定", "设置", "config", "option"],
+		skills: ["skills", "skill", "스킬"],
+		mailbox: ["mail", "우편", "郵便箱", "郵便", "信箱", "邮箱", "mailbox"],
+		ranking: ["ranking", "rank", "랭킹", "ランキング", "順位", "排行榜", "排行", "leaderboard"],
+		party: ["party", "파티"],
+		friends: ["friend", "친구", "フレンド", "好友"],
+		bbs: ["bbs", "bulletin", "게시판"]
+	};
+	let result = null;
+	for (const type of Object.keys(exclusiveKeywords)) {
+		if (exclusiveKeywords[type].some(kw => headerText.includes(kw))) {
+				// Return null if the text contains keywords from multiple types
+				if (result != null) return null;
+				result = type;
+				break;
+		}
 	}
 
 	// Also check for shop controls or buttons anywhere in the panel
+	if (result == "shop") {
+		return "shop";
+	}
 	const bodyText = (panel.textContent || "").toLowerCase();
 	if (
 		bodyText.includes("leave shop") ||
@@ -21203,17 +21249,19 @@ function isQuestPanel(panel) {
 		bodyText.includes("balance") ||
 		panel.querySelector(".sr-shop, [class*='shop']")
 	) {
-		return false;
+		if (result == null) {
+			return "shop";
+		} else {
+			// Return null if the header text contains a keyword from a non-shop type
+			return null;
+		}
 	}
 
-	// 2. Positive checks - Quest Panel indicators
-	// A: Quest keyword in title
-	const questKeywords = ["quest", "퀘스트", "クエスト", "任務", "任务", "misión", "mision", "quête", "aufgabe"];
-	for (const qKw of questKeywords) {
-		if (headerText.includes(qKw)) return true;
+	if (result != null) {
+		return result;
 	}
 
-	// B: Quest tabs (Daily / Weekly / Standing / Permanent)
+	// Quest tabs (Daily / Weekly / Standing / Permanent)
 	const tabBtns = panel.querySelectorAll(".sr-panel__tabs button, .sr-panel__tabs .sr-btn, .sr-tabs button, .sr-tab");
 	if (tabBtns && tabBtns.length > 0) {
 		for (const tb of tabBtns) {
@@ -21223,12 +21271,16 @@ function isQuestPanel(panel) {
 				txt.includes("week") || txt.includes("주간") || txt.includes("ウィークリー") || txt.includes("semanal") || txt.includes("每周") || txt.includes("周常") ||
 				txt.includes("stand") || txt.includes("perma") || txt.includes("상시") || txt.includes("常設") || txt.includes("permanente") || txt.includes("永久") || txt.includes("常驻")
 			) {
-				return true;
+				return "quest";
 			}
 		}
 	}
 
-	return false;
+	return null;
+}
+
+function isQuestPanel(panel) {
+	return getPanelType(panel) == "quests";
 }
 
 function refreshPinButtons() {
@@ -21967,7 +22019,7 @@ function matchQuestFromTitleText(titleText, item) {
 	const virtualId = "v_" + Math.abs(hash);
 
 	let period = "daily";
-	const activeTab = (_spkmodQuestPanelRoot || document).querySelector(".sr-panel__tabs .sr-btn--secondary, .sr-panel__tabs .active");
+	const activeTab = (_spkmodQuestDomState.panelRoot || document).querySelector(".sr-panel__tabs .sr-btn--secondary, .sr-panel__tabs .active");
 	if (activeTab) {
 		const tabText = (activeTab.textContent || "").toLowerCase();
 		if (tabText.includes("stand") || tabText.includes("perma") || tabText.includes("상시") || tabText.includes("常設") || tabText.includes("permanente")) period = "permanent";
@@ -21987,61 +22039,66 @@ function matchQuestFromTitleText(titleText, item) {
 }
 
 // Cached references for the game quest panel
-let _spkmodQuestPanelRoot = null;
-let _spkmodQuestPanelBody = null;
-let _spkmodQuestDomObserver = null;
-let _spkmodQuestInitObserver = null;
+const _spkmodQuestDomState = {};
 let _spkmodQuestScanPending = false;
 
-const _spkmodQuestPanelSelector =
+const _spkmodPanelSelector =
     ".sr-panel, .sr-modal, .sr-dialog, [role='dialog']";
+const _spkmodQuestPanelSelector = _spkmodPanelSelector;
 
 const _spkmodQuestButtonSelector =
     ".spkmod-pq-button, .spkmod-star-button, .spkmod-list-button";
 
-function scheduleSpkmodQuestPinScan() {
-    if (_spkmodQuestScanPending) return;
+function createRafThrottler(callback) {
+	let isPending = false;
+	let lastArgs;
 
-    _spkmodQuestScanPending = true;
+	return (...args) => {
+		lastArgs = args;
 
-    requestAnimationFrame(() => {
-        _spkmodQuestScanPending = false;
+		if (isPending) return;
+		isPending = true;
 
-        if (
-            !_spkmodQuestPanelRoot?.isConnected ||
-            !_spkmodQuestPanelBody?.isConnected
-        ) {
-            return;
-        }
-
-        injectPinButtonsIntoQuestList();
-    });
+		requestAnimationFrame(() => {
+			isPending = false;
+			callback(...lastArgs);
+		});
+	};
 }
 
-function attachSpkmodQuestPanel(panel) {
-    if (!panel || !isQuestPanel(panel)) return false;
+var scheduleSpkmodQuestPinScan = createRafThrottler(() => {
+	if (
+		!_spkmodQuestDomState.panelRoot?.isConnected ||
+		!_spkmodQuestDomState.panelBody?.isConnected
+	) {
+		return;
+	}
 
+	injectPinButtonsIntoQuestList();
+});
+
+function attachSpkmodPanel(state, panel, callback) {
     const body = panel.querySelector(".sr-panel__body");
     if (!body) return false;
 
     if (
-        panel === _spkmodQuestPanelRoot &&
-        body === _spkmodQuestPanelBody &&
-        _spkmodQuestDomObserver
+        panel === state.panelRoot &&
+        body === state.panelBody &&
+        state.DomObserver
     ) {
         return true;
     }
 
-    if (_spkmodQuestDomObserver) {
-        _spkmodQuestDomObserver.disconnect();
-        _spkmodQuestDomObserver = null;
+    if (state.domObserver) {
+        state.domObserver.disconnect();
+        state.domObserver = null;
     }
 
-    _spkmodQuestPanelRoot = panel;
-    _spkmodQuestPanelBody = body;
+    state.panelRoot = panel;
+    state.panelBody = body;
 
-    _spkmodQuestDomObserver = new MutationObserver(records => {
-        const questRowsChanged = records.some(record => {
+    state.domObserver = new MutationObserver(records => {
+        const rowsChanged = records.some(record => {
             const nodes = [
                 ...record.addedNodes,
                 ...record.removedNodes
@@ -22055,55 +22112,58 @@ function attachSpkmodQuestPanel(panel) {
             );
         });
 
-        if (questRowsChanged) {
-            scheduleSpkmodQuestPinScan();
+        if (rowsChanged) {
+            callback(panel, body);
         }
     });
 
-    // Observe only direct children of the quest list body.
-    _spkmodQuestDomObserver.observe(body, {
+    // Observe only direct children of the list body.
+    state.domObserver.observe(body, {
         childList: true
     });
 
-    if (_spkmodQuestInitObserver) {
-        _spkmodQuestInitObserver.disconnect();
-        _spkmodQuestInitObserver = null;
+    if (state.initObserver) {
+        state.initObserver.disconnect();
+        state.initObserver = null;
     }
 
-    scheduleSpkmodQuestPinScan();
+    callback(panel, body);
     return true;
 }
 
-function observeSpkmodQuestPanel() {
+function observeSpkmodPanel(state, panelType, callback) {
     // Already initialized: reuse the cached references.
     if (
-        _spkmodQuestPanelRoot?.isConnected &&
-        _spkmodQuestPanelBody?.isConnected &&
-        _spkmodQuestDomObserver
+        state.panelRoot?.isConnected &&
+        state.panelBody?.isConnected &&
+        state.domObserver
     ) {
         return true;
     }
 
     // Find the existing quest panel once.
     for (const panel of document.querySelectorAll(
-        _spkmodQuestPanelSelector
+        _spkmodPanelSelector
     )) {
-        if (attachSpkmodQuestPanel(panel)) {
+        if (
+			getPanelType(panel) == panelType &&
+			attachSpkmodPanel(state, panel, callback)
+		) {
             return true;
         }
     }
 
     // Fallback only if the panel has not been mounted yet.
-    if (!_spkmodQuestInitObserver && document.body) {
-        _spkmodQuestInitObserver = new MutationObserver(records => {
+    if (!state.initObserver && document.body) {
+        state.initObserver = new MutationObserver(records => {
             const possiblePanelAdded = records.some(record =>
                 [...record.addedNodes].some(node => {
                     if (node.nodeType !== 1) return false;
 
                     return (
-                        node.matches?.(_spkmodQuestPanelSelector) ||
-                        node.closest?.(_spkmodQuestPanelSelector) ||
-                        node.querySelector?.(_spkmodQuestPanelSelector)
+                        node.matches?.(_spkmodPanelSelector) ||
+                        node.closest?.(_spkmodPanelSelector) ||
+                        node.querySelector?.(_spkmodPanelSelector)
                     );
                 })
             );
@@ -22111,15 +22171,18 @@ function observeSpkmodQuestPanel() {
             if (!possiblePanelAdded) return;
 
             for (const panel of document.querySelectorAll(
-                _spkmodQuestPanelSelector
+                _spkmodPanelSelector
             )) {
-                if (attachSpkmodQuestPanel(panel)) {
+                if (
+					getPanelType(panel) == panelType &&
+					attachSpkmodPanel(state, panel, callback)
+				) {
                     return;
                 }
             }
         });
 
-        _spkmodQuestInitObserver.observe(document.body, {
+        state.initObserver.observe(document.body, {
             childList: true,
             subtree: true
         });
@@ -22128,9 +22191,18 @@ function observeSpkmodQuestPanel() {
     return false;
 }
 
+function createPanelObserver(panelType, callback) {
+	const state = {};
+	return () => observeSpkmodPanel(state, panelType, callback);
+}
+
+function observeSpkmodQuestPanel() {
+	return observeSpkmodPanel(_spkmodQuestDomState, "quests", scheduleSpkmodQuestPinScan);
+}
+
 function injectPinButtonsIntoQuestList() {
-    const panel = _spkmodQuestPanelRoot;
-    const panelBody = _spkmodQuestPanelBody;
+    const panel = _spkmodQuestDomState.panelRoot;
+    const panelBody = _spkmodQuestDomState.panelBody;
 
     if (!panel || !panel.isConnected || !panelBody || !panelBody.isConnected) {
         return;
@@ -22255,6 +22327,476 @@ function injectPinButtonsIntoQuestList() {
 				topRow.appendChild(subRow);
 			}
     });
+}
+
+const _spkmodFriendPanelBorder = "1px solid #808080";
+let _spkmodFriendPanelBody = null;
+let _spkmodFriendPanelMenu = null;
+let _spkmodFriendPanelSortBy = "lastLogin";
+let _spkmodFriendPanelSortAscending = true;
+let _spkmodFriendOriginalOrder = null;
+const _spkmodFriendPanelFilterPresence = {
+	online: true,
+	offline: true
+};
+let _spkmodFriendPanelFilterPlayerName = "";
+
+function resetSpkmodFriendPanelSortAndFilter() {
+	_spkmodFriendPanelSortBy = "lastLogin";
+	_spkmodFriendPanelSortAscending = true;
+	_spkmodFriendPanelFilterPresence.online = true;
+	_spkmodFriendPanelFilterPresence.offline = true;
+	_spkmodFriendPanelFilterPlayerName = "";
+}
+
+function buildRadioButtonList(name, options, onchange) {
+	return buildElement("div", {
+		style: `
+			padding: 2px;
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			gap: 2px;
+		`
+	}, options.map(({
+		value,
+		translateKey,
+		defaultChecked
+	}) => buildElement("label", {}, [
+		buildElement("input", {
+			type: "radio",
+			name,
+			value,
+			defaultChecked: Boolean(defaultChecked),
+			onchange: () => onchange(value)
+		}),
+		buildElement("span", {
+			dataset: { spkmodI18n: translateKey },
+			innerText: t(translateKey)
+		})
+	])));
+}
+
+function buildCheckBoxList(name, options, onchange) {
+	return buildElement("div", {
+		style: `
+			padding: 2px;
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			gap: 2px;
+		`
+	}, options.map(({
+		value,
+		translateKey,
+		defaultChecked
+	}) => {
+		const input = buildElement("input", {
+			type: "checkbox",
+			name,
+			value,
+			defaultChecked: Boolean(defaultChecked),
+		});
+		input.addEventListener("change", () => onchange(value, input.checked));
+		return buildElement("label", {}, [
+			input,
+			buildElement("span", {
+				dataset: { spkmodI18n: translateKey },
+				innerText: t(translateKey)
+			})
+		])
+	}));
+}
+
+function buildSpkmodFriendSortForm() {
+	const title = buildElement("p", {
+		style: `
+			margin: 0;
+			border: 0 none;
+			padding: 2px;
+		`,
+		dataset: { spkmodI18n: "sortOptions" },
+		innerText: t("sortOptions")
+	});
+	const sortBy = buildRadioButtonList("spkmod-friend-sort-by", [
+		{ value: "lastLogin", translateKey: "lastLogin", defaultChecked: true },
+		{ value: "playerName", translateKey: "playerName" },
+		{ value: "level", translateKey: "level" },
+		{ value: "zoneId", translateKey: "zoneIdPlain" },
+		{ value: "channel", translateKey: "channel" }
+	], value => {
+		_spkmodFriendPanelSortBy = value;
+		sortFriendList(false);
+	});
+	sortBy.style.borderBottom = _spkmodFriendPanelBorder;
+	const sortDirection = buildRadioButtonList("spkmod-frined-sort-direction", [
+		{ value: "ascending", translateKey: "ascendingOrder", defaultChecked: true },
+		{ value: "descending", translateKey: "descendingOrder" }
+	], value => {
+		_spkmodFriendPanelSortAscending = (value == "ascending");
+		sortFriendList(false);
+	});
+	return buildElement("div", {}, [title, sortBy, sortDirection]);
+}
+
+function buildSpkmodFriendFilterForm() {
+	const title = buildElement("p", {
+		style: `
+			margin: 0;
+			border: 0 none;
+			padding: 2px;
+		`,
+		dataset: { spkmodI18n: "filterOptions" },
+		innerText: t("filterOptions")
+	});
+	const presence = buildCheckBoxList("spkmod-friend-filter-presence", [
+		{ value: "online", translateKey: "online", defaultChecked: true },
+		{ value: "offline", translateKey: "offline", defaultChecked: true }
+	], (value, checked) => {
+		_spkmodFriendPanelFilterPresence[value] = checked;
+		filterFriendList();
+	});
+	presence.style.borderBottom = _spkmodFriendPanelBorder;
+	const playerNameInput = buildElement("input", { type: "text" });
+	playerNameInput.addEventListener("input", () => {
+		_spkmodFriendPanelFilterPlayerName = playerNameInput.value.toLowerCase();
+		filterFriendList();
+	});
+	const playerName = buildElement("div", {}, [
+		buildElement("label", {}, [
+			buildElement("span", {
+				dataset: { spkmodI18n: "playerName" },
+				innerText: t("playerName")
+			}),
+			document.createTextNode(" "),
+			playerNameInput
+		])
+	]);
+	return buildElement("div", {
+		style: `
+			margin-top: 1em;
+		`
+	}, [title, presence, playerName]);
+}
+
+function buildSpkmodFriendPanelMenu() {
+	const form = buildElement("form", {}, [
+		buildSpkmodFriendSortForm(),
+		buildSpkmodFriendFilterForm(),
+		buildElement("div", {
+			style: `
+				margin-top: 1em;
+			`
+		}, [
+			buildElement("button", {
+				className: "spkmod-panel-btn",
+				type: "button",
+				dataset: { spkmodI18n: "resetSelections" },
+				innerText: t("resetSelections"),
+				onclick: e => {
+					e.preventDefault();
+					form.reset();
+					resetSpkmodFriendPanelSortAndFilter();
+					sortFriendList(false);
+					filterFriendList();
+				}
+			})
+		])
+	]);
+	const menu = buildElement("div", {
+		className: "spkmod-friend-panel-menu hidden",
+		style: `
+			position: fixed;
+			border: ${spkmodBorderWidth} solid;
+			border-radius: 8px;
+			width: 300px;
+			padding: 1em;
+			background-color: #000000;
+			color: #FFFFFF;
+			font-size: 12px;
+		`
+	}, [form]);
+	menu.setAttribute("data-spkmod-friend-menu", "");
+	return menu;
+}
+
+function getSpkmodFriendPanelMenu() {
+	if (_spkmodFriendPanelMenu != null) return _spkmodFriendPanelMenu;
+
+	const menu = buildSpkmodFriendPanelMenu();
+	document.body.appendChild(menu);
+
+	document.addEventListener("pointerdown", e => {
+		if (!menu.classList.contains("hidden") && !menu.contains(e.target) && !e.target.hasAttribute("data-spkmod-friend-panel-btn")) {
+			menu.classList.add("hidden");
+		}
+	});
+	document.addEventListener("wheel", e => {
+		if (!menu.classList.contains("hidden") && !menu.contains(e.target)) {
+			menu.classList.add("hidden");
+		}
+	}, true);
+	window.addEventListener("blur", () => {
+		menu.classList.add("hidden");
+	});
+
+	_spkmodFriendPanelMenu = menu;
+	return menu;
+}
+
+function toggleSpkmodFriendPanelMenu(btn, panel) {
+	const menu = getSpkmodFriendPanelMenu();
+	const hidden = menu.classList.toggle("hidden");
+	if (hidden) return;
+
+	const menuRect = menu.getBoundingClientRect();
+	const btnRect = btn.getBoundingClientRect();
+	if (btnRect.bottom + menuRect.height <= document.documentElement.clientHeight) {
+		menu.style.top = `${btnRect.bottom}px`;
+	} else {
+		menu.style.top = `${btnRect.top - menuRect.height}px`;
+	}
+	if (btnRect.left + menuRect.width <= document.documentElement.clientWidth) {
+		menu.style.left = `${btnRect.left}px`;
+	} else {
+		menu.style.left = `${btnRect.right - menuRect.width}px`;
+	}
+
+	const panelZIndex = window.getComputedStyle(panel).zIndex;
+	if (panelZIndex != null && /^-?[0-9]+$/.test(panelZIndex)) {
+		menu.style.zIndex = Number(panelZIndex) + 1;
+	}
+}
+
+function getOnlineFriendPresenceFromText(text) {
+	if (text == null) {
+		return {
+			online: false,
+			zoneId: null,
+			channel: null
+		};
+	}
+	const prefix = "📍 "
+	const prefixRemoved = text.startsWith(prefix) ? text.slice(prefix.length) : text;
+	const statusItems = prefixRemoved.split(" · ");
+	const presence = {
+		online: true,
+		zoneId: null,
+		channel: null
+	};
+
+	// If the zone exists
+	if (statusItems.length >= 2) {
+		const zoneName = statusItems[0];
+		presence.zoneId = getZoneIdFromName(zoneName) ?? null;
+
+		// If the channel exists
+		if (statusItems.length == 3) {
+			const channelString = statusItems[1].match(/\d+/)?.[0];
+			presence.channel = channelString ? Number(channelString) : null;
+		}
+	}
+
+	return presence;
+}
+
+function getFriendPropertiesFromElement(friendElem) {
+	const titleElem = friendElem.querySelector(".sr-list-item__title");
+	const levelElem = friendElem.querySelector(".sr-party__level");
+	const presenceElem = friendElem.querySelector(".sr-list-item__subtitle");
+
+	const name = titleElem?.textContent;
+
+	const levelString = levelElem?.textContent.match(/^Lv\.(\d+)$/)?.[1];
+	const level = levelString ? Number(levelString) : null;
+
+	const online = !friendElem.classList.contains("sr-friend__row--offline");
+	const presence = online ? getOnlineFriendPresenceFromText(presenceElem?.textContent) : {
+		online: false,
+		zoneId: null,
+		channel: null
+	};
+
+	return {
+		name,
+		level,
+		...presence
+	}
+}
+
+// A function comparing numbers that places null at the end
+function compareFriendNumberProperties(a, b, sign) {
+	if (a == null) {
+		return b == null ? 0 : 1;
+	} else {
+		return b == null ? -1 : sign * (a - b);
+	}
+}
+
+function compareFriendProperties(a, b) {
+	const sign = _spkmodFriendPanelSortAscending ? 1 : -1;
+
+	switch (_spkmodFriendPanelSortBy) {
+		case "lastLogin":
+			return 0;
+		case "playerName":
+			if (a.name < b.name) return -sign;
+			if (a.name > b.name) return sign;
+			return 0;
+		case "level":
+			return compareFriendNumberProperties(a.level, b.level, sign);
+		case "zoneId":
+			return compareFriendNumberProperties(a.zoneId, b.zoneId, sign);
+		case "channel":
+			return compareFriendNumberProperties(a.channel, b.channel, sign);
+	}
+}
+
+function sortFriendList(isOriginalOrder) {
+	if (!_spkmodFriendPanelBody || !_spkmodFriendPanelBody.isConnected) return;
+	if (isOriginalOrder && _spkmodFriendPanelSortBy == "lastLogin" && _spkmodFriendPanelSortAscending == "ascending") return;
+
+	const sectionTitles = _spkmodFriendPanelBody.querySelectorAll(".sr-panel__section-title");
+	const sectionTitle1 = sectionTitles[0];
+	const sectionTitle2 = sectionTitles[1];
+	if (sectionTitle1 == null || sectionTitle2 == null) return;
+
+	let items;
+	if (isOriginalOrder) {
+		items = [];
+		for (let item = sectionTitle1.nextElementSibling; item !== sectionTitle2; item = item.nextElementSibling) {
+			if (item.matches(".sr-list-item")) items.push(item);
+		}
+		_spkmodFriendOriginalOrder = [...items];
+	} else if (_spkmodFriendOriginalOrder) {
+		items = [..._spkmodFriendOriginalOrder];
+	} else {
+		return;
+	}
+	if (items.length == 0) return;
+
+	if (_spkmodFriendPanelSortBy == "lastLogin") {
+		if (!_spkmodFriendPanelSortAscending) items.reverse();
+	} else {
+		const properties = new Map();
+		for (const item of items) {
+			properties.set(item, getFriendPropertiesFromElement(item));
+		}
+		items.sort((a, b) => compareFriendProperties(
+			properties.get(a),
+			properties.get(b)
+		));
+	}
+
+	for (const item of items) {
+		_spkmodFriendPanelBody.insertBefore(item, sectionTitle2);
+	}
+}
+
+function testFriendListItemFilter(elem) {
+	const properties = getFriendPropertiesFromElement(elem);
+	if (properties.online && !_spkmodFriendPanelFilterPresence.online) return false;
+	if (!properties.online && !_spkmodFriendPanelFilterPresence.offline) return false;
+	if (!properties.name?.toLowerCase()?.includes(_spkmodFriendPanelFilterPlayerName)) return false;
+	return true;
+}
+
+function filterFriendList() {
+	if (!_spkmodFriendPanelBody || !_spkmodFriendPanelBody.isConnected) return;
+
+	const sectionTitles = _spkmodFriendPanelBody.querySelectorAll(".sr-panel__section-title");
+	const sectionTitle1 = sectionTitles[0];
+	const sectionTitle2 = sectionTitles[1];
+	if (sectionTitle1 == null || sectionTitle2 == null) return;
+
+	const items = [];
+	for (let item = sectionTitle1.nextElementSibling; item !== sectionTitle2; item = item.nextElementSibling) {
+		if (item.matches(".sr-list-item")) items.push(item);
+	}
+	if (items.length == 0) return;
+
+	let hasShownItem = false;
+	for (const item of items) {
+		const shown = testFriendListItemFilter(item);
+		item.classList.toggle("hidden", !shown);
+		if (shown) hasShownItem = true;
+	}
+
+	const existingMessage = _spkmodFriendPanelBody.querySelector("[data-spkmod-no-friends-match-filter]");
+	if (hasShownItem) {
+		if (existingMessage) existingMessage.classList.add("hidden");
+		return;
+	}
+
+	if (existingMessage) {
+		existingMessage.classList.remove("hidden");
+		return;
+	}
+
+	const message = buildElement("div", {
+		className: "sr-state",
+		dataset: { spkmodNoFriendsMatchFilter: "" }
+	}, [
+		buildElement("div", {
+			className: "sr-state__text",
+			dataset: { spkmodI18n: "noFriendsMatchFilter" },
+			textContent: t("noFriendsMatchFilter")
+		})
+	]);
+	_spkmodFriendPanelBody.insertBefore(message, sectionTitle2);
+}
+
+const renderSpkmodFriendPanel = createRafThrottler((panel, panelBody) => {
+	if (!panel || !panel.isConnected || !panelBody || !panelBody.isConnected) return;
+	_spkmodFriendPanelBody = panelBody;
+
+	const sectionTitle = panelBody.querySelector(".sr-panel__section-title:first-child");
+
+	if (sectionTitle != null && !sectionTitle.querySelector(":scope > [data-spkmod-friend-panel-btn]")) {
+		sectionTitle.style.position = "relative";
+		const btn = buildElement("button", {
+			type: "button",
+			style: `
+				position: absolute;
+				bottom: 0;
+				right: 0;
+				background-color: #000000;
+				color: #FFFFFF;
+				border: 0 none;
+				border-radius: 4px;
+				padding: 3px 6px;
+			`,
+			dataset: {
+				spkmodFriendPanelBtn: "",
+				spkmodI18n: "sortAndFilter",
+			},
+			innerText: t("sortAndFilter"),
+			onclick: e => {
+				e.preventDefault();
+				toggleSpkmodFriendPanelMenu(btn, panel);
+			}
+		});
+		sectionTitle.appendChild(btn);
+		sortFriendList(true);
+		filterFriendList();
+	}
+});
+
+const observeSpkmodFriendPanel = createPanelObserver("friends", renderSpkmodFriendPanel);
+
+if (typeof spkmodI18nRenderers !== "undefined") {
+    spkmodI18nRenderers.push(() => {
+		if (_spkmodFriendPanelBody != null) {
+			for (const elem of _spkmodFriendPanelBody.querySelectorAll("[data-spkmod-i18n]")) {
+				elem.innerText = t(elem.getAttribute("data-spkmod-i18n"));
+			}
+		}
+		if (_spkmodFriendPanelMenu != null) {
+			for (const elem of _spkmodFriendPanelMenu.querySelectorAll("[data-spkmod-i18n]")) {
+				elem.innerText = t(elem.getAttribute("data-spkmod-i18n"));
+			}
+		}
+	});
 }
 
 function onGameDataUpdate() {
@@ -25515,6 +26057,9 @@ function onInGameReady() {
 	}
 	if (typeof observeSpkmodQuestPanel === "function") {
 	    observeSpkmodQuestPanel();
+	}
+	if (typeof observeSpkmodFriendPanel === "function") {
+		observeSpkmodFriendPanel();
 	}
 	const hudEl = document.getElementById("spkmod-hud");
 	if (hudEl) hudEl.classList.remove("hidden");
