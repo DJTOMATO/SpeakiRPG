@@ -1489,6 +1489,20 @@ function getZoneIdFromName(zoneName) {
 			}
 		}
 
+		if (typeof window.i18n === "function") {
+			const zonesToCheck = (typeof WorldZones !== "undefined" && Array.isArray(WorldZones))
+				? WorldZones.map(z => z.zoneId)
+				: [1,2,3,4,5,6,7,8,9,10,11,12,13,101,102,103,104,105,106,107,108,181,182,201,202,203,204,205,206,207,208,209,281,282,283,301,302,303,304,305,306,307,308,309,900,901,902,903,905,909,910,911,950];
+			for (const zid of zonesToCheck) {
+				try {
+					const zname = window.i18n(`content.zone.${zid}.name`);
+					if (zname && typeof zname === "string" && !zname.startsWith("content.zone") && !_zoneNameToIdMap.has(zname)) {
+						_zoneNameToIdMap.set(zname, Number(zid));
+					}
+				} catch (_) {}
+			}
+		}
+
 		for (const langTranslation of Object.values(spkmodTranslations)) {
 			if (langTranslation != null && langTranslation.mapLocations != null && typeof langTranslation.mapLocations === "object") {
 				for (const zoneId of Object.keys(langTranslation.mapLocations)) {
@@ -1499,7 +1513,6 @@ function getZoneIdFromName(zoneName) {
 			}
 		}
 	}
-
 	return _zoneNameToIdMap.get(zoneName);
 }
 
@@ -22084,7 +22097,7 @@ function attachSpkmodPanel(state, panel, callback) {
     if (
         panel === state.panelRoot &&
         body === state.panelBody &&
-        state.DomObserver
+        state.domObserver
     ) {
         return true;
     }
