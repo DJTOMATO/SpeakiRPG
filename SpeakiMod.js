@@ -7289,7 +7289,7 @@ document.body.appendChild(lunHudElements.lowHpOverlay);
 	if (isMobileDevice) {
 		const mobileBtnContainer = document.createElement("div");
 				mobileBtnContainer.id = "spkmod-mobile-btn-container";
-		mobileBtnContainer.style.cssText = "position: fixed; bottom: 80px; left: 10px; z-index: 999999; display: flex; flex-direction: column; gap: 8px;";
+		mobileBtnContainer.style.cssText = "position: fixed; bottom: 80px; left: 10px; z-index: 2147483647; display: flex; flex-direction: column; gap: 8px;";
 		
 		const createToggleBtn = (id, icon, onClick) => {
 			const btn = document.createElement("button");
