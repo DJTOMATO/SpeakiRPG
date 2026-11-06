@@ -24640,16 +24640,37 @@ function spkmodResetFpsBaseline() {
 }
 
 document.addEventListener("visibilitychange", spkmodResetFpsBaseline);
+
+// We no longer need to rely on a specific class named "sr-game-canvas"
 const spkmodGameGl = new WeakSet();
 
 function spkmodIsGameGl(gl) {
-	if (spkmodGameGl.has(gl)) return true;
-	const cl = gl.canvas && gl.canvas.classList;
-	if (cl && (cl.contains("sr-game-canvas") || cl.contains("canvas"))) {
-		spkmodGameGl.add(gl);
-		return true;
-	}
-	return false;
+    if (!gl) return false;
+
+    // If already identified as a game rendering context
+    if (spkmodGameGl.has(gl)) return true;
+
+    const canvas = gl.canvas;
+
+    // Verify if it is an actual HTML Canvas
+    if (!canvas || !canvas.isConnected || typeof canvas.getBoundingClientRect !== "function") return false;
+
+    // Check if there are any bounds that are reflected on the screen
+    const rect = canvas.getBoundingClientRect();
+
+    if (rect.width <= 0 || rect.height <= 0) {
+        return false;
+    }
+
+    // Exclude canvases that are not displayed on screen
+    const style = canvas.ownerDocument.defaultView?.getComputedStyle(canvas);
+
+    if (style && (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0)) return false;
+
+    // Registering Game Rendering Context
+    spkmodGameGl.add(gl);
+
+    return true;
 }
 
 (function installGameFpsHooks() {
