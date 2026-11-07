@@ -1578,7 +1578,27 @@ var lunHudElements = {
 	hotkeysModal: null,
 	effectsModal: null,
 	editsModal: null,
-	jukeboxModal: null
+	jukeboxModal: null,
+	customCssModal: null
+};
+var customCssModalElements = {
+	headerRow: null,
+	headerTitle: null,
+	statusBadge: null,
+	profileSelect: null,
+	newBtn: null,
+	renameBtn: null,
+	deleteBtn: null,
+	enableToggle: null,
+	saveBtn: null,
+	livePreviewToggle: null,
+	snippetsSelect: null,
+	exportBtn: null,
+	importBtn: null,
+	resetBtn: null,
+	textarea: null,
+	resizeHandle: null,
+	tipLabel: null
 };
 var eventModalElements = {
 	headerTitle: null,
@@ -1659,6 +1679,8 @@ var lunPanelElements = {
 	pinnedQuestHeader: null,
 	langSelect: null,
 	settingsHeader: null,
+	customCssSettingsBtn: null,
+	customCssSectionBtn: null,
 	filterToggleLabel: null,
 	filterToggleInput: null,
 	gmChatToggleLabel: null,
@@ -3572,6 +3594,7 @@ function resetWindowPositions() {
 		lunHudElements.editsModal,
 		lunHudElements.hotkeysModal,
 		lunHudElements.infoModal,
+		lunHudElements.customCssModal,
 		typeof lunEmojiPickerPanel !== "undefined" ? lunEmojiPickerPanel : null,
 		typeof mapModalElements !== "undefined" ? mapModalElements.modalWindow : null
 	];
@@ -3589,6 +3612,11 @@ function resetWindowPositions() {
 		lunHudElements.bbsModal.style.height = "480px";
 	}
 
+	if (lunHudElements.customCssModal) {
+		lunHudElements.customCssModal.style.width = "580px";
+		lunHudElements.customCssModal.style.height = "500px";
+	}
+
 	if (lunHudElements.bbsModal && !lunHudElements.bbsModal.classList.contains("hidden")) {
 		const modalWidth = lunHudElements.bbsModal.offsetWidth || 520;
 		const safeLeft = Math.max(20, Math.round((window.innerWidth - modalWidth) / 2));
@@ -3604,7 +3632,8 @@ function resetWindowPositions() {
 		lunHudElements.effectsModal,
 		lunHudElements.editsModal,
 		lunHudElements.hotkeysModal,
-		lunHudElements.infoModal
+		lunHudElements.infoModal,
+		lunHudElements.customCssModal
 	];
 
 	otherOpenModals.forEach(m => {
@@ -6737,9 +6766,9 @@ function updateDynamicStyles() {
 		${customFontRules}
 				#app { filter: ${filterRule}; }
 		#app > *:not(.sr-game-canvas):not(canvas):not(.sr-click-ripple-layer) { zoom: ${lunGameUiScale} !important; }
-		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, #spkmod-jukebox-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
+		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, #spkmod-jukebox-modal, #spkmod-css-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq, body > #spkmod-panel { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
-		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, #spkmod-jukebox-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn, .spkmod-friend-panel-menu {
+		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, #spkmod-jukebox-modal, #spkmod-css-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn, .spkmod-friend-panel-menu {
 			background: var(--spkmod-bg) !important;
 			backdrop-filter: var(--spkmod-blur) !important;
 			border-color: var(--spkmod-accent) !important;
@@ -7137,6 +7166,50 @@ document.head.appendChild(buildElement(
 			max-height: 94vh;
 			overflow: hidden !important;
 		}
+		#spkmod-css-modal {
+			position: fixed !important;
+			width: 580px;
+			height: 500px;
+			min-width: 420px;
+			min-height: 320px;
+			max-width: 98vw;
+			max-height: 94vh;
+			display: flex;
+			flex-direction: column;
+			color: #FFF;
+			background: rgba(12, 12, 12, 0.96);
+			border: ${spkmodBorderWidth} solid #666;
+			border-radius: 8px;
+			padding: 10px;
+			gap: 8px;
+			box-shadow: 0 6px 28px rgba(0,0,0,0.85);
+			box-sizing: border-box;
+			overflow: hidden !important;
+		}
+		#spkmod-css-textarea {
+			font-family: 'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace !important;
+			font-size: 12px !important;
+			line-height: 1.5 !important;
+			tab-size: 2 !important;
+			background: #141414 !important;
+			color: #f0f0f0 !important;
+			border: 1px solid #444 !important;
+			border-radius: 4px !important;
+			padding: 8px !important;
+			resize: none !important;
+			width: 100% !important;
+			height: 100% !important;
+			flex: 1 !important;
+			box-sizing: border-box !important;
+			outline: none !important;
+			white-space: pre !important;
+			overflow-wrap: normal !important;
+			overflow-x: auto !important;
+		}
+		#spkmod-css-textarea:focus {
+			border-color: #888 !important;
+			box-shadow: 0 0 6px rgba(255, 255, 255, 0.2) !important;
+		}
 		#spkmod-effects-modal {
 			width: 960px;
 			min-width: 600px;
@@ -7189,7 +7262,7 @@ document.head.appendChild(buildElement(
 			from { opacity: 0.7; transform: scale(0.98); }
 			to { opacity: 1.0; transform: scale(1.02); }
 		}
-		#spkmod-hud.hidden, .hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden, #spkmod-stats-modal.hidden, #spkmod-effects-modal.hidden, #spkmod-edits-modal.hidden, #spkmod-quests-modal.hidden, #spkmod-jukebox-modal.hidden {
+		#spkmod-hud.hidden, .hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden, #spkmod-stats-modal.hidden, #spkmod-effects-modal.hidden, #spkmod-edits-modal.hidden, #spkmod-quests-modal.hidden, #spkmod-jukebox-modal.hidden, #spkmod-css-modal.hidden {
 			display: none !important;
 		}
 		
@@ -7197,7 +7270,7 @@ document.head.appendChild(buildElement(
 		#spkmod-settings-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal,
 		#spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal,
 		#spkmod-edits-modal, #spkmod-quests-modal, #spkmod-map-modal,
-		#spkmod-jukebox-modal, .spkmod-music-modal {
+		#spkmod-jukebox-modal, #spkmod-css-modal, .spkmod-music-modal {
 			z-index: 2147483600 !important;
 		}
 
@@ -7321,6 +7394,7 @@ document.head.appendChild(buildElement(
 		body.spkmod-ui-hidden #spkmod-edits-modal,
 		body.spkmod-ui-hidden #spkmod-quests-modal,
 		body.spkmod-ui-hidden #spkmod-jukebox-modal,
+		body.spkmod-ui-hidden #spkmod-css-modal,
 		body.spkmod-ui-hidden #spkmod-info-modal,
 		body.spkmod-ui-hidden #spkmod-translate-picker {
 			display: none !important;
@@ -8601,6 +8675,20 @@ document.body.appendChild(
 							toggleQuickLoginSettings();
 						}
 					}
+				}),
+
+				lunPanelElements.customCssSettingsBtn = buildElement("button", {
+					id: "spkmod-settings-css-btn",
+					className: "spkmod-panel-btn",
+					style: "padding: 2px 6px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;",
+					innerText: "🎨 " + (t("customCssBtn") || "Custom CSS"),
+					title: t("customCssBtnTooltip") || "Edit custom CSS styles and themes",
+					onclick: (e) => {
+						e.preventDefault();
+						if (typeof toggleCustomCssModal === "function") {
+							toggleCustomCssModal();
+						}
+					}
 				})
 			]),
 			buildElement("span", {
@@ -9145,6 +9233,19 @@ document.body.appendChild(
 					lunPanelElements.accentColorLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("accentColorLabel") }),
 					lunPanelElements.accentColorInput = buildElement("input", { type: "color", value: lunAccentColor, style: "width: 40px; height: 20px; padding: 0; border: none; background: none; cursor: pointer;", onchange: e => { lunAccentColor = e.target.value; updateDynamicStyles(); } }),
 					lunPanelElements.accentColorConfirmBtn = buildElement("button", { className: "spkmod-panel-btn", style: "padding: 0px 4px; font-size: 10px; margin-left: 4px;", innerText: t("confirmBtn") || "OK", onclick: () => { lunAccentColor = lunPanelElements.accentColorInput.value; updateDynamicStyles(); } })
+				]),
+				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 6px; padding-top: 6px; border-top: 1px solid #333;" }, [
+					lunPanelElements.customCssSectionBtn = buildElement("button", {
+						id: "spkmod-open-custom-css-btn",
+						className: "spkmod-panel-btn",
+						style: "width: 100%; padding: 5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; background: #262626; border: 1px solid #555;",
+						innerText: "🎨 " + (t("customCssTitle") || "Custom CSS & Themes"),
+						title: t("customCssBtnTooltip") || "Edit custom CSS styles and themes",
+						onclick: e => {
+							e.preventDefault();
+							if (typeof toggleCustomCssModal === "function") toggleCustomCssModal();
+						}
+					})
 				])
 			])
 		]),
@@ -9254,6 +9355,710 @@ setTimeout(() => {
 		makeDraggable(lunHudElements.settingsModal, [lunHudElements.settingsModal]);
 	}
 }, 500);
+
+
+/* ==========================================================================
+   Custom CSS & Themes Module
+   ========================================================================== */
+
+const SPKMOD_CSS_STORAGE_PROFILES = "spkmod-custom-css-profiles";
+const SPKMOD_CSS_STORAGE_ACTIVE = "spkmod-custom-css-active-profile";
+const SPKMOD_CSS_STORAGE_ENABLED = "spkmod-custom-css-enabled";
+const SPKMOD_CSS_STORAGE_LIVE_PREVIEW = "spkmod-custom-css-live-preview";
+
+const SPKMOD_DEFAULT_CSS = `/* Custom SpeakiMod CSS & Themes */
+/* Tip: Add !important to guarantee overriding client styles */
+
+/* Example: Customize SpeakiMod Modals */
+/*
+#spkmod-hud, #spkmod-settings-modal {
+  border-color: #e8b84b !important;
+}
+*/
+`;
+
+const SPKMOD_CSS_SNIPPETS = [
+	{
+		label: "Dark Glass Panels",
+		code: `/* Dark Glass Panels */\n.spkmod-panel-cat, #spkmod-settings-modal, #spkmod-bbs-modal, #spkmod-quests-modal {\n  background: rgba(10, 10, 15, 0.75) !important;\n  backdrop-filter: blur(8px) !important;\n  border: 1px solid rgba(255, 255, 255, 0.15) !important;\n}\n`
+	},
+	{
+		label: "Golden Fantasy Theme",
+		code: `/* Golden Fantasy Theme */\n.spkmod-panel-btn, .spkmod-panel-combo {\n  border-color: #d4af37 !important;\n  color: #f7e7a9 !important;\n  box-shadow: 0 0 5px rgba(212, 175, 55, 0.4) !important;\n}\n#spkmod-hud, #spkmod-settings-modal {\n  border: 2px solid #d4af37 !important;\n}\n`
+	},
+	{
+		label: "Cyberpunk Neon Cyan",
+		code: `/* Cyberpunk Neon Cyan */\n#spkmod-hud, #spkmod-settings-modal, #spkmod-bbs-modal, #spkmod-quests-modal, #spkmod-css-modal {\n  border: 1.5px solid #00f0ff !important;\n  box-shadow: 0 0 12px rgba(0, 240, 255, 0.5) !important;\n}\n.spkmod-panel-btn {\n  border-color: #00f0ff !important;\n  color: #00f0ff !important;\n}\n`
+	},
+	{
+		label: "Compact HUD",
+		code: `/* Compact HUD */\n#spkmod-hud {\n  padding: 4px 6px !important;\n  gap: 2px !important;\n  opacity: 0.85 !important;\n}\n#spkmod-hud:hover {\n  opacity: 1 !important;\n}\n`
+	},
+	{
+		label: "Canvas Visual Filter (Vibrant)",
+		code: `/* Canvas Visual Filter (Vibrant) */\ncanvas#application-canvas, canvas.game-canvas {\n  filter: contrast(1.1) saturate(1.25) brightness(1.02) !important;\n}\n`
+	},
+	{
+		label: "Canvas Visual Filter (Night / Dim)",
+		code: `/* Canvas Visual Filter (Night / Dim) */\ncanvas#application-canvas, canvas.game-canvas {\n  filter: brightness(0.7) contrast(1.1) !important;\n}\n`
+	},
+	{
+		label: "Canvas Visual Filter (Retro Sepia)",
+		code: `/* Canvas Visual Filter (Retro Sepia) */\ncanvas#application-canvas, canvas.game-canvas {\n  filter: sepia(0.35) contrast(1.05) !important;\n}\n`
+	},
+	{
+		label: "Hide Floating Buttons",
+		code: `/* Hide Floating Buttons */\n#spkmod-floating-buttons {\n  display: none !important;\n}\n`
+	},
+	{
+		label: "Custom Game Font",
+		code: `/* Custom Game Font */\nbody, button, input, select, textarea, #spkmod-main {\n  font-family: 'Segoe UI', system-ui, sans-serif !important;\n}\n`
+	}
+];
+
+var lunCustomCssStyleElement = null;
+var lunCustomCssProfiles = { "Default": SPKMOD_DEFAULT_CSS };
+var lunCustomCssActiveProfile = "Default";
+var lunCustomCssEnabled = true;
+var lunCustomCssLivePreview = true;
+var lunCustomCssHasUnsavedChanges = false;
+var lunCustomCssLivePreviewTimer = null;
+
+function loadCustomCssData() {
+	if (typeof window !== "undefined" && window.localStorage) {
+		try {
+			const savedProfiles = localStorage.getItem(SPKMOD_CSS_STORAGE_PROFILES);
+			if (savedProfiles) {
+				const parsed = JSON.parse(savedProfiles);
+				if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && Object.keys(parsed).length > 0) {
+					lunCustomCssProfiles = parsed;
+				}
+			}
+		} catch (_) {}
+
+		try {
+			const savedActive = localStorage.getItem(SPKMOD_CSS_STORAGE_ACTIVE);
+			if (savedActive && lunCustomCssProfiles[savedActive] !== undefined) {
+				lunCustomCssActiveProfile = savedActive;
+			} else {
+				lunCustomCssActiveProfile = Object.keys(lunCustomCssProfiles)[0] || "Default";
+			}
+		} catch (_) {}
+
+		try {
+			const savedEnabled = localStorage.getItem(SPKMOD_CSS_STORAGE_ENABLED);
+			if (savedEnabled !== null) {
+				lunCustomCssEnabled = savedEnabled === "true";
+			}
+		} catch (_) {}
+
+		try {
+			const savedLive = localStorage.getItem(SPKMOD_CSS_STORAGE_LIVE_PREVIEW);
+			if (savedLive !== null) {
+				lunCustomCssLivePreview = savedLive === "true";
+			}
+		} catch (_) {}
+	}
+	if (!lunCustomCssProfiles[lunCustomCssActiveProfile]) {
+		lunCustomCssProfiles[lunCustomCssActiveProfile] = SPKMOD_DEFAULT_CSS;
+	}
+}
+
+function saveCustomCssData() {
+	if (typeof window !== "undefined" && window.localStorage) {
+		try {
+			localStorage.setItem(SPKMOD_CSS_STORAGE_PROFILES, JSON.stringify(lunCustomCssProfiles));
+			localStorage.setItem(SPKMOD_CSS_STORAGE_ACTIVE, lunCustomCssActiveProfile);
+			localStorage.setItem(SPKMOD_CSS_STORAGE_ENABLED, lunCustomCssEnabled ? "true" : "false");
+			localStorage.setItem(SPKMOD_CSS_STORAGE_LIVE_PREVIEW, lunCustomCssLivePreview ? "true" : "false");
+		} catch (_) {}
+	}
+}
+
+function applyCustomCss(cssText) {
+	if (!lunCustomCssStyleElement) {
+		lunCustomCssStyleElement = document.getElementById("spkmod-custom-css");
+		if (!lunCustomCssStyleElement) {
+			lunCustomCssStyleElement = document.createElement("style");
+			lunCustomCssStyleElement.id = "spkmod-custom-css";
+			document.head.appendChild(lunCustomCssStyleElement);
+		}
+	}
+	if (!lunCustomCssEnabled) {
+		lunCustomCssStyleElement.textContent = "";
+		return;
+	}
+	const code = typeof cssText === "string" ? cssText : (lunCustomCssProfiles[lunCustomCssActiveProfile] || "");
+	lunCustomCssStyleElement.textContent = code;
+	// Guarantee maximum cascade priority over game stylesheets and SpeakiMod defaults by re-appending to the end of <head>
+	if (lunCustomCssStyleElement.parentNode === document.head) {
+		document.head.appendChild(lunCustomCssStyleElement);
+	}
+}
+
+function updateCustomCssStatus(saved) {
+	lunCustomCssHasUnsavedChanges = !saved;
+	if (customCssModalElements.statusBadge) {
+		if (saved) {
+			customCssModalElements.statusBadge.innerText = t("customCssSaved") || "✓ Saved";
+			customCssModalElements.statusBadge.style.color = "#4ade80";
+			customCssModalElements.statusBadge.style.borderColor = "rgba(74, 222, 128, 0.4)";
+		} else {
+			customCssModalElements.statusBadge.innerText = t("customCssUnsaved") || "● Unsaved";
+			customCssModalElements.statusBadge.style.color = "#fbbf24";
+			customCssModalElements.statusBadge.style.borderColor = "rgba(251, 191, 36, 0.4)";
+		}
+	}
+}
+
+function updateCustomCssProfileDropdown() {
+	if (!customCssModalElements.profileSelect) return;
+	const sel = customCssModalElements.profileSelect;
+	sel.innerHTML = "";
+	const names = Object.keys(lunCustomCssProfiles);
+	if (names.length === 0) {
+		lunCustomCssProfiles["Default"] = SPKMOD_DEFAULT_CSS;
+		names.push("Default");
+	}
+	names.forEach(name => {
+		const opt = document.createElement("option");
+		opt.value = name;
+		opt.innerText = name;
+		if (name === lunCustomCssActiveProfile) opt.selected = true;
+		sel.appendChild(opt);
+	});
+}
+
+function loadActiveProfileIntoEditor() {
+	if (customCssModalElements.textarea) {
+		customCssModalElements.textarea.value = lunCustomCssProfiles[lunCustomCssActiveProfile] || "";
+	}
+	updateCustomCssStatus(true);
+}
+
+function saveAndApplyCustomCss() {
+	if (customCssModalElements.textarea) {
+		lunCustomCssProfiles[lunCustomCssActiveProfile] = customCssModalElements.textarea.value;
+	}
+	saveCustomCssData();
+	applyCustomCss();
+	updateCustomCssStatus(true);
+}
+
+function insertCssSnippet(snippetCode) {
+	if (!snippetCode || !customCssModalElements.textarea) return;
+	const ta = customCssModalElements.textarea;
+	const start = ta.selectionStart;
+	const end = ta.selectionEnd;
+	const val = ta.value;
+	const insert = (start > 0 && val[start - 1] !== "\n" ? "\n" : "") + snippetCode + (snippetCode.endsWith("\n") ? "" : "\n");
+	ta.value = val.substring(0, start) + insert + val.substring(end);
+	ta.selectionStart = ta.selectionEnd = start + insert.length;
+	ta.focus();
+	updateCustomCssStatus(false);
+	if (lunCustomCssLivePreview && lunCustomCssEnabled) {
+		clearTimeout(lunCustomCssLivePreviewTimer);
+		lunCustomCssLivePreviewTimer = setTimeout(() => {
+			applyCustomCss(ta.value);
+		}, 150);
+	}
+}
+
+function downloadTextFile(filename, text, mimeType = "text/plain;charset=utf-8") {
+	const blob = new Blob([text], { type: mimeType });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement("a");
+	a.href = url;
+	a.download = filename;
+	document.body.appendChild(a);
+	a.click();
+	document.body.removeChild(a);
+	setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportCurrentProfileCss() {
+	const safeName = lunCustomCssActiveProfile.replace(/[^a-zA-Z0-9_\-]/g, "_") || "profile";
+	const content = (customCssModalElements.textarea ? customCssModalElements.textarea.value : lunCustomCssProfiles[lunCustomCssActiveProfile]) || "";
+	downloadTextFile(`speakimod_theme_${safeName}.css`, content, "text/css;charset=utf-8");
+}
+
+function exportAllProfilesJson() {
+	if (customCssModalElements.textarea) {
+		lunCustomCssProfiles[lunCustomCssActiveProfile] = customCssModalElements.textarea.value;
+	}
+	const payload = {
+		version: 1,
+		activeProfile: lunCustomCssActiveProfile,
+		exportedAt: new Date().toISOString(),
+		profiles: lunCustomCssProfiles
+	};
+	downloadTextFile("speakimod_themes_backup.json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+}
+
+function fallbackCopyText(text) {
+	const dummy = document.createElement("textarea");
+	dummy.value = text;
+	document.body.appendChild(dummy);
+	dummy.select();
+	try {
+		document.execCommand("copy");
+		if (typeof chatLog === "function") chatLog(t("customCssCopied") || "CSS copied to clipboard!");
+		else alert(t("customCssCopied") || "CSS copied to clipboard!");
+	} catch (_) {}
+	document.body.removeChild(dummy);
+}
+
+function copyCustomCssToClipboard() {
+	const text = (customCssModalElements.textarea ? customCssModalElements.textarea.value : lunCustomCssProfiles[lunCustomCssActiveProfile]) || "";
+	if (navigator.clipboard && navigator.clipboard.writeText) {
+		navigator.clipboard.writeText(text).then(() => {
+			if (typeof chatLog === "function") {
+				chatLog(t("customCssCopied") || "CSS copied to clipboard!");
+			} else {
+				alert(t("customCssCopied") || "CSS copied to clipboard!");
+			}
+		}).catch(() => {
+			fallbackCopyText(text);
+		});
+	} else {
+		fallbackCopyText(text);
+	}
+}
+
+function importCustomCssFile(file) {
+	if (!file) return;
+	const reader = new FileReader();
+	reader.onload = e => {
+		try {
+			const text = e.target.result;
+			if (file.name.endsWith(".json")) {
+				const data = JSON.parse(text);
+				if (data && typeof data === "object") {
+					const incomingProfiles = data.profiles && typeof data.profiles === "object" ? data.profiles : data;
+					let count = 0;
+					for (const [k, v] of Object.entries(incomingProfiles)) {
+						if (typeof v === "string") {
+							lunCustomCssProfiles[k] = v;
+							count++;
+						}
+					}
+					if (count === 0) throw new Error("No valid profiles found in JSON");
+					if (data.activeProfile && lunCustomCssProfiles[data.activeProfile]) {
+						lunCustomCssActiveProfile = data.activeProfile;
+					}
+					saveCustomCssData();
+					updateCustomCssProfileDropdown();
+					loadActiveProfileIntoEditor();
+					applyCustomCss();
+					alert(`Imported ${count} profile(s) successfully!`);
+				}
+			} else {
+				let profileName = file.name.replace(/\.css$/i, "").trim();
+				if (!profileName) profileName = "Imported";
+				if (lunCustomCssProfiles[profileName] !== undefined && lunCustomCssProfiles[profileName] !== text) {
+					profileName = `${profileName} (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
+				}
+				lunCustomCssProfiles[profileName] = text;
+				lunCustomCssActiveProfile = profileName;
+				saveCustomCssData();
+				updateCustomCssProfileDropdown();
+				loadActiveProfileIntoEditor();
+				applyCustomCss();
+				alert(`Imported profile "${profileName}" successfully!`);
+			}
+		} catch (err) {
+			alert("Failed to import file: " + (err && err.message ? err.message : "Invalid format"));
+		}
+	};
+	reader.readAsText(file);
+}
+
+function createNewCssProfile() {
+	const promptText = t("customCssPromptNew") || "Enter new profile name:";
+	const name = prompt(promptText);
+	if (!name || !name.trim()) return;
+	const trimmed = name.trim();
+	if (lunCustomCssProfiles[trimmed] !== undefined) {
+		alert("A profile with this name already exists.");
+		return;
+	}
+	lunCustomCssProfiles[trimmed] = (customCssModalElements.textarea ? customCssModalElements.textarea.value : lunCustomCssProfiles[lunCustomCssActiveProfile]) || SPKMOD_DEFAULT_CSS;
+	lunCustomCssActiveProfile = trimmed;
+	saveCustomCssData();
+	updateCustomCssProfileDropdown();
+	loadActiveProfileIntoEditor();
+}
+
+function renameCurrentCssProfile() {
+	const promptTpl = t("customCssPromptRename") || "Enter new name for profile '{0}':";
+	const promptText = promptTpl.replace("{0}", lunCustomCssActiveProfile);
+	const newName = prompt(promptText, lunCustomCssActiveProfile);
+	if (!newName || !newName.trim() || newName.trim() === lunCustomCssActiveProfile) return;
+	const trimmed = newName.trim();
+	if (lunCustomCssProfiles[trimmed] !== undefined) {
+		alert("A profile with this name already exists.");
+		return;
+	}
+	const currentContent = (customCssModalElements.textarea ? customCssModalElements.textarea.value : lunCustomCssProfiles[lunCustomCssActiveProfile]) || "";
+	lunCustomCssProfiles[trimmed] = currentContent;
+	delete lunCustomCssProfiles[lunCustomCssActiveProfile];
+	lunCustomCssActiveProfile = trimmed;
+	saveCustomCssData();
+	updateCustomCssProfileDropdown();
+}
+
+function deleteCurrentCssProfile() {
+	const keys = Object.keys(lunCustomCssProfiles);
+	if (keys.length <= 1) {
+		alert("Cannot delete the only profile.");
+		return;
+	}
+	const confirmTpl = t("customCssConfirmDelete") || "Are you sure you want to delete profile '{0}'?";
+	const confirmText = confirmTpl.replace("{0}", lunCustomCssActiveProfile);
+	if (!confirm(confirmText)) return;
+	delete lunCustomCssProfiles[lunCustomCssActiveProfile];
+	lunCustomCssActiveProfile = Object.keys(lunCustomCssProfiles)[0] || "Default";
+	saveCustomCssData();
+	updateCustomCssProfileDropdown();
+	loadActiveProfileIntoEditor();
+	applyCustomCss();
+}
+
+function resetCurrentCssProfile() {
+	if (!confirm("Reset current profile CSS to default template?")) return;
+	if (customCssModalElements.textarea) {
+		customCssModalElements.textarea.value = SPKMOD_DEFAULT_CSS;
+	}
+	lunCustomCssProfiles[lunCustomCssActiveProfile] = SPKMOD_DEFAULT_CSS;
+	saveCustomCssData();
+	applyCustomCss();
+	updateCustomCssStatus(true);
+}
+
+function buildCustomCssModal() {
+	if (lunHudElements.customCssModal) return lunHudElements.customCssModal;
+
+	const hiddenFileInput = buildElement("input", {
+		type: "file",
+		accept: ".css,.json",
+		style: "display: none;",
+		onchange: e => {
+			const file = e.target.files && e.target.files[0];
+			if (file) {
+				importCustomCssFile(file);
+			}
+			hiddenFileInput.value = "";
+		}
+	});
+
+	const modal = buildElement("div", {
+		id: "spkmod-css-modal",
+		className: "hidden"
+	}, [
+		hiddenFileInput,
+		// Header row
+		customCssModalElements.headerRow = buildElement("div", {
+			className: "spkmod-panel-cat",
+			style: "justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 6px; cursor: move; user-select: none;"
+		}, [
+			buildElement("div", { style: "display: flex; align-items: center; gap: 8px;" }, [
+				customCssModalElements.headerTitle = buildElement("span", {
+					style: "font-weight: bold; font-size: 13px; color: #FFF; display: flex; align-items: center; gap: 4px;",
+					innerText: "🎨 " + (t("customCssTitle") || "Custom CSS & Themes")
+				}),
+				customCssModalElements.statusBadge = buildElement("span", {
+					style: "border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 4px; padding: 1px 6px; font-size: 10px; color: #4ade80; user-select: none;",
+					innerText: t("customCssSaved") || "✓ Saved"
+				})
+			]),
+			buildElement("div", { style: "display: flex; align-items: center; gap: 10px;" }, [
+				buildElement("label", {
+					style: "display: flex; align-items: center; gap: 4px; font-size: 11px; color: #ddd; cursor: pointer; user-select: none;",
+					title: "Enable or disable custom CSS injection"
+				}, [
+					customCssModalElements.enableToggle = buildElement("input", {
+						type: "checkbox",
+						checked: lunCustomCssEnabled,
+						onchange: e => {
+							lunCustomCssEnabled = e.target.checked;
+							saveCustomCssData();
+							applyCustomCss();
+						}
+					}),
+					buildElement("span", { innerText: t("customCssEnable") || "Active" })
+				]),
+				buildElement("span", {
+					style: "cursor: pointer; font-size: 14px; color: #aaa; padding: 0 4px; line-height: 1;",
+					innerText: "✕",
+					title: "Close (Esc)",
+					onclick: () => toggleCustomCssModal(false)
+				})
+			])
+		]),
+
+		// Profile Toolbar
+		buildElement("div", {
+			className: "spkmod-panel-cat",
+			style: "gap: 6px; align-items: center;"
+		}, [
+			buildElement("span", {
+				style: "font-size: 11px; color: #aaa; user-select: none;",
+				innerText: t("customCssProfile") || "Profile:"
+			}),
+			customCssModalElements.profileSelect = buildElement("select", {
+				className: "spkmod-panel-combo",
+				style: "flex: 1; padding: 3px 6px; font-size: 11px; cursor: pointer;",
+				onchange: e => {
+					if (lunCustomCssHasUnsavedChanges) {
+						if (!confirm("You have unsaved changes. Switch profile anyway?")) {
+							e.target.value = lunCustomCssActiveProfile;
+							return;
+						}
+					}
+					lunCustomCssActiveProfile = e.target.value;
+					saveCustomCssData();
+					loadActiveProfileIntoEditor();
+					applyCustomCss();
+				}
+			}),
+			customCssModalElements.newBtn = buildElement("button", {
+				className: "spkmod-panel-btn",
+				style: "flex: 0 0 auto; padding: 3px 8px; font-size: 11px;",
+				innerText: t("customCssNewProfile") || "+ New",
+				onclick: () => createNewCssProfile()
+			}),
+			customCssModalElements.renameBtn = buildElement("button", {
+				className: "spkmod-panel-btn",
+				style: "flex: 0 0 auto; padding: 3px 8px; font-size: 11px;",
+				innerText: t("customCssRenameProfile") || "Rename",
+				onclick: () => renameCurrentCssProfile()
+			}),
+			customCssModalElements.deleteBtn = buildElement("button", {
+				className: "spkmod-panel-btn",
+				style: "flex: 0 0 auto; padding: 3px 8px; font-size: 11px; color: #f87171;",
+				innerText: t("customCssDeleteProfile") || "Delete",
+				onclick: () => deleteCurrentCssProfile()
+			})
+		]),
+
+		// Actions & Snippets Toolbar
+		buildElement("div", {
+			className: "spkmod-panel-cat",
+			style: "gap: 6px; align-items: center; flex-wrap: wrap;"
+		}, [
+			customCssModalElements.saveBtn = buildElement("button", {
+				className: "spkmod-panel-btn",
+				style: "flex: 0 0 auto; padding: 3px 10px; font-size: 11px; font-weight: bold; background: #1a472a; border-color: #4ade80; color: #4ade80;",
+				innerText: "💾 " + (t("customCssSaveApply") || "Apply & Save"),
+				title: "Save and apply styles (Ctrl+S)",
+				onclick: () => saveAndApplyCustomCss()
+			}),
+			buildElement("label", {
+				style: "display: flex; align-items: center; gap: 4px; font-size: 11px; color: #bbb; cursor: pointer; user-select: none;",
+				title: "Automatically apply CSS as you type"
+			}, [
+				customCssModalElements.livePreviewToggle = buildElement("input", {
+					type: "checkbox",
+					checked: lunCustomCssLivePreview,
+					onchange: e => {
+						lunCustomCssLivePreview = e.target.checked;
+						saveCustomCssData();
+						if (lunCustomCssLivePreview && lunCustomCssEnabled && customCssModalElements.textarea) {
+							applyCustomCss(customCssModalElements.textarea.value);
+						}
+					}
+				}),
+				buildElement("span", { innerText: t("customCssLivePreview") || "Live Preview" })
+			]),
+			customCssModalElements.snippetsSelect = buildElement("select", {
+				className: "spkmod-panel-combo",
+				style: "flex: 1; min-width: 130px; padding: 3px 6px; font-size: 11px; cursor: pointer;",
+				onchange: e => {
+					const idx = parseInt(e.target.value, 10);
+					if (!isNaN(idx) && SPKMOD_CSS_SNIPPETS[idx]) {
+						insertCssSnippet(SPKMOD_CSS_SNIPPETS[idx].code);
+					}
+					e.target.selectedIndex = 0;
+				}
+			}, [
+				buildElement("option", { value: "", innerText: "📋 " + (t("customCssSnippets") || "Snippets") }),
+				...SPKMOD_CSS_SNIPPETS.map((snip, i) => buildElement("option", { value: String(i), innerText: snip.label }))
+			]),
+			buildElement("select", {
+				className: "spkmod-panel-combo",
+				style: "flex: 0 0 auto; padding: 3px 6px; font-size: 11px; cursor: pointer;",
+				onchange: e => {
+					const val = e.target.value;
+					if (val === "css") exportCurrentProfileCss();
+					else if (val === "json") exportAllProfilesJson();
+					else if (val === "copy") copyCustomCssToClipboard();
+					e.target.selectedIndex = 0;
+				}
+			}, [
+				buildElement("option", { value: "", innerText: "📤 " + (t("customCssExport") || "Export") }),
+				buildElement("option", { value: "css", innerText: t("customCssExportCss") || "Export .css" }),
+				buildElement("option", { value: "json", innerText: t("customCssExportAll") || "Export All (.json)" }),
+				buildElement("option", { value: "copy", innerText: t("customCssCopyClipboard") || "Copy CSS" })
+			]),
+			customCssModalElements.importBtn = buildElement("button", {
+				className: "spkmod-panel-btn",
+				style: "flex: 0 0 auto; padding: 3px 8px; font-size: 11px;",
+				innerText: "📥 " + (t("customCssImport") || "Import"),
+				title: "Import .css or .json themes",
+				onclick: () => hiddenFileInput.click()
+			}),
+			customCssModalElements.resetBtn = buildElement("button", {
+				className: "spkmod-panel-btn",
+				style: "flex: 0 0 auto; padding: 3px 8px; font-size: 11px;",
+				innerText: t("customCssReset") || "Reset",
+				title: "Reset current profile to default template",
+				onclick: () => resetCurrentCssProfile()
+			})
+		]),
+
+		// Textarea editor
+		customCssModalElements.textarea = buildElement("textarea", {
+			id: "spkmod-css-textarea",
+			spellcheck: false,
+			autocomplete: "off",
+			autocapitalize: "off",
+			placeholder: "/* Enter your custom CSS here... */",
+			onkeydown: e => {
+				if (e.key === "Tab") {
+					e.preventDefault();
+					const ta = e.target;
+					const start = ta.selectionStart;
+					const end = ta.selectionEnd;
+					ta.setRangeText("  ", start, end, "end");
+					updateCustomCssStatus(false);
+					if (lunCustomCssLivePreview && lunCustomCssEnabled) {
+						clearTimeout(lunCustomCssLivePreviewTimer);
+						lunCustomCssLivePreviewTimer = setTimeout(() => {
+							applyCustomCss(ta.value);
+						}, 150);
+					}
+				} else if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) {
+					e.preventDefault();
+					saveAndApplyCustomCss();
+				}
+			},
+			oninput: e => {
+				updateCustomCssStatus(false);
+				if (lunCustomCssLivePreview && lunCustomCssEnabled) {
+					clearTimeout(lunCustomCssLivePreviewTimer);
+					lunCustomCssLivePreviewTimer = setTimeout(() => {
+						applyCustomCss(e.target.value);
+					}, 150);
+				}
+			}
+		}),
+
+		// Footer Row
+		buildElement("div", {
+			className: "spkmod-panel-cat",
+			style: "justify-content: space-between; align-items: center; margin-top: 2px; position: relative;"
+		}, [
+			customCssModalElements.tipLabel = buildElement("span", {
+				style: "font-size: 10px; color: #888; user-select: none; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+				innerText: t("customCssTip") || "Tip: Use !important to override game styles. Ctrl+S to save."
+			}),
+			customCssModalElements.resizeHandle = buildElement("div", {
+				style: "position: absolute; right: -6px; bottom: -6px; width: 18px; height: 18px; cursor: nwse-resize; display: flex; align-items: flex-end; justify-content: flex-end; padding: 2px; user-select: none; z-index: 10;",
+				title: "Resize"
+			}, [
+				buildElement("span", {
+					innerHTML: '<svg viewBox="0 0 10 10" width="10" height="10" style="opacity: 0.65; display: block; pointer-events: none;"><path d="M9 1 L1 9 M9 5 L5 9 M9 9 L9 9" stroke="#e8b84b" stroke-width="1.2" stroke-linecap="round"/></svg>'
+				})
+			])
+		])
+	]);
+
+	lunHudElements.customCssModal = modal;
+	document.body.appendChild(modal);
+
+	modal.addEventListener("wheel", e => { e.stopPropagation(); }, { passive: true });
+	modal.addEventListener("touchmove", e => { e.stopPropagation(); }, { passive: true });
+
+	updateCustomCssProfileDropdown();
+	loadActiveProfileIntoEditor();
+
+	setTimeout(() => {
+		if (typeof makeDraggable === "function" && lunHudElements.customCssModal && customCssModalElements.headerRow) {
+			makeDraggable(lunHudElements.customCssModal, [customCssModalElements.headerRow]);
+		}
+		if (typeof makeResizable === "function" && lunHudElements.customCssModal && customCssModalElements.resizeHandle) {
+			makeResizable(lunHudElements.customCssModal, customCssModalElements.resizeHandle, {
+				minWidth: 420,
+				minHeight: 320,
+				storageKey: "spkmod-size-spkmod-css-modal"
+			});
+		}
+		if (lunHudElements.customCssModal && !(window.localStorage && localStorage.getItem("spkmod-size-spkmod-css-modal"))) {
+			lunHudElements.customCssModal.style.width = "580px";
+			lunHudElements.customCssModal.style.height = "500px";
+		}
+		if (lunHudElements.customCssModal && !(window.localStorage && (localStorage.getItem("spkmod-pos-x-spkmod-css-modal") || localStorage.getItem("spkmod-pos-spkmod-css-modal")))) {
+			lunHudElements.customCssModal.style.left = "calc(50% - 290px)";
+			lunHudElements.customCssModal.style.top = "calc(50% - 250px)";
+		}
+	}, 500);
+
+	return modal;
+}
+
+function toggleCustomCssModal(explicitState) {
+	if (!lunHudElements.customCssModal) {
+		buildCustomCssModal();
+	}
+	const isHidden = lunHudElements.customCssModal.classList.contains("hidden");
+	const shouldShow = explicitState !== undefined ? explicitState : isHidden;
+	if (shouldShow) {
+		updateCustomCssProfileDropdown();
+		loadActiveProfileIntoEditor();
+		if (customCssModalElements.enableToggle) {
+			customCssModalElements.enableToggle.checked = lunCustomCssEnabled;
+		}
+		if (customCssModalElements.livePreviewToggle) {
+			customCssModalElements.livePreviewToggle.checked = lunCustomCssLivePreview;
+		}
+		lunHudElements.customCssModal.classList.remove("hidden");
+		if (customCssModalElements.textarea) {
+			setTimeout(() => customCssModalElements.textarea.focus(), 50);
+		}
+	} else {
+		lunHudElements.customCssModal.classList.add("hidden");
+	}
+}
+
+function updateCustomCssI18n() {
+	if (lunPanelElements.customCssSettingsBtn) {
+		lunPanelElements.customCssSettingsBtn.innerText = "🎨 " + (t("customCssBtn") || "Custom CSS");
+		lunPanelElements.customCssSettingsBtn.title = t("customCssBtnTooltip") || "Edit custom CSS styles and themes";
+	}
+	if (lunPanelElements.customCssSectionBtn) {
+		lunPanelElements.customCssSectionBtn.innerText = "🎨 " + (t("customCssTitle") || "Custom CSS & Themes");
+		lunPanelElements.customCssSectionBtn.title = t("customCssBtnTooltip") || "Edit custom CSS styles and themes";
+	}
+	if (customCssModalElements.headerTitle) {
+		customCssModalElements.headerTitle.innerText = "🎨 " + (t("customCssTitle") || "Custom CSS & Themes");
+	}
+	if (customCssModalElements.newBtn) customCssModalElements.newBtn.innerText = t("customCssNewProfile") || "+ New";
+	if (customCssModalElements.renameBtn) customCssModalElements.renameBtn.innerText = t("customCssRenameProfile") || "Rename";
+	if (customCssModalElements.deleteBtn) customCssModalElements.deleteBtn.innerText = t("customCssDeleteProfile") || "Delete";
+	if (customCssModalElements.saveBtn) customCssModalElements.saveBtn.innerText = "💾 " + (t("customCssSaveApply") || "Apply & Save");
+	if (customCssModalElements.tipLabel) customCssModalElements.tipLabel.innerText = t("customCssTip") || "Tip: Use !important to override game styles. Ctrl+S to save.";
+	if (customCssModalElements.statusBadge) {
+		updateCustomCssStatus(!lunCustomCssHasUnsavedChanges);
+	}
+}
+
+if (typeof spkmodI18nRenderers !== "undefined") {
+	spkmodI18nRenderers.push(updateCustomCssI18n);
+}
+
+loadCustomCssData();
+buildCustomCssModal();
+applyCustomCss();
 
 
 // --- EMOJI PICKER ---
@@ -25353,7 +26158,8 @@ window.addEventListener("keydown", e => {
 			lunHudElements.bbsModal,
 			lunHudElements.eventModal,
 			lunHudElements.statsModal,
-			lunHudElements.jukeboxModal
+			lunHudElements.jukeboxModal,
+			lunHudElements.customCssModal
 		].filter(m => m && !m.classList.contains("hidden"));
 
 		if (candidateModals.length > 0) {
