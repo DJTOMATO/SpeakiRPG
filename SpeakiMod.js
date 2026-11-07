@@ -7137,6 +7137,7 @@ document.head.appendChild(buildElement(
 		}
 		#spkmod-resource-pack-modal {
 			position: fixed !important;
+			z-index: 2147483645 !important;
 			width: 660px;
 			height: 540px;
 			min-width: 460px;
@@ -7231,7 +7232,7 @@ document.head.appendChild(buildElement(
 			from { opacity: 0.7; transform: scale(0.98); }
 			to { opacity: 1.0; transform: scale(1.02); }
 		}
-		#spkmod-hud.hidden, .hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden, #spkmod-stats-modal.hidden, #spkmod-effects-modal.hidden, #spkmod-edits-modal.hidden, #spkmod-quests-modal.hidden, #spkmod-jukebox-modal.hidden, #spkmod-css-modal.hidden {
+		#spkmod-hud.hidden, .hidden, #spkmod-pq.hidden, #spkmod-settings-modal.hidden, #spkmod-gamepad-modal.hidden, #spkmod-players-modal.hidden, #spkmod-event-modal.hidden, #spkmod-stats-modal.hidden, #spkmod-effects-modal.hidden, #spkmod-edits-modal.hidden, #spkmod-quests-modal.hidden, #spkmod-jukebox-modal.hidden, #spkmod-css-modal.hidden, #spkmod-resource-pack-modal.hidden {
 			display: none !important;
 		}
 		
@@ -7239,8 +7240,9 @@ document.head.appendChild(buildElement(
 		#spkmod-settings-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal,
 		#spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal,
 		#spkmod-edits-modal, #spkmod-quests-modal, #spkmod-map-modal,
-		#spkmod-jukebox-modal, #spkmod-css-modal, .spkmod-music-modal {
-			z-index: 2147483600 !important;
+		#spkmod-jukebox-modal, #spkmod-css-modal, .spkmod-music-modal,
+		#spkmod-resource-pack-modal {
+			z-index: 2147483645 !important;
 		}
 
 		#spkmod-emoji-picker-v2, #spkmod-emoji-picker,
@@ -9991,6 +9993,17 @@ function buildCustomCssModal() {
 
 	modal.addEventListener("wheel", e => { e.stopPropagation(); }, { passive: true });
 	modal.addEventListener("touchmove", e => { e.stopPropagation(); }, { passive: true });
+	modal.addEventListener("mouseenter", () => {
+		if (document.pointerLockElement) {
+			try { document.exitPointerLock(); } catch (_) {}
+		}
+	});
+	modal.addEventListener("mousedown", e => {
+		e.stopPropagation();
+		if (document.pointerLockElement) {
+			try { document.exitPointerLock(); } catch (_) {}
+		}
+	}, true);
 
 	updateCustomCssProfileDropdown();
 	loadActiveProfileIntoEditor();
@@ -10537,7 +10550,7 @@ function buildResourcePackModal() {
 	const modal = buildElement("div", {
 		id: "spkmod-resource-pack-modal",
 		className: "hidden",
-		style: "z-index: 10002;"
+		style: "z-index: 2147483645 !important;"
 	}, [
 		resourcePackModalElements.headerRow = buildElement("div", {
 			style: "display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 6px; user-select: none; cursor: move;"
@@ -10704,6 +10717,17 @@ function buildResourcePackModal() {
 
 	modal.addEventListener("wheel", e => { e.stopPropagation(); }, { passive: true });
 	modal.addEventListener("touchmove", e => { e.stopPropagation(); }, { passive: true });
+	modal.addEventListener("mouseenter", () => {
+		if (document.pointerLockElement) {
+			try { document.exitPointerLock(); } catch (_) {}
+		}
+	});
+	modal.addEventListener("mousedown", e => {
+		e.stopPropagation();
+		if (document.pointerLockElement) {
+			try { document.exitPointerLock(); } catch (_) {}
+		}
+	}, true);
 
 	setTimeout(() => {
 		if (typeof makeDraggable === "function" && lunHudElements.resourcePackModal && resourcePackModalElements.headerRow) {
@@ -10913,6 +10937,9 @@ function toggleResourcePackModal(explicitState) {
 	const isHidden = lunHudElements.resourcePackModal.classList.contains("hidden");
 	const shouldShow = explicitState !== undefined ? explicitState : isHidden;
 	if (shouldShow) {
+		if (document.pointerLockElement) {
+			try { document.exitPointerLock(); } catch (_) {}
+		}
 		if (resourcePackModalElements.enableToggle) {
 			resourcePackModalElements.enableToggle.checked = lunResourcePackEnabled;
 		}
