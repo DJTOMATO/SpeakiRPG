@@ -1767,6 +1767,40 @@ if (window.localStorage) {
 window.lunNametagMode = lunNametagMode;
 const NAMETAG_MODES = ["showAllNametags", "keepPartyNametags", "keepFriendsNametags", "hideAllNametags"];
 
+function getLivePartyNames() {
+	const names = new Set();
+	try {
+		if (typeof gameState !== "undefined" && gameState) {
+			if (gameState.partyMemberNamesBySlot instanceof Map) {
+				gameState.partyMemberNamesBySlot.forEach(nick => {
+					if (nick && typeof nick === "string") names.add(nick.trim().toLowerCase());
+				});
+			}
+			if (gameState.partyPanel && Array.isArray(gameState.partyPanel.members)) {
+				gameState.partyPanel.members.forEach(m => {
+					if (m && typeof m.nickname === "string" && m.nickname) {
+						names.add(m.nickname.trim().toLowerCase());
+					}
+				});
+			}
+		}
+	} catch (_) {}
+
+	try {
+		const partyRoot = typeof document !== "undefined" ? document.querySelector(".sr-party") : null;
+		if (partyRoot && partyRoot.style.display !== "none" && partyRoot.offsetParent !== null) {
+			const els = partyRoot.querySelectorAll(".sr-party__name");
+			els.forEach(el => {
+				const text = el.innerText?.trim()?.toLowerCase();
+				if (text) names.add(text);
+			});
+		}
+	} catch (_) {}
+
+	return names;
+}
+window.getLivePartyNames = getLivePartyNames;
+
 var lunFriendNicknames = new Set();
 if (window.localStorage) {
 	try {
@@ -1777,35 +1811,41 @@ if (window.localStorage) {
 		}
 	} catch (e) { }
 }
+window.lunFriendNicknames = lunFriendNicknames;
 
 var lunFriendshipNicknamesById = new Map();
+window.lunFriendshipNicknamesById = lunFriendshipNicknamesById;
 
-function replaceFriendNicknames(data) {
-    const friends = data?.friends;
+function applyFriendData(data) {
+	const friends = data?.friends;
+	if (!Array.isArray(friends)) return;
 
-    if (!Array.isArray(friends)) return;
+	const nextNames = new Set();
+	const nextIds = new Map();
 
-    const nextNames = new Set();
-    const nextIds = new Map();
+	for (const f of friends) {
+		if (typeof f?.nickname !== "string") continue;
+		const nick = f.nickname.trim().toLowerCase();
+		if (!nick) continue;
+		nextNames.add(nick);
+		if (f.friendshipId != null) nextIds.set(String(f.friendshipId), nick);
+	}
 
-    for (const f of friends) {
-        if (typeof f?.nickname !== "string") continue;
-        const nick = f.nickname.trim().toLowerCase();
-        if (!nick) continue;
-        nextNames.add(nick);
-        if (f.friendshipId != null) nextIds.set(String(f.friendshipId), nick);
-    }
+	lunFriendNicknames = nextNames;
+	window.lunFriendNicknames = lunFriendNicknames;
+	lunFriendshipNicknamesById = nextIds;
+	window.lunFriendshipNicknamesById = lunFriendshipNicknamesById;
 
-    lunFriendNicknames.clear();
+	try {
+		localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
+	} catch(e) {}
 
-    for (const nick of nextNames) lunFriendNicknames.add(nick);
-
-    lunFriendshipNicknamesById = nextIds;
-
-    try {
-        localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
-    } catch (_) {}
+	if (typeof updateNametagVisibility === "function") {
+		updateNametagVisibility();
+	}
 }
+window.applyFriendData = applyFriendData;
+window.replaceFriendNicknames = applyFriendData;
 
 var lunFriendChatHighlightEnabled = (window.localStorage && localStorage.getItem("spkmod-friend-highlight-enabled")) === "true";
 
@@ -1827,7 +1867,8 @@ var lunFriendFetchQueued = false;
 
 function fetchFriendsList(force = false) {
 	const now = Date.now();
-	if (!force && now - lunLastFriendFetchTime < 60000) return;
+	const cooldown = (typeof lunNametagMode !== "undefined" && lunNametagMode === 2) ? 10000 : 60000;
+	if (!force && now - lunLastFriendFetchTime < cooldown) return;
 	if (lunFriendFetchInProgress) {
 		if (force) lunFriendFetchQueued = true;
 		return;
@@ -1845,8 +1886,6 @@ function fetchFriendsList(force = false) {
 	const targetUrl = endpoint + "/api/friend/list";
 	const headers = {};
 	if (token) headers["authorization"] = `Bearer ${token}`;
-	
-	const applyFriendData = replaceFriendNicknames;
 
 	(async () => {
 		try {
@@ -1900,6 +1939,7 @@ function fetchFriendsList(force = false) {
 		}
 	})();
 }
+window.fetchFriendsList = fetchFriendsList;
 
 const lunKnownBotNames = ["GniloeAlo3", "Gniloe41o3", "Gniloe41oe", "GniloeA1oe", "GniloeA1o3", "GniloeA103", "toufufuton", "uhu", "clay79", "key7catace", "6air9dog5", "53lake", "1sealace", "2wave0bay1", "19owlfern", "red17wave", "nekomaru2", "king9SPK5", "ash6mist7", "takutaku8", "스핔이3984", "SPKtree21", "SPKleaf37", "3clayowl5", "3bayhero9", "99duckdog", "cow6SPK2", "fire8SPK7", "Takutaku3", "Takutaku4", "kutakuta", "0birdice2", "wind2SPK8", "SPKbay23", "3sky8king", "star2bat04", "map3kite4", "FrznTeardrop", "sun9SPK0", "5SPKsnow2", "SPKclay15", "frogfox40", "5air7moon", "SPKair00", "SPKblue88", "moss4ant36", "9gem4wind", "SPKjade05", "SPKfin06", "SPKdeer69", "OO0OOOOO72", "llIlIIll62", "lIllIIIl39", "IIlIIIlI45", "00OO0OO099", "sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", "OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", "OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63", "SPKecho98", "OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", "llIIllll38", "takutaku6", "kutakuta2", "takutaku7", "GniloeAlo3", "Gniloe4103", "Gniloe41o3", "GniloeAl03", "Gniloe41oe", "GniloeA1o3", "Gniloe41o3", "GniloeAlo3", "GniloeAl03", "Gniloe41oe"];
 
@@ -2083,22 +2123,39 @@ window.fetch = async function(...args) {
                 }
             }).catch(() => {});
         }
-		if (url.includes('/api/friend/list')) {
-			response.clone().json().then(replaceFriendNicknames).catch(() => {});
-		}
-		const friendDeleteMatch = url.match(/\/api\/friend\/([^/?#]+)\/?$/);
-		if (method === "DELETE" && response.ok && friendDeleteMatch) {
-			const friendshipId = decodeURIComponent(friendDeleteMatch[1]);
-			const deletedNickname = lunFriendshipNicknamesById.get(friendshipId);
-			if (deletedNickname) {
-				lunFriendNicknames.delete(deletedNickname);
-				lunFriendshipNicknamesById.delete(friendshipId);
-				try {
-					localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
-				} catch (_) {}
-			}
-			fetchFriendsList(true);
-		}
+        if (url.includes('/api/friend/list')) {
+            response.clone().json().then(data => {
+                if (typeof applyFriendData === 'function') {
+                    applyFriendData(data);
+                }
+            }).catch(() => {});
+        }
+        const friendDeleteMatch = url.match(/\/api\/friend\/([^/?#]+)\/?$/);
+        if (method === "DELETE" && response.ok && friendDeleteMatch) {
+            const friendshipId = decodeURIComponent(friendDeleteMatch[1]);
+            const deletedNickname = lunFriendshipNicknamesById.get(friendshipId);
+            if (deletedNickname) {
+                lunFriendNicknames.delete(deletedNickname);
+                lunFriendshipNicknamesById.delete(friendshipId);
+                try {
+                    localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
+                } catch (_) {}
+                if (typeof updateNametagVisibility === "function") {
+                    updateNametagVisibility();
+                }
+            }
+            fetchFriendsList(true);
+        } else if (url.includes('/api/friend')) {
+            const isDelete = (method === 'DELETE');
+            const isPost = (method === 'POST');
+            if (isDelete || isPost) {
+                setTimeout(() => {
+                    if (typeof fetchFriendsList === 'function') {
+                        fetchFriendsList(true);
+                    }
+                }, 300);
+            }
+        }
         if (url.includes('/api/block') && method === 'DELETE') {
             try {
                 let parts = url.split('/');
@@ -2165,6 +2222,41 @@ XMLHttpRequest.prototype.send = function() {
                     }
                 } catch(e) {}
                 setTimeout(spkmodFetchBlocklist, 1500);
+            }
+        }
+        if (this._spkUrl && typeof this._spkUrl === 'string' && this._spkUrl.includes('/api/friend/list')) {
+            try {
+                const data = JSON.parse(this.responseText);
+                if (typeof applyFriendData === 'function') {
+                    applyFriendData(data);
+                }
+            } catch(e) {}
+        }
+        if (this._spkUrl && typeof this._spkUrl === 'string' && this._spkMethod && this._spkMethod.toUpperCase() === 'DELETE') {
+            const friendDeleteMatch = this._spkUrl.match(/\/api\/friend\/([^/?#]+)\/?$/);
+            if (friendDeleteMatch) {
+                const friendshipId = decodeURIComponent(friendDeleteMatch[1]);
+                const deletedNickname = lunFriendshipNicknamesById.get(friendshipId);
+                if (deletedNickname) {
+                    lunFriendNicknames.delete(deletedNickname);
+                    lunFriendshipNicknamesById.delete(friendshipId);
+                    try {
+                        localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
+                    } catch (_) {}
+                    if (typeof updateNametagVisibility === "function") {
+                        updateNametagVisibility();
+                    }
+                }
+                fetchFriendsList(true);
+            }
+        } else if (this._spkUrl && typeof this._spkUrl === 'string' && this._spkUrl.includes('/api/friend')) {
+            const m = this._spkMethod ? this._spkMethod.toUpperCase() : '';
+            if (m === 'DELETE' || m === 'POST') {
+                setTimeout(() => {
+                    if (typeof fetchFriendsList === 'function') {
+                        fetchFriendsList(true);
+                    }
+                }, 300);
             }
         }
     });
@@ -7907,6 +7999,9 @@ document.body.appendChild(
 						}
 						if (lunNametagMode === 2) {
 							fetchFriendsList(true);
+						}
+						if (typeof updateNametagVisibility === "function") {
+							updateNametagVisibility();
 						}
 						if (lunPanelElements.nametagsBtn) {
 							setText(lunPanelElements.nametagsBtn, t(NAMETAG_MODES[lunNametagMode] + "Btn"));
@@ -20541,6 +20636,23 @@ function isPartyMemberChatSpeaker(id, name) {
 	const lowerKey = cleanName.toLowerCase();
 	const myName = ((typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name)) || (typeof document !== "undefined" ? document.querySelector(".sr-player-card__name")?.innerText : "") || "").trim().toLowerCase();
 	if (myName && lowerKey === myName) return false;
+
+	const partyNames = typeof getLivePartyNames === "function" ? getLivePartyNames() : null;
+	if (partyNames !== null) {
+		if (partyNames.size === 0) return false;
+		let altKey = "";
+		if (id != null && typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.get) {
+			const rp = gameState.remotePlayers.remotePlayers.get(id);
+			if (rp?.info) {
+				const rpName = (rp.info.name || "").trim().toLowerCase();
+				const rpOrig = (rp.info.__spkmodOrigName || "").trim().toLowerCase();
+				if (rpName && rpName !== lowerKey) altKey = rpName;
+				else if (rpOrig && rpOrig !== lowerKey) altKey = rpOrig;
+			}
+		}
+		return partyNames.has(lowerKey) || (Boolean(altKey) && partyNames.has(altKey));
+	}
+
 	if (typeof document === "undefined") return false;
 	const partyEls = document.querySelectorAll(".sr-party__name");
 	if (!partyEls || partyEls.length === 0) return false;
@@ -22784,6 +22896,35 @@ const renderSpkmodFriendPanel = createRafThrottler((panel, panelBody) => {
 	if (!panel || !panel.isConnected || !panelBody || !panelBody.isConnected) return;
 	_spkmodFriendPanelBody = panelBody;
 
+	try {
+		const sections = panelBody.querySelectorAll(".sr-panel__section-title");
+		if (sections.length > 0) {
+			const friendNames = new Set();
+			let curr = sections[0].nextElementSibling;
+			while (curr && !curr.classList.contains("sr-panel__section-title")) {
+				const titleEl = curr.querySelector(".sr-list-item__title");
+				if (titleEl && titleEl.innerText) {
+					const fn = titleEl.innerText.trim().toLowerCase();
+					if (fn) friendNames.add(fn);
+				}
+				curr = curr.nextElementSibling;
+			}
+			const hasEmptyMsg = panelBody.querySelector(".sr-empty") !== null;
+			if (friendNames.size > 0 || hasEmptyMsg) {
+				if (typeof lunFriendNicknames !== "undefined") {
+					lunFriendNicknames = friendNames;
+					window.lunFriendNicknames = friendNames;
+					if (window.localStorage) {
+						try { localStorage.setItem("spkmod-friend-cache", JSON.stringify([...friendNames])); } catch (_) {}
+					}
+					if (typeof updateNametagVisibility === "function") {
+						updateNametagVisibility();
+					}
+				}
+			}
+		}
+	} catch (_) {}
+
 	const sectionTitle = panelBody.querySelector(".sr-panel__section-title:first-child");
 
 	if (sectionTitle != null && !sectionTitle.querySelector(":scope > [data-spkmod-friend-panel-btn]")) {
@@ -22970,6 +23111,49 @@ if (typeof spkmodI18nRenderers !== 'undefined') {
 		}
 	});
 }
+
+function updateNametagVisibility() {
+	if (typeof gameState === "undefined" || !gameState?.remotePlayers?.remotePlayers) return;
+
+	let partyNames = null;
+	if (lunNametagMode === 1) {
+		partyNames = typeof getLivePartyNames === "function" ? getLivePartyNames() : new Set();
+	}
+
+	gameState.remotePlayers.remotePlayers.forEach(t => {
+		if (t.avatar && typeof hookAvatarLabel === "function") hookAvatarLabel(t);
+		if (!t.container) return;
+
+		delete t.container.__spkmodNametagSprite;
+
+		let shouldBeVisible = true;
+		if (lunNametagMode === 0) {
+			shouldBeVisible = true;
+		} else if (lunNametagMode === 3) {
+			shouldBeVisible = false;
+		} else if (lunNametagMode === 1) {
+			const pName = (t.info?.name || "").trim().toLowerCase();
+			const origName = (t.info?.__spkmodOrigName || "").trim().toLowerCase();
+			shouldBeVisible = partyNames.has(pName) || (Boolean(origName) && partyNames.has(origName));
+		} else if (lunNametagMode === 2) {
+			const pName = (t.info?.name || "").trim().toLowerCase();
+			const origName = (t.info?.__spkmodOrigName || "").trim().toLowerCase();
+			shouldBeVisible = lunFriendNicknames.has(pName) || (Boolean(origName) && lunFriendNicknames.has(origName));
+		}
+
+		if (typeof t.container.traverse === "function") {
+			t.container.traverse(obj => {
+				if (obj && obj.isSprite) {
+					if (typeof hookSpritePrototypeOnce === "function") hookSpritePrototypeOnce(obj);
+					if (obj.position && obj.position.y > 0.5) {
+						obj.visible = shouldBeVisible;
+					}
+				}
+			});
+		}
+	});
+}
+window.updateNametagVisibility = updateNametagVisibility;
 
 function tick() {
 	if (window.__spkmodPauseTick) return;
@@ -23531,44 +23715,7 @@ function hookAvatarLabel(entity, explicitContainer) {
 		hookAvatarLabel({ avatar: gameState.localAvatar, container: gameState.playerContainer, isLocalPlayer: true }, gameState.playerContainer);
 	}
 
-	let partyNames = null;
-	if (gameState?.remotePlayers?.remotePlayers) {
-		gameState.remotePlayers.remotePlayers.forEach(t => {
-			if (t.avatar) hookAvatarLabel(t);
-			if (!t.container) return;
-
-			delete t.container.__spkmodNametagSprite;
-
-			let shouldBeVisible = true;
-			if (lunNametagMode === 0) {
-				shouldBeVisible = true;
-			} else if (lunNametagMode === 3) {
-				shouldBeVisible = false;
-			} else if (lunNametagMode === 1) {
-				if (partyNames === null) {
-					partyNames = new Set(Array.from(gameState?.partyMemberNamesBySlot?.values?.() ?? []).map(name => String(name ?? "").trim().toLowerCase()).filter(Boolean));
-				}
-				const pName = (t.info?.name || "").trim().toLowerCase();
-				const origName = (t.info?.__spkmodOrigName || "").trim().toLowerCase();
-				shouldBeVisible = partyNames.has(pName) || (Boolean(origName) && partyNames.has(origName));
-			} else if (lunNametagMode === 2) {
-				const pName = (t.info?.name || "").trim().toLowerCase();
-				const origName = (t.info?.__spkmodOrigName || "").trim().toLowerCase();
-				shouldBeVisible = lunFriendNicknames.has(pName) || (Boolean(origName) && lunFriendNicknames.has(origName));
-			}
-
-			if (typeof t.container.traverse === "function") {
-				t.container.traverse(obj => {
-					if (obj && obj.isSprite) {
-						if (typeof hookSpritePrototypeOnce === "function") hookSpritePrototypeOnce(obj);
-						if (obj.position && obj.position.y > 0.5) {
-							obj.visible = shouldBeVisible;
-						}
-					}
-				});
-			}
-		});
-	}
+	updateNametagVisibility();
 	updateKnownBotVisibility();
 	hookKnownBotHeartEmotes();
 	hookKnownBotPlayerEmotesForAll();
@@ -23768,6 +23915,65 @@ function hookGameStateOnce() {
 			}
 			return origHandleQuestProgress(e);
 		};
+	}
+
+	if (typeof gameState.handlePartyInfo === "function" && !gameState.__speakiHandlePartyInfoHooked) {
+		gameState.__speakiHandlePartyInfoHooked = true;
+		const origHandlePartyInfo = gameState.handlePartyInfo.bind(gameState);
+		gameState.handlePartyInfo = function(e) {
+			const res = origHandlePartyInfo(e);
+			try {
+				if (typeof updateNametagVisibility === "function") {
+					updateNametagVisibility();
+				}
+			} catch (_) {}
+			return res;
+		};
+	}
+
+	if (gameState.remotePlayers && typeof gameState.remotePlayers.applyPartyMembershipAll === "function" && !gameState.remotePlayers.__speakiPartyHooked) {
+		gameState.remotePlayers.__speakiPartyHooked = true;
+		const origApplyPartyMembershipAll = gameState.remotePlayers.applyPartyMembershipAll.bind(gameState.remotePlayers);
+		gameState.remotePlayers.applyPartyMembershipAll = function() {
+			const res = origApplyPartyMembershipAll.apply(this, arguments);
+			try {
+				if (typeof updateNametagVisibility === "function") {
+					updateNametagVisibility();
+				}
+			} catch (_) {}
+			return res;
+		};
+	}
+
+	if (!gameState.__speakiOnFriendAcceptedHooked) {
+		gameState.__speakiOnFriendAcceptedHooked = true;
+		let currentFriendAccepted = gameState.onFriendAccepted;
+		Object.defineProperty(gameState, "onFriendAccepted", {
+			configurable: true,
+			enumerable: true,
+			get() {
+				return currentFriendAccepted;
+			},
+			set(fn) {
+				currentFriendAccepted = function(e) {
+					const r = typeof fn === "function" ? fn(e) : undefined;
+					try {
+						if (typeof fetchFriendsList === "function") fetchFriendsList(true);
+					} catch (_) {}
+					return r;
+				};
+			}
+		});
+		if (typeof currentFriendAccepted === "function") {
+			const old = currentFriendAccepted;
+			currentFriendAccepted = function(e) {
+				const r = old(e);
+				try {
+					if (typeof fetchFriendsList === "function") fetchFriendsList(true);
+				} catch (_) {}
+				return r;
+			};
+		}
 	}
 
 	if (gameState.combatAssist && typeof gameState.combatAssist.update === "function" && !gameState.combatAssist.__speakiHooked) {
@@ -24661,37 +24867,36 @@ function spkmodResetFpsBaseline() {
 }
 
 document.addEventListener("visibilitychange", spkmodResetFpsBaseline);
-
 // We no longer need to rely on a specific class named "sr-game-canvas"
 const spkmodGameGl = new WeakSet();
 
 function spkmodIsGameGl(gl) {
-    if (!gl) return false;
+	if (!gl) return false;
 
-    // If already identified as a game rendering context
-    if (spkmodGameGl.has(gl)) return true;
+	// If already identified as a game rendering context
+	if (spkmodGameGl.has(gl)) return true;
 
-    const canvas = gl.canvas;
+	const canvas = gl.canvas;
 
-    // Verify if it is an actual HTML Canvas
-    if (!canvas || !canvas.isConnected || typeof canvas.getBoundingClientRect !== "function") return false;
+	// Verify if it is an actual HTML Canvas
+	if (!canvas || !canvas.isConnected || typeof canvas.getBoundingClientRect !== "function") return false;
 
-    // Check if there are any bounds that are reflected on the screen
-    const rect = canvas.getBoundingClientRect();
+	// Check if there are any bounds that are reflected on the screen
+	const rect = canvas.getBoundingClientRect();
 
-    if (rect.width <= 0 || rect.height <= 0) {
-        return false;
-    }
+	if (rect.width <= 0 || rect.height <= 0) {
+		return false;
+	}
 
-    // Exclude canvases that are not displayed on screen
-    const style = canvas.ownerDocument.defaultView?.getComputedStyle(canvas);
+	// Exclude canvases that are not displayed on screen
+	const style = canvas.ownerDocument.defaultView?.getComputedStyle(canvas);
 
-    if (style && (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0)) return false;
+	if (style && (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0)) return false;
 
-    // Registering Game Rendering Context
-    spkmodGameGl.add(gl);
+	// Registering Game Rendering Context
+	spkmodGameGl.add(gl);
 
-    return true;
+	return true;
 }
 
 (function installGameFpsHooks() {
