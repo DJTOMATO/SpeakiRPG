@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resourcepacks version="1.0">
+    <pack id="default" name="Default Vanilla">
+        <description>Original SpeakiRPG voxel mining textures</description>
+        <author>SpeakiRPG</author>
+    </pack>
+    <pack id="classic-8bit" name="Classic Retro 8-Bit">
+        <description>Vibrant high-contrast 8-bit arcade style mining blocks</description>
+        <author>SpeakiMod</author>
+        <textures>
+            <tile id="0" name="STONE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVR42mNwc/P7TwlmABETJ87+n5dXBsfE8uEGIEuSgmlnAClio2EwGgaDKAwowQDmHTjfqi9qSQAAAABJRU5ErkJggg==</tile>
+            <tile id="1" name="DIRT">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXUlEQVR42mPIdJT73xSq+392pg2YBmFSxBiQJckxjAGXJLGGMRBjEz45BlKdjS7HQG7gYQ1EcgxjIDfwiAoDYgxjIDfwKAoDohISyWFAbkwwUJKMiQoDsjMTsYYBAHVG/8h1Up0TAAAAAElFTkSuQmCC</tile>
+            <tile id="2" name="GRASS_TOP">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXUlEQVR42mPQ7ZH7H3/d8b/NFg04BonBxPHJgfgMpGpAF2cgVQO6JQykakCXYyDH38jiDOT4G1kPAzn+RglEcqMPJRAp8QYDudGHEoiUeIOBklSI4gVyvcEw9DMTAJL6GPXfrK2lAAAAAElFTkSuQmCC</tile>
+            <tile id="3" name="GRASS_SIDE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXElEQVR42mOw2aLxnxLMMAwMaArVhXPIYYMNgAkSy850lEMYAOLAFCCzsYlhYzOQohibWgZSFGNjM5DqZHS1DKQ6GZ3NQE7AIWMGcgIObyCS6goGcqMPbyCS4goA4wv+sHURFLgAAAAASUVORK5CYII=</tile>
+            <tile id="10" name="COAL_ORE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAQ0lEQVR42mNwc/P7TwlmABF5eWVkYeoboKys8T8qKh5MoyvGJofVABjGZgC6HPUNwOVssgMRl2tGY0GDhmEwcAZQggEc+xSYtmLeKgAAAABJRU5ErkJggg==</tile>
+            <tile id="12" name="IRON_ORE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARElEQVR42mNwc/P7TwlmABF5eWVkYeobcGn9tP9f75wA0+iKsclhNQCGsRmALkd9A3A5m+xAxOWa0ViYRsMwGDgDKMEA03RWUWrqKZwAAAAASUVORK5CYII=</tile>
+            <tile id="15" name="GOLD_ORE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARElEQVR42mNwc/P7TwlmABF5eWVkYeob8P+E8v//X5vANLpibHLYDYBirAagyVHfAFzOJjsQcblmNBaUaRgGA2cAJRgAG5BPe2kKXN0AAAAASUVORK5CYII=</tile>
+            <tile id="35" name="DIAMOND_ORE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARElEQVR42mNwc/P7TwlmABF5eWVkYeobwHDn//8tv/6DaXTF2OSwGgDD2AxAl6O+AbicTXYg4nLNaCz8p2EYDJwBlGAAC0NOgcOps5wAAAAASUVORK5CYII=</tile>
+        </textures>
+    </pack>
+    <pack id="neon-cyberpunk" name="Neon Cyberpunk">
+        <description>Futuristic glowing neon aesthetic for mining ores and structures</description>
+        <author>SpeakiMod</author>
+        <textures>
+            <tile id="0" name="STONE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVR42mPg4RP5TwlmABHKRm7/JaRU4JhYPtwAZElSMO0MIEVsNAxGw2AQhQElGAD0MU8QGSzEkgAAAABJRU5ErkJggg==</tile>
+            <tile id="1" name="DIRT">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXElEQVR42mOQE9H4rytn/t9RNwBMgzApYgzIkuQYxoBLkljDGIixCZ8cA6nORpdjIDfwsAYiOYYxkBt4RIUBMYYxkBt4FIUBUQmJ5DAgNyYYKEnGRIUB2ZmJWMMAU7OCeB+mayoAAAAASUVORK5CYII=</tile>
+            <tile id="2" name="GRASS_TOP">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXUlEQVR42mPg2pLyP+r/if8iv3rgGCQGE8cnB+IzkKoBXZyBVA3oljCQqgFdjoEcfyOLM5Djb2Q9DOT4GyUQyY0+lECkxBsM5EYfSiBS4g0GSlIhihfI9QbD0M9MAFUNkzS5qMNoAAAAAElFTkSuQmCC</tile>
+            <tile id="3" name="GRASS_SIDE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXElEQVR42mMQ+dXznxLMMAwM0JUzh3PIYYMNgAkSy5YT0UAYAOLAFCCzsYlhYzOQohibWgZSFGNjM5DqZHS1DKQ6GZ3NQE7AIWMGcgIObyCS6goGcqMPbyCS4goAIXPQcLWQr+YAAAAASUVORK5CYII=</tile>
+            <tile id="10" name="COAL_ORE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARElEQVR42mPg4RP5TwlmABESUipkYeob8N9G5P//LTZgGl0xNjnsBkAxVgPQ5KhvAC5nkx2IuFwzGgsiNAyDgTOAEgwAo/51uGUZ+68AAAAASUVORK5CYII=</tile>
+            <tile id="15" name="GOLD_ORE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARElEQVR42mPg4RP5TwlmABESUipkYeob8P+DyP///6eBaXTF2OSwGwDFWA1Ak6O+AbicTXYg4nLNaCyI0DAMBs4ASjAADWeRjSDAbuwAAAAASUVORK5CYII=</tile>
+            <tile id="34" name="AMETHYST_ORE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARElEQVR42mPg4RP5TwlmABESUipkYeob8EHjzv//C/6DaXTF2OSwGgDD2AxAl6O+AbicTXYg4nLNaCzcoWEYDJwBlGAAA5OPsouK8RsAAAAASUVORK5CYII=</tile>
+            <tile id="35" name="DIAMOND_ORE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAQklEQVR42mPg4RP5TwlmABESUipkYeobwPD///8TQAyi0RVjk8NqAAMeAxhobgAuZ5MdiLhcMxoL/2kYBgNnACUYAKwnkdhGzb3/AAAAAElFTkSuQmCC</tile>
+        </textures>
+    </pack>
+    <pack id="pastel-fantasy" name="Pastel Fantasy">
+        <description>Soft pastel colors and cute candy ore blocks</description>
+        <author>SpeakiMod</author>
+        <textures>
+            <tile id="0" name="STONE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMklEQVR42mOYNnH9f0owA4i4fun1/51bzsIxsXy4AciSpGDaGUCK2GgYjIbBIAoDSjAAx/slBoqdicIAAAAASUVORK5CYII=</tile>
+            <tile id="1" name="DIRT">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXUlEQVR42mNojw/9v6A48/++ie1gGoRJEWNAliTHMAZcksQaxkCMTfjkGEh1NrocA7mBhzUQyTGMgdzAIyoMiDGMgdzAoygMiEpIJIcBuTHBQEkyJioMyM5MxBoGAMjIfA84trFzAAAAAElFTkSuQmCC</tile>
+            <tile id="2" name="GRASS_TOP">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXklEQVR42mMoPjzt/5avZ//3PFwPxyAxmDg+ORCfgVQN6OIMpGpAt4SBVA3ocgzk+BtZnIEcfyPrYSDH3yiBSG70oQQiJd5gIDf6UAKREm8wUJIKUbxArjcYhn5mAgA5XBc8xfYb+wAAAABJRU5ErkJggg==</tile>
+            <tile id="3" name="GRASS_SIDE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXElEQVR42mPoebj+PyWYYRgYsKA4E84hhw02ACZILLs9PhRhAIgDU4DMxiaGjc1AimJsahlIUYyNzUCqk9HVMpDqZHQ2AzkBh4wZyAk4vIFIqisYyI0+vIFIiisAZlWhEvF7DLkAAAAASUVORK5CYII=</tile>
+            <tile id="15" name="GOLD_ORE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARUlEQVR42mOYNnH9f0owA4jYueUsWZj6Bvx/WPH//9ctYBpdMTY57AZAMVYD0OSobwAuZ5MdiLhcMxoLFTQMg4EzgBIMABnaJ/4q23qlAAAAAElFTkSuQmCC</tile>
+            <tile id="34" name="AMETHYST_ORE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARUlEQVR42mOYNnH9f0owA4jYueUsWZj6Blxf8PX/10v/wTS6YmxyWA2AYWwGoMtR3wBcziY7EHG5ZjQWvtIwDAbOAEowAETzK1Ca2G+2AAAAAElFTkSuQmCC</tile>
+            <tile id="35" name="DIAMOND_ORE">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARUlEQVR42mOYNnH9f0owA4jYueUsWZj6BvRc////7If/YBpdMTY5rAbAMDYD0OWobwAuZ5MdiLhcMxoL/2kYBgNnACUYANMsKcAzGRzFAAAAAElFTkSuQmCC</tile>
+        </textures>
+    </pack>
+</resourcepacks>

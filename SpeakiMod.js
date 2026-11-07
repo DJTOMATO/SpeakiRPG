@@ -1456,14 +1456,6 @@ function t(key, ...args) {
 	return str;
 }
 
-function tCustom(key, fallback, ...args) {
-	var str = (spkmodTranslations[spkmodLang] && spkmodTranslations[spkmodLang][key])
-		|| (spkmodTranslations.en && spkmodTranslations.en[key]);
-	if (!str) return fallback || key;
-	args.forEach((a, i) => { str = str.split(`{${i}}`).join(a); });
-	return str;
-}
-
 function getZoneName(zoneId) {
 	const zid = String(zoneId);
 	const localName = spkmodTranslations[spkmodLang]?.mapLocations?.[zid]
@@ -1587,7 +1579,8 @@ var lunHudElements = {
 	effectsModal: null,
 	editsModal: null,
 	jukeboxModal: null,
-	customCssModal: null
+	customCssModal: null,
+	resourcePackModal: null
 };
 var customCssModalElements = {
 	headerRow: null,
@@ -1609,6 +1602,24 @@ var customCssModalElements = {
 	importBtn: null,
 	resetBtn: null,
 	textarea: null,
+	resizeHandle: null,
+	tipLabel: null
+};
+var resourcePackModalElements = {
+	headerRow: null,
+	headerTitle: null,
+	statusBadge: null,
+	enableLabel: null,
+	enableToggle: null,
+	presetLabel: null,
+	presetSelect: null,
+	saveBtn: null,
+	restoreBtn: null,
+	exportPackBtn: null,
+	importPackBtn: null,
+	searchInput: null,
+	catSelect: null,
+	blocksContainer: null,
 	resizeHandle: null,
 	tipLabel: null
 };
@@ -1693,6 +1704,8 @@ var lunPanelElements = {
 	settingsHeader: null,
 	customCssSettingsBtn: null,
 	customCssSectionBtn: null,
+	resourcePackSettingsBtn: null,
+	resourcePackSectionBtn: null,
 	filterToggleLabel: null,
 	filterToggleInput: null,
 	gmChatToggleLabel: null,
@@ -1801,40 +1814,6 @@ if (window.localStorage) {
 window.lunNametagMode = lunNametagMode;
 const NAMETAG_MODES = ["showAllNametags", "keepPartyNametags", "keepFriendsNametags", "hideAllNametags"];
 
-function getLivePartyNames() {
-	const names = new Set();
-	try {
-		if (typeof gameState !== "undefined" && gameState) {
-			if (gameState.partyMemberNamesBySlot instanceof Map) {
-				gameState.partyMemberNamesBySlot.forEach(nick => {
-					if (nick && typeof nick === "string") names.add(nick.trim().toLowerCase());
-				});
-			}
-			if (gameState.partyPanel && Array.isArray(gameState.partyPanel.members)) {
-				gameState.partyPanel.members.forEach(m => {
-					if (m && typeof m.nickname === "string" && m.nickname) {
-						names.add(m.nickname.trim().toLowerCase());
-					}
-				});
-			}
-		}
-	} catch (_) {}
-
-	try {
-		const partyRoot = typeof document !== "undefined" ? document.querySelector(".sr-party") : null;
-		if (partyRoot && partyRoot.style.display !== "none" && partyRoot.offsetParent !== null) {
-			const els = partyRoot.querySelectorAll(".sr-party__name");
-			els.forEach(el => {
-				const text = el.innerText?.trim()?.toLowerCase();
-				if (text) names.add(text);
-			});
-		}
-	} catch (_) {}
-
-	return names;
-}
-window.getLivePartyNames = getLivePartyNames;
-
 var lunFriendNicknames = new Set();
 if (window.localStorage) {
 	try {
@@ -1845,41 +1824,35 @@ if (window.localStorage) {
 		}
 	} catch (e) { }
 }
-window.lunFriendNicknames = lunFriendNicknames;
 
 var lunFriendshipNicknamesById = new Map();
-window.lunFriendshipNicknamesById = lunFriendshipNicknamesById;
 
-function applyFriendData(data) {
-	const friends = data?.friends;
-	if (!Array.isArray(friends)) return;
+function replaceFriendNicknames(data) {
+    const friends = data?.friends;
 
-	const nextNames = new Set();
-	const nextIds = new Map();
+    if (!Array.isArray(friends)) return;
 
-	for (const f of friends) {
-		if (typeof f?.nickname !== "string") continue;
-		const nick = f.nickname.trim().toLowerCase();
-		if (!nick) continue;
-		nextNames.add(nick);
-		if (f.friendshipId != null) nextIds.set(String(f.friendshipId), nick);
-	}
+    const nextNames = new Set();
+    const nextIds = new Map();
 
-	lunFriendNicknames = nextNames;
-	window.lunFriendNicknames = lunFriendNicknames;
-	lunFriendshipNicknamesById = nextIds;
-	window.lunFriendshipNicknamesById = lunFriendshipNicknamesById;
+    for (const f of friends) {
+        if (typeof f?.nickname !== "string") continue;
+        const nick = f.nickname.trim().toLowerCase();
+        if (!nick) continue;
+        nextNames.add(nick);
+        if (f.friendshipId != null) nextIds.set(String(f.friendshipId), nick);
+    }
 
-	try {
-		localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
-	} catch(e) {}
+    lunFriendNicknames.clear();
 
-	if (typeof updateNametagVisibility === "function") {
-		updateNametagVisibility();
-	}
+    for (const nick of nextNames) lunFriendNicknames.add(nick);
+
+    lunFriendshipNicknamesById = nextIds;
+
+    try {
+        localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
+    } catch (_) {}
 }
-window.applyFriendData = applyFriendData;
-window.replaceFriendNicknames = applyFriendData;
 
 var lunFriendChatHighlightEnabled = (window.localStorage && localStorage.getItem("spkmod-friend-highlight-enabled")) === "true";
 
@@ -1901,8 +1874,7 @@ var lunFriendFetchQueued = false;
 
 function fetchFriendsList(force = false) {
 	const now = Date.now();
-	const cooldown = (typeof lunNametagMode !== "undefined" && lunNametagMode === 2) ? 10000 : 60000;
-	if (!force && now - lunLastFriendFetchTime < cooldown) return;
+	if (!force && now - lunLastFriendFetchTime < 60000) return;
 	if (lunFriendFetchInProgress) {
 		if (force) lunFriendFetchQueued = true;
 		return;
@@ -1920,6 +1892,8 @@ function fetchFriendsList(force = false) {
 	const targetUrl = endpoint + "/api/friend/list";
 	const headers = {};
 	if (token) headers["authorization"] = `Bearer ${token}`;
+	
+	const applyFriendData = replaceFriendNicknames;
 
 	(async () => {
 		try {
@@ -1973,7 +1947,6 @@ function fetchFriendsList(force = false) {
 		}
 	})();
 }
-window.fetchFriendsList = fetchFriendsList;
 
 const lunKnownBotNames = ["GniloeAlo3", "Gniloe41o3", "Gniloe41oe", "GniloeA1oe", "GniloeA1o3", "GniloeA103", "toufufuton", "uhu", "clay79", "key7catace", "6air9dog5", "53lake", "1sealace", "2wave0bay1", "19owlfern", "red17wave", "nekomaru2", "king9SPK5", "ash6mist7", "takutaku8", "스핔이3984", "SPKtree21", "SPKleaf37", "3clayowl5", "3bayhero9", "99duckdog", "cow6SPK2", "fire8SPK7", "Takutaku3", "Takutaku4", "kutakuta", "0birdice2", "wind2SPK8", "SPKbay23", "3sky8king", "star2bat04", "map3kite4", "FrznTeardrop", "sun9SPK0", "5SPKsnow2", "SPKclay15", "frogfox40", "5air7moon", "SPKair00", "SPKblue88", "moss4ant36", "9gem4wind", "SPKjade05", "SPKfin06", "SPKdeer69", "OO0OOOOO72", "llIlIIll62", "lIllIIIl39", "IIlIIIlI45", "00OO0OO099", "sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", "OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", "OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63", "SPKecho98", "OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", "llIIllll38", "takutaku6", "kutakuta2", "takutaku7", "GniloeAlo3", "Gniloe4103", "Gniloe41o3", "GniloeAl03", "Gniloe41oe", "GniloeA1o3", "Gniloe41o3", "GniloeAlo3", "GniloeAl03", "Gniloe41oe"];
 
@@ -2157,39 +2130,22 @@ window.fetch = async function(...args) {
                 }
             }).catch(() => {});
         }
-        if (url.includes('/api/friend/list')) {
-            response.clone().json().then(data => {
-                if (typeof applyFriendData === 'function') {
-                    applyFriendData(data);
-                }
-            }).catch(() => {});
-        }
-        const friendDeleteMatch = url.match(/\/api\/friend\/([^/?#]+)\/?$/);
-        if (method === "DELETE" && response.ok && friendDeleteMatch) {
-            const friendshipId = decodeURIComponent(friendDeleteMatch[1]);
-            const deletedNickname = lunFriendshipNicknamesById.get(friendshipId);
-            if (deletedNickname) {
-                lunFriendNicknames.delete(deletedNickname);
-                lunFriendshipNicknamesById.delete(friendshipId);
-                try {
-                    localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
-                } catch (_) {}
-                if (typeof updateNametagVisibility === "function") {
-                    updateNametagVisibility();
-                }
-            }
-            fetchFriendsList(true);
-        } else if (url.includes('/api/friend')) {
-            const isDelete = (method === 'DELETE');
-            const isPost = (method === 'POST');
-            if (isDelete || isPost) {
-                setTimeout(() => {
-                    if (typeof fetchFriendsList === 'function') {
-                        fetchFriendsList(true);
-                    }
-                }, 300);
-            }
-        }
+		if (url.includes('/api/friend/list')) {
+			response.clone().json().then(replaceFriendNicknames).catch(() => {});
+		}
+		const friendDeleteMatch = url.match(/\/api\/friend\/([^/?#]+)\/?$/);
+		if (method === "DELETE" && response.ok && friendDeleteMatch) {
+			const friendshipId = decodeURIComponent(friendDeleteMatch[1]);
+			const deletedNickname = lunFriendshipNicknamesById.get(friendshipId);
+			if (deletedNickname) {
+				lunFriendNicknames.delete(deletedNickname);
+				lunFriendshipNicknamesById.delete(friendshipId);
+				try {
+					localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
+				} catch (_) {}
+			}
+			fetchFriendsList(true);
+		}
         if (url.includes('/api/block') && method === 'DELETE') {
             try {
                 let parts = url.split('/');
@@ -2256,41 +2212,6 @@ XMLHttpRequest.prototype.send = function() {
                     }
                 } catch(e) {}
                 setTimeout(spkmodFetchBlocklist, 1500);
-            }
-        }
-        if (this._spkUrl && typeof this._spkUrl === 'string' && this._spkUrl.includes('/api/friend/list')) {
-            try {
-                const data = JSON.parse(this.responseText);
-                if (typeof applyFriendData === 'function') {
-                    applyFriendData(data);
-                }
-            } catch(e) {}
-        }
-        if (this._spkUrl && typeof this._spkUrl === 'string' && this._spkMethod && this._spkMethod.toUpperCase() === 'DELETE') {
-            const friendDeleteMatch = this._spkUrl.match(/\/api\/friend\/([^/?#]+)\/?$/);
-            if (friendDeleteMatch) {
-                const friendshipId = decodeURIComponent(friendDeleteMatch[1]);
-                const deletedNickname = lunFriendshipNicknamesById.get(friendshipId);
-                if (deletedNickname) {
-                    lunFriendNicknames.delete(deletedNickname);
-                    lunFriendshipNicknamesById.delete(friendshipId);
-                    try {
-                        localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
-                    } catch (_) {}
-                    if (typeof updateNametagVisibility === "function") {
-                        updateNametagVisibility();
-                    }
-                }
-                fetchFriendsList(true);
-            }
-        } else if (this._spkUrl && typeof this._spkUrl === 'string' && this._spkUrl.includes('/api/friend')) {
-            const m = this._spkMethod ? this._spkMethod.toUpperCase() : '';
-            if (m === 'DELETE' || m === 'POST') {
-                setTimeout(() => {
-                    if (typeof fetchFriendsList === 'function') {
-                        fetchFriendsList(true);
-                    }
-                }, 300);
             }
         }
     });
@@ -3607,6 +3528,7 @@ function resetWindowPositions() {
 		lunHudElements.hotkeysModal,
 		lunHudElements.infoModal,
 		lunHudElements.customCssModal,
+		lunHudElements.resourcePackModal,
 		typeof lunEmojiPickerPanel !== "undefined" ? lunEmojiPickerPanel : null,
 		typeof mapModalElements !== "undefined" ? mapModalElements.modalWindow : null
 	];
@@ -3629,6 +3551,11 @@ function resetWindowPositions() {
 		lunHudElements.customCssModal.style.height = "500px";
 	}
 
+	if (lunHudElements.resourcePackModal) {
+		lunHudElements.resourcePackModal.style.width = "660px";
+		lunHudElements.resourcePackModal.style.height = "540px";
+	}
+
 	if (lunHudElements.bbsModal && !lunHudElements.bbsModal.classList.contains("hidden")) {
 		const modalWidth = lunHudElements.bbsModal.offsetWidth || 520;
 		const safeLeft = Math.max(20, Math.round((window.innerWidth - modalWidth) / 2));
@@ -3645,7 +3572,8 @@ function resetWindowPositions() {
 		lunHudElements.editsModal,
 		lunHudElements.hotkeysModal,
 		lunHudElements.infoModal,
-		lunHudElements.customCssModal
+		lunHudElements.customCssModal,
+		lunHudElements.resourcePackModal
 	];
 
 	otherOpenModals.forEach(m => {
@@ -6778,9 +6706,9 @@ function updateDynamicStyles() {
 		${customFontRules}
 				#app { filter: ${filterRule}; }
 		#app > *:not(.sr-game-canvas):not(canvas):not(.sr-click-ripple-layer) { zoom: ${lunGameUiScale} !important; }
-		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, #spkmod-jukebox-modal, #spkmod-css-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
+		#spkmod-hud, #spkmod-settings-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, #spkmod-jukebox-modal, #spkmod-css-modal, #spkmod-resource-pack-modal { transform: scale(var(--spkmod-scale)); transform-origin: top left; }
 		#spkmod-pq, body > #spkmod-panel { transform: scale(var(--spkmod-scale)); transform-origin: top right; }
-		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, #spkmod-jukebox-modal, #spkmod-css-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn, .spkmod-friend-panel-menu {
+		#spkmod-main, #spkmod-pq, #spkmod-settings-modal, #spkmod-gamepad-modal, #spkmod-players-modal, #spkmod-event-modal, #spkmod-patchnotes-modal, #spkmod-bbs-modal, #spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal, #spkmod-edits-modal, #spkmod-quests-modal, #spkmod-jukebox-modal, #spkmod-css-modal, #spkmod-resource-pack-modal, .spkmod-panel-btn, .spkmod-panel-counter, .spkmod-panel-combo, #spkmod-discord-btn, .spkmod-friend-panel-menu {
 			background: var(--spkmod-bg) !important;
 			backdrop-filter: var(--spkmod-blur) !important;
 			border-color: var(--spkmod-accent) !important;
@@ -7184,6 +7112,26 @@ document.head.appendChild(buildElement(
 			height: 500px;
 			min-width: 420px;
 			min-height: 320px;
+			max-width: 98vw;
+			max-height: 94vh;
+			display: flex;
+			flex-direction: column;
+			color: #FFF;
+			background: rgba(12, 12, 12, 0.96);
+			border: ${spkmodBorderWidth} solid #666;
+			border-radius: 8px;
+			padding: 10px;
+			gap: 8px;
+			box-shadow: 0 6px 28px rgba(0,0,0,0.85);
+			box-sizing: border-box;
+			overflow: hidden !important;
+		}
+		#spkmod-resource-pack-modal {
+			position: fixed !important;
+			width: 660px;
+			height: 540px;
+			min-width: 460px;
+			min-height: 360px;
 			max-width: 98vw;
 			max-height: 94vh;
 			display: flex;
@@ -8086,9 +8034,6 @@ document.body.appendChild(
 						if (lunNametagMode === 2) {
 							fetchFriendsList(true);
 						}
-						if (typeof updateNametagVisibility === "function") {
-							updateNametagVisibility();
-						}
 						if (lunPanelElements.nametagsBtn) {
 							setText(lunPanelElements.nametagsBtn, t(NAMETAG_MODES[lunNametagMode] + "Btn"));
 						}
@@ -8701,6 +8646,20 @@ document.body.appendChild(
 							toggleCustomCssModal();
 						}
 					}
+				}),
+
+				lunPanelElements.resourcePackSettingsBtn = buildElement("button", {
+					id: "spkmod-settings-respack-btn",
+					className: "spkmod-panel-btn",
+					style: "padding: 2px 6px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;",
+					innerText: "⛏️ " + tCustom("resourcePackBtn", "Resource Packs"),
+					title: tCustom("resourcePackBtnTooltip", "Customize mining game voxel block textures"),
+					onclick: (e) => {
+						e.preventDefault();
+						if (typeof toggleResourcePackModal === "function") {
+							toggleResourcePackModal();
+						}
+					}
 				})
 			]),
 			buildElement("span", {
@@ -9256,6 +9215,17 @@ document.body.appendChild(
 						onclick: e => {
 							e.preventDefault();
 							if (typeof toggleCustomCssModal === "function") toggleCustomCssModal();
+						}
+					}),
+					lunPanelElements.resourcePackSectionBtn = buildElement("button", {
+						id: "spkmod-open-respack-btn",
+						className: "spkmod-panel-btn",
+						style: "width: 100%; padding: 5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; background: #262626; border: 1px solid #555; margin-top: 4px;",
+						innerText: "⛏️ " + tCustom("resourcePackTitle", "Mining Resource Packs"),
+						title: tCustom("resourcePackBtnTooltip", "Customize mining game voxel block textures"),
+						onclick: e => {
+							e.preventDefault();
+							if (typeof toggleResourcePackModal === "function") toggleResourcePackModal();
 						}
 					})
 				])
@@ -10123,6 +10093,867 @@ if (typeof spkmodI18nRenderers !== "undefined") {
 loadCustomCssData();
 buildCustomCssModal();
 applyCustomCss();
+
+
+// ============================================================================
+// MINING GAME RESOURCE PACK & ASSET REPLACER SYSTEM
+// ============================================================================
+
+const SPKMOD_DEFAULT_MINING_ATLAS_B64 = "data:image/png;base64,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";
+
+const SPKMOD_MINING_BLOCKS = [
+	{ id: 0, key: "resBlockStone", name: "Stone", cat: "terrain" },
+	{ id: 1, key: "resBlockDirt", name: "Dirt", cat: "terrain" },
+	{ id: 2, key: "resBlockGrassTop", name: "Grass (Top)", cat: "terrain" },
+	{ id: 3, key: "resBlockGrassSide", name: "Grass (Side)", cat: "terrain" },
+	{ id: 4, key: "resBlockBedrock", name: "Bedrock", cat: "terrain" },
+	{ id: 5, key: "resBlockTorch", name: "Torch", cat: "props" },
+	{ id: 7, key: "resBlockRail", name: "Rail", cat: "rail_tech" },
+	{ id: 8, key: "resBlockRailBed", name: "Rail Bed", cat: "rail_tech" },
+	{ id: 9, key: "resBlockStation", name: "Station", cat: "rail_tech" },
+	{ id: 10, key: "resBlockCoal", name: "Coal Ore", cat: "ores" },
+	{ id: 11, key: "resBlockCopper", name: "Copper Ore", cat: "ores" },
+	{ id: 12, key: "resBlockIron", name: "Iron Ore", cat: "ores" },
+	{ id: 13, key: "resBlockBronze", name: "Bronze Ore", cat: "ores" },
+	{ id: 14, key: "resBlockSilver", name: "Silver Ore", cat: "ores" },
+	{ id: 15, key: "resBlockGold", name: "Gold Ore", cat: "ores" },
+	{ id: 16, key: "resBlockPlatinum", name: "Platinum Ore", cat: "ores" },
+	{ id: 17, key: "resBlockMithril", name: "Mithril Ore", cat: "ores" },
+	{ id: 18, key: "resBlockRailNS", name: "Rail Straight (NS)", cat: "rail_tech" },
+	{ id: 19, key: "resBlockRailEW", name: "Rail Straight (EW)", cat: "rail_tech" },
+	{ id: 20, key: "resBlockRailNE", name: "Rail Curve (NE)", cat: "rail_tech" },
+	{ id: 21, key: "resBlockRailNW", name: "Rail Curve (NW)", cat: "rail_tech" },
+	{ id: 22, key: "resBlockRailSE", name: "Rail Curve (SE)", cat: "rail_tech" },
+	{ id: 23, key: "resBlockRailSW", name: "Rail Curve (SW)", cat: "rail_tech" },
+	{ id: 24, key: "resBlockLeverStraight", name: "Lever (Straight)", cat: "rail_tech" },
+	{ id: 25, key: "resBlockLeverBranch", name: "Lever (Branch)", cat: "rail_tech" },
+	{ id: 26, key: "resBlockPlanks", name: "Wood Planks", cat: "building" },
+	{ id: 27, key: "resBlockGlass", name: "Glass", cat: "building" },
+	{ id: 28, key: "resBlockDoorLower", name: "Door (Lower)", cat: "building" },
+	{ id: 29, key: "resBlockDoorUpper", name: "Door (Upper)", cat: "building" },
+	{ id: 30, key: "resBlockDoorOpenLower", name: "Door Open (Lower)", cat: "building" },
+	{ id: 32, key: "resBlockFossil", name: "Fossil Ore", cat: "ores" },
+	{ id: 33, key: "resBlockSulfur", name: "Sulfur Ore", cat: "ores" },
+	{ id: 34, key: "resBlockAmethyst", name: "Amethyst Ore", cat: "ores" },
+	{ id: 35, key: "resBlockDiamond", name: "Diamond Ore", cat: "ores" },
+	{ id: 36, key: "resBlockLogSide", name: "Oak Log (Side)", cat: "terrain" },
+	{ id: 37, key: "resBlockLogTop", name: "Oak Log (Top)", cat: "terrain" },
+	{ id: 38, key: "resBlockLeaves", name: "Leaves", cat: "terrain" },
+	{ id: 39, key: "resBlockStoneBrick", name: "Stone Brick", cat: "building" },
+	{ id: 40, key: "resBlockBrick", name: "Brick", cat: "building" },
+	{ id: 41, key: "resBlockPlaster", name: "Plaster", cat: "building" },
+	{ id: 42, key: "resBlockGlassTint", name: "Tinted Glass", cat: "building" },
+	{ id: 43, key: "resBlockLattice", name: "Lattice", cat: "building" },
+	{ id: 44, key: "resBlockIronBars", name: "Iron Bars", cat: "building" },
+	{ id: 45, key: "resBlockIronBlock", name: "Iron Block", cat: "building" },
+	{ id: 46, key: "resBlockGoldBlock", name: "Gold Block", cat: "building" },
+	{ id: 47, key: "resBlockBookshelf", name: "Bookshelf", cat: "building" },
+	{ id: 48, key: "resBlockChestSide", name: "Chest (Side)", cat: "building" },
+	{ id: 49, key: "resBlockChestTop", name: "Chest (Top)", cat: "building" },
+	{ id: 50, key: "resBlockDoorOpenUpper", name: "Door Open (Upper)", cat: "building" }
+];
+
+let lunResourcePackEnabled = true;
+let lunMiningCustomTextures = {};
+let lunMiningLoadedPresets = [];
+let lunMiningSelectedPreset = "custom";
+let lunMiningHasUnsavedChanges = false;
+let lunMiningBaseAtlasImg = null;
+
+function spkmodGetBaseMiningAtlasImage() {
+	if (lunMiningBaseAtlasImg && lunMiningBaseAtlasImg.complete && lunMiningBaseAtlasImg.naturalWidth > 0) {
+		return lunMiningBaseAtlasImg;
+	}
+	lunMiningBaseAtlasImg = new Image();
+	lunMiningBaseAtlasImg.src = SPKMOD_DEFAULT_MINING_ATLAS_B64;
+	return lunMiningBaseAtlasImg;
+}
+
+function loadResourcePackData() {
+	if (window.localStorage) {
+		try {
+			const en = localStorage.getItem("spkmod-resource-pack-enabled");
+			if (en !== null) lunResourcePackEnabled = en === "true";
+			const raw = localStorage.getItem("spkmod-mining-resource-pack");
+			if (raw) {
+				const parsed = JSON.parse(raw);
+				if (parsed && typeof parsed === "object") {
+					lunMiningCustomTextures = parsed;
+				}
+			}
+		} catch (e) {
+			console.warn("[SpeakiMod+] Failed to load resource pack data:", e);
+		}
+	}
+}
+
+function saveResourcePackData() {
+	if (window.localStorage) {
+		try {
+			localStorage.setItem("spkmod-resource-pack-enabled", lunResourcePackEnabled ? "true" : "false");
+			localStorage.setItem("spkmod-mining-resource-pack", JSON.stringify(lunMiningCustomTextures));
+			lunMiningHasUnsavedChanges = false;
+			updateResourcePackStatus(true);
+		} catch (e) {
+			console.warn("[SpeakiMod+] Failed to save resource pack data:", e);
+		}
+	}
+}
+
+function updateResourcePackStatus(saved) {
+	lunMiningHasUnsavedChanges = !saved;
+	if (resourcePackModalElements.statusBadge) {
+		if (saved) {
+			resourcePackModalElements.statusBadge.innerText = "● " + (tCustom("customCssSaved", "Saved"));
+			resourcePackModalElements.statusBadge.style.color = "#4ade80";
+			resourcePackModalElements.statusBadge.style.borderColor = "#22c55e";
+		} else {
+			resourcePackModalElements.statusBadge.innerText = "● " + (tCustom("customCssUnsaved", "Unsaved"));
+			resourcePackModalElements.statusBadge.style.color = "#fbbf24";
+			resourcePackModalElements.statusBadge.style.borderColor = "#f59e0b";
+		}
+	}
+}
+
+async function spkmodValidateAndRead16x16Png(file) {
+	if (!file) throw new Error("No file selected.");
+	const buf = await file.arrayBuffer();
+	const bytes = new Uint8Array(buf);
+
+	// 1. Check PNG magic bytes: 89 50 4E 47 0D 0A 1A 0A
+	if (bytes.length < 29 || bytes[0] !== 0x89 || bytes[1] !== 0x50 || bytes[2] !== 0x4E || bytes[3] !== 0x47 || bytes[4] !== 0x0D || bytes[5] !== 0x0A || bytes[6] !== 0x1A || bytes[7] !== 0x0A) {
+		throw new Error(tCustom("resPackErrNotPng", "Error: File is not a valid PNG image!"));
+	}
+
+	// 2. Read IHDR (offset 16: width, offset 20: height, offset 24: bitDepth, offset 25: colorType)
+	const view = new DataView(buf);
+	const width = view.getUint32(16);
+	const height = view.getUint32(20);
+	const bitDepth = bytes[24];
+	const colorType = bytes[25];
+
+	if (width !== 16 || height !== 16) {
+		throw new Error(tCustom("resPackErrDim", `Error: Image must be exactly 16x16 pixels (got ${width}x${height})!`, width, height));
+	}
+
+	// 3. Strict 32bpp check: bitDepth 8, colorType 6 (RGBA)
+	if (bitDepth !== 8 || colorType !== 6) {
+		throw new Error(tCustom("resPackErrBpp", "Error: Image must be 32bpp (RGBA PNG)!"));
+	}
+
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = () => resolve(reader.result);
+		reader.onerror = () => reject(new Error("Failed to read file as data URL."));
+		reader.readAsDataURL(file);
+	});
+}
+
+function spkmodExportBlockPng(tileId, blockName) {
+	const canvas = document.createElement("canvas");
+	canvas.width = 16;
+	canvas.height = 16;
+	const ctx = canvas.getContext("2d");
+	if (!ctx) return;
+
+	const custom = lunMiningCustomTextures[tileId];
+	if (custom) {
+		const img = new Image();
+		img.onload = () => {
+			ctx.clearRect(0, 0, 16, 16);
+			ctx.drawImage(img, 0, 0);
+			const a = document.createElement("a");
+			a.href = canvas.toDataURL("image/png");
+			a.download = `mining_tile_${tileId}_${blockName || "block"}.png`;
+			a.click();
+		};
+		img.src = custom;
+	} else {
+		const baseImg = spkmodGetBaseMiningAtlasImage();
+		const renderBase = () => {
+			const col = tileId % 8;
+			const row = Math.floor(tileId / 8);
+			ctx.clearRect(0, 0, 16, 16);
+			ctx.drawImage(baseImg, col * 16, row * 16, 16, 16, 0, 0, 16, 16);
+			const a = document.createElement("a");
+			a.href = canvas.toDataURL("image/png");
+			a.download = `mining_tile_${tileId}_${blockName || "block"}.png`;
+			a.click();
+		};
+		if (baseImg.complete && baseImg.naturalWidth > 0) {
+			renderBase();
+		} else {
+			baseImg.onload = renderBase;
+		}
+	}
+}
+
+function spkmodExportFullPackXml() {
+	let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<resourcepacks version="1.0">\n';
+	xml += '    <pack id="custom-export" name="Custom Exported Pack">\n';
+	xml += '        <description>Custom user textures exported from SpeakiMod</description>\n';
+	xml += '        <author>Player</author>\n';
+	xml += '        <textures>\n';
+	Object.keys(lunMiningCustomTextures).forEach(idStr => {
+		const id = parseInt(idStr, 10);
+		const block = SPKMOD_MINING_BLOCKS.find(b => b.id === id);
+		const name = block ? block.name.replace(/\s+/g, '_').toUpperCase() : `TILE_${id}`;
+		xml += `            <tile id="${id}" name="${name}">${lunMiningCustomTextures[id]}</tile>\n`;
+	});
+	xml += '        </textures>\n    </pack>\n</resourcepacks>\n';
+
+	const blob = new Blob([xml], { type: "application/xml;charset=utf-8" });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement("a");
+	a.href = url;
+	a.download = "speaki_mining_resourcepack.xml";
+	a.click();
+	setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function spkmodParseResourcePacksXml(xmlText) {
+	const parser = new DOMParser();
+	const doc = parser.parseFromString(xmlText, "text/xml");
+	const packs = [];
+	const packNodes = doc.querySelectorAll("pack");
+	packNodes.forEach(pn => {
+		const id = pn.getAttribute("id") || "";
+		const name = pn.getAttribute("name") || id;
+		const desc = pn.querySelector("description")?.textContent?.trim() || "";
+		const textures = {};
+		pn.querySelectorAll("tile").forEach(tn => {
+			const tid = parseInt(tn.getAttribute("id"), 10);
+			const data = tn.textContent?.trim() || "";
+			if (!isNaN(tid) && data.startsWith("data:image/png;base64,")) {
+				textures[tid] = data;
+			}
+		});
+		packs.push({ id, name, desc, textures });
+	});
+	return packs;
+}
+
+function spkmodGetFallbackResourcePacks() {
+	return [
+		{ id: "default", name: tCustom("resPackPresetVanilla", "Default Vanilla"), desc: "Default textures", textures: {} },
+		{
+			id: "classic-8bit",
+			name: tCustom("resPackPresetRetro", "Classic Retro 8-Bit"),
+			desc: "Vibrant high-contrast 8-bit arcade style",
+			textures: {}
+		},
+		{
+			id: "neon-cyberpunk",
+			name: tCustom("resPackPresetCyberpunk", "Neon Cyberpunk"),
+			desc: "Futuristic neon aesthetic",
+			textures: {}
+		},
+		{
+			id: "pastel-fantasy",
+			name: tCustom("resPackPresetPastel", "Pastel Fantasy"),
+			desc: "Soft pastel fantasy colors",
+			textures: {}
+		}
+	];
+}
+
+async function spkmodFetchResourcePacksXml() {
+	const url = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/resourcespacks.xml?t=" + Date.now();
+	try {
+		const res = await fetch(url, { cache: "no-store" });
+		if (res.ok) {
+			const xmlText = await res.text();
+			const packs = spkmodParseResourcePacksXml(xmlText);
+			if (packs && packs.length > 0) return packs;
+		}
+	} catch (e) {
+		console.warn("[SpeakiMod+] Failed to load remote resourcespacks.xml:", e);
+	}
+	return spkmodGetFallbackResourcePacks();
+}
+
+function spkmodApplyMiningResourcePack() {
+	if (!lunResourcePackEnabled) {
+		spkmodRestoreDefaultMiningAtlas();
+		return;
+	}
+	try {
+		const world = (typeof gameState !== "undefined" && gameState?.miningHost?.world) ? gameState.miningHost.world : null;
+		if (world && world.atlas && world.atlas.texture && world.atlas.texture.image) {
+			const canvas = world.atlas.texture.image;
+			const ctx = canvas.getContext("2d");
+			if (ctx) {
+				const baseImg = spkmodGetBaseMiningAtlasImage();
+				const applyAll = () => {
+					// For all 64 tiles: if custom is defined, draw custom. If not, draw default base tile.
+					for (let t = 0; t < 64; t++) {
+						const col = t % 8;
+						const row = Math.floor(t / 8);
+						const custom = lunMiningCustomTextures[t];
+						if (custom) {
+							const cImg = new Image();
+							cImg.onload = () => {
+								ctx.clearRect(col * 16, row * 16, 16, 16);
+								ctx.drawImage(cImg, col * 16, row * 16, 16, 16);
+								world.atlas.texture.needsUpdate = true;
+							};
+							cImg.src = custom;
+						} else if (baseImg.complete && baseImg.naturalWidth > 0) {
+							ctx.clearRect(col * 16, row * 16, 16, 16);
+							ctx.drawImage(baseImg, col * 16, row * 16, 16, 16, col * 16, row * 16, 16, 16);
+						}
+					}
+					world.atlas.texture.needsUpdate = true;
+					if (world.dirtyMeshes && world.renders) {
+						for (const chunkKey of world.renders.keys()) {
+							world.dirtyMeshes.add(chunkKey);
+						}
+					}
+				};
+				if (baseImg.complete && baseImg.naturalWidth > 0) {
+					applyAll();
+				} else {
+					baseImg.onload = applyAll;
+				}
+			}
+		}
+	} catch (err) {
+		console.warn("[SpeakiMod+] Error applying mining resource pack:", err);
+	}
+
+	// Clear icon cache and update hotbar if active
+	try {
+		if (typeof qH !== "undefined" && qH instanceof Map) qH.clear();
+		if (typeof gameState !== "undefined" && gameState?.miningHost?.hud?.rebuildHotbar) {
+			gameState.miningHost.hud.rebuildHotbar();
+		}
+	} catch (_) {}
+}
+
+function spkmodRestoreDefaultMiningAtlas() {
+	try {
+		const world = (typeof gameState !== "undefined" && gameState?.miningHost?.world) ? gameState.miningHost.world : null;
+		if (world && world.atlas && world.atlas.texture && world.atlas.texture.image) {
+			const canvas = world.atlas.texture.image;
+			const ctx = canvas.getContext("2d");
+			if (ctx) {
+				const baseImg = spkmodGetBaseMiningAtlasImage();
+				const restore = () => {
+					ctx.clearRect(0, 0, 128, 128);
+					ctx.drawImage(baseImg, 0, 0, 128, 128);
+					world.atlas.texture.needsUpdate = true;
+					if (world.dirtyMeshes && world.renders) {
+						for (const chunkKey of world.renders.keys()) {
+							world.dirtyMeshes.add(chunkKey);
+						}
+					}
+				};
+				if (baseImg.complete && baseImg.naturalWidth > 0) {
+					restore();
+				} else {
+					baseImg.onload = restore;
+				}
+			}
+		}
+	} catch (err) {
+		console.warn("[SpeakiMod+] Error restoring default mining atlas:", err);
+	}
+}
+
+// Hook mining host initialization so packs auto-apply on entry
+(function installMiningHostHooks() {
+	if (typeof window !== "undefined") {
+		// Periodic check or getter hook on gameState.miningHost
+		let lastMiningActive = false;
+		setInterval(() => {
+			try {
+				if (typeof gameState !== "undefined" && gameState?.miningHost) {
+					const active = Boolean(gameState.miningHost.active || gameState.miningHost.isActive?.());
+					if (active && !lastMiningActive) {
+						lastMiningActive = true;
+						if (lunResourcePackEnabled && Object.keys(lunMiningCustomTextures).length > 0) {
+							setTimeout(spkmodApplyMiningResourcePack, 250);
+						}
+					} else if (!active) {
+						lastMiningActive = false;
+					}
+				}
+			} catch (_) {}
+		}, 1000);
+	}
+})();
+
+function buildResourcePackModal() {
+	if (lunHudElements.resourcePackModal) return lunHudElements.resourcePackModal;
+
+	const hiddenXmlInput = buildElement("input", {
+		type: "file",
+		accept: ".xml",
+		style: "display: none;",
+		onchange: e => {
+			const file = e.target.files && e.target.files[0];
+			if (file) {
+				const reader = new FileReader();
+				reader.onload = () => {
+					try {
+						const packs = spkmodParseResourcePacksXml(reader.result);
+						if (packs.length > 0) {
+							const p = packs[0];
+							lunMiningCustomTextures = p.textures || {};
+							updateResourcePackStatus(false);
+							spkmodRenderResourcePackBlockList();
+							alert(tCustom("resPackImportSuccess", `Resource pack '${p.name}' imported successfully (${Object.keys(lunMiningCustomTextures).length} textures)!`, p.name, Object.keys(lunMiningCustomTextures).length));
+						} else {
+							alert(tCustom("resPackErrNotPng", "No valid pack found in XML!"));
+						}
+					} catch (err) {
+						alert("Import error: " + err.message);
+					}
+				};
+				reader.readAsText(file);
+			}
+			hiddenXmlInput.value = "";
+		}
+	});
+	document.body.appendChild(hiddenXmlInput);
+
+	const modal = buildElement("div", {
+		id: "spkmod-resource-pack-modal",
+		className: "hidden",
+		style: "z-index: 10002;"
+	}, [
+		resourcePackModalElements.headerRow = buildElement("div", {
+			style: "display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 6px; user-select: none; cursor: move;"
+		}, [
+			buildElement("div", { style: "display: flex; align-items: center; gap: 8px;" }, [
+				resourcePackModalElements.headerTitle = buildElement("span", {
+					style: "font-weight: bold; font-size: 14px;",
+					innerText: "⛏️ " + tCustom("resourcePackTitle", "Mining Resource Packs")
+				}),
+				resourcePackModalElements.statusBadge = buildElement("span", {
+					style: "font-size: 10px; padding: 1px 6px; border-radius: 10px; border: 1px solid #22c55e; color: #4ade80;",
+					innerText: "● " + tCustom("customCssSaved", "Saved")
+				})
+			]),
+			buildElement("div", { style: "display: flex; align-items: center; gap: 10px;" }, [
+				resourcePackModalElements.enableLabel = buildElement("label", {
+					style: "display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
+				}, [
+					resourcePackModalElements.enableToggle = buildElement("input", {
+						type: "checkbox",
+						checked: lunResourcePackEnabled,
+						onchange: e => {
+							lunResourcePackEnabled = e.target.checked;
+							updateResourcePackStatus(false);
+						}
+					}),
+					document.createTextNode("Active")
+				]),
+				buildElement("button", {
+					className: "spkmod-panel-btn",
+					style: "padding: 1px 6px; font-weight: bold;",
+					innerText: "✕",
+					title: "Close",
+					onclick: () => toggleResourcePackModal(false)
+				})
+			])
+		]),
+
+		// Control Bar (Presets & Actions)
+		buildElement("div", {
+			style: "display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; background: rgba(25, 25, 25, 0.7); padding: 6px; border-radius: 6px; border: 1px solid #333;"
+		}, [
+			buildElement("div", { style: "display: flex; align-items: center; gap: 6px; flex-wrap: wrap;" }, [
+				resourcePackModalElements.presetLabel = buildElement("span", {
+					style: "font-size: 11px; color: #bbb;",
+					innerText: tCustom("resPackPreset", "Preset:")
+				}),
+				resourcePackModalElements.presetSelect = buildElement("select", {
+					className: "spkmod-panel-combo",
+					style: "font-size: 11px; padding: 2px 4px; max-width: 160px;",
+					onchange: e => {
+						const pid = e.target.value;
+						lunMiningSelectedPreset = pid;
+						if (pid === "default") {
+							lunMiningCustomTextures = {};
+							updateResourcePackStatus(false);
+							spkmodRenderResourcePackBlockList();
+						} else {
+							const pack = lunMiningLoadedPresets.find(p => p.id === pid);
+							if (pack && pack.textures) {
+								lunMiningCustomTextures = Object.assign({}, pack.textures);
+								updateResourcePackStatus(false);
+								spkmodRenderResourcePackBlockList();
+							}
+						}
+					}
+				}, [
+					buildElement("option", { value: "custom", innerText: tCustom("resPackPresetCustom", "Custom / Current") }),
+					buildElement("option", { value: "default", innerText: tCustom("resPackPresetVanilla", "Default Vanilla") }),
+					buildElement("option", { value: "classic-8bit", innerText: tCustom("resPackPresetRetro", "Classic Retro 8-Bit") }),
+					buildElement("option", { value: "neon-cyberpunk", innerText: tCustom("resPackPresetCyberpunk", "Neon Cyberpunk") }),
+					buildElement("option", { value: "pastel-fantasy", innerText: tCustom("resPackPresetPastel", "Pastel Fantasy") })
+				]),
+				resourcePackModalElements.saveBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					style: "padding: 3px 8px; font-size: 11px; font-weight: bold; background: #1e3a1e; border-color: #22c55e; color: #4ade80;",
+					innerText: "💾 " + tCustom("resPackApplySave", "Apply & Save"),
+					onclick: () => {
+						saveResourcePackData();
+						spkmodApplyMiningResourcePack();
+					}
+				}),
+				resourcePackModalElements.restoreBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					style: "padding: 3px 8px; font-size: 11px;",
+					innerText: "↺ " + tCustom("resPackRestoreDefault", "Restore Defaults"),
+					onclick: () => {
+						if (confirm(tCustom("resPackConfirmRestore", "Restore all mining textures back to default vanilla?"))) {
+							lunMiningCustomTextures = {};
+							saveResourcePackData();
+							spkmodRestoreDefaultMiningAtlas();
+							spkmodRenderResourcePackBlockList();
+						}
+					}
+				})
+			]),
+			buildElement("div", { style: "display: flex; align-items: center; gap: 4px;" }, [
+				resourcePackModalElements.exportPackBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					style: "padding: 3px 6px; font-size: 11px;",
+					innerText: "📤 " + tCustom("resPackExportPack", "Export Pack (.xml)"),
+					onclick: () => spkmodExportFullPackXml()
+				}),
+				resourcePackModalElements.importPackBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					style: "padding: 3px 6px; font-size: 11px;",
+					innerText: "📥 " + tCustom("resPackImportPack", "Import Pack (.xml)"),
+					onclick: () => hiddenXmlInput.click()
+				})
+			])
+		]),
+
+		// Search & Category Filters
+		buildElement("div", {
+			style: "display: flex; align-items: center; gap: 6px;"
+		}, [
+			resourcePackModalElements.searchInput = buildElement("input", {
+				type: "text",
+				className: "spkmod-panel-combo",
+				placeholder: tCustom("resPackSearchPlaceholder", "Filter blocks..."),
+				style: "flex: 1; padding: 3px 6px; font-size: 11px;",
+				oninput: () => spkmodRenderResourcePackBlockList()
+			}),
+			resourcePackModalElements.catSelect = buildElement("select", {
+				className: "spkmod-panel-combo",
+				style: "font-size: 11px; padding: 3px 6px;",
+				onchange: () => spkmodRenderResourcePackBlockList()
+			}, [
+				buildElement("option", { value: "all", innerText: tCustom("resPackAllCategories", "All Categories") }),
+				buildElement("option", { value: "terrain", innerText: tCustom("resPackCatTerrain", "Terrain") }),
+				buildElement("option", { value: "ores", innerText: tCustom("resPackCatOres", "Ores") }),
+				buildElement("option", { value: "building", innerText: tCustom("resPackCatBuilding", "Building") }),
+				buildElement("option", { value: "rail_tech", innerText: tCustom("resPackCatTech", "Rail & Tech") }),
+				buildElement("option", { value: "props", innerText: tCustom("resPackCatProps", "Props") })
+			])
+		]),
+
+		// Main Block Cards List
+		resourcePackModalElements.blocksContainer = buildElement("div", {
+			id: "spkmod-respack-container",
+			style: "flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 4px; border: 1px solid #333; border-radius: 6px; background: rgba(16, 16, 16, 0.9);"
+		}),
+
+		// Footer Row
+		buildElement("div", {
+			style: "display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #888; border-top: 1px solid #333; padding-top: 4px;"
+		}, [
+			resourcePackModalElements.tipLabel = buildElement("span", {
+				innerText: tCustom("resPackTip", "Tip: Imported textures must be exactly 16x16 pixels with 32bpp RGBA.")
+			}),
+			resourcePackModalElements.resizeHandle = buildElement("div", {
+				style: "width: 14px; height: 14px; cursor: nwse-resize; display: flex; align-items: flex-end; justify-content: flex-end; user-select: none;",
+				title: "Resize"
+			}, [
+				buildElement("span", {
+					innerHTML: '<svg viewBox="0 0 10 10" width="10" height="10" style="opacity: 0.65; display: block; pointer-events: none;"><path d="M9 1 L1 9 M9 5 L5 9 M9 9 L9 9" stroke="#e8b84b" stroke-width="1.2" stroke-linecap="round"/></svg>'
+				})
+			])
+		])
+	]);
+
+	lunHudElements.resourcePackModal = modal;
+	document.body.appendChild(modal);
+
+	modal.addEventListener("wheel", e => { e.stopPropagation(); }, { passive: true });
+	modal.addEventListener("touchmove", e => { e.stopPropagation(); }, { passive: true });
+
+	setTimeout(() => {
+		if (typeof makeDraggable === "function" && lunHudElements.resourcePackModal && resourcePackModalElements.headerRow) {
+			makeDraggable(lunHudElements.resourcePackModal, [resourcePackModalElements.headerRow]);
+		}
+		if (typeof makeResizable === "function" && lunHudElements.resourcePackModal && resourcePackModalElements.resizeHandle) {
+			makeResizable(lunHudElements.resourcePackModal, resourcePackModalElements.resizeHandle, {
+				minWidth: 460,
+				minHeight: 360,
+				storageKey: "spkmod-size-spkmod-respack-modal"
+			});
+		}
+		if (lunHudElements.resourcePackModal && !(window.localStorage && localStorage.getItem("spkmod-size-spkmod-respack-modal"))) {
+			lunHudElements.resourcePackModal.style.width = "660px";
+			lunHudElements.resourcePackModal.style.height = "540px";
+		}
+		if (lunHudElements.resourcePackModal && !(window.localStorage && (localStorage.getItem("spkmod-pos-x-spkmod-respack-modal") || localStorage.getItem("spkmod-pos-spkmod-respack-modal")))) {
+			lunHudElements.resourcePackModal.style.left = "calc(50% - 330px)";
+			lunHudElements.resourcePackModal.style.top = "calc(50% - 270px)";
+		}
+	}, 500);
+
+	// Load remote XML presets in background
+	spkmodFetchResourcePacksXml().then(packs => {
+		lunMiningLoadedPresets = packs;
+		if (resourcePackModalElements.presetSelect && packs.length > 0) {
+			resourcePackModalElements.presetSelect.innerHTML = "";
+			const optCustom = document.createElement("option");
+			optCustom.value = "custom";
+			optCustom.innerText = tCustom("resPackPresetCustom", "Custom / Current");
+			resourcePackModalElements.presetSelect.appendChild(optCustom);
+
+			packs.forEach(p => {
+				const opt = document.createElement("option");
+				opt.value = p.id;
+				opt.innerText = p.name;
+				resourcePackModalElements.presetSelect.appendChild(opt);
+			});
+		}
+	});
+
+	return modal;
+}
+
+function spkmodRenderResourcePackBlockList() {
+	if (!resourcePackModalElements.blocksContainer) return;
+	const container = resourcePackModalElements.blocksContainer;
+	container.innerHTML = "";
+
+	const query = (resourcePackModalElements.searchInput?.value || "").trim().toLowerCase();
+	const catFilter = resourcePackModalElements.catSelect?.value || "all";
+
+	const baseImg = spkmodGetBaseMiningAtlasImage();
+
+	SPKMOD_MINING_BLOCKS.forEach(block => {
+		if (catFilter !== "all" && block.cat !== catFilter) return;
+		const localizedName = tCustom(block.key, block.name);
+		if (query && !String(block.id).includes(query) && !localizedName.toLowerCase().includes(query) && !block.name.toLowerCase().includes(query)) {
+			return;
+		}
+
+		const row = buildElement("div", {
+			style: "display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; border-bottom: 1px solid #222; gap: 8px; background: rgba(22, 22, 22, 0.7); border-radius: 4px;"
+		}, [
+			// Col 1: Info (ID, Name, Category)
+			buildElement("div", { style: "display: flex; align-items: center; gap: 8px; min-width: 160px; flex: 1;" }, [
+				buildElement("span", {
+					style: "font-size: 10px; font-weight: bold; background: #333; color: #e8b84b; padding: 2px 5px; border-radius: 3px; min-width: 24px; text-align: center;",
+					innerText: "#" + block.id
+				}),
+				buildElement("div", { style: "display: flex; flex-direction: column;" }, [
+					buildElement("span", {
+						style: "font-size: 12px; font-weight: bold; color: #EEE;",
+						innerText: localizedName
+					}),
+					buildElement("span", {
+						style: "font-size: 9px; color: #777;",
+						innerText: block.cat.toUpperCase()
+					})
+				])
+			]),
+
+			// Col 2: Default Preview Canvas
+			buildElement("div", { style: "display: flex; align-items: center; gap: 4px;" }, [
+				buildElement("span", { style: "font-size: 9px; color: #666;", innerText: "Def:" }),
+				(() => {
+					const cv = document.createElement("canvas");
+					cv.width = 16;
+					cv.height = 16;
+					cv.style.cssText = "width: 32px; height: 32px; image-rendering: pixelated; border: 1px solid #444; border-radius: 4px; background: #111;";
+					cv.title = "Default game texture";
+					const drawBase = () => {
+						const ctx = cv.getContext("2d");
+						if (ctx) {
+							const col = block.id % 8;
+							const row = Math.floor(block.id / 8);
+							ctx.clearRect(0, 0, 16, 16);
+							ctx.drawImage(baseImg, col * 16, row * 16, 16, 16, 0, 0, 16, 16);
+						}
+					};
+					if (baseImg.complete && baseImg.naturalWidth > 0) drawBase();
+					else baseImg.addEventListener("load", drawBase);
+					return cv;
+				})()
+			]),
+
+			// Col 3: Custom Replacement Preview Canvas
+			buildElement("div", { style: "display: flex; align-items: center; gap: 4px;" }, [
+				buildElement("span", { style: "font-size: 9px; color: #e8b84b;", innerText: "Custom:" }),
+				(() => {
+					const cv = document.createElement("canvas");
+					cv.width = 16;
+					cv.height = 16;
+					cv.style.cssText = "width: 32px; height: 32px; image-rendering: pixelated; border: 1px solid #555; border-radius: 4px; background: #181818;";
+					const customData = lunMiningCustomTextures[block.id];
+					if (customData) {
+						cv.style.borderColor = "#22c55e";
+						cv.title = "Custom active texture";
+						const img = new Image();
+						img.onload = () => {
+							const ctx = cv.getContext("2d");
+							if (ctx) {
+								ctx.clearRect(0, 0, 16, 16);
+								ctx.drawImage(img, 0, 0, 16, 16);
+							}
+						};
+						img.src = customData;
+					} else {
+						cv.title = "No custom texture (using default)";
+						const ctx = cv.getContext("2d");
+						if (ctx) {
+							ctx.fillStyle = "#222";
+							ctx.fillRect(0, 0, 16, 16);
+							ctx.strokeStyle = "#444";
+							ctx.beginPath();
+							ctx.moveTo(0, 0); ctx.lineTo(16, 16);
+							ctx.stroke();
+						}
+					}
+					return cv;
+				})()
+			]),
+
+			// Col 4: Per-Block Actions (Export, Import, Clear)
+			buildElement("div", { style: "display: flex; align-items: center; gap: 4px;" }, [
+				buildElement("button", {
+					className: "spkmod-panel-btn",
+					style: "padding: 2px 6px; font-size: 10px;",
+					innerText: "📤 " + tCustom("resPackExportPng", "Export"),
+					title: "Export 16x16 PNG for " + localizedName,
+					onclick: () => spkmodExportBlockPng(block.id, block.name)
+				}),
+				(() => {
+					const fileInput = document.createElement("input");
+					fileInput.type = "file";
+					fileInput.accept = "image/png";
+					fileInput.style.display = "none";
+					fileInput.onchange = async e => {
+						const file = e.target.files && e.target.files[0];
+						if (!file) return;
+						try {
+							const dataUrl = await spkmodValidateAndRead16x16Png(file);
+							lunMiningCustomTextures[block.id] = dataUrl;
+							updateResourcePackStatus(false);
+							spkmodRenderResourcePackBlockList();
+						} catch (err) {
+							alert(err.message);
+						}
+						fileInput.value = "";
+					};
+					const importBtn = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 2px 6px; font-size: 10px; background: #1a3020; border-color: #22c55e;",
+						innerText: "📥 " + tCustom("resPackImportPng", "Import"),
+						title: "Import 16x16 32bpp PNG for " + localizedName,
+						onclick: () => fileInput.click()
+					});
+					const wrap = document.createElement("span");
+					wrap.appendChild(fileInput);
+					wrap.appendChild(importBtn);
+					return wrap;
+				})(),
+				buildElement("button", {
+					className: "spkmod-panel-btn",
+					style: "padding: 2px 5px; font-size: 10px; color: #e57373;",
+					innerText: "✕",
+					title: "Clear custom texture for this block",
+					onclick: () => {
+						if (lunMiningCustomTextures[block.id]) {
+							delete lunMiningCustomTextures[block.id];
+							updateResourcePackStatus(false);
+							spkmodRenderResourcePackBlockList();
+						}
+					}
+				})
+			])
+		]);
+
+		container.appendChild(row);
+	});
+}
+
+function toggleResourcePackModal(explicitState) {
+	if (!lunHudElements.resourcePackModal) {
+		buildResourcePackModal();
+	}
+	const isHidden = lunHudElements.resourcePackModal.classList.contains("hidden");
+	const shouldShow = explicitState !== undefined ? explicitState : isHidden;
+	if (shouldShow) {
+		if (resourcePackModalElements.enableToggle) {
+			resourcePackModalElements.enableToggle.checked = lunResourcePackEnabled;
+		}
+		spkmodRenderResourcePackBlockList();
+		lunHudElements.resourcePackModal.classList.remove("hidden");
+	} else {
+		lunHudElements.resourcePackModal.classList.add("hidden");
+	}
+}
+
+function updateResourcePackI18n() {
+	if (lunPanelElements.resourcePackSettingsBtn) {
+		lunPanelElements.resourcePackSettingsBtn.innerText = "⛏️ " + tCustom("resourcePackBtn", "Resource Packs");
+		lunPanelElements.resourcePackSettingsBtn.title = tCustom("resourcePackBtnTooltip", "Customize mining game voxel block textures");
+	}
+	if (lunPanelElements.resourcePackSectionBtn) {
+		lunPanelElements.resourcePackSectionBtn.innerText = "⛏️ " + tCustom("resourcePackTitle", "Mining Resource Packs");
+		lunPanelElements.resourcePackSectionBtn.title = tCustom("resourcePackBtnTooltip", "Customize mining game voxel block textures");
+	}
+	if (resourcePackModalElements.headerTitle) {
+		resourcePackModalElements.headerTitle.innerText = "⛏️ " + tCustom("resourcePackTitle", "Mining Resource Packs");
+	}
+	if (resourcePackModalElements.presetLabel) {
+		resourcePackModalElements.presetLabel.innerText = tCustom("resPackPreset", "Preset:");
+	}
+	if (resourcePackModalElements.saveBtn) {
+		resourcePackModalElements.saveBtn.innerText = "💾 " + tCustom("resPackApplySave", "Apply & Save");
+	}
+	if (resourcePackModalElements.restoreBtn) {
+		resourcePackModalElements.restoreBtn.innerText = "↺ " + tCustom("resPackRestoreDefault", "Restore Defaults");
+	}
+	if (resourcePackModalElements.exportPackBtn) {
+		resourcePackModalElements.exportPackBtn.innerText = "📤 " + tCustom("resPackExportPack", "Export Pack (.xml)");
+	}
+	if (resourcePackModalElements.importPackBtn) {
+		resourcePackModalElements.importPackBtn.innerText = "📥 " + tCustom("resPackImportPack", "Import Pack (.xml)");
+	}
+	if (resourcePackModalElements.tipLabel) {
+		resourcePackModalElements.tipLabel.innerText = tCustom("resPackTip", "Tip: Imported textures must be exactly 16x16 pixels with 32bpp RGBA.");
+	}
+	if (resourcePackModalElements.statusBadge) {
+		updateResourcePackStatus(!lunMiningHasUnsavedChanges);
+	}
+	if (lunHudElements.resourcePackModal && !lunHudElements.resourcePackModal.classList.contains("hidden")) {
+		spkmodRenderResourcePackBlockList();
+	}
+}
+
+if (typeof spkmodI18nRenderers !== "undefined") {
+	spkmodI18nRenderers.push(updateResourcePackI18n);
+}
+
+loadResourcePackData();
+buildResourcePackModal();
+if (lunResourcePackEnabled && Object.keys(lunMiningCustomTextures).length > 0) {
+	setTimeout(spkmodApplyMiningResourcePack, 500);
+}
+
 
 
 // --- EMOJI PICKER ---
@@ -21505,23 +22336,6 @@ function isPartyMemberChatSpeaker(id, name) {
 	const lowerKey = cleanName.toLowerCase();
 	const myName = ((typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name)) || (typeof document !== "undefined" ? document.querySelector(".sr-player-card__name")?.innerText : "") || "").trim().toLowerCase();
 	if (myName && lowerKey === myName) return false;
-
-	const partyNames = typeof getLivePartyNames === "function" ? getLivePartyNames() : null;
-	if (partyNames !== null) {
-		if (partyNames.size === 0) return false;
-		let altKey = "";
-		if (id != null && typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.get) {
-			const rp = gameState.remotePlayers.remotePlayers.get(id);
-			if (rp?.info) {
-				const rpName = (rp.info.name || "").trim().toLowerCase();
-				const rpOrig = (rp.info.__spkmodOrigName || "").trim().toLowerCase();
-				if (rpName && rpName !== lowerKey) altKey = rpName;
-				else if (rpOrig && rpOrig !== lowerKey) altKey = rpOrig;
-			}
-		}
-		return partyNames.has(lowerKey) || (Boolean(altKey) && partyNames.has(altKey));
-	}
-
 	if (typeof document === "undefined") return false;
 	const partyEls = document.querySelectorAll(".sr-party__name");
 	if (!partyEls || partyEls.length === 0) return false;
@@ -23765,35 +24579,6 @@ const renderSpkmodFriendPanel = createRafThrottler((panel, panelBody) => {
 	if (!panel || !panel.isConnected || !panelBody || !panelBody.isConnected) return;
 	_spkmodFriendPanelBody = panelBody;
 
-	try {
-		const sections = panelBody.querySelectorAll(".sr-panel__section-title");
-		if (sections.length > 0) {
-			const friendNames = new Set();
-			let curr = sections[0].nextElementSibling;
-			while (curr && !curr.classList.contains("sr-panel__section-title")) {
-				const titleEl = curr.querySelector(".sr-list-item__title");
-				if (titleEl && titleEl.innerText) {
-					const fn = titleEl.innerText.trim().toLowerCase();
-					if (fn) friendNames.add(fn);
-				}
-				curr = curr.nextElementSibling;
-			}
-			const hasEmptyMsg = panelBody.querySelector(".sr-empty") !== null;
-			if (friendNames.size > 0 || hasEmptyMsg) {
-				if (typeof lunFriendNicknames !== "undefined") {
-					lunFriendNicknames = friendNames;
-					window.lunFriendNicknames = friendNames;
-					if (window.localStorage) {
-						try { localStorage.setItem("spkmod-friend-cache", JSON.stringify([...friendNames])); } catch (_) {}
-					}
-					if (typeof updateNametagVisibility === "function") {
-						updateNametagVisibility();
-					}
-				}
-			}
-		}
-	} catch (_) {}
-
 	const sectionTitle = panelBody.querySelector(".sr-panel__section-title:first-child");
 
 	if (sectionTitle != null && !sectionTitle.querySelector(":scope > [data-spkmod-friend-panel-btn]")) {
@@ -23980,49 +24765,6 @@ if (typeof spkmodI18nRenderers !== 'undefined') {
 		}
 	});
 }
-
-function updateNametagVisibility() {
-	if (typeof gameState === "undefined" || !gameState?.remotePlayers?.remotePlayers) return;
-
-	let partyNames = null;
-	if (lunNametagMode === 1) {
-		partyNames = typeof getLivePartyNames === "function" ? getLivePartyNames() : new Set();
-	}
-
-	gameState.remotePlayers.remotePlayers.forEach(t => {
-		if (t.avatar && typeof hookAvatarLabel === "function") hookAvatarLabel(t);
-		if (!t.container) return;
-
-		delete t.container.__spkmodNametagSprite;
-
-		let shouldBeVisible = true;
-		if (lunNametagMode === 0) {
-			shouldBeVisible = true;
-		} else if (lunNametagMode === 3) {
-			shouldBeVisible = false;
-		} else if (lunNametagMode === 1) {
-			const pName = (t.info?.name || "").trim().toLowerCase();
-			const origName = (t.info?.__spkmodOrigName || "").trim().toLowerCase();
-			shouldBeVisible = partyNames.has(pName) || (Boolean(origName) && partyNames.has(origName));
-		} else if (lunNametagMode === 2) {
-			const pName = (t.info?.name || "").trim().toLowerCase();
-			const origName = (t.info?.__spkmodOrigName || "").trim().toLowerCase();
-			shouldBeVisible = lunFriendNicknames.has(pName) || (Boolean(origName) && lunFriendNicknames.has(origName));
-		}
-
-		if (typeof t.container.traverse === "function") {
-			t.container.traverse(obj => {
-				if (obj && obj.isSprite) {
-					if (typeof hookSpritePrototypeOnce === "function") hookSpritePrototypeOnce(obj);
-					if (obj.position && obj.position.y > 0.5) {
-						obj.visible = shouldBeVisible;
-					}
-				}
-			});
-		}
-	});
-}
-window.updateNametagVisibility = updateNametagVisibility;
 
 function tick() {
 	if (window.__spkmodPauseTick) return;
@@ -24584,7 +25326,44 @@ function hookAvatarLabel(entity, explicitContainer) {
 		hookAvatarLabel({ avatar: gameState.localAvatar, container: gameState.playerContainer, isLocalPlayer: true }, gameState.playerContainer);
 	}
 
-	updateNametagVisibility();
+	let partyNames = null;
+	if (gameState?.remotePlayers?.remotePlayers) {
+		gameState.remotePlayers.remotePlayers.forEach(t => {
+			if (t.avatar) hookAvatarLabel(t);
+			if (!t.container) return;
+
+			delete t.container.__spkmodNametagSprite;
+
+			let shouldBeVisible = true;
+			if (lunNametagMode === 0) {
+				shouldBeVisible = true;
+			} else if (lunNametagMode === 3) {
+				shouldBeVisible = false;
+			} else if (lunNametagMode === 1) {
+				if (partyNames === null) {
+					partyNames = new Set(Array.from(gameState?.partyMemberNamesBySlot?.values?.() ?? []).map(name => String(name ?? "").trim().toLowerCase()).filter(Boolean));
+				}
+				const pName = (t.info?.name || "").trim().toLowerCase();
+				const origName = (t.info?.__spkmodOrigName || "").trim().toLowerCase();
+				shouldBeVisible = partyNames.has(pName) || (Boolean(origName) && partyNames.has(origName));
+			} else if (lunNametagMode === 2) {
+				const pName = (t.info?.name || "").trim().toLowerCase();
+				const origName = (t.info?.__spkmodOrigName || "").trim().toLowerCase();
+				shouldBeVisible = lunFriendNicknames.has(pName) || (Boolean(origName) && lunFriendNicknames.has(origName));
+			}
+
+			if (typeof t.container.traverse === "function") {
+				t.container.traverse(obj => {
+					if (obj && obj.isSprite) {
+						if (typeof hookSpritePrototypeOnce === "function") hookSpritePrototypeOnce(obj);
+						if (obj.position && obj.position.y > 0.5) {
+							obj.visible = shouldBeVisible;
+						}
+					}
+				});
+			}
+		});
+	}
 	updateKnownBotVisibility();
 	hookKnownBotHeartEmotes();
 	hookKnownBotPlayerEmotesForAll();
@@ -24784,65 +25563,6 @@ function hookGameStateOnce() {
 			}
 			return origHandleQuestProgress(e);
 		};
-	}
-
-	if (typeof gameState.handlePartyInfo === "function" && !gameState.__speakiHandlePartyInfoHooked) {
-		gameState.__speakiHandlePartyInfoHooked = true;
-		const origHandlePartyInfo = gameState.handlePartyInfo.bind(gameState);
-		gameState.handlePartyInfo = function(e) {
-			const res = origHandlePartyInfo(e);
-			try {
-				if (typeof updateNametagVisibility === "function") {
-					updateNametagVisibility();
-				}
-			} catch (_) {}
-			return res;
-		};
-	}
-
-	if (gameState.remotePlayers && typeof gameState.remotePlayers.applyPartyMembershipAll === "function" && !gameState.remotePlayers.__speakiPartyHooked) {
-		gameState.remotePlayers.__speakiPartyHooked = true;
-		const origApplyPartyMembershipAll = gameState.remotePlayers.applyPartyMembershipAll.bind(gameState.remotePlayers);
-		gameState.remotePlayers.applyPartyMembershipAll = function() {
-			const res = origApplyPartyMembershipAll.apply(this, arguments);
-			try {
-				if (typeof updateNametagVisibility === "function") {
-					updateNametagVisibility();
-				}
-			} catch (_) {}
-			return res;
-		};
-	}
-
-	if (!gameState.__speakiOnFriendAcceptedHooked) {
-		gameState.__speakiOnFriendAcceptedHooked = true;
-		let currentFriendAccepted = gameState.onFriendAccepted;
-		Object.defineProperty(gameState, "onFriendAccepted", {
-			configurable: true,
-			enumerable: true,
-			get() {
-				return currentFriendAccepted;
-			},
-			set(fn) {
-				currentFriendAccepted = function(e) {
-					const r = typeof fn === "function" ? fn(e) : undefined;
-					try {
-						if (typeof fetchFriendsList === "function") fetchFriendsList(true);
-					} catch (_) {}
-					return r;
-				};
-			}
-		});
-		if (typeof currentFriendAccepted === "function") {
-			const old = currentFriendAccepted;
-			currentFriendAccepted = function(e) {
-				const r = old(e);
-				try {
-					if (typeof fetchFriendsList === "function") fetchFriendsList(true);
-				} catch (_) {}
-				return r;
-			};
-		}
 	}
 
 	if (gameState.combatAssist && typeof gameState.combatAssist.update === "function" && !gameState.combatAssist.__speakiHooked) {
@@ -26223,7 +26943,8 @@ window.addEventListener("keydown", e => {
 			lunHudElements.eventModal,
 			lunHudElements.statsModal,
 			lunHudElements.jukeboxModal,
-			lunHudElements.customCssModal
+			lunHudElements.customCssModal,
+			lunHudElements.resourcePackModal
 		].filter(m => m && !m.classList.contains("hidden"));
 
 		if (candidateModals.length > 0) {
