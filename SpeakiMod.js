@@ -10376,8 +10376,16 @@ async function spkmodFetchResourcePacksXml() {
 			if (packs && packs.length > 0) return packs;
 		}
 	} catch (e) {
-		console.warn("[SpeakiMod+] Failed to load remote resourcespacks.xml:", e);
+		console.warn("[SpeakiMod+] Failed to load remote resourcespacks.xml, checking local file:", e);
 	}
+	try {
+		const localRes = await fetch("resourcespacks.xml?t=" + Date.now());
+		if (localRes.ok) {
+			const xmlText = await localRes.text();
+			const packs = spkmodParseResourcePacksXml(xmlText);
+			if (packs && packs.length > 0) return packs;
+		}
+	} catch (_) {}
 	return spkmodGetFallbackResourcePacks();
 }
 
