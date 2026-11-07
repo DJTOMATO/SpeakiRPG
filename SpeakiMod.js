@@ -1777,6 +1777,36 @@ if (window.localStorage) {
 		}
 	} catch (e) { }
 }
+
+var lunFriendshipNicknamesById = new Map();
+
+function replaceFriendNicknames(data) {
+    const friends = data?.friends;
+
+    if (!Array.isArray(friends)) return;
+
+    const nextNames = new Set();
+    const nextIds = new Map();
+
+    for (const f of friends) {
+        if (typeof f?.nickname !== "string") continue;
+        const nick = f.nickname.trim().toLowerCase();
+        if (!nick) continue;
+        nextNames.add(nick);
+        if (f.friendshipId != null) nextIds.set(String(f.friendshipId), nick);
+    }
+
+    lunFriendNicknames.clear();
+
+    for (const nick of nextNames) lunFriendNicknames.add(nick);
+
+    lunFriendshipNicknamesById = nextIds;
+
+    try {
+        localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
+    } catch (_) {}
+}
+
 var lunFriendChatHighlightEnabled = (window.localStorage && localStorage.getItem("spkmod-friend-highlight-enabled")) === "true";
 
 function setFriendChatHighlightEnabled(enabled) {
@@ -1793,11 +1823,15 @@ function setPartyChatHighlightEnabled(enabled) {
 
 var lunLastFriendFetchTime = 0;
 var lunFriendFetchInProgress = false;
+var lunFriendFetchQueued = false;
 
 function fetchFriendsList(force = false) {
 	const now = Date.now();
 	if (!force && now - lunLastFriendFetchTime < 60000) return;
-	if (lunFriendFetchInProgress) return;
+	if (lunFriendFetchInProgress) {
+		if (force) lunFriendFetchQueued = true;
+		return;
+	}
 	let token = (typeof window.getNativeAuthToken === "function" ? window.getNativeAuthToken() : "") ||
 	            (typeof getAuthToken === "function" ? getAuthToken() : "") || 
 	            (typeof lunSpkAuthToken === "string" ? lunSpkAuthToken : "");
@@ -1811,23 +1845,8 @@ function fetchFriendsList(force = false) {
 	const targetUrl = endpoint + "/api/friend/list";
 	const headers = {};
 	if (token) headers["authorization"] = `Bearer ${token}`;
-
-	const applyFriendData = (data) => {
-		const friends = data?.friends;
-		if (Array.isArray(friends)) {
-			friends.forEach(f => {
-				if (f && typeof f.nickname === "string") {
-					const nick = f.nickname.trim().toLowerCase();
-					if (nick) lunFriendNicknames.add(nick);
-				}
-			});
-			if (window.localStorage) {
-				try {
-					localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
-				} catch(e) {}
-			}
-		}
-	};
+	
+	const applyFriendData = replaceFriendNicknames;
 
 	(async () => {
 		try {
@@ -1874,6 +1893,10 @@ function fetchFriendsList(force = false) {
 			// Ensure cooldown is ALWAYS recorded to prevent per-frame request flood
 			lunLastFriendFetchTime = Date.now();
 			lunFriendFetchInProgress = false;
+			if (lunFriendFetchQueued) {
+				lunFriendFetchQueued = false;
+				fetchFriendsList(true);
+			}
 		}
 	})();
 }
@@ -2060,24 +2083,22 @@ window.fetch = async function(...args) {
                 }
             }).catch(() => {});
         }
-        if (url.includes('/api/friend/list')) {
-            response.clone().json().then(data => {
-                const friends = data?.friends;
-                if (Array.isArray(friends)) {
-                    friends.forEach(f => {
-                        if (f && typeof f.nickname === "string") {
-                            const nick = f.nickname.trim().toLowerCase();
-                            if (nick) lunFriendNicknames.add(nick);
-                        }
-                    });
-                    if (window.localStorage) {
-                        try {
-                            localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
-                        } catch(e) {}
-                    }
-                }
-            }).catch(() => {});
-        }
+		if (url.includes('/api/friend/list')) {
+			response.clone().json().then(replaceFriendNicknames).catch(() => {});
+		}
+		const friendDeleteMatch = url.match(/\/api\/friend\/([^/?#]+)\/?$/);
+		if (method === "DELETE" && response.ok && friendDeleteMatch) {
+			const friendshipId = decodeURIComponent(friendDeleteMatch[1]);
+			const deletedNickname = lunFriendshipNicknamesById.get(friendshipId);
+			if (deletedNickname) {
+				lunFriendNicknames.delete(deletedNickname);
+				lunFriendshipNicknamesById.delete(friendshipId);
+				try {
+					localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
+				} catch (_) {}
+			}
+			fetchFriendsList(true);
+		}
         if (url.includes('/api/block') && method === 'DELETE') {
             try {
                 let parts = url.split('/');
@@ -7289,7 +7310,7 @@ document.body.appendChild(lunHudElements.lowHpOverlay);
 	if (isMobileDevice) {
 		const mobileBtnContainer = document.createElement("div");
 				mobileBtnContainer.id = "spkmod-mobile-btn-container";
-		mobileBtnContainer.style.cssText = "position: fixed; bottom: 80px; left: 10px; z-index: 999999; display: flex; flex-direction: column; gap: 8px;";
+		mobileBtnContainer.style.cssText = "position: fixed; bottom: 80px; left: 10px; z-index: 2147483647; display: flex; flex-direction: column; gap: 8px;";
 		
 		const createToggleBtn = (id, icon, onClick) => {
 			const btn = document.createElement("button");
@@ -23525,7 +23546,7 @@ function hookAvatarLabel(entity, explicitContainer) {
 				shouldBeVisible = false;
 			} else if (lunNametagMode === 1) {
 				if (partyNames === null) {
-					partyNames = new Set(Array.from(document.querySelectorAll('.sr-party__name')).map(el => el.innerText.trim().toLowerCase()));
+					partyNames = new Set(Array.from(gameState?.partyMemberNamesBySlot?.values?.() ?? []).map(name => String(name ?? "").trim().toLowerCase()).filter(Boolean));
 				}
 				const pName = (t.info?.name || "").trim().toLowerCase();
 				const origName = (t.info?.__spkmodOrigName || "").trim().toLowerCase();
@@ -24640,16 +24661,37 @@ function spkmodResetFpsBaseline() {
 }
 
 document.addEventListener("visibilitychange", spkmodResetFpsBaseline);
+
+// We no longer need to rely on a specific class named "sr-game-canvas"
 const spkmodGameGl = new WeakSet();
 
 function spkmodIsGameGl(gl) {
-	if (spkmodGameGl.has(gl)) return true;
-	const cl = gl.canvas && gl.canvas.classList;
-	if (cl && (cl.contains("sr-game-canvas") || cl.contains("canvas"))) {
-		spkmodGameGl.add(gl);
-		return true;
-	}
-	return false;
+    if (!gl) return false;
+
+    // If already identified as a game rendering context
+    if (spkmodGameGl.has(gl)) return true;
+
+    const canvas = gl.canvas;
+
+    // Verify if it is an actual HTML Canvas
+    if (!canvas || !canvas.isConnected || typeof canvas.getBoundingClientRect !== "function") return false;
+
+    // Check if there are any bounds that are reflected on the screen
+    const rect = canvas.getBoundingClientRect();
+
+    if (rect.width <= 0 || rect.height <= 0) {
+        return false;
+    }
+
+    // Exclude canvases that are not displayed on screen
+    const style = canvas.ownerDocument.defaultView?.getComputedStyle(canvas);
+
+    if (style && (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0)) return false;
+
+    // Registering Game Rendering Context
+    spkmodGameGl.add(gl);
+
+    return true;
 }
 
 (function installGameFpsHooks() {
