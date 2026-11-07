@@ -7241,7 +7241,7 @@ document.head.appendChild(buildElement(
 		#spkmod-info-modal, #spkmod-effects-modal, #spkmod-stats-modal,
 		#spkmod-edits-modal, #spkmod-quests-modal, #spkmod-map-modal,
 		#spkmod-jukebox-modal, #spkmod-css-modal, .spkmod-music-modal,
-		#spkmod-resource-pack-modal {
+		#spkmod-resource-pack-modal, .spkmod-floating-button {
 			z-index: 2147483645 !important;
 		}
 
@@ -13061,7 +13061,7 @@ function spkmodSpawnFloatingButton(sourceBtn, initialX, initialY, isRestoring = 
         position: fixed;
         left: ${spawnLeft}px;
         top: ${spawnTop}px;
-        z-index: 100000;
+        z-index: 2147483645;
         background: rgba(18, 22, 28, 0.92);
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
@@ -13130,6 +13130,9 @@ function spkmodSpawnFloatingButton(sourceBtn, initialX, initialY, isRestoring = 
 
     // Hover effect
     floatingBtn.onmouseenter = () => {
+        if (document.pointerLockElement) {
+            try { document.exitPointerLock(); } catch (_) {}
+        }
         floatingBtn.style.boxShadow = "0 6px 20px rgba(0, 0, 0, 0.8), 0 0 14px rgba(255, 213, 74, 0.5)";
         floatingBtn.style.borderColor = "#ffd54a";
     };
@@ -13195,6 +13198,9 @@ function spkmodSpawnFloatingButton(sourceBtn, initialX, initialY, isRestoring = 
 
     floatingBtn.onpointerdown = (e) => {
         if (e.button !== 0) return; // Only primary mouse button
+        if (document.pointerLockElement) {
+            try { document.exitPointerLock(); } catch (_) {}
+        }
         isDragging = false;
         startX = e.clientX;
         startY = e.clientY;
