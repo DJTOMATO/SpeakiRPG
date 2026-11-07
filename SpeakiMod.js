@@ -1456,6 +1456,15 @@ function t(key, ...args) {
 	return str;
 }
 
+function tCustom(key, fallback, ...args) {
+	var str = (typeof spkmodTranslations !== "undefined" && spkmodTranslations[spkmodLang] && spkmodTranslations[spkmodLang][key])
+		|| (typeof spkmodTranslations !== "undefined" && spkmodTranslations.en && spkmodTranslations.en[key]);
+	if (!str) return fallback || key;
+	args.forEach((a, i) => { str = str.split(`{${i}}`).join(a); });
+	return str;
+}
+window.tCustom = tCustom;
+
 function getZoneName(zoneId) {
 	const zid = String(zoneId);
 	const localName = spkmodTranslations[spkmodLang]?.mapLocations?.[zid]
