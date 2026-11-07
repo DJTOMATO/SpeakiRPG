@@ -1456,6 +1456,14 @@ function t(key, ...args) {
 	return str;
 }
 
+function tCustom(key, fallback, ...args) {
+	var str = (spkmodTranslations[spkmodLang] && spkmodTranslations[spkmodLang][key])
+		|| (spkmodTranslations.en && spkmodTranslations.en[key]);
+	if (!str) return fallback || key;
+	args.forEach((a, i) => { str = str.split(`{${i}}`).join(a); });
+	return str;
+}
+
 function getZoneName(zoneId) {
 	const zid = String(zoneId);
 	const localName = spkmodTranslations[spkmodLang]?.mapLocations?.[zid]
@@ -1585,14 +1593,18 @@ var customCssModalElements = {
 	headerRow: null,
 	headerTitle: null,
 	statusBadge: null,
+	profileLabel: null,
 	profileSelect: null,
 	newBtn: null,
 	renameBtn: null,
 	deleteBtn: null,
+	enableLabel: null,
 	enableToggle: null,
 	saveBtn: null,
+	livePreviewLabel: null,
 	livePreviewToggle: null,
 	snippetsSelect: null,
+	exportSelect: null,
 	exportBtn: null,
 	importBtn: null,
 	resetBtn: null,
@@ -8681,8 +8693,8 @@ document.body.appendChild(
 					id: "spkmod-settings-css-btn",
 					className: "spkmod-panel-btn",
 					style: "padding: 2px 6px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;",
-					innerText: "🎨 " + (t("customCssBtn") || "Custom CSS"),
-					title: t("customCssBtnTooltip") || "Edit custom CSS styles and themes",
+					innerText: "🎨 " + tCustom("customCssBtn", "Custom CSS"),
+					title: tCustom("customCssBtnTooltip", "Edit custom CSS styles and themes"),
 					onclick: (e) => {
 						e.preventDefault();
 						if (typeof toggleCustomCssModal === "function") {
@@ -9239,8 +9251,8 @@ document.body.appendChild(
 						id: "spkmod-open-custom-css-btn",
 						className: "spkmod-panel-btn",
 						style: "width: 100%; padding: 5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; background: #262626; border: 1px solid #555;",
-						innerText: "🎨 " + (t("customCssTitle") || "Custom CSS & Themes"),
-						title: t("customCssBtnTooltip") || "Edit custom CSS styles and themes",
+						innerText: "🎨 " + tCustom("customCssTitle", "Custom CSS & Themes"),
+						title: tCustom("customCssBtnTooltip", "Edit custom CSS styles and themes"),
 						onclick: e => {
 							e.preventDefault();
 							if (typeof toggleCustomCssModal === "function") toggleCustomCssModal();
@@ -9379,39 +9391,28 @@ const SPKMOD_DEFAULT_CSS = `/* Custom SpeakiMod CSS & Themes */
 
 const SPKMOD_CSS_SNIPPETS = [
 	{
-		label: "Dark Glass Panels",
+		key: "customCssSnippetDarkGlass",
+		defaultLabel: "Dark Glass Panels",
 		code: `/* Dark Glass Panels */\n.spkmod-panel-cat, #spkmod-settings-modal, #spkmod-bbs-modal, #spkmod-quests-modal {\n  background: rgba(10, 10, 15, 0.75) !important;\n  backdrop-filter: blur(8px) !important;\n  border: 1px solid rgba(255, 255, 255, 0.15) !important;\n}\n`
 	},
 	{
-		label: "Golden Fantasy Theme",
+		key: "customCssSnippetGolden",
+		defaultLabel: "Golden Fantasy Theme",
 		code: `/* Golden Fantasy Theme */\n.spkmod-panel-btn, .spkmod-panel-combo {\n  border-color: #d4af37 !important;\n  color: #f7e7a9 !important;\n  box-shadow: 0 0 5px rgba(212, 175, 55, 0.4) !important;\n}\n#spkmod-hud, #spkmod-settings-modal {\n  border: 2px solid #d4af37 !important;\n}\n`
 	},
 	{
-		label: "Cyberpunk Neon Cyan",
+		key: "customCssSnippetCyberpunk",
+		defaultLabel: "Cyberpunk Neon Cyan",
 		code: `/* Cyberpunk Neon Cyan */\n#spkmod-hud, #spkmod-settings-modal, #spkmod-bbs-modal, #spkmod-quests-modal, #spkmod-css-modal {\n  border: 1.5px solid #00f0ff !important;\n  box-shadow: 0 0 12px rgba(0, 240, 255, 0.5) !important;\n}\n.spkmod-panel-btn {\n  border-color: #00f0ff !important;\n  color: #00f0ff !important;\n}\n`
 	},
 	{
-		label: "Compact HUD",
+		key: "customCssSnippetCompactHud",
+		defaultLabel: "Compact HUD",
 		code: `/* Compact HUD */\n#spkmod-hud {\n  padding: 4px 6px !important;\n  gap: 2px !important;\n  opacity: 0.85 !important;\n}\n#spkmod-hud:hover {\n  opacity: 1 !important;\n}\n`
 	},
 	{
-		label: "Canvas Visual Filter (Vibrant)",
-		code: `/* Canvas Visual Filter (Vibrant) */\ncanvas#application-canvas, canvas.game-canvas {\n  filter: contrast(1.1) saturate(1.25) brightness(1.02) !important;\n}\n`
-	},
-	{
-		label: "Canvas Visual Filter (Night / Dim)",
-		code: `/* Canvas Visual Filter (Night / Dim) */\ncanvas#application-canvas, canvas.game-canvas {\n  filter: brightness(0.7) contrast(1.1) !important;\n}\n`
-	},
-	{
-		label: "Canvas Visual Filter (Retro Sepia)",
-		code: `/* Canvas Visual Filter (Retro Sepia) */\ncanvas#application-canvas, canvas.game-canvas {\n  filter: sepia(0.35) contrast(1.05) !important;\n}\n`
-	},
-	{
-		label: "Hide Floating Buttons",
-		code: `/* Hide Floating Buttons */\n#spkmod-floating-buttons {\n  display: none !important;\n}\n`
-	},
-	{
-		label: "Custom Game Font",
+		key: "customCssSnippetCustomFont",
+		defaultLabel: "Custom Game Font",
 		code: `/* Custom Game Font */\nbody, button, input, select, textarea, #spkmod-main {\n  font-family: 'Segoe UI', system-ui, sans-serif !important;\n}\n`
 	}
 ];
@@ -9500,11 +9501,11 @@ function updateCustomCssStatus(saved) {
 	lunCustomCssHasUnsavedChanges = !saved;
 	if (customCssModalElements.statusBadge) {
 		if (saved) {
-			customCssModalElements.statusBadge.innerText = t("customCssSaved") || "✓ Saved";
+			customCssModalElements.statusBadge.innerText = tCustom("customCssSaved", "✓ Saved");
 			customCssModalElements.statusBadge.style.color = "#4ade80";
 			customCssModalElements.statusBadge.style.borderColor = "rgba(74, 222, 128, 0.4)";
 		} else {
-			customCssModalElements.statusBadge.innerText = t("customCssUnsaved") || "● Unsaved";
+			customCssModalElements.statusBadge.innerText = tCustom("customCssUnsaved", "● Unsaved");
 			customCssModalElements.statusBadge.style.color = "#fbbf24";
 			customCssModalElements.statusBadge.style.borderColor = "rgba(251, 191, 36, 0.4)";
 		}
@@ -9564,6 +9565,47 @@ function insertCssSnippet(snippetCode) {
 	}
 }
 
+function renderCustomCssSnippetsDropdown() {
+	if (!customCssModalElements.snippetsSelect) return;
+	const sel = customCssModalElements.snippetsSelect;
+	sel.innerHTML = "";
+	const placeholder = document.createElement("option");
+	placeholder.value = "";
+	placeholder.innerText = "📋 " + tCustom("customCssSnippets", "Snippets");
+	sel.appendChild(placeholder);
+	SPKMOD_CSS_SNIPPETS.forEach((snip, i) => {
+		const opt = document.createElement("option");
+		opt.value = String(i);
+		opt.innerText = tCustom(snip.key, snip.defaultLabel);
+		sel.appendChild(opt);
+	});
+}
+
+function renderCustomCssExportDropdown() {
+	if (!customCssModalElements.exportSelect) return;
+	const sel = customCssModalElements.exportSelect;
+	sel.innerHTML = "";
+	const placeholder = document.createElement("option");
+	placeholder.value = "";
+	placeholder.innerText = "📤 " + tCustom("customCssExport", "Export");
+	sel.appendChild(placeholder);
+
+	const optCss = document.createElement("option");
+	optCss.value = "css";
+	optCss.innerText = tCustom("customCssExportCss", "Export .css");
+	sel.appendChild(optCss);
+
+	const optJson = document.createElement("option");
+	optJson.value = "json";
+	optJson.innerText = tCustom("customCssExportAll", "Export All (.json)");
+	sel.appendChild(optJson);
+
+	const optCopy = document.createElement("option");
+	optCopy.value = "copy";
+	optCopy.innerText = tCustom("customCssCopyClipboard", "Copy CSS");
+	sel.appendChild(optCopy);
+}
+
 function downloadTextFile(filename, text, mimeType = "text/plain;charset=utf-8") {
 	const blob = new Blob([text], { type: mimeType });
 	const url = URL.createObjectURL(blob);
@@ -9602,8 +9644,8 @@ function fallbackCopyText(text) {
 	dummy.select();
 	try {
 		document.execCommand("copy");
-		if (typeof chatLog === "function") chatLog(t("customCssCopied") || "CSS copied to clipboard!");
-		else alert(t("customCssCopied") || "CSS copied to clipboard!");
+		if (typeof chatLog === "function") chatLog(tCustom("customCssCopied", "CSS copied to clipboard!"));
+		else alert(tCustom("customCssCopied", "CSS copied to clipboard!"));
 	} catch (_) {}
 	document.body.removeChild(dummy);
 }
@@ -9613,9 +9655,9 @@ function copyCustomCssToClipboard() {
 	if (navigator.clipboard && navigator.clipboard.writeText) {
 		navigator.clipboard.writeText(text).then(() => {
 			if (typeof chatLog === "function") {
-				chatLog(t("customCssCopied") || "CSS copied to clipboard!");
+				chatLog(tCustom("customCssCopied", "CSS copied to clipboard!"));
 			} else {
-				alert(t("customCssCopied") || "CSS copied to clipboard!");
+				alert(tCustom("customCssCopied", "CSS copied to clipboard!"));
 			}
 		}).catch(() => {
 			fallbackCopyText(text);
@@ -9650,7 +9692,7 @@ function importCustomCssFile(file) {
 					updateCustomCssProfileDropdown();
 					loadActiveProfileIntoEditor();
 					applyCustomCss();
-					alert(`Imported ${count} profile(s) successfully!`);
+					alert(tCustom("customCssImportSuccess", `Imported ${count} profile(s) successfully!`, count));
 				}
 			} else {
 				let profileName = file.name.replace(/\.css$/i, "").trim();
@@ -9664,7 +9706,7 @@ function importCustomCssFile(file) {
 				updateCustomCssProfileDropdown();
 				loadActiveProfileIntoEditor();
 				applyCustomCss();
-				alert(`Imported profile "${profileName}" successfully!`);
+				alert(tCustom("customCssImportSuccess", `Imported 1 profile(s) successfully!`, 1));
 			}
 		} catch (err) {
 			alert("Failed to import file: " + (err && err.message ? err.message : "Invalid format"));
@@ -9674,12 +9716,12 @@ function importCustomCssFile(file) {
 }
 
 function createNewCssProfile() {
-	const promptText = t("customCssPromptNew") || "Enter new profile name:";
+	const promptText = tCustom("customCssPromptNew", "Enter new profile name:");
 	const name = prompt(promptText);
 	if (!name || !name.trim()) return;
 	const trimmed = name.trim();
 	if (lunCustomCssProfiles[trimmed] !== undefined) {
-		alert("A profile with this name already exists.");
+		alert(tCustom("customCssProfileExists", "A profile with this name already exists."));
 		return;
 	}
 	lunCustomCssProfiles[trimmed] = (customCssModalElements.textarea ? customCssModalElements.textarea.value : lunCustomCssProfiles[lunCustomCssActiveProfile]) || SPKMOD_DEFAULT_CSS;
@@ -9690,13 +9732,13 @@ function createNewCssProfile() {
 }
 
 function renameCurrentCssProfile() {
-	const promptTpl = t("customCssPromptRename") || "Enter new name for profile '{0}':";
-	const promptText = promptTpl.replace("{0}", lunCustomCssActiveProfile);
+	const promptTpl = tCustom("customCssPromptRename", "Enter new name for profile '{0}':", lunCustomCssActiveProfile);
+	const promptText = promptTpl.includes("{0}") ? promptTpl.replace("{0}", lunCustomCssActiveProfile) : promptTpl;
 	const newName = prompt(promptText, lunCustomCssActiveProfile);
 	if (!newName || !newName.trim() || newName.trim() === lunCustomCssActiveProfile) return;
 	const trimmed = newName.trim();
 	if (lunCustomCssProfiles[trimmed] !== undefined) {
-		alert("A profile with this name already exists.");
+		alert(tCustom("customCssProfileExists", "A profile with this name already exists."));
 		return;
 	}
 	const currentContent = (customCssModalElements.textarea ? customCssModalElements.textarea.value : lunCustomCssProfiles[lunCustomCssActiveProfile]) || "";
@@ -9710,11 +9752,11 @@ function renameCurrentCssProfile() {
 function deleteCurrentCssProfile() {
 	const keys = Object.keys(lunCustomCssProfiles);
 	if (keys.length <= 1) {
-		alert("Cannot delete the only profile.");
+		alert(tCustom("customCssCannotDeleteOnly", "Cannot delete the only profile."));
 		return;
 	}
-	const confirmTpl = t("customCssConfirmDelete") || "Are you sure you want to delete profile '{0}'?";
-	const confirmText = confirmTpl.replace("{0}", lunCustomCssActiveProfile);
+	const confirmTpl = tCustom("customCssConfirmDelete", "Are you sure you want to delete profile '{0}'?", lunCustomCssActiveProfile);
+	const confirmText = confirmTpl.includes("{0}") ? confirmTpl.replace("{0}", lunCustomCssActiveProfile) : confirmTpl;
 	if (!confirm(confirmText)) return;
 	delete lunCustomCssProfiles[lunCustomCssActiveProfile];
 	lunCustomCssActiveProfile = Object.keys(lunCustomCssProfiles)[0] || "Default";
@@ -9725,7 +9767,7 @@ function deleteCurrentCssProfile() {
 }
 
 function resetCurrentCssProfile() {
-	if (!confirm("Reset current profile CSS to default template?")) return;
+	if (!confirm(tCustom("customCssConfirmReset", "Reset current profile CSS to default template?"))) return;
 	if (customCssModalElements.textarea) {
 		customCssModalElements.textarea.value = SPKMOD_DEFAULT_CSS;
 	}
@@ -9764,11 +9806,11 @@ function buildCustomCssModal() {
 			buildElement("div", { style: "display: flex; align-items: center; gap: 8px;" }, [
 				customCssModalElements.headerTitle = buildElement("span", {
 					style: "font-weight: bold; font-size: 13px; color: #FFF; display: flex; align-items: center; gap: 4px;",
-					innerText: "🎨 " + (t("customCssTitle") || "Custom CSS & Themes")
+					innerText: "🎨 " + tCustom("customCssTitle", "Custom CSS & Themes")
 				}),
 				customCssModalElements.statusBadge = buildElement("span", {
 					style: "border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 4px; padding: 1px 6px; font-size: 10px; color: #4ade80; user-select: none;",
-					innerText: t("customCssSaved") || "✓ Saved"
+					innerText: tCustom("customCssSaved", "✓ Saved")
 				})
 			]),
 			buildElement("div", { style: "display: flex; align-items: center; gap: 10px;" }, [
@@ -9785,7 +9827,7 @@ function buildCustomCssModal() {
 							applyCustomCss();
 						}
 					}),
-					buildElement("span", { innerText: t("customCssEnable") || "Active" })
+					customCssModalElements.enableLabel = buildElement("span", { innerText: tCustom("customCssEnable", "Active") })
 				]),
 				buildElement("span", {
 					style: "cursor: pointer; font-size: 14px; color: #aaa; padding: 0 4px; line-height: 1;",
@@ -9801,16 +9843,16 @@ function buildCustomCssModal() {
 			className: "spkmod-panel-cat",
 			style: "gap: 6px; align-items: center;"
 		}, [
-			buildElement("span", {
+			customCssModalElements.profileLabel = buildElement("span", {
 				style: "font-size: 11px; color: #aaa; user-select: none;",
-				innerText: t("customCssProfile") || "Profile:"
+				innerText: tCustom("customCssProfile", "Profile:")
 			}),
 			customCssModalElements.profileSelect = buildElement("select", {
 				className: "spkmod-panel-combo",
 				style: "flex: 1; padding: 3px 6px; font-size: 11px; cursor: pointer;",
 				onchange: e => {
 					if (lunCustomCssHasUnsavedChanges) {
-						if (!confirm("You have unsaved changes. Switch profile anyway?")) {
+						if (!confirm(tCustom("customCssConfirmSwitch", "You have unsaved changes. Switch profile anyway?"))) {
 							e.target.value = lunCustomCssActiveProfile;
 							return;
 						}
@@ -9824,19 +9866,19 @@ function buildCustomCssModal() {
 			customCssModalElements.newBtn = buildElement("button", {
 				className: "spkmod-panel-btn",
 				style: "flex: 0 0 auto; padding: 3px 8px; font-size: 11px;",
-				innerText: t("customCssNewProfile") || "+ New",
+				innerText: tCustom("customCssNewProfile", "+ New"),
 				onclick: () => createNewCssProfile()
 			}),
 			customCssModalElements.renameBtn = buildElement("button", {
 				className: "spkmod-panel-btn",
 				style: "flex: 0 0 auto; padding: 3px 8px; font-size: 11px;",
-				innerText: t("customCssRenameProfile") || "Rename",
+				innerText: tCustom("customCssRenameProfile", "Rename"),
 				onclick: () => renameCurrentCssProfile()
 			}),
 			customCssModalElements.deleteBtn = buildElement("button", {
 				className: "spkmod-panel-btn",
 				style: "flex: 0 0 auto; padding: 3px 8px; font-size: 11px; color: #f87171;",
-				innerText: t("customCssDeleteProfile") || "Delete",
+				innerText: tCustom("customCssDeleteProfile", "Delete"),
 				onclick: () => deleteCurrentCssProfile()
 			})
 		]),
@@ -9849,7 +9891,7 @@ function buildCustomCssModal() {
 			customCssModalElements.saveBtn = buildElement("button", {
 				className: "spkmod-panel-btn",
 				style: "flex: 0 0 auto; padding: 3px 10px; font-size: 11px; font-weight: bold; background: #1a472a; border-color: #4ade80; color: #4ade80;",
-				innerText: "💾 " + (t("customCssSaveApply") || "Apply & Save"),
+				innerText: "💾 " + tCustom("customCssSaveApply", "Apply & Save"),
 				title: "Save and apply styles (Ctrl+S)",
 				onclick: () => saveAndApplyCustomCss()
 			}),
@@ -9868,7 +9910,7 @@ function buildCustomCssModal() {
 						}
 					}
 				}),
-				buildElement("span", { innerText: t("customCssLivePreview") || "Live Preview" })
+				customCssModalElements.livePreviewLabel = buildElement("span", { innerText: tCustom("customCssLivePreview", "Live Preview") })
 			]),
 			customCssModalElements.snippetsSelect = buildElement("select", {
 				className: "spkmod-panel-combo",
@@ -9880,11 +9922,8 @@ function buildCustomCssModal() {
 					}
 					e.target.selectedIndex = 0;
 				}
-			}, [
-				buildElement("option", { value: "", innerText: "📋 " + (t("customCssSnippets") || "Snippets") }),
-				...SPKMOD_CSS_SNIPPETS.map((snip, i) => buildElement("option", { value: String(i), innerText: snip.label }))
-			]),
-			buildElement("select", {
+			}),
+			customCssModalElements.exportSelect = buildElement("select", {
 				className: "spkmod-panel-combo",
 				style: "flex: 0 0 auto; padding: 3px 6px; font-size: 11px; cursor: pointer;",
 				onchange: e => {
@@ -9894,23 +9933,18 @@ function buildCustomCssModal() {
 					else if (val === "copy") copyCustomCssToClipboard();
 					e.target.selectedIndex = 0;
 				}
-			}, [
-				buildElement("option", { value: "", innerText: "📤 " + (t("customCssExport") || "Export") }),
-				buildElement("option", { value: "css", innerText: t("customCssExportCss") || "Export .css" }),
-				buildElement("option", { value: "json", innerText: t("customCssExportAll") || "Export All (.json)" }),
-				buildElement("option", { value: "copy", innerText: t("customCssCopyClipboard") || "Copy CSS" })
-			]),
+			}),
 			customCssModalElements.importBtn = buildElement("button", {
 				className: "spkmod-panel-btn",
 				style: "flex: 0 0 auto; padding: 3px 8px; font-size: 11px;",
-				innerText: "📥 " + (t("customCssImport") || "Import"),
+				innerText: "📥 " + tCustom("customCssImport", "Import"),
 				title: "Import .css or .json themes",
 				onclick: () => hiddenFileInput.click()
 			}),
 			customCssModalElements.resetBtn = buildElement("button", {
 				className: "spkmod-panel-btn",
 				style: "flex: 0 0 auto; padding: 3px 8px; font-size: 11px;",
-				innerText: t("customCssReset") || "Reset",
+				innerText: tCustom("customCssReset", "Reset"),
 				title: "Reset current profile to default template",
 				onclick: () => resetCurrentCssProfile()
 			})
@@ -9960,7 +9994,7 @@ function buildCustomCssModal() {
 		}, [
 			customCssModalElements.tipLabel = buildElement("span", {
 				style: "font-size: 10px; color: #888; user-select: none; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-				innerText: t("customCssTip") || "Tip: Use !important to override game styles. Ctrl+S to save."
+				innerText: tCustom("customCssTip", "Tip: Use !important to override game styles. Ctrl+S to save.")
 			}),
 			customCssModalElements.resizeHandle = buildElement("div", {
 				style: "position: absolute; right: -6px; bottom: -6px; width: 18px; height: 18px; cursor: nwse-resize; display: flex; align-items: flex-end; justify-content: flex-end; padding: 2px; user-select: none; z-index: 10;",
@@ -9981,6 +10015,8 @@ function buildCustomCssModal() {
 
 	updateCustomCssProfileDropdown();
 	loadActiveProfileIntoEditor();
+	renderCustomCssSnippetsDropdown();
+	renderCustomCssExportDropdown();
 
 	setTimeout(() => {
 		if (typeof makeDraggable === "function" && lunHudElements.customCssModal && customCssModalElements.headerRow) {
@@ -10013,6 +10049,7 @@ function toggleCustomCssModal(explicitState) {
 	const isHidden = lunHudElements.customCssModal.classList.contains("hidden");
 	const shouldShow = explicitState !== undefined ? explicitState : isHidden;
 	if (shouldShow) {
+		updateCustomCssI18n();
 		updateCustomCssProfileDropdown();
 		loadActiveProfileIntoEditor();
 		if (customCssModalElements.enableToggle) {
@@ -10032,23 +10069,50 @@ function toggleCustomCssModal(explicitState) {
 
 function updateCustomCssI18n() {
 	if (lunPanelElements.customCssSettingsBtn) {
-		lunPanelElements.customCssSettingsBtn.innerText = "🎨 " + (t("customCssBtn") || "Custom CSS");
-		lunPanelElements.customCssSettingsBtn.title = t("customCssBtnTooltip") || "Edit custom CSS styles and themes";
+		lunPanelElements.customCssSettingsBtn.innerText = "🎨 " + tCustom("customCssBtn", "Custom CSS");
+		lunPanelElements.customCssSettingsBtn.title = tCustom("customCssBtnTooltip", "Edit custom CSS styles and themes");
 	}
 	if (lunPanelElements.customCssSectionBtn) {
-		lunPanelElements.customCssSectionBtn.innerText = "🎨 " + (t("customCssTitle") || "Custom CSS & Themes");
-		lunPanelElements.customCssSectionBtn.title = t("customCssBtnTooltip") || "Edit custom CSS styles and themes";
+		lunPanelElements.customCssSectionBtn.innerText = "🎨 " + tCustom("customCssTitle", "Custom CSS & Themes");
+		lunPanelElements.customCssSectionBtn.title = tCustom("customCssBtnTooltip", "Edit custom CSS styles and themes");
 	}
 	if (customCssModalElements.headerTitle) {
-		customCssModalElements.headerTitle.innerText = "🎨 " + (t("customCssTitle") || "Custom CSS & Themes");
+		customCssModalElements.headerTitle.innerText = "🎨 " + tCustom("customCssTitle", "Custom CSS & Themes");
 	}
-	if (customCssModalElements.newBtn) customCssModalElements.newBtn.innerText = t("customCssNewProfile") || "+ New";
-	if (customCssModalElements.renameBtn) customCssModalElements.renameBtn.innerText = t("customCssRenameProfile") || "Rename";
-	if (customCssModalElements.deleteBtn) customCssModalElements.deleteBtn.innerText = t("customCssDeleteProfile") || "Delete";
-	if (customCssModalElements.saveBtn) customCssModalElements.saveBtn.innerText = "💾 " + (t("customCssSaveApply") || "Apply & Save");
-	if (customCssModalElements.tipLabel) customCssModalElements.tipLabel.innerText = t("customCssTip") || "Tip: Use !important to override game styles. Ctrl+S to save.";
 	if (customCssModalElements.statusBadge) {
 		updateCustomCssStatus(!lunCustomCssHasUnsavedChanges);
+	}
+	if (customCssModalElements.enableLabel) {
+		customCssModalElements.enableLabel.innerText = tCustom("customCssEnable", "Active");
+	}
+	if (customCssModalElements.profileLabel) {
+		customCssModalElements.profileLabel.innerText = tCustom("customCssProfile", "Profile:");
+	}
+	if (customCssModalElements.newBtn) {
+		customCssModalElements.newBtn.innerText = tCustom("customCssNewProfile", "+ New");
+	}
+	if (customCssModalElements.renameBtn) {
+		customCssModalElements.renameBtn.innerText = tCustom("customCssRenameProfile", "Rename");
+	}
+	if (customCssModalElements.deleteBtn) {
+		customCssModalElements.deleteBtn.innerText = tCustom("customCssDeleteProfile", "Delete");
+	}
+	if (customCssModalElements.saveBtn) {
+		customCssModalElements.saveBtn.innerText = "💾 " + tCustom("customCssSaveApply", "Apply & Save");
+	}
+	if (customCssModalElements.livePreviewLabel) {
+		customCssModalElements.livePreviewLabel.innerText = tCustom("customCssLivePreview", "Live Preview");
+	}
+	renderCustomCssSnippetsDropdown();
+	renderCustomCssExportDropdown();
+	if (customCssModalElements.importBtn) {
+		customCssModalElements.importBtn.innerText = "📥 " + tCustom("customCssImport", "Import");
+	}
+	if (customCssModalElements.resetBtn) {
+		customCssModalElements.resetBtn.innerText = tCustom("customCssReset", "Reset");
+	}
+	if (customCssModalElements.tipLabel) {
+		customCssModalElements.tipLabel.innerText = tCustom("customCssTip", "Tip: Use !important to override game styles. Ctrl+S to save.");
 	}
 }
 

@@ -760,7 +760,17 @@
         "customCssConfirmDelete": "Are you sure you want to delete profile '{0}'?",
         "customCssReset": "Reset",
         "customCssSnippets": "Snippets",
-        "customCssTip": "Tip: Use !important to override game styles. Ctrl+S to save."
+        "customCssTip": "Tip: Use !important to override game styles. Ctrl+S to save.",
+        "customCssSnippetDarkGlass": "Dark Glass Panels",
+        "customCssSnippetGolden": "Golden Fantasy Theme",
+        "customCssSnippetCyberpunk": "Cyberpunk Neon Cyan",
+        "customCssSnippetCompactHud": "Compact HUD",
+        "customCssSnippetCustomFont": "Custom Game Font",
+        "customCssConfirmReset": "Reset current profile CSS to default template?",
+        "customCssConfirmSwitch": "You have unsaved changes. Switch profile anyway?",
+        "customCssProfileExists": "A profile with this name already exists.",
+        "customCssCannotDeleteOnly": "Cannot delete the only profile.",
+        "customCssImportSuccess": "Imported {0} profile(s) successfully!"
     },
     "ja": {
         "langName": "日本語",
@@ -1553,7 +1563,17 @@
         "customCssConfirmDelete": "プロファイル「{0}」を削除してもよろしいですか？",
         "customCssReset": "リセット",
         "customCssSnippets": "スニペット",
-        "customCssTip": "ヒント: スタイルを上書きするには !important を使用してください。Ctrl+Sで保存。"
+        "customCssTip": "ヒント: スタイルを上書きするには !important を使用してください。Ctrl+Sで保存。",
+        "customCssSnippetDarkGlass": "ダークグラスパネル",
+        "customCssSnippetGolden": "ゴールデンファンタジー",
+        "customCssSnippetCyberpunk": "サイバーパンク・ネオン",
+        "customCssSnippetCompactHud": "コンパクトHUD",
+        "customCssSnippetCustomFont": "カスタムフォント",
+        "customCssConfirmReset": "現在のプロファイルのCSSをデフォルトテンプレートにリセットしますか？",
+        "customCssConfirmSwitch": "未保存の変更があります。プロファイルを切り替えますか？",
+        "customCssProfileExists": "この名前のプロファイルは既に存在します。",
+        "customCssCannotDeleteOnly": "唯一のプロファイルを削除することはできません。",
+        "customCssImportSuccess": "{0} 件のプロファイルを正常にインポートしました！"
     },
     "ko": {
         "langName": "한국어",
@@ -2316,7 +2336,17 @@
         "customCssConfirmDelete": "프로필 '{0}'을(를) 삭제하시겠습니까?",
         "customCssReset": "초기화",
         "customCssSnippets": "스니펫",
-        "customCssTip": "팁: 게임 스타일을 덮어쓰려면 !important를 사용하세요. Ctrl+S로 저장."
+        "customCssTip": "팁: 게임 스타일을 덮어쓰려면 !important를 사용하세요. Ctrl+S로 저장.",
+        "customCssSnippetDarkGlass": "다크 글래스 패널",
+        "customCssSnippetGolden": "골든 판타지",
+        "customCssSnippetCyberpunk": "사이버펑크 네온",
+        "customCssSnippetCompactHud": "컴팩트 HUD",
+        "customCssSnippetCustomFont": "커스텀 폰트",
+        "customCssConfirmReset": "현재 프로필의 CSS를 기본 템플릿으로 초기화하시겠습니까?",
+        "customCssConfirmSwitch": "저장되지 않은 변경 사항이 있습니다. 그래도 프로필을 전환하시겠습니까?",
+        "customCssProfileExists": "이 이름의 프로필이 이미 존재합니다.",
+        "customCssCannotDeleteOnly": "유일한 프로필은 삭제할 수 없습니다.",
+        "customCssImportSuccess": "{0}개의 프로필을 성공적으로 가져왔습니다!"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -3079,7 +3109,17 @@
         "customCssConfirmDelete": "您確定要刪除設定檔 '{0}' 嗎？",
         "customCssReset": "重設",
         "customCssSnippets": "程式碼片段",
-        "customCssTip": "提示：使用 !important 可覆寫遊戲樣式。Ctrl+S 儲存。"
+        "customCssTip": "提示：使用 !important 可覆寫遊戲樣式。Ctrl+S 儲存。",
+        "customCssSnippetDarkGlass": "深色玻璃面板",
+        "customCssSnippetGolden": "金色奇幻主題",
+        "customCssSnippetCyberpunk": "賽博朋克霓虹",
+        "customCssSnippetCompactHud": "緊湊型 HUD",
+        "customCssSnippetCustomFont": "自訂字型",
+        "customCssConfirmReset": "要將目前設定檔的 CSS 重設為預設範本嗎？",
+        "customCssConfirmSwitch": "您有未儲存的變更。仍要切換設定檔嗎？",
+        "customCssProfileExists": "已存在同名的設定檔。",
+        "customCssCannotDeleteOnly": "無法刪除唯一的設定檔。",
+        "customCssImportSuccess": "成功匯入 {0} 個設定檔！"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -3842,7 +3882,17 @@
         "customCssConfirmDelete": "您确定要删除配置文件 '{0}' 吗？",
         "customCssReset": "重置",
         "customCssSnippets": "代码片段",
-        "customCssTip": "提示：使用 !important 可覆盖游戏样式。Ctrl+S 保存。"
+        "customCssTip": "提示：使用 !important 可覆盖游戏样式。Ctrl+S 保存。",
+        "customCssSnippetDarkGlass": "深色玻璃面板",
+        "customCssSnippetGolden": "金色奇幻主题",
+        "customCssSnippetCyberpunk": "赛博朋克霓虹",
+        "customCssSnippetCompactHud": "紧凑型 HUD",
+        "customCssSnippetCustomFont": "自定义字体",
+        "customCssConfirmReset": "要将当前配置文件的 CSS 重置为默认模板吗？",
+        "customCssConfirmSwitch": "您有未保存的更改。仍要切换配置文件吗？",
+        "customCssProfileExists": "已存在同名的配置文件。",
+        "customCssCannotDeleteOnly": "无法删除唯一的配置文件。",
+        "customCssImportSuccess": "成功导入 {0} 个配置文件！"
     },
     "es-419": {
         "langName": "Español",
@@ -4605,6 +4655,16 @@
         "customCssConfirmDelete": "¿Está seguro de que desea eliminar el perfil '{0}'?",
         "customCssReset": "Restablecer",
         "customCssSnippets": "Fragmentos",
-        "customCssTip": "Consejo: Use !important para anular estilos del juego. Ctrl+S para guardar."
+        "customCssTip": "Consejo: Use !important para anular estilos del juego. Ctrl+S para guardar.",
+        "customCssSnippetDarkGlass": "Paneles de cristal oscuro",
+        "customCssSnippetGolden": "Tema fantasía dorada",
+        "customCssSnippetCyberpunk": "Neón ciberpunk",
+        "customCssSnippetCompactHud": "HUD compacto",
+        "customCssSnippetCustomFont": "Fuente personalizada",
+        "customCssConfirmReset": "¿Restablecer el CSS del perfil actual a la plantilla predeterminada?",
+        "customCssConfirmSwitch": "Tiene cambios sin guardar. ¿Cambiar de perfil de todos modos?",
+        "customCssProfileExists": "Ya existe un perfil con este nombre.",
+        "customCssCannotDeleteOnly": "No se puede eliminar el único perfil.",
+        "customCssImportSuccess": "¡Se importaron {0} perfil(es) con éxito!"
     }
 }
