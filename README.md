@@ -177,7 +177,7 @@ Designed for screenshot artists, meme makers, and community movie directors! *(N
   * Replace the skybox with studio backdrops (*Chroma Green/Blue/Red/Magenta, Black Void, White Studio, Midnight Navy, Sunset Violet, Cyber Teal*, and 10+ more).
   * Spawn a **Chroma Floor Pad** directly beneath your character (*Square, Wide, Short, Circle, ★ Star*, or **Full Floor** mode to eliminate grey ground clipping) with adjustable size (`0.75x`–`3x`).
 * **👻 Solitude Mode (Alone Mode) + Whitelist:**
-  * Hide all other players and their pets/drones with one click for clean solo recording.
+  * Hide all other players and their drones with one click for clean solo recording.
   * Add comma-separated player names to the **Whitelist** so selected co-stars and friends remain visible and interactive during shoots!
 * **📷 30+ Camera Post-Processing Filters:**
   * Cycle via hotkeys (<kbd>Ctrl</kbd>+<kbd>6</kbd>~<kbd>0</kbd>) or choose from 30+ visual effects including *Normal, Noir (B&W), Retro (Sepia), Morning, Dusk, Night, Vaporwave, Chromatic Aberration, 90s VHS, Cyberpunk, Pastel Anime, Matrix, Monatium Boy, Blood Moon, Synthwave, Golden Hour, Comic Book, Thermal, X-Ray, Virtual Boy, Glitch Art, Rainbow Prism,* and *Supernova*.
@@ -189,7 +189,7 @@ Designed for screenshot artists, meme makers, and community movie directors! *(N
 * **🎭 Crowd Choreographer & Nametag Renaming (`🎬 Local Effects`):**
   * Trigger synchronized animations across everyone on screen: **Dance Everyone**, **Farm Everyone**, **Hobagi Everyone**, **Fly Everyone**, or **Knockout Everyone** (smoothly restores true server animations when reset).
   * Trigger **Cooking Animations** (*Chop, Stir, Plate, Serve, Carry*), **Copter Hat** (Self/All), **Spell Dance**, **Gather Loop**, or **Invisible Self**.
-  * **Local Nametag & Pet Renaming:** Rename any player, pet, or everyone on screen for skits, with savable replacement presets.
+  * **Local Nametag & Player Renaming:** Rename any player or everyone on screen for skits, with savable replacement presets.
 
 ---
 
