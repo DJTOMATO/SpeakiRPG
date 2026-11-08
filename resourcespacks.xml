@@ -169,7 +169,7 @@
             <tile id="50" name="DOOR_OPEN_UPPER">data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAH0lEQVR42mM4sXLyf0owA9UMYCARjBowasCoAVQ2AADiugkYL2a60gAAAABJRU5ErkJggg==</tile>
         </textures>
     </pack>
-    <pack id="obagi" name="OBAGI">
+    <pack id="obagi" name="Dandelion (by OBAGI)">
         <description>Dandelion (by OBAGI)</description>
         <author>OBAGI</author>
         <textures>
