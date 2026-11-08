@@ -853,7 +853,10 @@
         "resBlockBookshelf": "Bookshelf",
         "resBlockChestSide": "Chest (Side)",
         "resBlockChestTop": "Chest (Top)",
-        "resBlockDoorOpenUpper": "Door Open (Upper)"
+        "resBlockDoorOpenUpper": "Door Open (Upper)",
+        "resPackPromptName": "Enter resource pack name:",
+        "resPackPromptAuthor": "Enter author name:",
+        "resPackExportEmpty": "No custom textures to export!"
     },
     "ja": {
         "langName": "日本語",
@@ -1739,7 +1742,10 @@
         "resBlockBookshelf": "本棚",
         "resBlockChestSide": "チェスト（側面）",
         "resBlockChestTop": "チェスト（上面）",
-        "resBlockDoorOpenUpper": "開いたドア（上部）"
+        "resBlockDoorOpenUpper": "開いたドア（上部）",
+        "resPackPromptName": "リソースパック名を入力してください:",
+        "resPackPromptAuthor": "作者名を入力してください:",
+        "resPackExportEmpty": "エクスポートするカスタムテクスチャがありません！"
     },
     "ko": {
         "langName": "한국어",
@@ -2595,7 +2601,10 @@
         "resBlockBookshelf": "책장",
         "resBlockChestSide": "상자 (옆면)",
         "resBlockChestTop": "상자 (윗면)",
-        "resBlockDoorOpenUpper": "열린 문 (상단)"
+        "resBlockDoorOpenUpper": "열린 문 (상단)",
+        "resPackPromptName": "리소스 팩 이름을 입력하세요:",
+        "resPackPromptAuthor": "제작자 이름을 입력하세요:",
+        "resPackExportEmpty": "내보낼 커스텀 텍스처가 없습니다!"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -3451,7 +3460,10 @@
         "resBlockBookshelf": "書架",
         "resBlockChestSide": "箱子（側面）",
         "resBlockChestTop": "箱子（頂部）",
-        "resBlockDoorOpenUpper": "開啟的門（上部）"
+        "resBlockDoorOpenUpper": "開啟的門（上部）",
+        "resPackPromptName": "請輸入資源包名稱：",
+        "resPackPromptAuthor": "請輸入作者名稱：",
+        "resPackExportEmpty": "沒有可匯出的自訂材質！"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -4307,7 +4319,10 @@
         "resBlockBookshelf": "书架",
         "resBlockChestSide": "箱子（侧面）",
         "resBlockChestTop": "箱子（顶部）",
-        "resBlockDoorOpenUpper": "开启的门（上部）"
+        "resBlockDoorOpenUpper": "开启的门（上部）",
+        "resPackPromptName": "请输入资源包名称：",
+        "resPackPromptAuthor": "请输入作者名称：",
+        "resPackExportEmpty": "没有可导出的自定义材质！"
     },
     "es-419": {
         "langName": "Español",
@@ -5163,6 +5178,9 @@
         "resBlockBookshelf": "Librería",
         "resBlockChestSide": "Cofre (Lateral)",
         "resBlockChestTop": "Cofre (Arriba)",
-        "resBlockDoorOpenUpper": "Puerta abierta (Superior)"
+        "resBlockDoorOpenUpper": "Puerta abierta (Superior)",
+        "resPackPromptName": "Ingresa el nombre del paquete de recursos:",
+        "resPackPromptAuthor": "Ingresa el nombre del autor:",
+        "resPackExportEmpty": "¡No hay texturas personalizadas para exportar!"
     }
 }

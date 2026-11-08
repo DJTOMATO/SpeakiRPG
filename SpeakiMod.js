@@ -10311,10 +10311,53 @@ function spkmodExportBlockPng(tileId, blockName) {
 }
 
 function spkmodExportFullPackXml() {
+	if (Object.keys(lunMiningCustomTextures).length === 0) {
+		alert(tCustom("resPackExportEmpty", "No custom textures to export!"));
+		return;
+	}
+
+	const defaultAuthor = (
+		(typeof gameState !== "undefined" && (gameState?.myPlayerName || gameState?.myStat?.name)) ||
+		(typeof window !== "undefined" && window.gameState && (window.gameState.myPlayerName || window.gameState.myStat?.name)) ||
+		(typeof document !== "undefined" && (document.querySelector(".sr-player-card__name")?.innerText || document.querySelector(".sr-hud-player-name")?.innerText)) ||
+		localStorage.getItem("spkmod-last-player-name") ||
+		localStorage.getItem("spkmod-last-nickname") ||
+		localStorage.getItem("spkmod-last-username") ||
+		"Player"
+	).trim();
+
+	const selOption = resourcePackModalElements.presetSelect?.selectedOptions?.[0];
+	let curPackName = "";
+	if (selOption && selOption.value && selOption.value !== "custom") {
+		curPackName = selOption.dataset?.packName || selOption.textContent.replace(/^📂\s*/, '').replace(/\s*\([^)]*\)$/, '').trim();
+	}
+	if (!curPackName) {
+		curPackName = defaultAuthor && defaultAuthor !== "Player" ? `${defaultAuthor} Pack` : "Custom Pack";
+	}
+
+	let preferredAuthor = defaultAuthor;
+	if (selOption && selOption.dataset?.author && selOption.value !== "custom" && (!preferredAuthor || preferredAuthor === "Player")) {
+		preferredAuthor = selOption.dataset.author;
+	}
+
+	const promptNameText = tCustom("resPackPromptName", "Enter resource pack name:");
+	const packNameInput = prompt(promptNameText, curPackName);
+	if (packNameInput === null) return;
+	const packName = packNameInput.trim() || curPackName || "Custom Pack";
+
+	const promptAuthorText = tCustom("resPackPromptAuthor", "Enter author name:");
+	const authorInput = prompt(promptAuthorText, preferredAuthor);
+	if (authorInput === null) return;
+	const authorName = authorInput.trim() || preferredAuthor || "Player";
+
+	const packId = packName.toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || "custom-pack";
+	const fileSafeName = packName.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+	const fileName = `speaki_mining_resourcepack_${fileSafeName}.xml`;
+
 	let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<resourcepacks version="1.0">\n';
-	xml += '    <pack id="custom-export" name="Custom Exported Pack">\n';
-	xml += '        <description>Custom user textures exported from SpeakiMod</description>\n';
-	xml += '        <author>Player</author>\n';
+	xml += `    <pack id="${packId}" name="${packName}">\n`;
+	xml += `        <description>Custom mining textures by ${authorName}</description>\n`;
+	xml += `        <author>${authorName}</author>\n`;
 	xml += '        <textures>\n';
 	Object.keys(lunMiningCustomTextures).forEach(idStr => {
 		const id = parseInt(idStr, 10);
@@ -10328,7 +10371,7 @@ function spkmodExportFullPackXml() {
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement("a");
 	a.href = url;
-	a.download = "speaki_mining_resourcepack.xml";
+	a.download = fileName;
 	a.click();
 	setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
@@ -10342,6 +10385,7 @@ function spkmodParseResourcePacksXml(xmlText) {
 		const id = pn.getAttribute("id") || "";
 		const name = pn.getAttribute("name") || id;
 		const desc = pn.querySelector("description")?.textContent?.trim() || "";
+		const author = pn.querySelector("author")?.textContent?.trim() || "";
 		const textures = {};
 		pn.querySelectorAll("tile").forEach(tn => {
 			const tid = parseInt(tn.getAttribute("id"), 10);
@@ -10350,7 +10394,7 @@ function spkmodParseResourcePacksXml(xmlText) {
 				textures[tid] = data;
 			}
 		});
-		packs.push({ id, name, desc, textures });
+		packs.push({ id, name, desc, author, textures });
 	});
 	return packs;
 }
@@ -10374,6 +10418,13 @@ function spkmodGetFallbackResourcePacks() {
 			id: "pastel-fantasy",
 			name: tCustom("resPackPresetPastel", "Pastel Fantasy"),
 			desc: "Soft pastel fantasy colors",
+			textures: {}
+		},
+		{
+			id: "obagi",
+			name: "OBAGI",
+			author: "OBAGI",
+			desc: "Custom mining textures by OBAGI",
 			textures: {}
 		}
 	];
@@ -10532,6 +10583,21 @@ function buildResourcePackModal() {
 							lunMiningCustomTextures = p.textures || {};
 							updateResourcePackStatus(false);
 							spkmodRenderResourcePackBlockList();
+							if (resourcePackModalElements.presetSelect) {
+								let opt = resourcePackModalElements.presetSelect.querySelector(`option[value="${p.id}"]`);
+								if (!opt) {
+									opt = document.createElement("option");
+									opt.value = p.id;
+									opt.dataset.packName = p.name;
+									opt.dataset.author = p.author || "";
+									opt.innerText = p.author && !p.name.includes(p.author) ? `${p.name} (${p.author})` : p.name;
+									resourcePackModalElements.presetSelect.appendChild(opt);
+								} else {
+									opt.dataset.packName = p.name;
+									opt.dataset.author = p.author || "";
+								}
+								resourcePackModalElements.presetSelect.value = p.id;
+							}
 							alert(tCustom("resPackImportSuccess", `Resource pack '${p.name}' imported successfully (${Object.keys(lunMiningCustomTextures).length} textures)!`, p.name, Object.keys(lunMiningCustomTextures).length));
 						} else {
 							alert(tCustom("resPackErrNotPng", "No valid pack found in XML!"));
@@ -10763,7 +10829,12 @@ function buildResourcePackModal() {
 			packs.forEach(p => {
 				const opt = document.createElement("option");
 				opt.value = p.id;
-				opt.innerText = p.name;
+				opt.dataset.packName = p.name;
+				opt.dataset.author = p.author || "";
+				opt.innerText = p.author && p.author !== "SpeakiMod" && p.author !== "SpeakiRPG" && !p.name.includes(p.author)
+					? `${p.name} (${p.author})`
+					: p.name;
+				opt.title = p.desc || p.name;
 				resourcePackModalElements.presetSelect.appendChild(opt);
 			});
 		}
