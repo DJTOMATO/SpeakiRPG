@@ -44,8 +44,6 @@
 - [9. Credits](#9-credits)
 - [10. Speaki MMO Community Movie!](#10-speaki-mmo-community-movie)
 
-![Divider](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
-
 ---
 
 <h2 id="1-features--highlights">1. Features & Highlights</h2>
@@ -60,6 +58,8 @@
 </p>
 
 * **Discord Rich Presence:** Automatically displays your current character name, level, and XP progress on your Discord profile (with an in-game toggle in Settings and `Ctrl+Shift+D` force-refresh).
+
+![Divider](https://github.com/user-attachments/assets/162507e2-68d6-4299-b847-beab0580ef47)
 * **Hardware Acceleration & High-DPI Support:** Automatically configures your GPU for smoother 3D rendering, plus **Resolution Override** and **High-DPI Mobile Render Fixes**.
 * **📌 Floating Action Buttons:** Double right-click (or long-press on mobile) any button in the mod panel to pop it out as a draggable floating shortcut button anywhere on screen! Right-click again to dismiss.
 * **🔑 Quick Login & Account Manager (<kbd>F2</kbd>):** Securely save, switch, and copy multiple account recovery codes locally on your device for 1-click login (strictly stored on your machine, excluded from settings exports, and never shared).
@@ -88,15 +88,21 @@
 
 <p align="center">
   <img width="48%" alt="SpeakiBBS DarkNet" src="assets/screenshots/2_speakibbs.png" />
-  <img width="48%" alt="Custom Chat Emojis" src="https://github.com/user-attachments/assets/e07bbae1-835d-4eab-9d18-2706d3a5e233" />
 </p>
 
 * **💬 SpeakiBBS (`DarkNet`) In-Game Community Board:**
   * Built-in community bulletin board featuring threaded replies, collapsible reply chains, ❤️ post/reply likes, 1-click message translation (`🌐`), custom emoji insertion, and a resizable window.
 * **🌐 Bi-Directional Real-Time Chat Translation:**
+<p align="center">
+  <img width="320" height="130" alt="Speaki Sticker" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
+</p>
+
   * **Selectable Translation Engines:** Choose between **Google Translate** and **MyMemory API** with automatic fallback and daily quota tracking.
   * **Incoming Auto-Translate & Click-to-Translate:** Automatically translates foreign chat messages into your preferred language, or click any line in chat to translate it on demand.
   * **Outgoing Quick-Translate Commands:** Type `.en`, `.j`/`.ja`/`.jp`, `.k`/`.ko`, `.zh`/`.cn`, `.tw`, or `.es` followed by your message to automatically translate and send it in that language!
+<p align="center">
+    <img width="48%" alt="Custom Chat Emojis" src="https://github.com/user-attachments/assets/e07bbae1-835d-4eab-9d18-2706d3a5e233" />
+</p>
 * **😀 5-Pack Custom Emojis, Favorites & Local Avatars:**
   * Over **200+ animated GIF and static Trickcal/Speaki emojis** organized across 5 catalog tabs plus a **💚 Favorites** tab.
   * **Right-Click Favorites & Copy:** Right-click any emoji in the picker or chat log to favorite/unfavorite it; left-click an emoji in chat to insert it into your input box.
@@ -151,6 +157,9 @@
   * Unlock progressive **HUD Backgrounds** from Level 10 to Level 50 (or paste any **Custom Image URL**).
   * **Game Font Switcher:** Choose between *Default, Pop (Auto CJK), Serif (Mincho), Rounded (Maru), Pixel / Retro, Monospace*, or any installed **Custom OS Font**.
   * **6 UI Languages:** Full localization in *English, 日本語, 한국어, 繁體中文, 简体中文,* and *Español*.
+<p align="center">
+<img width="254" height="177" alt="SpeakiMod+" src="https://github.com/user-attachments/assets/8971e06c-c687-48ea-b309-8e4eaec74152" />
+</p>
 
 ---
 
@@ -187,8 +196,9 @@ Designed for screenshot artists, meme makers, and community movie directors! *(N
 ### 💃 Movement, Emotes & Camera Tricks
 
 [⬆ Back to Top](#table-of-contents)
-
-<img width="420" alt="SpeakiMod+ HUD Panel" src="https://github.com/user-attachments/assets/6b5c5837-d2ca-488e-8d8c-5d0a8e63a0aa" />
+<p align="center">
+  <img width="80%" alt="Camera" src="assets/screenshots/zoom.png" />
+</p>
 
 * **Camera Modes:**
   * **🛸 Advanced Drone / Free Camera (<kbd>F4</kbd>):** Detach the camera and fly freely with `WASD` + `Space`/`Ctrl` (or Gamepad sticks) with adjustable flight speed.
@@ -252,9 +262,7 @@ Designed for screenshot artists, meme makers, and community movie directors! *(N
 
 </details>
 
-<p align="center">
-  <img width="320" height="130" alt="Speaki Sticker" src="https://github.com/user-attachments/assets/baef0617-c9df-4ff9-a294-78d914c67e93" />
-</p>
+
 
 ---
 
@@ -333,8 +341,6 @@ Want to run or build the desktop client from source? Follow these steps:
 <h2 id="5-implementation-of-speakimod">5. Implementation of SpeakiMod+</h2>
 
 [⬆ Back to Top](#table-of-contents)
-
-<img width="254" height="177" alt="SpeakiMod+" src="https://github.com/user-attachments/assets/8971e06c-c687-48ea-b309-8e4eaec74152" />
 
 **SpeakiMod+** is a heavily modified, completely overhauled fork of the original SpeakiMod. We originally forked this project to thoroughly clean up the codebase and ensure a secure, transparent, and fair experience for players. Since then, it has evolved into a comprehensive suite of original features, creative tools, and community systems.
 
