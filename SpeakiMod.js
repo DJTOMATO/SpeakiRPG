@@ -17311,14 +17311,21 @@ function spkmodGetCSS3DClasses() {
 			this.element.style.position = 'absolute';
 			this.element.style.pointerEvents = 'auto';
 			this.element.style.userSelect = 'none';
-			this.addEventListener('removed', () => {
-				this.traverse(object => {
-					if (object.element instanceof Element && object.element.parentNode !== null) {
-						object.element.parentNode.removeChild(object.element);
+			this.element.setAttribute('draggable', false);
+
+			this.addEventListener('removed', function () {
+				this.traverse(function (object) {
+					if (
+						object.element &&
+						object.element instanceof object.element.ownerDocument.defaultView.Element &&
+						object.element.parentNode !== null
+					) {
+						object.element.remove();
 					}
 				});
 			});
 		}
+
 		copy(source, recursive) {
 			super.copy(source, recursive);
 			this.element = source.element.cloneNode(true);
@@ -17332,14 +17339,24 @@ function spkmodGetCSS3DClasses() {
 			let _width, _height;
 			let _widthHalf, _heightHalf;
 
+			const cache = {
+				camera: { style: '' },
+				objects: new WeakMap()
+			};
+
 			const domElement = parameters.element !== undefined ? parameters.element : document.createElement('div');
 			domElement.style.overflow = 'hidden';
 			this.domElement = domElement;
 
+			const viewElement = document.createElement('div');
+			viewElement.style.transformOrigin = '0 0';
+			viewElement.style.pointerEvents = 'none';
+			domElement.appendChild(viewElement);
+
 			const cameraElement = document.createElement('div');
 			cameraElement.style.transformStyle = 'preserve-3d';
 			cameraElement.style.pointerEvents = 'none';
-			domElement.appendChild(cameraElement);
+			viewElement.appendChild(cameraElement);
 
 			this.getSize = function () {
 				return { width: _width, height: _height };
@@ -17348,21 +17365,36 @@ function spkmodGetCSS3DClasses() {
 			this.render = function (scene, camera) {
 				const fov = camera.projectionMatrix.elements[5] * _heightHalf;
 
-				if (camera.parent === null) camera.updateMatrixWorld();
-
-				let cameraCSSMatrix;
-				if (camera.isOrthographicCamera) {
-					const tx = -(camera.right + camera.left) / 2;
-					const ty = (camera.top + camera.bottom) / 2;
-					cameraCSSMatrix = 'scale(' + fov + ')' + 'translate(' + epsilon(tx) + 'px,' + epsilon(ty) + 'px)' + getCameraCSSMatrix(camera.matrixWorldInverse);
+				if (camera.view && camera.view.enabled) {
+					viewElement.style.transform = `translate(${-camera.view.offsetX * (_width / camera.view.width)}px, ${-camera.view.offsetY * (_height / camera.view.height)}px)`;
+					viewElement.style.transform += `scale(${camera.view.fullWidth / camera.view.width}, ${camera.view.fullHeight / camera.view.height})`;
 				} else {
-					cameraCSSMatrix = 'translateZ(' + epsilon(fov) + 'px)' + getCameraCSSMatrix(camera.matrixWorldInverse);
+					viewElement.style.transform = '';
 				}
 
-				const style = cameraCSSMatrix + 'translate(' + epsilon(_widthHalf) + 'px,' + epsilon(_heightHalf) + 'px)';
-				cameraElement.style.transform = style;
+				if (scene.matrixWorldAutoUpdate === true) scene.updateMatrixWorld();
+				if (camera.parent === null && camera.matrixWorldAutoUpdate === true) camera.updateMatrixWorld();
 
-				renderObject(scene, scene, camera, cameraElement);
+				let tx, ty;
+				if (camera.isOrthographicCamera) {
+					tx = -(camera.right + camera.left) / 2;
+					ty = (camera.top + camera.bottom) / 2;
+				}
+
+				const scaleByViewOffset = camera.view && camera.view.enabled ? camera.view.height / camera.view.fullHeight : 1;
+				const cameraCSSMatrix = camera.isOrthographicCamera
+					? `scale(${scaleByViewOffset}) scale(${fov}) translate(${epsilon(tx)}px, ${epsilon(ty)}px)` + getCameraCSSMatrix(camera.matrixWorldInverse)
+					: `scale(${scaleByViewOffset}) translateZ(${fov}px)` + getCameraCSSMatrix(camera.matrixWorldInverse);
+
+				const perspective = camera.isPerspectiveCamera ? 'perspective(' + fov + 'px) ' : '';
+				const style = perspective + cameraCSSMatrix + 'translate(' + _widthHalf + 'px,' + _heightHalf + 'px)';
+
+				if (cache.camera.style !== style) {
+					cameraElement.style.transform = style;
+					cache.camera.style = style;
+				}
+
+				renderObject(scene, scene, camera, cameraCSSMatrix);
 			};
 
 			this.setSize = function (width, height) {
@@ -17370,8 +17402,13 @@ function spkmodGetCSS3DClasses() {
 				_height = height;
 				_widthHalf = _width / 2;
 				_heightHalf = _height / 2;
+
 				domElement.style.width = width + 'px';
 				domElement.style.height = height + 'px';
+
+				viewElement.style.width = width + 'px';
+				viewElement.style.height = height + 'px';
+
 				cameraElement.style.width = width + 'px';
 				cameraElement.style.height = height + 'px';
 			};
@@ -17425,27 +17462,45 @@ function spkmodGetCSS3DClasses() {
 				return 'translate(-50%,-50%)' + matrix3d;
 			}
 
-			function renderObject(object, scene, camera, cameraElement) {
+			function hideObject(object) {
+				if (object.isCSS3DObject) object.element.style.display = 'none';
+				for (let i = 0, l = object.children.length; i < l; i++) {
+					hideObject(object.children[i]);
+				}
+			}
+
+			function renderObject(object, scene, camera, cameraCSSMatrix) {
+				if (object.visible === false) {
+					hideObject(object);
+					return;
+				}
+
 				if (object.isCSS3DObject) {
-					const visible = (object.visible === true) && (object.layers.test(camera.layers) === true);
-					object.element.style.display = (visible === true) ? '' : 'none';
+					const visible = (object.layers.test(camera.layers) === true);
+					const element = object.element;
+					element.style.display = visible === true ? '' : 'none';
+
 					if (visible === true) {
 						if (typeof object.onBeforeRender === 'function') object.onBeforeRender(_this, scene, camera);
-						let matrix = object.matrixWorld;
-						if (object.parent !== scene) {
-							matrix = matrix.clone();
+
+						const style = getObjectCSSMatrix(object.matrixWorld);
+						const cachedObject = cache.objects.get(object);
+
+						if (cachedObject === undefined || cachedObject.style !== style) {
+							element.style.transform = style;
+							cache.objects.set(object, { style });
 						}
-						const style = getObjectCSSMatrix(matrix);
-						const element = object.element;
-						element.style.transform = style;
+
 						if (element.parentNode !== cameraElement) {
 							cameraElement.appendChild(element);
 						}
+
 						if (typeof object.onAfterRender === 'function') object.onAfterRender(_this, scene, camera);
 					}
 				}
+
 				for (let i = 0, l = object.children.length; i < l; i++) {
-					renderObject(object.children[i], scene, camera, cameraElement);
+					renderObject(object.children[i], scene, camera, cameraCSSMatrix);
 				}
 			}
 		}
@@ -17778,6 +17833,15 @@ function spkmodCinemaTick() {
 	spkmodUpdateCinemaSpatialAudio();
 
 	if (spkmodCinemaRenderer && spkmodCinemaScene && gameState?.camera) {
+		spkmodCinemaScene.updateMatrixWorld(true);
+		if (gameState.camera.parent === null) {
+			gameState.camera.updateMatrixWorld();
+		} else {
+			gameState.camera.updateWorldMatrix(true, false);
+		}
+		if (gameState.camera.matrixWorldInverse) {
+			gameState.camera.matrixWorldInverse.copy(gameState.camera.matrixWorld).invert();
+		}
 		spkmodCinemaRenderer.render(spkmodCinemaScene, gameState.camera);
 	}
 }
