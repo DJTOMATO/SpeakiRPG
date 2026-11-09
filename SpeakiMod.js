@@ -321,6 +321,7 @@ var lunCurrentSpeedMps = 0;
 // In-Game 3D Cinema / Movie Player Default Configuration
 var SPKMOD_CINEMA_DEFAULT_CONFIG = {
 	enabled: false,
+	muted: false,
 	volume: 80,
 	pos: { x: 75.0, y: 4.2, z: 32.5 },
 	rotationY: 1.6000,
@@ -337,6 +338,8 @@ if (typeof window !== "undefined" && window.localStorage) {
 		} else {
 			window.spkmodCinemaConfig.enabled = false;
 		}
+		const mutedStr = localStorage.getItem("spkmod-cinema-muted");
+		if (mutedStr !== null) window.spkmodCinemaConfig.muted = mutedStr === "true";
 		const vol = localStorage.getItem("spkmod-cinema-volume");
 		if (vol !== null) window.spkmodCinemaConfig.volume = parseInt(vol, 10) || 80;
 		const posStr = localStorage.getItem("spkmod-cinema-pos");
@@ -9068,15 +9071,29 @@ document.body.appendChild(
 						style: "color: #aaa; font-size: 11px; flex: 1;",
 						innerText: "🔊 " + (t("cinemaVolumeLabel") || "Cinema Volume") + ":"
 					}),
-					buildElement("input", {
+					lunPanelElements.cinemaMuteBtn = buildElement("button", {
+						id: "spkmod-cinema-panel-mute-btn",
+						className: "spkmod-panel-btn",
+						style: "padding: 1px 6px; font-size: 11px; cursor: pointer; background: rgba(255,255,255,0.06); border: 1px solid rgba(232, 184, 75, 0.4); border-radius: 4px;",
+						innerText: (window.spkmodCinemaConfig?.muted ? "🔇" : "🔊"),
+						title: (window.spkmodCinemaConfig?.muted ? (t("cinemaUnmute") || "Unmute") : (t("cinemaMute") || "Mute")),
+						onclick: () => {
+							if (typeof window.spkmodToggleCinemaMute === "function") {
+								window.spkmodToggleCinemaMute();
+							}
+						}
+					}),
+					lunPanelElements.cinemaVolumeInput = buildElement("input", {
 						type: "range",
 						min: "0",
 						max: "100",
 						value: (window.spkmodCinemaConfig ? window.spkmodCinemaConfig.volume : 80),
-						style: "width: 80px; height: 14px; cursor: pointer;",
+						style: "width: 70px; height: 14px; cursor: pointer; accent-color: #e8b84b;",
 						oninput: e => {
 							const v = parseInt(e.target.value, 10);
-							if (window.spkmodCinemaConfig) {
+							if (typeof window.spkmodSetCinemaVolume === "function") {
+								window.spkmodSetCinemaVolume(v, v === 0 ? true : false);
+							} else if (window.spkmodCinemaConfig) {
 								window.spkmodCinemaConfig.volume = v;
 								localStorage.setItem("spkmod-cinema-volume", String(v));
 							}
@@ -13625,7 +13642,7 @@ document.addEventListener("contextmenu", (e) => {
 }, true);
 
 // ============================================================================
-// CINEMA MODE FLOATING PILL (NEAR THEATER TRIGGER)
+// CINEMA MODE FLOATING PILL & VOLUME DOCK (NEAR THEATER TRIGGER)
 // ============================================================================
 let spkmodCinemaPillEl = null;
 
@@ -13635,20 +13652,90 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         return;
     }
     if (!spkmodCinemaPillEl) {
-        spkmodCinemaPillEl = document.createElement("button");
-        spkmodCinemaPillEl.id = "spkmod-cinema-pill";
-        spkmodCinemaPillEl.className = "spkmod-floating-btn";
-        spkmodCinemaPillEl.style.cssText = "position: fixed; bottom: 84px; right: 20px; z-index: 2147483640; padding: 7px 14px; font-size: 13px; font-weight: bold; background: rgba(26, 20, 36, 0.92); color: #e8b84b; border: 1.5px solid #e8b84b; border-radius: 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.5); cursor: pointer; display: flex; align-items: center; gap: 6px; backdrop-filter: blur(6px); transition: transform 0.15s ease, background 0.15s ease;";
-        spkmodCinemaPillEl.onclick = e => {
+        const dock = document.createElement("div");
+        dock.id = "spkmod-cinema-dock";
+        dock.className = "spkmod-floating-btn";
+        dock.style.cssText = "position: fixed; bottom: 84px; right: 20px; z-index: 2147483640; padding: 5px 12px; font-size: 13px; font-weight: bold; background: rgba(26, 20, 36, 0.94); color: #e8b84b; border: 1.5px solid #e8b84b; border-radius: 22px; box-shadow: 0 4px 16px rgba(0,0,0,0.55); display: flex; align-items: center; gap: 8px; backdrop-filter: blur(8px); user-select: none;";
+
+        // 1. Cinema Mode Button
+        const modeBtn = document.createElement("button");
+        modeBtn.id = "spkmod-cinema-mode-btn";
+        modeBtn.style.cssText = "background: none; border: none; color: #e8b84b; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 2px 4px; transition: transform 0.12s ease;";
+        modeBtn.onmouseenter = () => { modeBtn.style.transform = "scale(1.04)"; };
+        modeBtn.onmouseleave = () => { modeBtn.style.transform = "scale(1)"; };
+        modeBtn.onpointerdown = e => e.stopPropagation();
+        modeBtn.onmousedown = e => e.stopPropagation();
+        modeBtn.onclick = e => {
             e.preventDefault();
+            e.stopPropagation();
             if (typeof window.spkmodToggleCinemaMode === "function") {
                 window.spkmodToggleCinemaMode(true);
             }
         };
-        document.body.appendChild(spkmodCinemaPillEl);
+        dock.appendChild(modeBtn);
+
+        // 2. Vertical Divider
+        const sep = document.createElement("div");
+        sep.style.cssText = "width: 1px; height: 16px; background: rgba(232, 184, 75, 0.35);";
+        dock.appendChild(sep);
+
+        // 3. Mute / Unmute Button
+        const muteBtn = document.createElement("button");
+        muteBtn.id = "spkmod-cinema-mute-btn";
+        muteBtn.style.cssText = "background: none; border: none; color: #e8b84b; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px 4px; transition: transform 0.12s ease;";
+        muteBtn.onmouseenter = () => { muteBtn.style.transform = "scale(1.2)"; };
+        muteBtn.onmouseleave = () => { muteBtn.style.transform = "scale(1)"; };
+        muteBtn.onpointerdown = e => e.stopPropagation();
+        muteBtn.onmousedown = e => e.stopPropagation();
+        muteBtn.onclick = e => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof window.spkmodToggleCinemaMute === "function") {
+                window.spkmodToggleCinemaMute();
+            }
+        };
+        dock.appendChild(muteBtn);
+
+        // 4. Volume Slider
+        const volSlider = document.createElement("input");
+        volSlider.id = "spkmod-cinema-vol-slider";
+        volSlider.type = "range";
+        volSlider.min = "0";
+        volSlider.max = "100";
+        volSlider.value = String(window.spkmodCinemaConfig?.volume ?? 80);
+        volSlider.style.cssText = "width: 70px; height: 5px; accent-color: #e8b84b; cursor: pointer; border-radius: 3px; outline: none;";
+        volSlider.onpointerdown = e => e.stopPropagation();
+        volSlider.onmousedown = e => e.stopPropagation();
+        volSlider.onclick = e => e.stopPropagation();
+        volSlider.oninput = e => {
+            e.stopPropagation();
+            const val = parseInt(e.target.value, 10) || 0;
+            if (typeof window.spkmodSetCinemaVolume === "function") {
+                window.spkmodSetCinemaVolume(val, val === 0 ? true : false);
+            }
+        };
+        dock.appendChild(volSlider);
+
+        // 5. Volume % Label
+        const volLabel = document.createElement("span");
+        volLabel.id = "spkmod-cinema-vol-label";
+        volLabel.style.cssText = "font-size: 11px; font-weight: bold; color: #e8b84b; min-width: 28px; text-align: right;";
+        dock.appendChild(volLabel);
+
+        document.body.appendChild(dock);
+        spkmodCinemaPillEl = dock;
     }
-    const btnText = typeof t === "function" ? t("cinemaModeBtn", "🎬 Cinema Mode") : "🎬 Cinema Mode";
-    spkmodCinemaPillEl.innerText = btnText;
+
+    const modeBtn = document.getElementById("spkmod-cinema-mode-btn");
+    if (modeBtn) {
+        const btnText = typeof t === "function" ? t("cinemaModeBtn", "🎬 Cinema Mode") : "🎬 Cinema Mode";
+        modeBtn.innerText = btnText;
+    }
+
+    if (typeof window.spkmodSyncCinemaVolumeUI === "function") {
+        window.spkmodSyncCinemaVolumeUI();
+    }
+
     spkmodCinemaPillEl.style.display = "flex";
 }
 
@@ -17270,6 +17357,7 @@ window.spkmodToggleBurstSpam = function(forceState) {
 
 var SPKMOD_CINEMA_DEFAULT_CONFIG = window.SPKMOD_CINEMA_DEFAULT_CONFIG || {
 	enabled: false,
+	muted: false,
 	volume: 80,
 	pos: { x: 75.0, y: 4.2, z: 32.5 },
 	rotationY: 1.6000,
@@ -17287,6 +17375,8 @@ if (window.localStorage) {
 		} else {
 			spkmodCinemaConfig.enabled = false;
 		}
+		const mutedStr = localStorage.getItem("spkmod-cinema-muted");
+		if (mutedStr !== null) spkmodCinemaConfig.muted = mutedStr === "true";
 		const vol = localStorage.getItem("spkmod-cinema-volume");
 		if (vol !== null) spkmodCinemaConfig.volume = parseInt(vol, 10) || 80;
 		const posStr = localStorage.getItem("spkmod-cinema-pos");
@@ -17561,7 +17651,10 @@ function spkmodParseMoviesTxt(text) {
 
 async function spkmodLoadMoviesPlaylist() {
 	const defaultList = [
+		 
+		{ id: "EstBwd8DcSw", title: "oage!", duration: 0 },
 		{ id: "wn069Hag470", title: "speaki cuayo for an hour!", duration: 999 }
+	
 	];
 
 	try {
@@ -17769,6 +17862,90 @@ function spkmodIsPlayerInCinemaSeats(playerPos) {
 }
 window.spkmodIsPlayerInCinemaSeats = spkmodIsPlayerInCinemaSeats;
 
+function spkmodSyncCinemaVolumeUI() {
+	const cfg = window.spkmodCinemaConfig;
+	if (!cfg) return;
+	const isMuted = !!cfg.muted;
+	const vol = typeof cfg.volume === 'number' ? cfg.volume : 80;
+
+	// 1. Floating Pill / Dock Controls
+	const muteBtn = document.getElementById("spkmod-cinema-mute-btn");
+	if (muteBtn) {
+		muteBtn.innerText = (isMuted || vol === 0) ? "🔇" : (vol > 50 ? "🔊" : "🔉");
+		const titleText = isMuted
+			? (typeof t === "function" ? t("cinemaUnmute", "Unmute") : "Unmute")
+			: (typeof t === "function" ? t("cinemaMute", "Mute") : "Mute");
+		muteBtn.title = titleText;
+	}
+	const volSlider = document.getElementById("spkmod-cinema-vol-slider");
+	if (volSlider) {
+		volSlider.value = String(vol);
+		volSlider.style.opacity = isMuted ? "0.55" : "1";
+	}
+	const volLabel = document.getElementById("spkmod-cinema-vol-label");
+	if (volLabel) {
+		volLabel.innerText = isMuted ? "0%" : `${vol}%`;
+	}
+
+	// 2. Fullscreen Cinema Mode Top HUD Bar Controls
+	const hudMuteBtn = document.getElementById("spkmod-cinema-hud-mute-btn");
+	if (hudMuteBtn) {
+		hudMuteBtn.innerText = (isMuted || vol === 0) ? "🔇" : (vol > 50 ? "🔊" : "🔉");
+		hudMuteBtn.title = isMuted ? "Unmute" : "Mute";
+	}
+	const hudVolSlider = document.getElementById("spkmod-cinema-hud-vol-slider");
+	if (hudVolSlider) {
+		hudVolSlider.value = String(vol);
+		hudVolSlider.style.opacity = isMuted ? "0.55" : "1";
+	}
+	const hudVolLabel = document.getElementById("spkmod-cinema-hud-vol-label");
+	if (hudVolLabel) {
+		hudVolLabel.innerText = isMuted ? "0%" : `${vol}%`;
+	}
+
+	// 3. Mod Settings Panel Controls
+	const panelMuteBtn = document.getElementById("spkmod-cinema-panel-mute-btn");
+	if (panelMuteBtn) {
+		panelMuteBtn.innerText = (isMuted || vol === 0) ? "🔇" : (vol > 50 ? "🔊" : "🔉");
+		panelMuteBtn.title = isMuted ? "Unmute" : "Mute";
+	}
+	if (window.lunPanelElements?.cinemaVolumeInput) {
+		window.lunPanelElements.cinemaVolumeInput.value = String(vol);
+	}
+}
+window.spkmodSyncCinemaVolumeUI = spkmodSyncCinemaVolumeUI;
+
+window.spkmodSetCinemaVolume = function(vol, isMuted) {
+	if (typeof vol === 'number') {
+		vol = Math.max(0, Math.min(100, Math.round(vol)));
+		window.spkmodCinemaConfig.volume = vol;
+		try { localStorage.setItem("spkmod-cinema-volume", String(vol)); } catch (_) {}
+	}
+	if (typeof isMuted === 'boolean') {
+		window.spkmodCinemaConfig.muted = isMuted;
+		try { localStorage.setItem("spkmod-cinema-muted", isMuted ? "true" : "false"); } catch (_) {}
+	}
+
+	const effectiveVol = window.spkmodCinemaConfig.muted ? 0 : window.spkmodCinemaConfig.volume;
+	if (window.spkmodCinemaConfig.muted || effectiveVol === 0) {
+		spkmodSendYtCommand('mute');
+		spkmodSendYtCommand('setVolume', [0]);
+	} else {
+		spkmodSendYtCommand('unMute');
+		spkmodSendYtCommand('setVolume', [effectiveVol]);
+	}
+	spkmodCinemaLastVolume = effectiveVol;
+	spkmodSyncCinemaVolumeUI();
+};
+
+window.spkmodToggleCinemaMute = function() {
+	const newMuted = !window.spkmodCinemaConfig.muted;
+	if (!newMuted && window.spkmodCinemaConfig.volume === 0) {
+		window.spkmodCinemaConfig.volume = 50;
+	}
+	window.spkmodSetCinemaVolume(window.spkmodCinemaConfig.volume, newMuted);
+};
+
 function spkmodUpdateCinemaSpatialAudio() {
 	if (!spkmodCinemaConfig.enabled || !spkmodCinemaIframe) return;
 
@@ -17793,7 +17970,7 @@ function spkmodUpdateCinemaSpatialAudio() {
 		return;
 	}
 
-	const targetVol = spkmodCinemaConfig.volume;
+	const targetVol = spkmodCinemaConfig.muted ? 0 : spkmodCinemaConfig.volume;
 	if (targetVol !== spkmodCinemaLastVolume) {
 		spkmodCinemaLastVolume = targetVol;
 		if (targetVol > 0) {
@@ -17801,6 +17978,7 @@ function spkmodUpdateCinemaSpatialAudio() {
 			spkmodSendYtCommand('setVolume', [targetVol]);
 		} else {
 			spkmodSendYtCommand('setVolume', [0]);
+			spkmodSendYtCommand('mute');
 		}
 	}
 
@@ -17920,13 +18098,28 @@ window.spkmodToggleCinemaMode = function(explicit) {
 			document.body.appendChild(hudBar);
 		}
 		const title = window.spkmodCurrentCinemaTitle || "Movie Theater";
+		const isMuted = !!window.spkmodCinemaConfig?.muted;
+		const vol = window.spkmodCinemaConfig?.volume ?? 80;
 		hudBar.innerHTML = `
 			<span>🎬 <strong>${typeof t === "function" ? t("cinemaNowPlaying", "Now Playing") : "Now Playing"}:</strong> ${title}</span>
+			<div style="width: 1px; height: 16px; background: rgba(232, 184, 75, 0.4); margin: 0 4px;"></div>
+			<button id="spkmod-cinema-hud-mute-btn" title="Mute / Unmute" style="background: none; border: none; color: #e8b84b; font-size: 15px; cursor: pointer; padding: 2px 4px;">${(isMuted || vol === 0) ? "🔇" : "🔊"}</button>
+			<input id="spkmod-cinema-hud-vol-slider" type="range" min="0" max="100" value="${vol}" style="width: 75px; height: 5px; accent-color: #e8b84b; cursor: pointer;">
+			<span id="spkmod-cinema-hud-vol-label" style="font-size: 11px; color: #e8b84b; min-width: 26px;">${isMuted ? "0%" : vol + "%"}</span>
 			<button id="spkmod-cinema-exit-btn" class="spkmod-panel-btn" style="padding: 3px 10px; font-size: 12px; cursor: pointer; background: #e8b84b; color: #120e1a; font-weight: bold; border-radius: 4px; border: none;">${typeof t === "function" ? t("cinemaExitBtn", "Exit Cinema Mode (Esc)") : "Exit Cinema Mode (Esc)"}</button>
 		`;
 		hudBar.style.display = 'flex';
 		const exitBtn = document.getElementById('spkmod-cinema-exit-btn');
 		if (exitBtn) exitBtn.onclick = () => window.spkmodToggleCinemaMode(false);
+		const hudMute = document.getElementById('spkmod-cinema-hud-mute-btn');
+		if (hudMute) hudMute.onclick = () => window.spkmodToggleCinemaMute();
+		const hudSlider = document.getElementById('spkmod-cinema-hud-vol-slider');
+		if (hudSlider) {
+			hudSlider.oninput = e => {
+				const val = parseInt(e.target.value, 10) || 0;
+				window.spkmodSetCinemaVolume(val, val === 0 ? true : false);
+			};
+		}
 	} else {
 		if (hudBar) hudBar.style.display = 'none';
 	}
@@ -17985,6 +18178,8 @@ window.spkmodGetCinemaStatus = function() {
 		rotationY: window.spkmodCinemaConfig.rotationY,
 		distToCinema: dist !== null ? Number(dist.toFixed(2)) + "m" : "unknown",
 		enabled: window.spkmodCinemaConfig.enabled,
+		muted: !!window.spkmodCinemaConfig.muted,
+		volume: window.spkmodCinemaConfig.volume,
 		inSeats: inSeats,
 		inPillRange: inSeats && window.spkmodCinemaConfig.enabled,
 		inRenderRange: inSeats && window.spkmodCinemaConfig.enabled,
