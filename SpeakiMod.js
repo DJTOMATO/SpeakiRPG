@@ -356,6 +356,7 @@ var spkmodCinemaConfig = window.spkmodCinemaConfig;
 
 
 
+
 // Default fallback portals and raids (offline / boot fallback)
 const DEFAULT_PORTALS = {
  "1": {
@@ -13638,6 +13639,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
 window.spkmodUpdateCinemaFloatingPill = spkmodUpdateCinemaFloatingPill;
 
 
+
 const lunJumpAnimMs = 500;
 
 const lunFaintAnimMs = 1200;
@@ -15992,6 +15994,7 @@ window.spkmodResetAvatarColors = function() {
 	if (typeof updateLocalEditsUI === 'function') updateLocalEditsUI();
 };
 
+
 // ============================================================================
 // PUMPKIN CART TEXTURE REPLACEMENT SKINS (:SPK_88:, 1, 2, 3)
 // ============================================================================
@@ -17537,11 +17540,7 @@ function spkmodParseMoviesTxt(text) {
 
 async function spkmodLoadMoviesPlaylist() {
 	const defaultList = [
-		{ id: "dQw4w9WgXcQ", title: "Rick Astley - Never Gonna Give You Up", duration: 212 },
-		{ id: "jfKfPfyJRdk", title: "Lofi Girl - beats to relax/study to", duration: 0 },
-		{ id: "kJQP7kiw5Fk", title: "Luis Fonsi - Despacito ft. Daddy Yankee", duration: 282 },
-		{ id: "kffacxfA7G4", title: "Baby Shark Dance", duration: 136 },
-		{ id: "L_LUpnjgPso", title: "PSY - GANGNAM STYLE (강남스타일)", duration: 253 }
+		{ id: "wn069Hag470", title: "speaki cuayo for an hour!", duration: 999 }
 	];
 
 	try {
@@ -17960,6 +17959,9 @@ spkmodLoadMoviesPlaylist().then(() => {
 		spkmodInitCinema();
 	}
 }).catch(() => {});
+
+
+
 
 
 const mapModalElements = {};
