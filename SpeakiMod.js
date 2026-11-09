@@ -13691,14 +13691,30 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         const dock = document.createElement("div");
         dock.id = "spkmod-cinema-dock";
         dock.className = "spkmod-floating-btn";
-        dock.style.cssText = `position: fixed; left: ${initLeft}px; top: ${initTop}px; z-index: 2147483640; padding: 5px 12px; font-size: 13px; font-weight: bold; background: rgba(26, 20, 36, 0.94); color: #e8b84b; border: 1.5px solid #e8b84b; border-radius: 22px; box-shadow: 0 4px 16px rgba(0,0,0,0.55); display: flex; align-items: center; gap: 8px; backdrop-filter: blur(8px); user-select: none; cursor: move;`;
+        dock.style.cssText = `position: fixed; left: ${initLeft}px; top: ${initTop}px; z-index: 2147483640; padding: 5px 12px; font-size: 13px; font-weight: bold; background: rgba(26, 20, 36, 0.94); color: #e8b84b; border: 1.5px solid #e8b84b; border-radius: 22px; box-shadow: 0 4px 16px rgba(0,0,0,0.55); display: flex; align-items: center; gap: 8px; backdrop-filter: blur(8px); user-select: none; -webkit-user-select: none; touch-action: none; cursor: default;`;
 
-        // 1. Cinema Mode Label / Button (Draggable & Clickable)
+        // Prevent native HTML5 text selection & drag-and-drop ghosting
+        dock.ondragstart = (e) => { e.preventDefault(); return false; };
+        dock.addEventListener("dragstart", (e) => e.preventDefault());
+
+        // 0. Dedicated Drag Anchor Handle
+        const anchorBtn = document.createElement("span");
+        anchorBtn.id = "spkmod-cinema-dock-anchor";
+        anchorBtn.innerText = "⚓";
+        anchorBtn.title = (typeof t === "function" ? t("dragMenuTooltip") : "Drag to move") || "Drag to move";
+        anchorBtn.style.cssText = "font-size: 14px; cursor: grab; display: inline-flex; align-items: center; justify-content: center; padding: 1px 3px; user-select: none; -webkit-user-select: none; line-height: 1; transition: transform 0.12s ease; flex-shrink: 0;";
+        anchorBtn.onmouseenter = () => { anchorBtn.style.transform = "scale(1.2)"; };
+        anchorBtn.onmouseleave = () => { anchorBtn.style.transform = "scale(1)"; };
+        anchorBtn.ondragstart = (e) => { e.preventDefault(); return false; };
+        dock.appendChild(anchorBtn);
+
+        // 1. Cinema Mode Label / Button (Clickable to enter cinema)
         const modeBtn = document.createElement("span");
         modeBtn.id = "spkmod-cinema-mode-btn";
-        modeBtn.style.cssText = "color: #e8b84b; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 2px 4px; transition: transform 0.12s ease; user-select: none;";
+        modeBtn.style.cssText = "color: #e8b84b; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 2px 4px; transition: transform 0.12s ease; user-select: none; -webkit-user-select: none;";
         modeBtn.onmouseenter = () => { modeBtn.style.transform = "scale(1.04)"; };
         modeBtn.onmouseleave = () => { modeBtn.style.transform = "scale(1)"; };
+        modeBtn.ondragstart = (e) => { e.preventDefault(); return false; };
         dock.appendChild(modeBtn);
 
         // 2. Playlist Modal Button
@@ -13839,42 +13855,40 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         let initialLeft = 0, initialTop = 0;
         let dragMoved = false;
 
-        dock.addEventListener("pointerdown", (e) => {
-            if (e.target.closest('#spkmod-cinema-dock-pl-btn, #spkmod-cinema-dock-prev-btn, #spkmod-cinema-dock-play-btn, #spkmod-cinema-dock-next-btn, #spkmod-cinema-dock-repeat-btn, #spkmod-cinema-mute-btn, #spkmod-cinema-vol-slider')) {
-                return;
-            }
-            if (e.button !== 0) return;
-            isDragging = true;
-            dragMoved = false;
-            startX = e.clientX;
-            startY = e.clientY;
-            const rect = dock.getBoundingClientRect();
-            initialLeft = rect.left;
-            initialTop = rect.top;
-            try { dock.setPointerCapture(e.pointerId); } catch (_) {}
-        });
-
-        dock.addEventListener("pointermove", (e) => {
+        function onPointerMove(e) {
             if (!isDragging) return;
+            e.preventDefault();
             const dx = e.clientX - startX;
             const dy = e.clientY - startY;
-            if (Math.hypot(dx, dy) > 4) {
+            if (Math.hypot(dx, dy) > 2) {
                 dragMoved = true;
             }
             if (dragMoved) {
                 const newLeft = Math.max(0, Math.min(window.innerWidth - dock.offsetWidth, initialLeft + dx));
                 const newTop = Math.max(0, Math.min(window.innerHeight - dock.offsetHeight, initialTop + dy));
-                dock.style.left = newLeft + "px";
-                dock.style.top = newTop + "px";
+                dock.style.left = Math.round(newLeft) + "px";
+                dock.style.top = Math.round(newTop) + "px";
                 dock.style.right = "auto";
                 dock.style.bottom = "auto";
             }
-        });
+        }
 
-        const onPointerUp = (e) => {
+        function onPointerUp(e) {
             if (!isDragging) return;
             isDragging = false;
-            try { dock.releasePointerCapture(e.pointerId); } catch (_) {}
+            anchorBtn.style.cursor = "grab";
+            document.body.style.cursor = "";
+
+            window.removeEventListener("pointermove", onPointerMove, { passive: false });
+            window.removeEventListener("pointerup", onPointerUp);
+            window.removeEventListener("pointercancel", onPointerUp);
+            window.removeEventListener("mousemove", onPointerMove, { passive: false });
+            window.removeEventListener("mouseup", onPointerUp);
+
+            if (e && e.pointerId && dock.releasePointerCapture) {
+                try { dock.releasePointerCapture(e.pointerId); } catch (_) {}
+            }
+
             if (dragMoved) {
                 try {
                     localStorage.setItem("spkmod-pos-spkmod-cinema-dock", JSON.stringify({
@@ -13883,15 +13897,45 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
                     }));
                 } catch (_) {}
             } else {
-                if (e.target.closest('#spkmod-cinema-mode-btn') || e.target === dock) {
+                if (e && e.target && (e.target === modeBtn || modeBtn.contains(e.target))) {
                     if (typeof window.spkmodToggleCinemaMode === "function") {
                         window.spkmodToggleCinemaMode(true);
                     }
                 }
             }
-        };
-        dock.addEventListener("pointerup", onPointerUp);
-        dock.addEventListener("pointercancel", () => { isDragging = false; });
+        }
+
+        function onPointerDown(e) {
+            if (e.target.closest('#spkmod-cinema-dock-pl-btn, #spkmod-cinema-dock-prev-btn, #spkmod-cinema-dock-play-btn, #spkmod-cinema-dock-next-btn, #spkmod-cinema-dock-repeat-btn, #spkmod-cinema-mute-btn, #spkmod-cinema-vol-slider')) {
+                return;
+            }
+            if (e.button !== undefined && e.button !== 0) return;
+
+            e.preventDefault();
+            isDragging = true;
+            dragMoved = false;
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = dock.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+
+            anchorBtn.style.cursor = "grabbing";
+            document.body.style.cursor = "grabbing";
+
+            if (e.pointerId && dock.setPointerCapture) {
+                try { dock.setPointerCapture(e.pointerId); } catch (_) {}
+            }
+
+            window.addEventListener("pointermove", onPointerMove, { passive: false });
+            window.addEventListener("pointerup", onPointerUp);
+            window.addEventListener("pointercancel", onPointerUp);
+            window.addEventListener("mousemove", onPointerMove, { passive: false });
+            window.addEventListener("mouseup", onPointerUp);
+        }
+
+        dock.addEventListener("pointerdown", onPointerDown);
+        dock.addEventListener("mousedown", onPointerDown);
 
         document.body.appendChild(dock);
         spkmodCinemaPillEl = dock;
@@ -19305,6 +19349,10 @@ function spkmodUpdateCinemaI18n() {
 	}
 
 	// 2. Floating Dock (spkmod-cinema-dock)
+	const anchorBtn = document.getElementById("spkmod-cinema-dock-anchor");
+	if (anchorBtn) {
+		anchorBtn.title = (typeof t === "function" ? t("dragMenuTooltip") : "Drag to move") || "Drag to move";
+	}
 	const modeBtn = document.getElementById("spkmod-cinema-mode-btn");
 	if (modeBtn) {
 		modeBtn.innerText = getCinemaText("cinemaModeBtn");
