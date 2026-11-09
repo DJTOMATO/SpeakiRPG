@@ -875,7 +875,18 @@
         "cinemaPrev": "Back",
         "cinemaNext": "Next",
         "cinemaRepeat": "Repeat",
-        "cinemaSyncSchedule": "Live / Sync"
+        "cinemaSyncSchedule": "Live / Sync",
+        "cinemaTabMovies": "movies.txt",
+        "cinemaTabSongs": "Bolpop",
+        "cinemaClickToPlay": "Click to play video",
+        "cinemaPlayingBadge": "PLAYING",
+        "cinemaTrackSub": "Track #{0} of {1} • {2} ({3})",
+        "cinemaModeSynced": "Synced",
+        "cinemaModeManual": "Manual",
+        "cinemaRepeatAll": "Repeat: All",
+        "cinemaRepeatOne": "Repeat: One",
+        "cinemaRepeatOff": "Repeat: Off",
+        "cinemaNoEntries": "No entries found in {0}"
     },
     "ja": {
         "langName": "日本語",

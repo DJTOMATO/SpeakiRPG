@@ -1472,8 +1472,14 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 
 (async function() {
 	try {
-		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/translations.json");
-		if (res.ok) {
+		let res = null;
+		try {
+			res = await fetch("translations.json?t=" + Date.now());
+		} catch (_) {}
+		if (!res || !res.ok) {
+			res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/translations.json?t=" + Date.now());
+		}
+		if (res && res.ok) {
 			const data = await res.json();
 			if (data && data.en) {
 				spkmodTranslations = data;
@@ -1487,7 +1493,7 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 			}
 		}
 	} catch (e) {
-		console.warn("[SpeakiMod+] Failed to load translations.json from GitHub:", e);
+		console.warn("[SpeakiMod+] Failed to load translations.json:", e);
 	}
 })();
 
@@ -9067,7 +9073,7 @@ document.body.appendChild(
 					})
 				]),
 				buildElement("div", { className: "spkmod-panel-cat", style: "gap: 6px; align-items: center;" }, [
-					buildElement("span", {
+					lunPanelElements.cinemaVolumeLabel = buildElement("span", {
 						style: "color: #aaa; font-size: 11px; flex: 1;",
 						innerText: "🔊 " + (t("cinemaVolumeLabel") || "Monatium Cinema Volume") + ":"
 					}),
@@ -9099,11 +9105,11 @@ document.body.appendChild(
 							}
 						}
 					}),
-					buildElement("button", {
+					lunPanelElements.cinemaReloadBtn = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 1px 6px; font-size: 10px; cursor: pointer;",
 						innerText: "🔄 " + (t("cinemaReloadPlaylist") || "Reload"),
-						title: "Reload playlist",
+						title: t("cinemaReloadPlaylist") || "Reload playlist",
 						onclick: () => {
 							if (typeof window.spkmodLoadMoviesPlaylist === "function") {
 								window.spkmodLoadMoviesPlaylist().then(() => {
@@ -13662,6 +13668,10 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         if (spkmodCinemaPillEl) spkmodCinemaPillEl.style.display = "none";
         return;
     }
+    const getCinemaText = (key, fallback) => {
+        if (typeof window.spkmodGetCinemaText === "function") return window.spkmodGetCinemaText(key);
+        return typeof t === "function" ? t(key) : (fallback || key);
+    };
     if (!spkmodCinemaPillEl) {
         let initLeft = Math.max(10, window.innerWidth - 440);
         let initTop = Math.max(10, window.innerHeight - 84);
@@ -13694,7 +13704,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         // 2. Playlist Modal Button
         const plBtn = document.createElement("button");
         plBtn.id = "spkmod-cinema-dock-pl-btn";
-        plBtn.title = typeof t === "function" ? t("cinemaPlaylistTitle", "Monatium Cinema Playlist") : "Monatium Cinema Playlist";
+        plBtn.title = getCinemaText("cinemaPlaylistTitle", "Monatium Cinema Playlist");
         plBtn.style.cssText = "background: none; border: none; color: #e8b84b; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px 3px; transition: transform 0.12s ease;";
         plBtn.innerText = "📋";
         plBtn.onmouseenter = () => { plBtn.style.transform = "scale(1.15)"; };
@@ -13713,7 +13723,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         // 3. Playback Controls (Back, Play/Pause, Next, Repeat)
         const prevBtn = document.createElement("button");
         prevBtn.id = "spkmod-cinema-dock-prev-btn";
-        prevBtn.title = typeof t === "function" ? t("cinemaPrev", "Back") : "Back";
+        prevBtn.title = getCinemaText("cinemaPrev", "Back");
         prevBtn.style.cssText = "background: none; border: none; color: #e8b84b; font-size: 12px; cursor: pointer; padding: 2px 3px; transition: transform 0.12s ease;";
         prevBtn.innerText = "⏮️";
         prevBtn.onmouseenter = () => { prevBtn.style.transform = "scale(1.2)"; };
@@ -13745,7 +13755,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
 
         const nextBtn = document.createElement("button");
         nextBtn.id = "spkmod-cinema-dock-next-btn";
-        nextBtn.title = typeof t === "function" ? t("cinemaNext", "Next") : "Next";
+        nextBtn.title = getCinemaText("cinemaNext", "Next");
         nextBtn.style.cssText = "background: none; border: none; color: #e8b84b; font-size: 12px; cursor: pointer; padding: 2px 3px; transition: transform 0.12s ease;";
         nextBtn.innerText = "⏭️";
         nextBtn.onmouseenter = () => { nextBtn.style.transform = "scale(1.2)"; };
@@ -13761,7 +13771,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
 
         const repeatBtn = document.createElement("button");
         repeatBtn.id = "spkmod-cinema-dock-repeat-btn";
-        repeatBtn.title = typeof t === "function" ? t("cinemaRepeat", "Repeat") : "Repeat";
+        repeatBtn.title = getCinemaText("cinemaRepeat", "Repeat");
         repeatBtn.style.cssText = "background: none; border: none; color: #e8b84b; font-size: 12px; cursor: pointer; padding: 2px 3px; transition: transform 0.12s ease;";
         repeatBtn.innerText = (window.spkmodCinemaRepeatMode === "one" ? "🔂" : "🔁");
         repeatBtn.onmouseenter = () => { repeatBtn.style.transform = "scale(1.2)"; };
@@ -13889,7 +13899,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
 
     const modeBtn = document.getElementById("spkmod-cinema-mode-btn");
     if (modeBtn) {
-        const btnText = typeof t === "function" ? t("cinemaModeBtn", "🎬 Monatium Cinema") : "🎬 Monatium Cinema";
+        const btnText = getCinemaText("cinemaModeBtn", "🎬 Monatium Cinema");
         modeBtn.innerText = btnText;
     }
 
@@ -17849,6 +17859,213 @@ function spkmodParseMoviesTxt(text) {
 	return list;
 }
 
+const SPKMOD_CINEMA_I18N = {
+	en: {
+		cinemaTitle: "Monatium Cinema",
+		cinemaDesc: "In-game 3D screen playing YouTube playlist in Zone 1 Festival Plaza",
+		cinemaModeBtn: "🎬 Monatium Cinema",
+		cinemaExitBtn: "Exit Monatium Cinema (Esc)",
+		cinemaNowPlaying: "Now Playing",
+		cinemaVolumeLabel: "Monatium Cinema Volume",
+		cinemaMute: "Mute",
+		cinemaUnmute: "Unmute",
+		cinemaReloadPlaylist: "Reload Playlist",
+		cinemaPosAdjust: "Screen Position (X, Y, Z, Rot)",
+		cinemaResetPos: "Reset Position",
+		cinemaPlaylistBtn: "Playlist",
+		cinemaPlaylistTitle: "Monatium Cinema Playlist",
+		cinemaPlay: "Play",
+		cinemaPause: "Pause",
+		cinemaPrev: "Back",
+		cinemaNext: "Next",
+		cinemaRepeat: "Repeat",
+		cinemaSyncSchedule: "Live / Sync",
+		cinemaTabMovies: "movies.txt",
+		cinemaTabSongs: "Bolpop",
+		cinemaClickToPlay: "Click to play video",
+		cinemaPlayingBadge: "PLAYING",
+		cinemaTrackSub: "Track #{0} of {1} • {2} ({3})",
+		cinemaModeSynced: "Synced",
+		cinemaModeManual: "Manual",
+		cinemaRepeatAll: "Repeat: All",
+		cinemaRepeatOne: "Repeat: One",
+		cinemaRepeatOff: "Repeat: Off",
+		cinemaNoEntries: "No entries found in {0}"
+	},
+	ja: {
+		cinemaTitle: "モナティウム シネマ",
+		cinemaDesc: "ゾーン1のお祭り広場でYouTubeプレイリストを上映するゲーム内3Dスクリーン",
+		cinemaModeBtn: "🎬 モナティウム シネマ",
+		cinemaExitBtn: "モナティウム シネマ終了 (Esc)",
+		cinemaNowPlaying: "現在上映中",
+		cinemaVolumeLabel: "モナティウム シネマ音量",
+		cinemaMute: "ミュート",
+		cinemaUnmute: "ミュート解除",
+		cinemaReloadPlaylist: "プレイリスト再読込",
+		cinemaPosAdjust: "画面位置調整 (X, Y, Z, 回転)",
+		cinemaResetPos: "位置をリセット",
+		cinemaPlaylistBtn: "プレイリスト",
+		cinemaPlaylistTitle: "モナティウム シネマ プレイリスト",
+		cinemaPlay: "再生",
+		cinemaPause: "一時停止",
+		cinemaPrev: "前へ",
+		cinemaNext: "次へ",
+		cinemaRepeat: "リピート",
+		cinemaSyncSchedule: "ライブ同期",
+		cinemaTabMovies: "movies.txt",
+		cinemaTabSongs: "ボルポップ",
+		cinemaClickToPlay: "クリックして動画を再生",
+		cinemaPlayingBadge: "上映中",
+		cinemaTrackSub: "トラック #{0} / {1} • {2} ({3})",
+		cinemaModeSynced: "同期中",
+		cinemaModeManual: "手動",
+		cinemaRepeatAll: "リピート: 全曲",
+		cinemaRepeatOne: "リピート: 1曲",
+		cinemaRepeatOff: "リピート: オフ",
+		cinemaNoEntries: "{0} に動画が見つかりません"
+	},
+	ko: {
+		cinemaTitle: "모나티엄 영화관",
+		cinemaDesc: "1구역 축제 광장에서 유튜브 재생목록을 상영하는 인게임 3D 스크린",
+		cinemaModeBtn: "🎬 모나티엄 영화관",
+		cinemaExitBtn: "모나티엄 영화관 종료 (Esc)",
+		cinemaNowPlaying: "현재 상영 중",
+		cinemaVolumeLabel: "모나티엄 영화관 볼륨",
+		cinemaMute: "음소거",
+		cinemaUnmute: "음소거 해제",
+		cinemaReloadPlaylist: "재생목록 새로고침",
+		cinemaPosAdjust: "스크린 위치 조정 (X, Y, Z, 회전)",
+		cinemaResetPos: "위치 초기화",
+		cinemaPlaylistBtn: "재생목록",
+		cinemaPlaylistTitle: "모나티엄 영화관 재생목록",
+		cinemaPlay: "재생",
+		cinemaPause: "일시정지",
+		cinemaPrev: "이전",
+		cinemaNext: "다음",
+		cinemaRepeat: "반복",
+		cinemaSyncSchedule: "라이브 동기화",
+		cinemaTabMovies: "movies.txt",
+		cinemaTabSongs: "볼팝",
+		cinemaClickToPlay: "클릭하여 영상 재생",
+		cinemaPlayingBadge: "상영 중",
+		cinemaTrackSub: "트랙 #{0} / {1} • {2} ({3})",
+		cinemaModeSynced: "동기화됨",
+		cinemaModeManual: "수동",
+		cinemaRepeatAll: "반복: 전체",
+		cinemaRepeatOne: "반복: 한 곡",
+		cinemaRepeatOff: "반복: 끄기",
+		cinemaNoEntries: "{0}에서 영상을 찾을 수 없습니다"
+	},
+	"zh-TW": {
+		cinemaTitle: "莫納提姆影院",
+		cinemaDesc: "在1區節日廣場播放YouTube播放列表的遊戲內3D螢幕",
+		cinemaModeBtn: "🎬 莫納提姆影院",
+		cinemaExitBtn: "退出莫納提姆影院 (Esc)",
+		cinemaNowPlaying: "正在放映",
+		cinemaVolumeLabel: "莫納提姆影院音量",
+		cinemaMute: "靜音",
+		cinemaUnmute: "取消靜音",
+		cinemaReloadPlaylist: "重新載入播放列表",
+		cinemaPosAdjust: "調整螢幕位置 (X, Y, Z, 旋轉)",
+		cinemaResetPos: "重設位置",
+		cinemaPlaylistBtn: "播放列表",
+		cinemaPlaylistTitle: "莫納提姆影院播放列表",
+		cinemaPlay: "播放",
+		cinemaPause: "暫停",
+		cinemaPrev: "上一首",
+		cinemaNext: "下一首",
+		cinemaRepeat: "循環播放",
+		cinemaSyncSchedule: "同步播放",
+		cinemaTabMovies: "movies.txt",
+		cinemaTabSongs: "Bolpop",
+		cinemaClickToPlay: "點擊播放影片",
+		cinemaPlayingBadge: "放映中",
+		cinemaTrackSub: "曲目 #{0} / {1} • {2} ({3})",
+		cinemaModeSynced: "已同步",
+		cinemaModeManual: "手動",
+		cinemaRepeatAll: "循環播放: 全部",
+		cinemaRepeatOne: "循環播放: 單曲",
+		cinemaRepeatOff: "循環播放: 關閉",
+		cinemaNoEntries: "{0} 中找不到影片"
+	},
+	"zh-CN": {
+		cinemaTitle: "莫纳提姆影院",
+		cinemaDesc: "在1区节日广场播放YouTube播放列表的游戏内3D屏幕",
+		cinemaModeBtn: "🎬 莫纳提姆影院",
+		cinemaExitBtn: "退出莫纳提姆影院 (Esc)",
+		cinemaNowPlaying: "正在放映",
+		cinemaVolumeLabel: "莫纳提姆影院音量",
+		cinemaMute: "静音",
+		cinemaUnmute: "取消静音",
+		cinemaReloadPlaylist: "重新加载播放列表",
+		cinemaPosAdjust: "调整屏幕位置 (X, Y, Z, 旋转)",
+		cinemaResetPos: "重置位置",
+		cinemaPlaylistBtn: "播放列表",
+		cinemaPlaylistTitle: "莫纳提姆影院播放列表",
+		cinemaPlay: "播放",
+		cinemaPause: "暂停",
+		cinemaPrev: "上一首",
+		cinemaNext: "下一首",
+		cinemaRepeat: "循环播放",
+		cinemaSyncSchedule: "同步播放",
+		cinemaTabMovies: "movies.txt",
+		cinemaTabSongs: "Bolpop",
+		cinemaClickToPlay: "点击播放视频",
+		cinemaPlayingBadge: "放映中",
+		cinemaTrackSub: "曲目 #{0} / {1} • {2} ({3})",
+		cinemaModeSynced: "已同步",
+		cinemaModeManual: "手动",
+		cinemaRepeatAll: "循环播放: 全部",
+		cinemaRepeatOne: "循环播放: 单曲",
+		cinemaRepeatOff: "循环播放: 关闭",
+		cinemaNoEntries: "{0} 中未找到视频"
+	},
+	"es-419": {
+		cinemaTitle: "Cine Monatium",
+		cinemaDesc: "Pantalla 3D en el juego que reproduce la lista de YouTube en la Plaza del Festival de la Zona 1",
+		cinemaModeBtn: "🎬 Cine Monatium",
+		cinemaExitBtn: "Salir de Cine Monatium (Esc)",
+		cinemaNowPlaying: "Reproduciendo ahora",
+		cinemaVolumeLabel: "Volumen de Cine Monatium",
+		cinemaMute: "Silenciar",
+		cinemaUnmute: "Reactivar sonido",
+		cinemaReloadPlaylist: "Recargar Lista",
+		cinemaPosAdjust: "Ajustar Posición (X, Y, Z, Rot)",
+		cinemaResetPos: "Restablecer Posición",
+		cinemaPlaylistBtn: "Lista",
+		cinemaPlaylistTitle: "Lista de Cine Monatium",
+		cinemaPlay: "Reproducir",
+		cinemaPause: "Pausar",
+		cinemaPrev: "Anterior",
+		cinemaNext: "Siguiente",
+		cinemaRepeat: "Repetir",
+		cinemaSyncSchedule: "Sincronizar",
+		cinemaTabMovies: "movies.txt",
+		cinemaTabSongs: "Bolpop",
+		cinemaClickToPlay: "Haz clic para reproducir",
+		cinemaPlayingBadge: "REPRODUCIENDO",
+		cinemaTrackSub: "Pista #{0} de {1} • {2} ({3})",
+		cinemaModeSynced: "Sincronizado",
+		cinemaModeManual: "Manual",
+		cinemaRepeatAll: "Repetir: Todo",
+		cinemaRepeatOne: "Repetir: Una",
+		cinemaRepeatOff: "Repetir: Desactivado",
+		cinemaNoEntries: "No se encontraron videos en {0}"
+	}
+};
+
+function getCinemaText(key, ...args) {
+	const lang = (typeof spkmodLang !== "undefined" && spkmodLang) || "en";
+	let str = (typeof spkmodTranslations !== "undefined" && spkmodTranslations[lang] && spkmodTranslations[lang][key])
+		|| (typeof SPKMOD_CINEMA_I18N !== "undefined" && SPKMOD_CINEMA_I18N[lang] && SPKMOD_CINEMA_I18N[lang][key])
+		|| (typeof spkmodTranslations !== "undefined" && spkmodTranslations.en && spkmodTranslations.en[key])
+		|| (typeof SPKMOD_CINEMA_I18N !== "undefined" && SPKMOD_CINEMA_I18N.en && SPKMOD_CINEMA_I18N.en[key])
+		|| key;
+	args.forEach((a, i) => { str = str.split(`{${i}}`).join(a); });
+	return str;
+}
+window.spkmodGetCinemaText = getCinemaText;
+
 async function spkmodLoadMoviesPlaylist() {
 	const defaultList = [
 		{ id: "EstBwd8DcSw", title: "oage", author: "", duration: 0 },
@@ -17860,10 +18077,9 @@ async function spkmodLoadMoviesPlaylist() {
 	];
 
 	try {
-		const url = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/movies.txt?t=" + Date.now();
-		const res = await fetch(url, { cache: "no-store" });
-		if (res.ok) {
-			const text = await res.text();
+		const localRes = await fetch("movies.txt?t=" + Date.now());
+		if (localRes.ok) {
+			const text = await localRes.text();
 			const list = spkmodParseMoviesTxt(text);
 			if (list && list.length > 0) {
 				spkmodCinemaPlaylists.movies = list;
@@ -17876,9 +18092,10 @@ async function spkmodLoadMoviesPlaylist() {
 	} catch (_) {}
 
 	try {
-		const localRes = await fetch("movies.txt?t=" + Date.now());
-		if (localRes.ok) {
-			const text = await localRes.text();
+		const url = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/movies.txt?t=" + Date.now();
+		const res = await fetch(url, { cache: "no-store" });
+		if (res.ok) {
+			const text = await res.text();
 			const list = spkmodParseMoviesTxt(text);
 			if (list && list.length > 0) {
 				spkmodCinemaPlaylists.movies = list;
@@ -17898,55 +18115,81 @@ async function spkmodLoadMoviesPlaylist() {
 }
 
 async function spkmodLoadSongsPlaylist() {
-	try {
-		const url = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/songs.txt?t=" + Date.now();
-		const res = await fetch(url, { cache: "no-store" });
-		if (res.ok) {
-			const text = await res.text();
-			const list = spkmodParseMoviesTxt(text);
-			if (list && list.length > 0) {
-				spkmodCinemaPlaylists.songs = list;
-				if (spkmodCinemaActiveTab === 'songs') {
-					spkmodCinemaLoadedPlaylist = list;
-				}
-				return list;
-			}
-		}
-	} catch (_) {}
-
-	try {
-		const localRes = await fetch("songs.txt?t=" + Date.now());
-		if (localRes.ok) {
-			const text = await localRes.text();
-			const list = spkmodParseMoviesTxt(text);
-			if (list && list.length > 0) {
-				spkmodCinemaPlaylists.songs = list;
-				if (spkmodCinemaActiveTab === 'songs') {
-					spkmodCinemaLoadedPlaylist = list;
-				}
-				return list;
-			}
-		}
-	} catch (_) {}
-
-	// Bolpop songs fallback (Bolpop only) from window.SPKMOD_BOLPOP_TRACKS or cached radio
-	const bolpopTracks = (typeof window !== "undefined" && Array.isArray(window.SPKMOD_BOLPOP_TRACKS) && window.SPKMOD_BOLPOP_TRACKS.length > 0)
-		? window.SPKMOD_BOLPOP_TRACKS
-		: [];
-
-	if (bolpopTracks.length > 0) {
-		const list = bolpopTracks.map(t => {
-			const id = Array.isArray(t) ? t[0] : (t.id || "");
+	// Directly load Bolpop tracks from radio.json ("bolpop": [...])
+	const parseBolpopData = (data) => {
+		if (!data || !Array.isArray(data.bolpop) || data.bolpop.length === 0) return null;
+		return data.bolpop.map(t => {
+			const id = Array.isArray(t) ? t[0] : (t.id || t.videoId || "");
 			const rawTitle = Array.isArray(t) ? t[1] : (t.title || "");
 			const rawAuthor = Array.isArray(t) ? (t[2] || "") : (t.author || "");
 			return { id, title: rawTitle || id, author: rawAuthor, duration: 0, url: `https://www.youtube.com/watch?v=${id}` };
 		}).filter(t => t.id);
-		spkmodCinemaPlaylists.songs = list;
-		if (spkmodCinemaActiveTab === 'songs') {
-			spkmodCinemaLoadedPlaylist = list;
+	};
+
+	// 1. Try window.SPKMOD_BOLPOP_TRACKS if already populated by radio module
+	if (typeof window !== "undefined" && Array.isArray(window.SPKMOD_BOLPOP_TRACKS) && window.SPKMOD_BOLPOP_TRACKS.length > 0) {
+		const list = window.SPKMOD_BOLPOP_TRACKS.map(t => {
+			const id = Array.isArray(t) ? t[0] : (t.id || t.videoId || "");
+			const rawTitle = Array.isArray(t) ? t[1] : (t.title || "");
+			const rawAuthor = Array.isArray(t) ? (t[2] || "") : (t.author || "");
+			return { id, title: rawTitle || id, author: rawAuthor, duration: 0, url: `https://www.youtube.com/watch?v=${id}` };
+		}).filter(t => t.id);
+		if (list.length > 0) {
+			spkmodCinemaPlaylists.songs = list;
+			if (spkmodCinemaActiveTab === 'songs') {
+				spkmodCinemaLoadedPlaylist = list;
+			}
+			return list;
 		}
-		return list;
 	}
+
+	// 2. Try fetching local radio.json
+	try {
+		const localRes = await fetch("radio.json?t=" + Date.now());
+		if (localRes.ok) {
+			const data = await localRes.json();
+			const list = parseBolpopData(data);
+			if (list && list.length > 0) {
+				spkmodCinemaPlaylists.songs = list;
+				if (spkmodCinemaActiveTab === 'songs') {
+					spkmodCinemaLoadedPlaylist = list;
+				}
+				return list;
+			}
+		}
+	} catch (_) {}
+
+	// 3. Try fetching remote radio.json
+	try {
+		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/radio.json?t=" + Date.now(), { cache: "no-store" });
+		if (res.ok) {
+			const data = await res.json();
+			const list = parseBolpopData(data);
+			if (list && list.length > 0) {
+				spkmodCinemaPlaylists.songs = list;
+				if (spkmodCinemaActiveTab === 'songs') {
+					spkmodCinemaLoadedPlaylist = list;
+				}
+				return list;
+			}
+		}
+	} catch (_) {}
+
+	// 4. Try localStorage radio cache
+	try {
+		const cached = localStorage.getItem("spkmod-radio-cache");
+		if (cached) {
+			const data = JSON.parse(cached);
+			const list = parseBolpopData(data);
+			if (list && list.length > 0) {
+				spkmodCinemaPlaylists.songs = list;
+				if (spkmodCinemaActiveTab === 'songs') {
+					spkmodCinemaLoadedPlaylist = list;
+				}
+				return list;
+			}
+		}
+	} catch (_) {}
 
 	return [];
 }
@@ -18277,7 +18520,7 @@ function spkmodFormatDuration(sec, isSong = false) {
 		const s = Math.floor(sec % 60);
 		return `${m}:${s < 10 ? '0' : ''}${s}`;
 	}
-	return isSong ? "🎵 Bolpop" : "🔴 LIVE";
+	return isSong ? `🎵 ${getCinemaText("cinemaTabSongs")}` : "🔴 LIVE";
 }
 
 function spkmodGetCinemaCurrentTrackIndex() {
@@ -18391,14 +18634,14 @@ function spkmodRenderCinemaModalList() {
 		? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
 		: (spkmodCinemaLoadedPlaylist || []);
 
-	const tabLabel = (spkmodCinemaActiveTab === 'movies') ? 'movies.txt' : 'songs.txt';
+	const tabLabel = (spkmodCinemaActiveTab === 'movies') ? getCinemaText('cinemaTabMovies') : getCinemaText('cinemaTabSongs');
 	if (countEl) countEl.innerText = `${tabLabel} (${playlist.length})`;
 
 	const curIdx = spkmodCinemaCurrentVideo ? playlist.findIndex(t => t.id === spkmodCinemaCurrentVideo) : -1;
 	listEl.innerHTML = "";
 
 	if (playlist.length === 0) {
-		listEl.innerHTML = `<div style="text-align:center;padding:20px;color:#888;font-size:12px;">No entries found in ${tabLabel}</div>`;
+		listEl.innerHTML = `<div style="text-align:center;padding:20px;color:#888;font-size:12px;">${getCinemaText("cinemaNoEntries", tabLabel)}</div>`;
 		return;
 	}
 
@@ -18433,7 +18676,7 @@ function spkmodRenderCinemaModalList() {
 				</div>
 				<div style="font-size:10px;color:${isActive ? '#e8b84b' : '#7c6894'};display:flex;align-items:center;gap:6px;">
 					<span>${dur}</span>
-					${isActive ? '<span style="background:#e8b84b;color:#120e1a;font-size:9px;font-weight:800;padding:1px 4px;border-radius:3px;">▶ PLAYING</span>' : ''}
+					${isActive ? `<span style="background:#e8b84b;color:#120e1a;font-size:9px;font-weight:800;padding:1px 4px;border-radius:3px;">▶ ${getCinemaText("cinemaPlayingBadge")}</span>` : ''}
 				</div>
 			</div>
 		`;
@@ -18450,6 +18693,10 @@ function spkmodUpdateCinemaPlaybackUI() {
 
 	window.spkmodCurrentCinemaTitle = track.title || "Monatium Cinema";
 
+	const repText = (spkmodCinemaRepeatMode === "one")
+		? getCinemaText("cinemaRepeatOne")
+		: (spkmodCinemaRepeatMode === "all" ? getCinemaText("cinemaRepeatAll") : getCinemaText("cinemaRepeatOff"));
+
 	// 1. Update Cinema Modal
 	if (spkmodCinemaModalEl) {
 		const thumb = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-thumb");
@@ -18464,8 +18711,8 @@ function spkmodUpdateCinemaPlaybackUI() {
 		const subEl = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-sub");
 		if (subEl) {
 			const dur = spkmodFormatDuration(track.duration, spkmodCinemaActiveTab === 'songs');
-			const mode = (spkmodCinemaManualTrackIndex === null) ? "🔴 Synced" : "Manual";
-			subEl.innerText = `Track #${curIdx + 1} of ${playlist.length} • ${dur} (${mode})`;
+			const mode = (spkmodCinemaManualTrackIndex === null) ? `🔴 ${getCinemaText("cinemaModeSynced")}` : getCinemaText("cinemaModeManual");
+			subEl.innerText = getCinemaText("cinemaTrackSub", curIdx + 1, playlist.length, dur, mode);
 		}
 		const syncBtn = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-sync-btn");
 		if (syncBtn) {
@@ -18493,7 +18740,7 @@ function spkmodUpdateCinemaPlaybackUI() {
 			modalRepeat.style.background = (spkmodCinemaRepeatMode !== "off" ? "#e8b84b" : "#3e3052");
 			modalRepeat.style.color = (spkmodCinemaRepeatMode !== "off" ? "#120e1a" : "#ffc94a");
 			modalRepeat.style.borderColor = (spkmodCinemaRepeatMode !== "off" ? "#e8b84b" : "#7c6894");
-			modalRepeat.title = `Repeat: ${spkmodCinemaRepeatMode.toUpperCase()}`;
+			modalRepeat.title = repText;
 		}
 		spkmodRenderCinemaModalList();
 	}
@@ -18513,7 +18760,7 @@ function spkmodUpdateCinemaPlaybackUI() {
 	if (hudRepeatBtn) {
 		hudRepeatBtn.innerText = (spkmodCinemaRepeatMode === "one" ? "🔂" : "🔁");
 		hudRepeatBtn.style.color = (spkmodCinemaRepeatMode !== "off" ? "#ffc94a" : "#7c6894");
-		hudRepeatBtn.title = `Repeat: ${spkmodCinemaRepeatMode.toUpperCase()}`;
+		hudRepeatBtn.title = repText;
 	}
 
 	// 3. Update Floating Dock
@@ -18523,7 +18770,7 @@ function spkmodUpdateCinemaPlaybackUI() {
 	if (dockRepeatBtn) {
 		dockRepeatBtn.innerText = (spkmodCinemaRepeatMode === "one" ? "🔂" : "🔁");
 		dockRepeatBtn.style.color = (spkmodCinemaRepeatMode !== "off" ? "#e8b84b" : "#66557a");
-		dockRepeatBtn.title = `Repeat: ${spkmodCinemaRepeatMode.toUpperCase()}`;
+		dockRepeatBtn.title = repText;
 	}
 
 	if (typeof spkmodSyncCinemaVolumeUI === "function") {
@@ -18561,21 +18808,21 @@ function spkmodBuildCinemaModal() {
 	modal.innerHTML = `
 		<div id="spkmod-cinema-modal-header" style="display:flex;justify-content:space-between;align-items:center;cursor:move;border-bottom:1px solid rgba(232,184,75,0.3);padding-bottom:8px;">
 			<div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;color:#ffc94a;">
-				<span style="font-size:16px;">🎬</span> ${typeof t === "function" ? t("cinemaPlaylistTitle", "Monatium Cinema Playlist") : "Monatium Cinema Playlist"}
+				<span style="font-size:16px;">🎬</span> <span id="spkmod-cinema-modal-header-title">${getCinemaText("cinemaPlaylistTitle")}</span>
 			</div>
 			<div style="display:flex;align-items:center;gap:5px;">
-				<button id="spkmod-cinema-modal-sync-btn" title="${typeof t === "function" ? t("cinemaSyncSchedule", "Live / Sync") : "Live / Sync"}" class="spkmod-panel-btn" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:2px 7px;font-size:11px;font-weight:700;">🔴 Sync</button>
-				<button id="spkmod-cinema-modal-reload-btn" title="${typeof t === "function" ? t("cinemaReloadPlaylist", "Reload Playlist") : "Reload Playlist"}" class="spkmod-panel-btn" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;">🔄</button>
+				<button id="spkmod-cinema-modal-sync-btn" title="${getCinemaText("cinemaSyncSchedule")}" class="spkmod-panel-btn" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:2px 7px;font-size:11px;font-weight:700;">🔴 <span id="spkmod-cinema-sync-label">${getCinemaText("cinemaSyncSchedule")}</span></button>
+				<button id="spkmod-cinema-modal-reload-btn" title="${getCinemaText("cinemaReloadPlaylist")}" class="spkmod-panel-btn" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;">🔄</button>
 				<button id="spkmod-cinema-modal-close-btn" title="Close" style="background:transparent;border:none;color:#aaa;cursor:pointer;font-size:16px;line-height:1;padding:0 3px;">✕</button>
 			</div>
 		</div>
 
 		<div id="spkmod-cinema-modal-tabs" style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
 			<button id="spkmod-cinema-tab-movies" class="spkmod-panel-btn" style="flex:1;padding:5px 8px;font-size:12px;font-weight:700;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;border:1.5px solid ${spkmodCinemaActiveTab === 'movies' ? '#e8b84b' : '#7c6894'};background:${spkmodCinemaActiveTab === 'movies' ? '#e8b84b' : '#2d213d'};color:${spkmodCinemaActiveTab === 'movies' ? '#120e1a' : '#ffc94a'};transition:all 0.15s ease;">
-				🎬 
+				🎬 <span id="spkmod-cinema-tab-movies-label">${getCinemaText("cinemaTabMovies")}</span>
 			</button>
 			<button id="spkmod-cinema-tab-songs" class="spkmod-panel-btn" style="flex:1;padding:5px 8px;font-size:12px;font-weight:700;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;border:1.5px solid ${spkmodCinemaActiveTab === 'songs' ? '#e8b84b' : '#7c6894'};background:${spkmodCinemaActiveTab === 'songs' ? '#e8b84b' : '#2d213d'};color:${spkmodCinemaActiveTab === 'songs' ? '#120e1a' : '#ffc94a'};transition:all 0.15s ease;">
-				🎵 
+				🎵 <span id="spkmod-cinema-tab-songs-label">${getCinemaText("cinemaTabSongs")}</span>
 			</button>
 		</div>
 
@@ -18590,14 +18837,14 @@ function spkmodBuildCinemaModal() {
 
 		<div id="spkmod-cinema-modal-controls" style="display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,0.25);padding:6px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);flex-shrink:0;">
 			<div style="display:flex;align-items:center;gap:6px;">
-				<button id="spkmod-cinema-ctrl-prev" class="spkmod-panel-btn" title="${typeof t === "function" ? t("cinemaPrev", "Back") : "Back"}" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:4px 9px;font-size:13px;">⏮️</button>
-				<button id="spkmod-cinema-ctrl-play" class="spkmod-panel-btn" title="${typeof t === "function" ? t("cinemaPlay", "Play") : "Play"}" style="background:#e8b84b;color:#120e1a;border:none;border-radius:6px;cursor:pointer;padding:4px 10px;font-size:13px;font-weight:bold;">▶️</button>
-				<button id="spkmod-cinema-ctrl-pause" class="spkmod-panel-btn" title="${typeof t === "function" ? t("cinemaPause", "Pause") : "Pause"}" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:4px 10px;font-size:13px;font-weight:bold;">⏸️</button>
-				<button id="spkmod-cinema-ctrl-next" class="spkmod-panel-btn" title="${typeof t === "function" ? t("cinemaNext", "Next") : "Next"}" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:4px 9px;font-size:13px;">⏭️</button>
-				<button id="spkmod-cinema-ctrl-repeat" class="spkmod-panel-btn" title="${typeof t === "function" ? t("cinemaRepeat", "Repeat") : "Repeat"}" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:4px 9px;font-size:13px;">🔁</button>
+				<button id="spkmod-cinema-ctrl-prev" class="spkmod-panel-btn" title="${getCinemaText("cinemaPrev")}" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:4px 9px;font-size:13px;">⏮️</button>
+				<button id="spkmod-cinema-ctrl-play" class="spkmod-panel-btn" title="${getCinemaText("cinemaPlay")}" style="background:#e8b84b;color:#120e1a;border:none;border-radius:6px;cursor:pointer;padding:4px 10px;font-size:13px;font-weight:bold;">▶️</button>
+				<button id="spkmod-cinema-ctrl-pause" class="spkmod-panel-btn" title="${getCinemaText("cinemaPause")}" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:4px 10px;font-size:13px;font-weight:bold;">⏸️</button>
+				<button id="spkmod-cinema-ctrl-next" class="spkmod-panel-btn" title="${getCinemaText("cinemaNext")}" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:4px 9px;font-size:13px;">⏭️</button>
+				<button id="spkmod-cinema-ctrl-repeat" class="spkmod-panel-btn" title="${(spkmodCinemaRepeatMode === "one") ? getCinemaText("cinemaRepeatOne") : (spkmodCinemaRepeatMode === "all" ? getCinemaText("cinemaRepeatAll") : getCinemaText("cinemaRepeatOff"))}" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:4px 9px;font-size:13px;">🔁</button>
 			</div>
 			<div style="display:flex;align-items:center;gap:6px;">
-				<button id="spkmod-cinema-modal-mute-btn" title="Mute" style="background:none;border:none;color:#e8b84b;font-size:15px;cursor:pointer;padding:2px 3px;">${isMuted || vol === 0 ? "🔇" : "🔊"}</button>
+				<button id="spkmod-cinema-modal-mute-btn" title="${isMuted ? getCinemaText("cinemaUnmute") : getCinemaText("cinemaMute")}" style="background:none;border:none;color:#e8b84b;font-size:15px;cursor:pointer;padding:2px 3px;">${isMuted || vol === 0 ? "🔇" : "🔊"}</button>
 				<input id="spkmod-cinema-modal-vol-slider" type="range" min="0" max="100" value="${vol}" style="width:65px;height:5px;accent-color:#e8b84b;cursor:pointer;">
 				<span id="spkmod-cinema-modal-vol-label" style="font-size:11px;font-weight:bold;color:#e8b84b;min-width:26px;text-align:right;">${isMuted ? "0%" : vol + "%"}</span>
 			</div>
@@ -18605,7 +18852,7 @@ function spkmodBuildCinemaModal() {
 
 		<div style="display:flex;justify-content:space-between;align-items:center;padding:0 2px;font-size:11px;color:#aaa;">
 			<span id="spkmod-cinema-modal-count-label">Videos (${spkmodCinemaLoadedPlaylist.length})</span>
-			<span style="font-size:10px;color:#7c6894;">Click to play video</span>
+			<span id="spkmod-cinema-modal-hint-label" style="font-size:10px;color:#7c6894;">${getCinemaText("cinemaClickToPlay")}</span>
 		</div>
 
 		<div id="spkmod-cinema-modal-list" style="flex:1;min-height:160px;max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px;">
@@ -18832,18 +19079,18 @@ function spkmodUpdateCinemaTopBar(visible) {
 		const isMuted = !!window.spkmodCinemaConfig?.muted;
 		const vol = window.spkmodCinemaConfig?.volume ?? 80;
 		hudBar.innerHTML = `
-			<span>🎬 <strong>${typeof t === "function" ? t("cinemaNowPlaying", "Now Playing") : "Now Playing"}:</strong> <span id="spkmod-cinema-hud-title">${title}</span></span>
+			<span id="spkmod-cinema-hud-now-playing-container">🎬 <strong id="spkmod-cinema-hud-now-playing-label">${getCinemaText("cinemaNowPlaying")}:</strong> <span id="spkmod-cinema-hud-title">${title}</span></span>
 			<div style="width: 1px; height: 16px; background: rgba(232, 184, 75, 0.4); margin: 0 3px;"></div>
-			<button id="spkmod-cinema-hud-prev-btn" title="${typeof t === "function" ? t("cinemaPrev", "Back") : "Back"}" style="background:none;border:none;color:#ffc94a;font-size:13px;cursor:pointer;padding:2px 4px;">⏮️</button>
+			<button id="spkmod-cinema-hud-prev-btn" title="${getCinemaText("cinemaPrev")}" style="background:none;border:none;color:#ffc94a;font-size:13px;cursor:pointer;padding:2px 4px;">⏮️</button>
 			<button id="spkmod-cinema-hud-play-btn" title="Play / Pause" style="background:none;border:none;color:#ffc94a;font-size:13px;cursor:pointer;padding:2px 4px;">${spkmodCinemaIsPaused ? "▶️" : "⏸️"}</button>
-			<button id="spkmod-cinema-hud-next-btn" title="${typeof t === "function" ? t("cinemaNext", "Next") : "Next"}" style="background:none;border:none;color:#ffc94a;font-size:13px;cursor:pointer;padding:2px 4px;">⏭️</button>
-			<button id="spkmod-cinema-hud-repeat-btn" title="${typeof t === "function" ? t("cinemaRepeat", "Repeat") : "Repeat"}" style="background:none;border:none;color:${spkmodCinemaRepeatMode !== 'off' ? '#ffc94a' : '#7c6894'};font-size:13px;cursor:pointer;padding:2px 4px;">${spkmodCinemaRepeatMode === 'one' ? '🔂' : '🔁'}</button>
-			<button id="spkmod-cinema-hud-playlist-btn" title="${typeof t === "function" ? t("cinemaPlaylistBtn", "Playlist") : "Playlist"}" class="spkmod-panel-btn" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:4px;cursor:pointer;padding:2px 6px;font-size:11px;font-weight:700;">📋 ${typeof t === "function" ? t("cinemaPlaylistBtn", "Playlist") : "Playlist"}</button>
+			<button id="spkmod-cinema-hud-next-btn" title="${getCinemaText("cinemaNext")}" style="background:none;border:none;color:#ffc94a;font-size:13px;cursor:pointer;padding:2px 4px;">⏭️</button>
+			<button id="spkmod-cinema-hud-repeat-btn" title="${(spkmodCinemaRepeatMode === "one") ? getCinemaText("cinemaRepeatOne") : (spkmodCinemaRepeatMode === "all" ? getCinemaText("cinemaRepeatAll") : getCinemaText("cinemaRepeatOff"))}" style="background:none;border:none;color:${spkmodCinemaRepeatMode !== 'off' ? '#ffc94a' : '#7c6894'};font-size:13px;cursor:pointer;padding:2px 4px;">${spkmodCinemaRepeatMode === 'one' ? '🔂' : '🔁'}</button>
+			<button id="spkmod-cinema-hud-playlist-btn" title="${getCinemaText("cinemaPlaylistBtn")}" class="spkmod-panel-btn" style="background:#3e3052;color:#ffc94a;border:1px solid #7c6894;border-radius:4px;cursor:pointer;padding:2px 6px;font-size:11px;font-weight:700;">📋 <span id="spkmod-cinema-hud-playlist-text">${getCinemaText("cinemaPlaylistBtn")}</span></button>
 			<div style="width: 1px; height: 16px; background: rgba(232, 184, 75, 0.4); margin: 0 3px;"></div>
-			<button id="spkmod-cinema-hud-mute-btn" title="Mute / Unmute" style="background:none;border:none;color:#e8b84b;font-size:14px;cursor:pointer;padding:2px 3px;">${(isMuted || vol === 0) ? "🔇" : "🔊"}</button>
+			<button id="spkmod-cinema-hud-mute-btn" title="${isMuted ? getCinemaText("cinemaUnmute") : getCinemaText("cinemaMute")}" style="background:none;border:none;color:#e8b84b;font-size:14px;cursor:pointer;padding:2px 3px;">${(isMuted || vol === 0) ? "🔇" : "🔊"}</button>
 			<input id="spkmod-cinema-hud-vol-slider" type="range" min="0" max="100" value="${vol}" style="width:65px;height:5px;accent-color:#e8b84b;cursor:pointer;">
 			<span id="spkmod-cinema-hud-vol-label" style="font-size:11px;color:#e8b84b;min-width:26px;">${isMuted ? "0%" : vol + "%"}</span>
-			<button id="spkmod-cinema-exit-btn" class="spkmod-panel-btn" style="padding: 3px 10px; font-size: 12px; cursor: pointer; background: #e8b84b; color: #120e1a; font-weight: bold; border-radius: 4px; border: none; margin-left: 4px;">${typeof t === "function" ? t("cinemaExitBtn", "Exit Monatium Cinema (Esc)") : "Exit Monatium Cinema (Esc)"}</button>
+			<button id="spkmod-cinema-exit-btn" class="spkmod-panel-btn" style="padding: 3px 10px; font-size: 12px; cursor: pointer; background: #e8b84b !important; color: #120e1a !important; font-weight: bold; border-radius: 4px; border: none; margin-left: 4px;">${getCinemaText("cinemaExitBtn")}</button>
 		`;
 
 		const exitBtn = hudBar.querySelector('#spkmod-cinema-exit-btn');
@@ -19036,6 +19283,127 @@ window.spkmodCinemaNext = spkmodCinemaNext;
 window.spkmodCinemaSyncSchedule = spkmodCinemaSyncSchedule;
 window.spkmodRenderCinemaModalList = spkmodRenderCinemaModalList;
 window.spkmodUpdateCinemaPlaybackUI = spkmodUpdateCinemaPlaybackUI;
+
+function spkmodUpdateCinemaI18n() {
+	// 1. Settings Panel elements (if created)
+	if (typeof lunPanelElements !== "undefined") {
+		if (lunPanelElements.cinemaToggleLabel) {
+			lunPanelElements.cinemaToggleLabel.innerText = "🎬 " + getCinemaText("cinemaTitle");
+			lunPanelElements.cinemaToggleLabel.title = getCinemaText("cinemaDesc");
+		}
+		if (lunPanelElements.cinemaMuteBtn) {
+			const isMuted = !!window.spkmodCinemaConfig?.muted;
+			lunPanelElements.cinemaMuteBtn.title = isMuted ? getCinemaText("cinemaUnmute") : getCinemaText("cinemaMute");
+		}
+		if (lunPanelElements.cinemaVolumeLabel) {
+			lunPanelElements.cinemaVolumeLabel.innerText = "🔊 " + getCinemaText("cinemaVolumeLabel") + ":";
+		}
+		if (lunPanelElements.cinemaReloadBtn) {
+			lunPanelElements.cinemaReloadBtn.innerText = "🔄 " + getCinemaText("cinemaReloadPlaylist");
+			lunPanelElements.cinemaReloadBtn.title = getCinemaText("cinemaReloadPlaylist");
+		}
+	}
+
+	// 2. Floating Dock (spkmod-cinema-dock)
+	const modeBtn = document.getElementById("spkmod-cinema-mode-btn");
+	if (modeBtn) {
+		modeBtn.innerText = getCinemaText("cinemaModeBtn");
+	}
+	const dockPlBtn = document.getElementById("spkmod-cinema-dock-pl-btn");
+	if (dockPlBtn) dockPlBtn.title = getCinemaText("cinemaPlaylistTitle");
+	const dockPrevBtn = document.getElementById("spkmod-cinema-dock-prev-btn");
+	if (dockPrevBtn) dockPrevBtn.title = getCinemaText("cinemaPrev");
+	const dockNextBtn = document.getElementById("spkmod-cinema-dock-next-btn");
+	if (dockNextBtn) dockNextBtn.title = getCinemaText("cinemaNext");
+	const dockRepeatBtn = document.getElementById("spkmod-cinema-dock-repeat-btn");
+	if (dockRepeatBtn) {
+		const repText = (spkmodCinemaRepeatMode === "one") ? getCinemaText("cinemaRepeatOne") : (spkmodCinemaRepeatMode === "all" ? getCinemaText("cinemaRepeatAll") : getCinemaText("cinemaRepeatOff"));
+		dockRepeatBtn.title = repText;
+	}
+	const dockMuteBtn = document.getElementById("spkmod-cinema-mute-btn");
+	if (dockMuteBtn) {
+		const isMuted = !!window.spkmodCinemaConfig?.muted;
+		dockMuteBtn.title = isMuted ? getCinemaText("cinemaUnmute") : getCinemaText("cinemaMute");
+	}
+
+	// 3. Top HUD Bar (spkmod-cinema-hud-bar)
+	const hudNowPlayingLabel = document.getElementById("spkmod-cinema-hud-now-playing-label");
+	if (hudNowPlayingLabel) {
+		hudNowPlayingLabel.innerText = getCinemaText("cinemaNowPlaying") + ":";
+	}
+	const hudPlBtn = document.getElementById("spkmod-cinema-hud-playlist-btn");
+	if (hudPlBtn) {
+		hudPlBtn.title = getCinemaText("cinemaPlaylistBtn");
+		const plText = document.getElementById("spkmod-cinema-hud-playlist-text");
+		if (plText) {
+			plText.innerText = getCinemaText("cinemaPlaylistBtn");
+		} else {
+			hudPlBtn.innerHTML = `📋 <span id="spkmod-cinema-hud-playlist-text">${getCinemaText("cinemaPlaylistBtn")}</span>`;
+		}
+	}
+	const exitBtn = document.getElementById("spkmod-cinema-exit-btn");
+	if (exitBtn) {
+		exitBtn.innerText = getCinemaText("cinemaExitBtn");
+		exitBtn.style.setProperty("background", "#e8b84b", "important");
+		exitBtn.style.setProperty("color", "#120e1a", "important");
+	}
+	const hudPrevBtn = document.getElementById("spkmod-cinema-hud-prev-btn");
+	if (hudPrevBtn) hudPrevBtn.title = getCinemaText("cinemaPrev");
+	const hudNextBtn = document.getElementById("spkmod-cinema-hud-next-btn");
+	if (hudNextBtn) hudNextBtn.title = getCinemaText("cinemaNext");
+	const hudRepeatBtn = document.getElementById("spkmod-cinema-hud-repeat-btn");
+	if (hudRepeatBtn) {
+		const repText = (spkmodCinemaRepeatMode === "one") ? getCinemaText("cinemaRepeatOne") : (spkmodCinemaRepeatMode === "all" ? getCinemaText("cinemaRepeatAll") : getCinemaText("cinemaRepeatOff"));
+		hudRepeatBtn.title = repText;
+	}
+	const hudMuteBtn = document.getElementById("spkmod-cinema-hud-mute-btn");
+	if (hudMuteBtn) {
+		const isMuted = !!window.spkmodCinemaConfig?.muted;
+		hudMuteBtn.title = isMuted ? getCinemaText("cinemaUnmute") : getCinemaText("cinemaMute");
+	}
+
+	// 4. Cinema Modal (spkmod-cinema-modal)
+	if (spkmodCinemaModalEl) {
+		const modalHeader = document.getElementById("spkmod-cinema-modal-header-title");
+		if (modalHeader) modalHeader.innerText = getCinemaText("cinemaPlaylistTitle");
+		const syncLabel = document.getElementById("spkmod-cinema-sync-label");
+		if (syncLabel) syncLabel.innerText = getCinemaText("cinemaSyncSchedule");
+		const syncBtn = document.getElementById("spkmod-cinema-modal-sync-btn");
+		if (syncBtn) syncBtn.title = getCinemaText("cinemaSyncSchedule");
+		const reloadBtn = document.getElementById("spkmod-cinema-modal-reload-btn");
+		if (reloadBtn) reloadBtn.title = getCinemaText("cinemaReloadPlaylist");
+
+		const tabMoviesLabel = document.getElementById("spkmod-cinema-tab-movies-label");
+		if (tabMoviesLabel) tabMoviesLabel.innerText = getCinemaText("cinemaTabMovies");
+		const tabSongsLabel = document.getElementById("spkmod-cinema-tab-songs-label");
+		if (tabSongsLabel) tabSongsLabel.innerText = getCinemaText("cinemaTabSongs");
+
+		const hintLabel = document.getElementById("spkmod-cinema-modal-hint-label");
+		if (hintLabel) hintLabel.innerText = getCinemaText("cinemaClickToPlay");
+
+		const prevCtrl = document.getElementById("spkmod-cinema-ctrl-prev");
+		if (prevCtrl) prevCtrl.title = getCinemaText("cinemaPrev");
+		const playCtrl = document.getElementById("spkmod-cinema-ctrl-play");
+		if (playCtrl) playCtrl.title = getCinemaText("cinemaPlay");
+		const pauseCtrl = document.getElementById("spkmod-cinema-ctrl-pause");
+		if (pauseCtrl) pauseCtrl.title = getCinemaText("cinemaPause");
+		const nextCtrl = document.getElementById("spkmod-cinema-ctrl-next");
+		if (nextCtrl) nextCtrl.title = getCinemaText("cinemaNext");
+		const repCtrl = document.getElementById("spkmod-cinema-ctrl-repeat");
+		if (repCtrl) {
+			const repText = (spkmodCinemaRepeatMode === "one") ? getCinemaText("cinemaRepeatOne") : (spkmodCinemaRepeatMode === "all" ? getCinemaText("cinemaRepeatAll") : getCinemaText("cinemaRepeatOff"));
+			repCtrl.title = repText;
+		}
+
+		spkmodRenderCinemaModalList();
+		spkmodUpdateCinemaPlaybackUI();
+	}
+}
+window.spkmodUpdateCinemaI18n = spkmodUpdateCinemaI18n;
+
+if (typeof spkmodI18nRenderers !== "undefined") {
+	spkmodI18nRenderers.push(spkmodUpdateCinemaI18n);
+}
 
 // Start cinema loop immediately
 spkmodStartCinemaLoop();
