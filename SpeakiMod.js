@@ -320,7 +320,7 @@ var lunCurrentSpeedMps = 0;
 
 // In-Game 3D Cinema / Movie Player Default Configuration
 var SPKMOD_CINEMA_DEFAULT_CONFIG = {
-	enabled: true,
+	enabled: false,
 	volume: 80,
 	pos: { x: 75.0, y: 4.2, z: 32.5 },
 	rotationY: 1.6000,
@@ -332,7 +332,11 @@ window.spkmodCinemaConfig = Object.assign({}, SPKMOD_CINEMA_DEFAULT_CONFIG);
 if (typeof window !== "undefined" && window.localStorage) {
 	try {
 		const en = localStorage.getItem("spkmod-cinema-enabled");
-		if (en !== null) window.spkmodCinemaConfig.enabled = en === "true";
+		if (en !== null) {
+			window.spkmodCinemaConfig.enabled = en === "true";
+		} else {
+			window.spkmodCinemaConfig.enabled = false;
+		}
 		const vol = localStorage.getItem("spkmod-cinema-volume");
 		if (vol !== null) window.spkmodCinemaConfig.volume = parseInt(vol, 10) || 80;
 		const posStr = localStorage.getItem("spkmod-cinema-pos");
@@ -9035,14 +9039,25 @@ document.body.appendChild(
 					}),
 					lunPanelElements.cinemaToggleInput = buildElement("input", {
 						type: "checkbox",
-						checked: (window.spkmodCinemaConfig ? window.spkmodCinemaConfig.enabled : true),
+						checked: (window.spkmodCinemaConfig ? window.spkmodCinemaConfig.enabled : false),
 						title: "Toggle 3D cinema screen in Zone 1 Festival Plaza",
 						onchange: e => {
 							if (window.spkmodCinemaConfig) {
 								window.spkmodCinemaConfig.enabled = e.target.checked;
 								localStorage.setItem("spkmod-cinema-enabled", e.target.checked ? "true" : "false");
-								if (!e.target.checked && typeof window.spkmodSendYtCommand === "function") {
-									window.spkmodSendYtCommand("pauseVideo");
+								if (!e.target.checked) {
+									if (typeof window.spkmodSendYtCommand === "function") {
+										window.spkmodSendYtCommand("pauseVideo");
+										window.spkmodSendYtCommand("mute");
+									}
+									const cont = document.getElementById("spkmod-cinema-container");
+									if (cont) cont.style.display = "none";
+									if (window.spkmodCinemaFrameMesh) window.spkmodCinemaFrameMesh.visible = false;
+									if (typeof window.spkmodUpdateCinemaFloatingPill === "function") {
+										window.spkmodUpdateCinemaFloatingPill(false);
+									}
+								} else {
+									if (typeof window.spkmodInitCinema === "function") window.spkmodInitCinema();
 								}
 							}
 						}
@@ -17254,7 +17269,7 @@ window.spkmodToggleBurstSpam = function(forceState) {
 // ============================================================================
 
 var SPKMOD_CINEMA_DEFAULT_CONFIG = window.SPKMOD_CINEMA_DEFAULT_CONFIG || {
-	enabled: true,
+	enabled: false,
 	volume: 80,
 	pos: { x: 75.0, y: 4.2, z: 32.5 },
 	rotationY: 1.6000,
@@ -17267,7 +17282,11 @@ window.spkmodCinemaConfig = spkmodCinemaConfig;
 if (window.localStorage) {
 	try {
 		const en = localStorage.getItem("spkmod-cinema-enabled");
-		if (en !== null) spkmodCinemaConfig.enabled = en === "true";
+		if (en !== null) {
+			spkmodCinemaConfig.enabled = en === "true";
+		} else {
+			spkmodCinemaConfig.enabled = false;
+		}
 		const vol = localStorage.getItem("spkmod-cinema-volume");
 		if (vol !== null) spkmodCinemaConfig.volume = parseInt(vol, 10) || 80;
 		const posStr = localStorage.getItem("spkmod-cinema-pos");
@@ -17668,6 +17687,7 @@ function spkmodCreateCinemaPhysicalFrame() {
 
 	group.position.set(spkmodCinemaConfig.pos.x, spkmodCinemaConfig.pos.y, spkmodCinemaConfig.pos.z);
 	group.rotation.y = spkmodCinemaConfig.rotationY;
+	group.visible = false;
 
 	gameState.scene.add(group);
 	spkmodCinemaFrameMesh = group;
@@ -17683,7 +17703,7 @@ function spkmodInitCinema() {
 	if (!spkmodCinemaContainer) {
 		spkmodCinemaContainer = document.createElement('div');
 		spkmodCinemaContainer.id = 'spkmod-cinema-container';
-		spkmodCinemaContainer.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; overflow: hidden; z-index: 3;';
+		spkmodCinemaContainer.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; overflow: hidden; z-index: 3; display: none;';
 		document.body.appendChild(spkmodCinemaContainer);
 	}
 
@@ -17737,6 +17757,18 @@ function spkmodSyncCinemaPlayback(force = false) {
 	window.spkmodCurrentCinemaTitle = track.title || "Movie Theater";
 }
 
+function spkmodIsPlayerInCinemaSeats(playerPos) {
+	if (!playerPos) return false;
+	const curZone = (typeof gameState !== 'undefined' && gameState?.zoneId !== undefined) ? gameState.zoneId : 1;
+	if (curZone !== 1) return false;
+
+	// Seats bounding box with ~0.35m cushion around amphitheater seat coordinates:
+	// Points: (83.72, 42.44), (89.28, 42.27), (89.28, 24.83), (83.66, 24.31)
+	return playerPos.x >= 83.3 && playerPos.x <= 89.6 &&
+	       playerPos.z >= 24.0 && playerPos.z <= 42.8;
+}
+window.spkmodIsPlayerInCinemaSeats = spkmodIsPlayerInCinemaSeats;
+
 function spkmodUpdateCinemaSpatialAudio() {
 	if (!spkmodCinemaConfig.enabled || !spkmodCinemaIframe) return;
 
@@ -17746,20 +17778,22 @@ function spkmodUpdateCinemaSpatialAudio() {
 
 	if (!playerPos) return;
 
-	const dx = playerPos.x - spkmodCinemaConfig.pos.x;
-	const dz = playerPos.z - spkmodCinemaConfig.pos.z;
-	const dist = Math.hypot(dx, dz);
-
-	let targetVol = 0;
-	if (dist <= 15) {
-		targetVol = spkmodCinemaConfig.volume;
-	} else if (dist < 48) {
-		const factor = 1 - (dist - 15) / 33;
-		targetVol = Math.round(spkmodCinemaConfig.volume * Math.max(0, factor));
-	} else {
-		targetVol = 0;
+	const inSeats = spkmodIsPlayerInCinemaSeats(playerPos);
+	if (!inSeats) {
+		if (spkmodCinemaLastVolume !== 0) {
+			spkmodCinemaLastVolume = 0;
+			spkmodSendYtCommand('setVolume', [0]);
+			spkmodSendYtCommand('mute');
+		}
+		if (typeof window.spkmodUpdateCinemaFloatingPill === 'function') {
+			window.spkmodUpdateCinemaFloatingPill(false);
+		} else if (typeof spkmodUpdateCinemaFloatingPill === 'function') {
+			spkmodUpdateCinemaFloatingPill(false);
+		}
+		return;
 	}
 
+	const targetVol = spkmodCinemaConfig.volume;
 	if (targetVol !== spkmodCinemaLastVolume) {
 		spkmodCinemaLastVolume = targetVol;
 		if (targetVol > 0) {
@@ -17770,17 +17804,45 @@ function spkmodUpdateCinemaSpatialAudio() {
 		}
 	}
 
+	const dist = Math.hypot(playerPos.x - spkmodCinemaConfig.pos.x, playerPos.z - spkmodCinemaConfig.pos.z);
 	if (typeof window.spkmodUpdateCinemaFloatingPill === 'function') {
-		window.spkmodUpdateCinemaFloatingPill(dist <= 48, dist);
+		window.spkmodUpdateCinemaFloatingPill(true, dist);
 	} else if (typeof spkmodUpdateCinemaFloatingPill === 'function') {
-		spkmodUpdateCinemaFloatingPill(dist <= 48, dist);
+		spkmodUpdateCinemaFloatingPill(true, dist);
 	}
 }
 
 function spkmodCinemaTick() {
-	if (!spkmodCinemaConfig.enabled) {
-		if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = 'none';
-		if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = false;
+	const playerPos = (typeof gameState !== 'undefined' && gameState?.playerContainer?.position)
+		? gameState.playerContainer.position
+		: null;
+
+	const inSeats = spkmodIsPlayerInCinemaSeats(playerPos);
+	const shouldBeActive = spkmodCinemaConfig.enabled && inSeats;
+
+	if (!shouldBeActive) {
+		if (spkmodCinemaInZone) {
+			spkmodCinemaInZone = false;
+			if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = 'none';
+			if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = false;
+			spkmodSendYtCommand('pauseVideo');
+			spkmodSendYtCommand('mute');
+			if (spkmodCinemaModeActive && typeof window.spkmodToggleCinemaMode === 'function') {
+				window.spkmodToggleCinemaMode(false);
+			}
+			if (typeof window.spkmodUpdateCinemaFloatingPill === 'function') {
+				window.spkmodUpdateCinemaFloatingPill(false);
+			} else if (typeof spkmodUpdateCinemaFloatingPill === 'function') {
+				spkmodUpdateCinemaFloatingPill(false);
+			}
+		} else {
+			if (spkmodCinemaContainer && spkmodCinemaContainer.style.display !== 'none') {
+				spkmodCinemaContainer.style.display = 'none';
+			}
+			if (spkmodCinemaFrameMesh && spkmodCinemaFrameMesh.visible) {
+				spkmodCinemaFrameMesh.visible = false;
+			}
+		}
 		return;
 	}
 
@@ -17791,35 +17853,14 @@ function spkmodCinemaTick() {
 		return;
 	}
 
-	const playerPos = (typeof gameState !== 'undefined' && gameState?.playerContainer?.position)
-		? gameState.playerContainer.position
-		: null;
-
-	const curZone = (typeof gameState !== 'undefined' && gameState?.zoneId !== undefined) ? gameState.zoneId : 1;
-	const inZone = curZone === 1;
-	const dist = playerPos ? Math.hypot(playerPos.x - spkmodCinemaConfig.pos.x, playerPos.z - spkmodCinemaConfig.pos.z) : 999;
-	const inRange = inZone && dist < 85;
-
-	if (!inRange) {
-		if (spkmodCinemaInZone) {
-			spkmodCinemaInZone = false;
-			if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = 'none';
-			if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = false;
-			spkmodSendYtCommand('pauseVideo');
-			if (typeof window.spkmodUpdateCinemaFloatingPill === 'function') {
-				window.spkmodUpdateCinemaFloatingPill(false);
-			} else if (typeof spkmodUpdateCinemaFloatingPill === 'function') {
-				spkmodUpdateCinemaFloatingPill(false);
-			}
-		}
-		return;
-	}
-
 	if (!spkmodCinemaInZone) {
 		spkmodCinemaInZone = true;
 		if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = '';
 		if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = true;
 		spkmodSyncCinemaPlayback();
+		spkmodSendYtCommand('unMute');
+		spkmodSendYtCommand('playVideo');
+		spkmodCinemaLastVolume = -1;
 	}
 
 	const now = Date.now();
@@ -17937,13 +17978,16 @@ window.spkmodSetCinema = function(x = 75.0, y = 4.2, z = 32.5, rotY = 1.6000) {
 window.spkmodGetCinemaStatus = function() {
 	const playerPos = (typeof gameState !== 'undefined' && gameState?.playerContainer?.position) ? gameState.playerContainer.position : null;
 	const dist = playerPos ? Math.hypot(playerPos.x - window.spkmodCinemaConfig.pos.x, playerPos.z - window.spkmodCinemaConfig.pos.z) : null;
+	const inSeats = spkmodIsPlayerInCinemaSeats(playerPos);
 	const status = {
 		playerPos: playerPos ? { x: Number(playerPos.x.toFixed(2)), y: Number(playerPos.y.toFixed(2)), z: Number(playerPos.z.toFixed(2)) } : null,
 		cinemaPos: window.spkmodCinemaConfig.pos,
 		rotationY: window.spkmodCinemaConfig.rotationY,
 		distToCinema: dist !== null ? Number(dist.toFixed(2)) + "m" : "unknown",
-		inPillRange: dist !== null ? (dist <= 48) : false,
-		inRenderRange: dist !== null ? (dist < 85) : false,
+		enabled: window.spkmodCinemaConfig.enabled,
+		inSeats: inSeats,
+		inPillRange: inSeats && window.spkmodCinemaConfig.enabled,
+		inRenderRange: inSeats && window.spkmodCinemaConfig.enabled,
 		screenObjectCreated: !!spkmodCinemaScreenObject,
 		cinemaModeActive: spkmodCinemaModeActive,
 		currentVideo: spkmodCinemaCurrentVideo
