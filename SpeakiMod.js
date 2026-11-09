@@ -322,8 +322,8 @@ var lunCurrentSpeedMps = 0;
 var SPKMOD_CINEMA_DEFAULT_CONFIG = {
 	enabled: true,
 	volume: 80,
-	pos: { x: 65.0, y: 4.2, z: 33.5 },
-	rotationY: 1.5708,
+	pos: { x: 75.0, y: 4.2, z: 32.5 },
+	rotationY: 1.6000,
 	width: 12.8,
 	height: 7.2
 };
@@ -339,9 +339,10 @@ if (typeof window !== "undefined" && window.localStorage) {
 		if (posStr) {
 			const parsed = JSON.parse(posStr);
 			if (parsed && typeof parsed.x === "number") {
-				if (Math.abs(parsed.x - 44.0) < 0.1 && Math.abs(parsed.z - 62.0) < 0.1) {
-					window.spkmodCinemaConfig.pos = { x: 65.0, y: 4.2, z: 33.5 };
-					window.spkmodCinemaConfig.rotationY = 1.5708;
+				if ((Math.abs(parsed.x - 44.0) < 0.1 && Math.abs(parsed.z - 62.0) < 0.1) ||
+					(Math.abs(parsed.x - 65.0) < 0.1 && Math.abs(parsed.z - 33.5) < 0.1)) {
+					window.spkmodCinemaConfig.pos = { x: 75.0, y: 4.2, z: 32.5 };
+					window.spkmodCinemaConfig.rotationY = 1.6000;
 				} else {
 					window.spkmodCinemaConfig.pos = { x: parsed.x, y: parsed.y ?? 4.2, z: parsed.z };
 					if (typeof parsed.rotationY === "number") window.spkmodCinemaConfig.rotationY = parsed.rotationY;
@@ -17255,8 +17256,8 @@ window.spkmodToggleBurstSpam = function(forceState) {
 var SPKMOD_CINEMA_DEFAULT_CONFIG = window.SPKMOD_CINEMA_DEFAULT_CONFIG || {
 	enabled: true,
 	volume: 80,
-	pos: { x: 65.0, y: 4.2, z: 33.5 },
-	rotationY: 1.5708,
+	pos: { x: 75.0, y: 4.2, z: 32.5 },
+	rotationY: 1.6000,
 	width: 12.8,
 	height: 7.2
 };
@@ -17273,9 +17274,10 @@ if (window.localStorage) {
 		if (posStr) {
 			const parsed = JSON.parse(posStr);
 			if (parsed && typeof parsed.x === "number") {
-				if (Math.abs(parsed.x - 44.0) < 0.1 && Math.abs(parsed.z - 62.0) < 0.1) {
-					spkmodCinemaConfig.pos = { x: 65.0, y: 4.2, z: 33.5 };
-					spkmodCinemaConfig.rotationY = 1.5708;
+				if ((Math.abs(parsed.x - 44.0) < 0.1 && Math.abs(parsed.z - 62.0) < 0.1) ||
+					(Math.abs(parsed.x - 65.0) < 0.1 && Math.abs(parsed.z - 33.5) < 0.1)) {
+					spkmodCinemaConfig.pos = { x: 75.0, y: 4.2, z: 32.5 };
+					spkmodCinemaConfig.rotationY = 1.6000;
 				} else {
 					spkmodCinemaConfig.pos = { x: parsed.x, y: parsed.y ?? 4.2, z: parsed.z };
 					if (typeof parsed.rotationY === "number") spkmodCinemaConfig.rotationY = parsed.rotationY;
@@ -17907,7 +17909,7 @@ window.spkmodSyncCinemaPlayback = spkmodSyncCinemaPlayback;
 window.spkmodInitCinema = spkmodInitCinema;
 window.spkmodCinemaConfig = spkmodCinemaConfig;
 
-window.spkmodSetCinema = function(x, y, z, rotY) {
+window.spkmodSetCinema = function(x = 75.0, y = 4.2, z = 32.5, rotY = 1.6000) {
 	if (typeof x === "number") window.spkmodCinemaConfig.pos.x = x;
 	if (typeof y === "number") window.spkmodCinemaConfig.pos.y = y;
 	if (typeof z === "number") window.spkmodCinemaConfig.pos.z = z;
