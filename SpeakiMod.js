@@ -3499,8 +3499,9 @@ function positionModalNicely(modal) {
 
 	const curTop = parseFloat(modal.style.top);
 	const curLeft = parseFloat(modal.style.left);
-	const modalW = modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? 480 : (modal.id === "spkmod-stats-modal" ? 240 : (modal.id === "spkmod-jukebox-modal" ? 380 : 400)));
-	const modalH = modal.offsetHeight || 340;
+	const rect = (typeof modal.getBoundingClientRect === "function") ? modal.getBoundingClientRect() : null;
+	const modalW = (rect && rect.width > 0) ? rect.width : (modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? 380 : (modal.id === "spkmod-stats-modal" ? 240 : (modal.id === "spkmod-jukebox-modal" ? 360 : 380))));
+	const modalH = (rect && rect.height > 0) ? rect.height : (modal.offsetHeight || 280);
 
 	// Check if top-left is out of bounds or if modal extends out of bounds on this screen
 	const isOffscreen = isNaN(curTop) || isNaN(curLeft) ||
@@ -7041,12 +7042,229 @@ document.head.appendChild(buildElement(
 				grid-template-columns: 1fr;
 			}
 		}
-		@media (max-height: 500px) {
+		@media (max-height: 550px), (max-width: 950px) {
 			#spkmod-settings-modal {
-				max-height: calc(100vh - 16px) !important;
-				padding: 8px 10px;
-				gap: 5px;
+				min-width: 0 !important;
+				width: min(440px, calc(100vw - 16px)) !important;
+				max-width: calc(100vw - 16px) !important;
+				max-height: calc(100vh - 12px) !important;
+				padding: 6px 8px !important;
+				gap: 4px !important;
+				font-size: 11px !important;
+				transform: scale(calc(var(--spkmod-scale) * 0.84)) !important;
+				transform-origin: top left !important;
 			}
+			.spkmod-settings-grid {
+				gap: 6px !important;
+			}
+			.spkmod-settings-col {
+				padding: 4px 6px !important;
+				gap: 3px !important;
+			}
+			.spkmod-settings-col .spkmod-panel-cat {
+				gap: 4px !important;
+				font-size: 10px !important;
+			}
+			.spkmod-settings-slider {
+				width: 60px !important;
+				height: 4px !important;
+			}
+			.spkmod-panel-combo {
+				font-size: 10px !important;
+				padding: 1px 3px !important;
+				max-width: 80px !important;
+			}
+			.spkmod-panel-btn {
+				font-size: 10px !important;
+				padding: 2px 5px !important;
+			}
+			.spkmod-settings-section-title {
+				font-size: 10px !important;
+				padding-bottom: 2px !important;
+				margin-bottom: 1px !important;
+			}
+			#spkmod-settings-modal .spkmod-credits {
+				font-size: 9px !important;
+				line-height: 1.2 !important;
+				padding: 3px 5px !important;
+			}
+
+			/* Cinema HUD Bar Mobile Compact */
+			#spkmod-cinema-hud-bar {
+				top: 6px !important;
+				padding: 3px 8px !important;
+				gap: 5px !important;
+				font-size: 11px !important;
+				max-width: calc(100vw - 16px) !important;
+				border-radius: 6px !important;
+			}
+			#spkmod-cinema-hud-now-playing-container {
+				max-width: min(180px, 26vw) !important;
+				font-size: 10.5px !important;
+			}
+			#spkmod-cinema-hud-vol-slider {
+				width: 38px !important;
+			}
+			#spkmod-cinema-exit-btn {
+				padding: 2px 7px !important;
+				font-size: 10.5px !important;
+				margin-left: 2px !important;
+			}
+			#spkmod-cinema-hud-playlist-btn {
+				padding: 2px 5px !important;
+				font-size: 10px !important;
+			}
+
+			/* Cinema Floating Dock Mobile Compact */
+			#spkmod-cinema-dock {
+				padding: 2px 7px !important;
+				gap: 4px !important;
+				font-size: 11px !important;
+				border-radius: 16px !important;
+				max-width: calc(100vw - 20px) !important;
+			}
+			#spkmod-cinema-dock button {
+				font-size: 11px !important;
+				padding: 1px 2px !important;
+			}
+			#spkmod-cinema-dock #spkmod-cinema-vol-slider {
+				width: 38px !important;
+			}
+			#spkmod-cinema-dock #spkmod-cinema-vol-label {
+				font-size: 10px !important;
+				min-width: 24px !important;
+			}
+
+			/* Cinema Playlist Modal Mobile Compact */
+			#spkmod-cinema-modal {
+				width: min(340px, calc(100vw - 16px)) !important;
+				max-height: calc(100vh - 12px) !important;
+				padding: 8px 10px !important;
+				gap: 5px !important;
+			}
+			#spkmod-cinema-modal-list {
+				max-height: 140px !important;
+				min-height: 80px !important;
+			}
+			#spkmod-cinema-modal-thumb {
+				width: 44px !important;
+				height: 32px !important;
+			}
+			#spkmod-cinema-modal-now-card {
+				padding: 5px 7px !important;
+				gap: 6px !important;
+			}
+			#spkmod-cinema-modal-controls {
+				padding: 3px 6px !important;
+			}
+		}
+		body.spkmod-is-mobile #spkmod-settings-modal {
+			min-width: 0 !important;
+			width: min(440px, calc(100vw - 16px)) !important;
+			max-width: calc(100vw - 16px) !important;
+			max-height: calc(100vh - 12px) !important;
+			padding: 6px 8px !important;
+			gap: 4px !important;
+			font-size: 11px !important;
+			transform: scale(calc(var(--spkmod-scale) * 0.84)) !important;
+			transform-origin: top left !important;
+		}
+		body.spkmod-is-mobile .spkmod-settings-grid {
+			gap: 6px !important;
+		}
+		body.spkmod-is-mobile .spkmod-settings-col {
+			padding: 4px 6px !important;
+			gap: 3px !important;
+		}
+		body.spkmod-is-mobile .spkmod-settings-col .spkmod-panel-cat {
+			gap: 4px !important;
+			font-size: 10px !important;
+		}
+		body.spkmod-is-mobile .spkmod-settings-slider {
+			width: 60px !important;
+			height: 4px !important;
+		}
+		body.spkmod-is-mobile .spkmod-panel-combo {
+			font-size: 10px !important;
+			padding: 1px 3px !important;
+			max-width: 80px !important;
+		}
+		body.spkmod-is-mobile .spkmod-panel-btn {
+			font-size: 10px !important;
+			padding: 2px 5px !important;
+		}
+		body.spkmod-is-mobile .spkmod-settings-section-title {
+			font-size: 10px !important;
+			padding-bottom: 2px !important;
+			margin-bottom: 1px !important;
+		}
+		body.spkmod-is-mobile #spkmod-settings-modal .spkmod-credits {
+			font-size: 9px !important;
+			line-height: 1.2 !important;
+			padding: 3px 5px !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-hud-bar {
+			top: 6px !important;
+			padding: 3px 8px !important;
+			gap: 5px !important;
+			font-size: 11px !important;
+			max-width: calc(100vw - 16px) !important;
+			border-radius: 6px !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-hud-now-playing-container {
+			max-width: min(180px, 26vw) !important;
+			font-size: 10.5px !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-hud-vol-slider {
+			width: 38px !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-exit-btn {
+			padding: 2px 7px !important;
+			font-size: 10.5px !important;
+			margin-left: 2px !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-hud-playlist-btn {
+			padding: 2px 5px !important;
+			font-size: 10px !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-dock {
+			padding: 2px 7px !important;
+			gap: 4px !important;
+			font-size: 11px !important;
+			border-radius: 16px !important;
+			max-width: calc(100vw - 20px) !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-dock button {
+			font-size: 11px !important;
+			padding: 1px 2px !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-dock #spkmod-cinema-vol-slider {
+			width: 38px !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-dock #spkmod-cinema-vol-label {
+			font-size: 10px !important;
+			min-width: 24px !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-modal {
+			width: min(340px, calc(100vw - 16px)) !important;
+			max-height: calc(100vh - 12px) !important;
+			padding: 8px 10px !important;
+			gap: 5px !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-modal-list {
+			max-height: 140px !important;
+			min-height: 80px !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-modal-thumb {
+			width: 44px !important;
+			height: 32px !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-modal-now-card {
+			padding: 5px 7px !important;
+			gap: 6px !important;
+		}
+		body.spkmod-is-mobile #spkmod-cinema-modal-controls {
+			padding: 3px 6px !important;
 		}
 		.spkmod-settings-col {
 			display: flex;
@@ -7545,6 +7763,7 @@ document.body.appendChild(lunHudElements.lowHpOverlay);
 
 	const isMobileDevice = typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent));
 	if (isMobileDevice) {
+		document.body.classList.add("spkmod-is-mobile");
 		const mobileBtnContainer = document.createElement("div");
 		mobileBtnContainer.id = "spkmod-mobile-btn-container";
 		mobileBtnContainer.style.cssText = "position: fixed; bottom: 65px; left: 10px; z-index: 2147483647; display: flex; flex-direction: column; gap: 6px;";
@@ -28955,28 +29174,35 @@ function spkmodSwitchCinemaTab(tab) {
 		const btnMovies = spkmodCinemaModalEl.querySelector("#spkmod-cinema-tab-movies");
 		const btnSongs = spkmodCinemaModalEl.querySelector("#spkmod-cinema-tab-songs");
 		if (btnMovies && btnSongs) {
+			const activeStyle = {
+				background: "linear-gradient(135deg, #ffd56b 0%, #e8b84b 100%)",
+				color: "#120e1a",
+				borderColor: "#ffe28a",
+				fontWeight: "800",
+				boxShadow: "0 2px 8px rgba(232, 184, 75, 0.45)"
+			};
+			const inactiveStyle = {
+				background: "#261c33",
+				color: "#f5e6b3",
+				borderColor: "rgba(232, 184, 75, 0.35)",
+				fontWeight: "700",
+				boxShadow: "none"
+			};
+			const applyTabStyle = (btn, s) => {
+				btn.style.background = s.background;
+				btn.style.color = s.color;
+				btn.style.borderColor = s.borderColor;
+				btn.style.fontWeight = s.fontWeight;
+				btn.style.boxShadow = s.boxShadow;
+				const span = btn.querySelector("span");
+				if (span) span.style.color = s.color;
+			};
 			if (tab === 'movies') {
-				btnMovies.style.background = "#e8b84b";
-				btnMovies.style.color = "#120e1a";
-				btnMovies.style.borderColor = "#e8b84b";
-				btnMovies.style.fontWeight = "800";
-				btnMovies.style.boxShadow = "0 2px 8px rgba(232, 184, 75, 0.35)";
-				btnSongs.style.background = "#2d213d";
-				btnSongs.style.color = "#ffdf79";
-				btnSongs.style.borderColor = "#7c6894";
-				btnSongs.style.fontWeight = "600";
-				btnSongs.style.boxShadow = "none";
+				applyTabStyle(btnMovies, activeStyle);
+				applyTabStyle(btnSongs, inactiveStyle);
 			} else {
-				btnSongs.style.background = "#e8b84b";
-				btnSongs.style.color = "#120e1a";
-				btnSongs.style.borderColor = "#e8b84b";
-				btnSongs.style.fontWeight = "800";
-				btnSongs.style.boxShadow = "0 2px 8px rgba(232, 184, 75, 0.35)";
-				btnMovies.style.background = "#2d213d";
-				btnMovies.style.color = "#ffdf79";
-				btnMovies.style.borderColor = "#7c6894";
-				btnMovies.style.fontWeight = "600";
-				btnMovies.style.boxShadow = "none";
+				applyTabStyle(btnSongs, activeStyle);
+				applyTabStyle(btnMovies, inactiveStyle);
 			}
 		}
 		spkmodRenderCinemaModalList();
@@ -29640,11 +29866,13 @@ function spkmodUpdateCinemaPlaybackUI() {
 		const syncBtn = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-sync-btn");
 		if (syncBtn) {
 			const isSynced = (spkmodCinemaManualTrackIndex === null);
-			syncBtn.style.background = isSynced ? "#e8b84b" : "#3e3052";
-			syncBtn.style.color = isSynced ? "#120e1a" : "#ffdf79";
-			syncBtn.style.borderColor = isSynced ? "#ffd56b" : "#7c6894";
+			syncBtn.style.background = isSynced ? "linear-gradient(135deg, #e53935 0%, #c62828 100%)" : "#261c33";
+			syncBtn.style.color = isSynced ? "#ffffff" : "#f5e6b3";
+			syncBtn.style.borderColor = isSynced ? "#ff7b7b" : "rgba(232, 184, 75, 0.35)";
 			syncBtn.style.fontWeight = isSynced ? "800" : "600";
-			syncBtn.style.boxShadow = isSynced ? "0 0 8px rgba(232, 184, 75, 0.45)" : "none";
+			syncBtn.style.boxShadow = isSynced ? "0 0 10px rgba(229, 57, 53, 0.55)" : "none";
+			const syncSpan = syncBtn.querySelector("#spkmod-cinema-sync-label");
+			if (syncSpan) syncSpan.style.color = isSynced ? "#ffffff" : "#f5e6b3";
 		}
 		const playBtn = spkmodCinemaModalEl.querySelector("#spkmod-cinema-ctrl-play");
 		const pauseBtn = spkmodCinemaModalEl.querySelector("#spkmod-cinema-ctrl-pause");
@@ -29745,18 +29973,18 @@ function spkmodBuildCinemaModal() {
 				<span style="font-size:16px;">🎬</span> <span id="spkmod-cinema-modal-header-title">${getCinemaText("cinemaPlaylistTitle")}</span>
 			</div>
 			<div style="display:flex;align-items:center;gap:5px;">
-				<button id="spkmod-cinema-modal-sync-btn" title="${getCinemaText("cinemaSyncSchedule")}" style="background:${spkmodCinemaManualTrackIndex === null ? '#e8b84b' : '#3e3052'};color:${spkmodCinemaManualTrackIndex === null ? '#120e1a' : '#ffdf79'};border:1.5px solid ${spkmodCinemaManualTrackIndex === null ? '#ffd56b' : '#7c6894'};border-radius:6px;cursor:pointer;padding:2px 8px;font-size:11px;font-weight:${spkmodCinemaManualTrackIndex === null ? '800' : '600'};box-shadow:${spkmodCinemaManualTrackIndex === null ? '0 0 8px rgba(232, 184, 75, 0.45)' : 'none'};transition:all 0.15s ease;">🔴 <span id="spkmod-cinema-sync-label">${getCinemaText("cinemaSyncSchedule")}</span></button>
+				<button id="spkmod-cinema-modal-sync-btn" title="${getCinemaText("cinemaSyncSchedule")}" style="background:${spkmodCinemaManualTrackIndex === null ? 'linear-gradient(135deg, #e53935 0%, #c62828 100%)' : '#261c33'};color:${spkmodCinemaManualTrackIndex === null ? '#ffffff' : '#f5e6b3'};border:1.5px solid ${spkmodCinemaManualTrackIndex === null ? '#ff7b7b' : 'rgba(232, 184, 75, 0.35)'};border-radius:6px;cursor:pointer;padding:2px 8px;font-size:11px;font-weight:${spkmodCinemaManualTrackIndex === null ? '800' : '600'};box-shadow:${spkmodCinemaManualTrackIndex === null ? '0 0 10px rgba(229, 57, 53, 0.55)' : 'none'};transition:all 0.15s ease;">🔴 <span id="spkmod-cinema-sync-label" style="color:inherit;">${getCinemaText("cinemaSyncSchedule")}</span></button>
 				<button id="spkmod-cinema-modal-reload-btn" title="${getCinemaText("cinemaReloadPlaylist")}" style="background:#3e3052;color:#ffdf79;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;transition:all 0.15s ease;">🔄</button>
 				<button id="spkmod-cinema-modal-close-btn" title="Close" style="background:transparent;border:none;color:#aaa;cursor:pointer;font-size:16px;line-height:1;padding:0 3px;">✕</button>
 			</div>
 		</div>
 
 		<div id="spkmod-cinema-modal-tabs" style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-			<button id="spkmod-cinema-tab-movies" style="flex:1;padding:6px 10px;font-size:12px;font-weight:${spkmodCinemaActiveTab === 'movies' ? '800' : '600'};border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;border:1.5px solid ${spkmodCinemaActiveTab === 'movies' ? '#e8b84b' : '#7c6894'};background:${spkmodCinemaActiveTab === 'movies' ? '#e8b84b' : '#2d213d'};color:${spkmodCinemaActiveTab === 'movies' ? '#120e1a' : '#ffdf79'};box-shadow:${spkmodCinemaActiveTab === 'movies' ? '0 2px 8px rgba(232, 184, 75, 0.35)' : 'none'};transition:all 0.15s ease;">
-				🎬 <span id="spkmod-cinema-tab-movies-label">${getCinemaText("cinemaTabMovies")}</span>
+			<button id="spkmod-cinema-tab-movies" style="flex:1;padding:6px 10px;font-size:12px;font-weight:${spkmodCinemaActiveTab === 'movies' ? '800' : '700'};border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;border:1.5px solid ${spkmodCinemaActiveTab === 'movies' ? '#ffe28a' : 'rgba(232, 184, 75, 0.35)'};background:${spkmodCinemaActiveTab === 'movies' ? 'linear-gradient(135deg, #ffd56b 0%, #e8b84b 100%)' : '#261c33'};color:${spkmodCinemaActiveTab === 'movies' ? '#120e1a' : '#f5e6b3'};box-shadow:${spkmodCinemaActiveTab === 'movies' ? '0 2px 8px rgba(232, 184, 75, 0.45)' : 'none'};transition:all 0.15s ease;">
+				🎬 <span id="spkmod-cinema-tab-movies-label" style="color:inherit;">${getCinemaText("cinemaTabMovies")}</span>
 			</button>
-			<button id="spkmod-cinema-tab-songs" style="flex:1;padding:6px 10px;font-size:12px;font-weight:${spkmodCinemaActiveTab === 'songs' ? '800' : '600'};border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;border:1.5px solid ${spkmodCinemaActiveTab === 'songs' ? '#e8b84b' : '#7c6894'};background:${spkmodCinemaActiveTab === 'songs' ? '#e8b84b' : '#2d213d'};color:${spkmodCinemaActiveTab === 'songs' ? '#120e1a' : '#ffdf79'};box-shadow:${spkmodCinemaActiveTab === 'songs' ? '0 2px 8px rgba(232, 184, 75, 0.35)' : 'none'};transition:all 0.15s ease;">
-				🎵 <span id="spkmod-cinema-tab-songs-label">${getCinemaText("cinemaTabSongs")}</span>
+			<button id="spkmod-cinema-tab-songs" style="flex:1;padding:6px 10px;font-size:12px;font-weight:${spkmodCinemaActiveTab === 'songs' ? '800' : '700'};border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;border:1.5px solid ${spkmodCinemaActiveTab === 'songs' ? '#ffe28a' : 'rgba(232, 184, 75, 0.35)'};background:${spkmodCinemaActiveTab === 'songs' ? 'linear-gradient(135deg, #ffd56b 0%, #e8b84b 100%)' : '#261c33'};color:${spkmodCinemaActiveTab === 'songs' ? '#120e1a' : '#f5e6b3'};box-shadow:${spkmodCinemaActiveTab === 'songs' ? '0 2px 8px rgba(232, 184, 75, 0.45)' : 'none'};transition:all 0.15s ease;">
+				🎵 <span id="spkmod-cinema-tab-songs-label" style="color:inherit;">${getCinemaText("cinemaTabSongs")}</span>
 			</button>
 		</div>
 
@@ -29913,8 +30141,12 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         return typeof t === "function" ? t(key) : (fallback || key);
     };
     if (!spkmodCinemaPillEl) {
-        let initLeft = Math.max(10, window.innerWidth - 440);
-        let initTop = Math.max(10, window.innerHeight - 84);
+        const isMobile = (typeof window.speakiMobile !== "undefined") ||
+            (typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent)) ||
+            (window.innerWidth <= 800);
+
+        let initLeft = isMobile ? Math.max(10, window.innerWidth - 300) : Math.max(10, window.innerWidth - 440);
+        let initTop = isMobile ? Math.max(10, window.innerHeight - 50) : Math.max(10, window.innerHeight - 84);
         try {
             const raw = localStorage.getItem("spkmod-pos-spkmod-cinema-dock");
             if (raw) {
@@ -29931,7 +30163,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         const dock = document.createElement("div");
         dock.id = "spkmod-cinema-dock";
         dock.className = "spkmod-floating-btn";
-        dock.style.cssText = `position: fixed; left: ${initLeft}px; top: ${initTop}px; z-index: 2147483640; padding: 5px 12px; font-size: 13px; font-weight: bold; background: rgba(26, 20, 36, 0.94); color: #e8b84b; border: 1.5px solid #e8b84b; border-radius: 22px; box-shadow: 0 4px 16px rgba(0,0,0,0.55); display: flex; align-items: center; gap: 8px; backdrop-filter: blur(8px); user-select: none; -webkit-user-select: none; touch-action: none; cursor: default;`;
+        dock.style.cssText = `position: fixed; left: ${initLeft}px; top: ${initTop}px; z-index: 2147483640; padding: ${isMobile ? '2px 8px' : '5px 12px'}; font-size: ${isMobile ? 11 : 13}px; font-weight: bold; background: rgba(26, 20, 36, 0.94); color: #e8b84b; border: 1.5px solid #e8b84b; border-radius: 22px; box-shadow: 0 4px 16px rgba(0,0,0,0.55); display: flex; align-items: center; gap: ${isMobile ? 4 : 8}px; backdrop-filter: blur(8px); user-select: none; -webkit-user-select: none; touch-action: none; cursor: default; white-space: nowrap; max-width: calc(100vw - 16px);`;
 
         // Prevent native HTML5 text selection & drag-and-drop ghosting
         dock.ondragstart = (e) => { e.preventDefault(); return false; };
@@ -29944,7 +30176,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         anchorBtn.id = "spkmod-cinema-dock-anchor";
         anchorBtn.innerText = "⚓";
         anchorBtn.title = (typeof t === "function" ? t("dragMenuTooltip") : "Drag to move") || "Drag to move";
-        anchorBtn.style.cssText = "font-size: 14px; cursor: grab; display: inline-flex; align-items: center; justify-content: center; padding: 1px 3px; user-select: none; -webkit-user-select: none; line-height: 1; transition: transform 0.12s ease; flex-shrink: 0;";
+        anchorBtn.style.cssText = `font-size: ${isMobile ? 12 : 14}px; cursor: grab; display: inline-flex; align-items: center; justify-content: center; padding: 1px 2px; user-select: none; -webkit-user-select: none; line-height: 1; transition: transform 0.12s ease; flex-shrink: 0;`;
         anchorBtn.onmouseenter = () => { anchorBtn.style.transform = "scale(1.2)"; };
         anchorBtn.onmouseleave = () => { anchorBtn.style.transform = "scale(1)"; };
         anchorBtn.ondragstart = (e) => { e.preventDefault(); return false; };
@@ -29953,17 +30185,18 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         // 1. Cinema Mode Label / Button (Clickable to enter cinema)
         const modeBtn = document.createElement("span");
         modeBtn.id = "spkmod-cinema-mode-btn";
-        modeBtn.style.cssText = "color: #e8b84b; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 2px 4px; transition: transform 0.12s ease; user-select: none; -webkit-user-select: none;";
+        modeBtn.style.cssText = `color: #e8b84b; font-size: ${isMobile ? 11 : 13}px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 1px 3px; transition: transform 0.12s ease; user-select: none; -webkit-user-select: none; white-space: nowrap;`;
         modeBtn.onmouseenter = () => { modeBtn.style.transform = "scale(1.04)"; };
         modeBtn.onmouseleave = () => { modeBtn.style.transform = "scale(1)"; };
         modeBtn.ondragstart = (e) => { e.preventDefault(); return false; };
+        modeBtn.innerHTML = isMobile ? "🎬 Cinema" : (getCinemaText("cinemaModeBtn") || "🎬 Monatium Cinema");
         dock.appendChild(modeBtn);
 
         // 2. Playlist Modal Button
         const plBtn = document.createElement("button");
         plBtn.id = "spkmod-cinema-dock-pl-btn";
         plBtn.title = getCinemaText("cinemaPlaylistTitle", "Monatium Cinema Playlist");
-        plBtn.style.cssText = "background: none; border: none; color: #e8b84b; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px 3px; transition: transform 0.12s ease;";
+        plBtn.style.cssText = `background: none; border: none; color: #e8b84b; font-size: ${isMobile ? 11 : 13}px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: ${isMobile ? '1px 2px' : '2px 3px'}; transition: transform 0.12s ease;`;
         plBtn.innerText = "📋";
         plBtn.onmouseenter = () => { plBtn.style.transform = "scale(1.15)"; };
         plBtn.onmouseleave = () => { plBtn.style.transform = "scale(1)"; };
@@ -29982,7 +30215,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         const prevBtn = document.createElement("button");
         prevBtn.id = "spkmod-cinema-dock-prev-btn";
         prevBtn.title = getCinemaText("cinemaPrev", "Back");
-        prevBtn.style.cssText = "background: none; border: none; color: #e8b84b; font-size: 12px; cursor: pointer; padding: 2px 3px; transition: transform 0.12s ease;";
+        prevBtn.style.cssText = `background: none; border: none; color: #e8b84b; font-size: ${isMobile ? 11 : 12}px; cursor: pointer; padding: ${isMobile ? '1px 2px' : '2px 3px'}; transition: transform 0.12s ease;`;
         prevBtn.innerText = "⏮️";
         prevBtn.onmouseenter = () => { prevBtn.style.transform = "scale(1.2)"; };
         prevBtn.onmouseleave = () => { prevBtn.style.transform = "scale(1)"; };
@@ -29998,7 +30231,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         const playBtn = document.createElement("button");
         playBtn.id = "spkmod-cinema-dock-play-btn";
         playBtn.title = "Play / Pause";
-        playBtn.style.cssText = "background: none; border: none; color: #e8b84b; font-size: 13px; cursor: pointer; padding: 2px 3px; transition: transform 0.12s ease;";
+        playBtn.style.cssText = `background: none; border: none; color: #e8b84b; font-size: ${isMobile ? 11 : 13}px; cursor: pointer; padding: ${isMobile ? '1px 2px' : '2px 3px'}; transition: transform 0.12s ease;`;
         playBtn.innerText = (window.spkmodCinemaIsPaused ? "▶️" : "⏸️");
         playBtn.onmouseenter = () => { playBtn.style.transform = "scale(1.2)"; };
         playBtn.onmouseleave = () => { playBtn.style.transform = "scale(1)"; };
@@ -30014,7 +30247,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         const nextBtn = document.createElement("button");
         nextBtn.id = "spkmod-cinema-dock-next-btn";
         nextBtn.title = getCinemaText("cinemaNext", "Next");
-        nextBtn.style.cssText = "background: none; border: none; color: #e8b84b; font-size: 12px; cursor: pointer; padding: 2px 3px; transition: transform 0.12s ease;";
+        nextBtn.style.cssText = `background: none; border: none; color: #e8b84b; font-size: ${isMobile ? 11 : 12}px; cursor: pointer; padding: ${isMobile ? '1px 2px' : '2px 3px'}; transition: transform 0.12s ease;`;
         nextBtn.innerText = "⏭️";
         nextBtn.onmouseenter = () => { nextBtn.style.transform = "scale(1.2)"; };
         nextBtn.onmouseleave = () => { nextBtn.style.transform = "scale(1)"; };
@@ -30030,7 +30263,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         const repeatBtn = document.createElement("button");
         repeatBtn.id = "spkmod-cinema-dock-repeat-btn";
         repeatBtn.title = getCinemaText("cinemaRepeat", "Repeat");
-        repeatBtn.style.cssText = "background: none; border: none; color: #e8b84b; font-size: 12px; cursor: pointer; padding: 2px 3px; transition: transform 0.12s ease;";
+        repeatBtn.style.cssText = `background: none; border: none; color: #e8b84b; font-size: ${isMobile ? 11 : 12}px; cursor: pointer; padding: ${isMobile ? '1px 2px' : '2px 3px'}; transition: transform 0.12s ease;`;
         repeatBtn.innerText = (window.spkmodCinemaRepeatMode === "one" ? "🔂" : "🔁");
         repeatBtn.onmouseenter = () => { repeatBtn.style.transform = "scale(1.2)"; };
         repeatBtn.onmouseleave = () => { repeatBtn.style.transform = "scale(1)"; };
@@ -30045,13 +30278,13 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
 
         // 4. Vertical Divider
         const sep = document.createElement("div");
-        sep.style.cssText = "width: 1px; height: 16px; background: rgba(232, 184, 75, 0.35);";
+        sep.style.cssText = `width: 1px; height: ${isMobile ? 12 : 16}px; background: rgba(232, 184, 75, 0.35); flex-shrink: 0;`;
         dock.appendChild(sep);
 
         // 5. Mute / Unmute Button
         const muteBtn = document.createElement("button");
         muteBtn.id = "spkmod-cinema-mute-btn";
-        muteBtn.style.cssText = "background: none; border: none; color: #e8b84b; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px 4px; transition: transform 0.12s ease;";
+        muteBtn.style.cssText = `background: none; border: none; color: #e8b84b; font-size: ${isMobile ? 12 : 14}px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: ${isMobile ? '1px 2px' : '2px 4px'}; transition: transform 0.12s ease; flex-shrink: 0;`;
         muteBtn.onmouseenter = () => { muteBtn.style.transform = "scale(1.2)"; };
         muteBtn.onmouseleave = () => { muteBtn.style.transform = "scale(1)"; };
         muteBtn.onpointerdown = e => e.stopPropagation();
@@ -30072,7 +30305,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         volSlider.min = "0";
         volSlider.max = "100";
         volSlider.value = String(window.spkmodCinemaConfig?.volume ?? 80);
-        volSlider.style.cssText = "width: 70px; height: 5px; accent-color: #e8b84b; cursor: pointer; border-radius: 3px; outline: none;";
+        volSlider.style.cssText = `width: ${isMobile ? 38 : 70}px; height: 5px; accent-color: #e8b84b; cursor: pointer; border-radius: 3px; outline: none; flex-shrink: 0;`;
         volSlider.onpointerdown = e => e.stopPropagation();
         volSlider.onmousedown = e => e.stopPropagation();
         volSlider.onclick = e => e.stopPropagation();
@@ -30088,7 +30321,7 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         // 7. Volume % Label
         const volLabel = document.createElement("span");
         volLabel.id = "spkmod-cinema-vol-label";
-        volLabel.style.cssText = "font-size: 11px; font-weight: bold; color: #e8b84b; min-width: 28px; text-align: right;";
+        volLabel.style.cssText = `font-size: ${isMobile ? 10 : 11}px; font-weight: bold; color: #e8b84b; min-width: ${isMobile ? 22 : 28}px; text-align: right; flex-shrink: 0;`;
         dock.appendChild(volLabel);
 
         // Dedicated robust dragging & click distinction for the dock
@@ -30377,27 +30610,34 @@ function spkmodUpdateCinemaTopBar(visible) {
 		return;
 	}
 	if (!hudBar) {
+		const isMobile = (typeof window.speakiMobile !== "undefined") ||
+			(typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent)) ||
+			(window.innerWidth <= 800);
+
 		hudBar = document.createElement('div');
 		hudBar.id = 'spkmod-cinema-hud-bar';
-		hudBar.style.cssText = 'position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 2147483640; background: rgba(18, 14, 26, 0.94); backdrop-filter: blur(8px); border: 1px solid rgba(232, 184, 75, 0.6); border-radius: 8px; padding: 6px 14px; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 18px rgba(0,0,0,0.6); color: #fff; font-size: 13px; font-weight: bold; pointer-events: auto;';
+		hudBar.style.cssText = `position: fixed; top: ${isMobile ? 6 : 14}px; left: 50%; transform: translateX(-50%); z-index: 2147483640; background: rgba(18, 14, 26, 0.94); backdrop-filter: blur(8px); border: 1px solid rgba(232, 184, 75, 0.6); border-radius: 8px; padding: ${isMobile ? '3px 8px' : '5px 12px'}; display: flex; align-items: center; gap: ${isMobile ? 5 : 8}px; box-shadow: 0 4px 18px rgba(0,0,0,0.6); color: #fff; font-size: ${isMobile ? 11 : 12}px; font-weight: bold; pointer-events: auto; max-width: calc(100vw - 16px); white-space: nowrap; overflow: hidden;`;
 		document.body.appendChild(hudBar);
 
 		const title = window.spkmodCurrentCinemaTitle || "Monatium Cinema";
 		const isMuted = !!window.spkmodCinemaConfig?.muted;
 		const vol = window.spkmodCinemaConfig?.volume ?? 80;
+		const repText = (spkmodCinemaRepeatMode === "one")
+			? getCinemaText("cinemaRepeatOne")
+			: (spkmodCinemaRepeatMode === "all" ? getCinemaText("cinemaRepeatAll") : getCinemaText("cinemaRepeatOff"));
 		hudBar.innerHTML = `
-			<span id="spkmod-cinema-hud-now-playing-container">🎬 <strong id="spkmod-cinema-hud-now-playing-label">${getCinemaText("cinemaNowPlaying")}:</strong> <span id="spkmod-cinema-hud-title">${title}</span></span>
-			<div style="width: 1px; height: 16px; background: rgba(232, 184, 75, 0.4); margin: 0 3px;"></div>
-			<button id="spkmod-cinema-hud-prev-btn" title="${getCinemaText("cinemaPrev")}" style="background:none;border:none;color:#ffc94a;font-size:13px;cursor:pointer;padding:2px 4px;">⏮️</button>
-			<button id="spkmod-cinema-hud-play-btn" title="Play / Pause" style="background:none;border:none;color:#ffc94a;font-size:13px;cursor:pointer;padding:2px 4px;">${spkmodCinemaIsPaused ? "▶️" : "⏸️"}</button>
-			<button id="spkmod-cinema-hud-next-btn" title="${getCinemaText("cinemaNext")}" style="background:none;border:none;color:#ffc94a;font-size:13px;cursor:pointer;padding:2px 4px;">⏭️</button>
-			<button id="spkmod-cinema-hud-repeat-btn" title="${(spkmodCinemaRepeatMode === "one") ? getCinemaText("cinemaRepeatOne") : (spkmodCinemaRepeatMode === "all" ? getCinemaText("cinemaRepeatAll") : getCinemaText("cinemaRepeatOff"))}" style="background:none;border:none;color:${spkmodCinemaRepeatMode !== 'off' ? '#ffc94a' : '#7c6894'};font-size:13px;cursor:pointer;padding:2px 4px;">${spkmodCinemaRepeatMode === 'one' ? '🔂' : '🔁'}</button>
-			<button id="spkmod-cinema-hud-playlist-btn" title="${getCinemaText("cinemaPlaylistBtn")}" style="background:#3e3052;color:#ffdf79;border:1.5px solid #e8b84b;border-radius:6px;cursor:pointer;padding:2px 7px;font-size:11px;font-weight:700;transition:all 0.15s ease;">📋 <span id="spkmod-cinema-hud-playlist-text">${getCinemaText("cinemaPlaylistBtn")}</span></button>
-			<div style="width: 1px; height: 16px; background: rgba(232, 184, 75, 0.4); margin: 0 3px;"></div>
-			<button id="spkmod-cinema-hud-mute-btn" title="${isMuted ? getCinemaText("cinemaUnmute") : getCinemaText("cinemaMute")}" style="background:none;border:none;color:#e8b84b;font-size:14px;cursor:pointer;padding:2px 3px;">${(isMuted || vol === 0) ? "🔇" : "🔊"}</button>
-			<input id="spkmod-cinema-hud-vol-slider" type="range" min="0" max="100" value="${vol}" style="width:65px;height:5px;accent-color:#e8b84b;cursor:pointer;">
-			<span id="spkmod-cinema-hud-vol-label" style="font-size:11px;color:#e8b84b;min-width:26px;">${isMuted ? "0%" : vol + "%"}</span>
-			<button id="spkmod-cinema-exit-btn" style="padding: 3px 10px; font-size: 12px; cursor: pointer; background: #e8b84b; color: #120e1a; font-weight: bold; border-radius: 6px; border: 1.5px solid #ffd56b; margin-left: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition:all 0.15s ease;">${getCinemaText("cinemaExitBtn")}</button>
+			<span id="spkmod-cinema-hud-now-playing-container" style="display:inline-flex;align-items:center;gap:4px;min-width:0;max-width:${isMobile ? 'min(170px, 24vw)' : 'min(280px, 32vw)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;">🎬 <strong id="spkmod-cinema-hud-now-playing-label" style="flex-shrink:0;">${getCinemaText("cinemaNowPlaying")}:</strong> <span id="spkmod-cinema-hud-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${title}</span></span>
+			<div style="width: 1px; height: 14px; background: rgba(232, 184, 75, 0.4); margin: 0 2px; flex-shrink: 0;"></div>
+			<button id="spkmod-cinema-hud-prev-btn" title="${getCinemaText("cinemaPrev")}" style="background:none;border:none;color:#ffc94a;font-size:${isMobile ? 11 : 13}px;cursor:pointer;padding:2px 3px;flex-shrink:0;">⏮️</button>
+			<button id="spkmod-cinema-hud-play-btn" title="Play / Pause" style="background:none;border:none;color:#ffc94a;font-size:${isMobile ? 11 : 13}px;cursor:pointer;padding:2px 3px;flex-shrink:0;">${spkmodCinemaIsPaused ? "▶️" : "⏸️"}</button>
+			<button id="spkmod-cinema-hud-next-btn" title="${getCinemaText("cinemaNext")}" style="background:none;border:none;color:#ffc94a;font-size:${isMobile ? 11 : 13}px;cursor:pointer;padding:2px 3px;flex-shrink:0;">⏭️</button>
+			<button id="spkmod-cinema-hud-repeat-btn" title="${repText}" style="background:none;border:none;color:${spkmodCinemaRepeatMode !== 'off' ? '#ffc94a' : '#7c6894'};font-size:${isMobile ? 11 : 13}px;cursor:pointer;padding:2px 3px;flex-shrink:0;">${spkmodCinemaRepeatMode === 'one' ? '🔂' : '🔁'}</button>
+			<button id="spkmod-cinema-hud-playlist-btn" title="${getCinemaText("cinemaPlaylistBtn")}" style="background:#3e3052;color:#ffdf79;border:1.5px solid #e8b84b;border-radius:6px;cursor:pointer;padding:${isMobile ? '1px 5px' : '2px 7px'};font-size:${isMobile ? 10 : 11}px;font-weight:700;white-space:nowrap;flex-shrink:0;transition:all 0.15s ease;">📋 <span id="spkmod-cinema-hud-playlist-text">${getCinemaText("cinemaPlaylistBtn")}</span></button>
+			<div style="width: 1px; height: 14px; background: rgba(232, 184, 75, 0.4); margin: 0 2px; flex-shrink: 0;"></div>
+			<button id="spkmod-cinema-hud-mute-btn" title="${isMuted ? getCinemaText("cinemaUnmute") : getCinemaText("cinemaMute")}" style="background:none;border:none;color:#e8b84b;font-size:${isMobile ? 12 : 14}px;cursor:pointer;padding:2px 2px;flex-shrink:0;">${(isMuted || vol === 0) ? "🔇" : "🔊"}</button>
+			<input id="spkmod-cinema-hud-vol-slider" type="range" min="0" max="100" value="${vol}" style="width:${isMobile ? 38 : 65}px;height:5px;accent-color:#e8b84b;cursor:pointer;flex-shrink:0;">
+			<span id="spkmod-cinema-hud-vol-label" style="font-size:${isMobile ? 10 : 11}px;color:#e8b84b;min-width:${isMobile ? 22 : 26}px;flex-shrink:0;">${isMuted ? "0%" : vol + "%"}</span>
+			<button id="spkmod-cinema-exit-btn" style="padding:${isMobile ? '2px 7px' : '3px 10px'}; font-size:${isMobile ? 11 : 12}px; cursor: pointer; background: #e8b84b; color: #120e1a; font-weight: bold; border-radius: 6px; border: 1.5px solid #ffd56b; margin-left: 2px; white-space: nowrap; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition:all 0.15s ease;">${isMobile ? "✕ Exit" : getCinemaText("cinemaExitBtn")}</button>
 		`;
 
 		hudBar.addEventListener("wheel", e => e.stopPropagation(), { passive: true });
@@ -30718,7 +30958,10 @@ function spkmodUpdateCinemaI18n() {
 	}
 	const exitBtn = document.getElementById("spkmod-cinema-exit-btn");
 	if (exitBtn) {
-		exitBtn.innerText = getCinemaText("cinemaExitBtn");
+		const isMobile = (typeof window.speakiMobile !== "undefined") ||
+			(typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent)) ||
+			(window.innerWidth <= 800);
+		exitBtn.innerText = isMobile ? "✕ Exit" : getCinemaText("cinemaExitBtn");
 		exitBtn.style.setProperty("background", "#e8b84b", "important");
 		exitBtn.style.setProperty("color", "#120e1a", "important");
 	}
