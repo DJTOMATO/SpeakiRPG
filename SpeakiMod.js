@@ -322,8 +322,8 @@ var lunCurrentSpeedMps = 0;
 var SPKMOD_CINEMA_DEFAULT_CONFIG = {
 	enabled: true,
 	volume: 80,
-	pos: { x: 44.0, y: 3.8, z: 62.0 },
-	rotationY: 0,
+	pos: { x: 65.0, y: 4.2, z: 33.5 },
+	rotationY: 1.5708,
 	width: 12.8,
 	height: 7.2
 };
@@ -339,8 +339,13 @@ if (typeof window !== "undefined" && window.localStorage) {
 		if (posStr) {
 			const parsed = JSON.parse(posStr);
 			if (parsed && typeof parsed.x === "number") {
-				window.spkmodCinemaConfig.pos = { x: parsed.x, y: parsed.y ?? 3.8, z: parsed.z };
-				if (typeof parsed.rotationY === "number") window.spkmodCinemaConfig.rotationY = parsed.rotationY;
+				if (Math.abs(parsed.x - 44.0) < 0.1 && Math.abs(parsed.z - 62.0) < 0.1) {
+					window.spkmodCinemaConfig.pos = { x: 65.0, y: 4.2, z: 33.5 };
+					window.spkmodCinemaConfig.rotationY = 1.5708;
+				} else {
+					window.spkmodCinemaConfig.pos = { x: parsed.x, y: parsed.y ?? 4.2, z: parsed.z };
+					if (typeof parsed.rotationY === "number") window.spkmodCinemaConfig.rotationY = parsed.rotationY;
+				}
 			}
 		}
 	} catch (_) {}
@@ -13630,6 +13635,8 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
     spkmodCinemaPillEl.style.display = "flex";
 }
 
+window.spkmodUpdateCinemaFloatingPill = spkmodUpdateCinemaFloatingPill;
+
 
 const lunJumpAnimMs = 500;
 
@@ -17245,8 +17252,8 @@ window.spkmodToggleBurstSpam = function(forceState) {
 var SPKMOD_CINEMA_DEFAULT_CONFIG = window.SPKMOD_CINEMA_DEFAULT_CONFIG || {
 	enabled: true,
 	volume: 80,
-	pos: { x: 44.0, y: 3.8, z: 62.0 },
-	rotationY: 0,
+	pos: { x: 65.0, y: 4.2, z: 33.5 },
+	rotationY: 1.5708,
 	width: 12.8,
 	height: 7.2
 };
@@ -17263,8 +17270,13 @@ if (window.localStorage) {
 		if (posStr) {
 			const parsed = JSON.parse(posStr);
 			if (parsed && typeof parsed.x === "number") {
-				spkmodCinemaConfig.pos = { x: parsed.x, y: parsed.y ?? 3.8, z: parsed.z };
-				if (typeof parsed.rotationY === "number") spkmodCinemaConfig.rotationY = parsed.rotationY;
+				if (Math.abs(parsed.x - 44.0) < 0.1 && Math.abs(parsed.z - 62.0) < 0.1) {
+					spkmodCinemaConfig.pos = { x: 65.0, y: 4.2, z: 33.5 };
+					spkmodCinemaConfig.rotationY = 1.5708;
+				} else {
+					spkmodCinemaConfig.pos = { x: parsed.x, y: parsed.y ?? 4.2, z: parsed.z };
+					if (typeof parsed.rotationY === "number") spkmodCinemaConfig.rotationY = parsed.rotationY;
+				}
 			}
 		}
 	} catch (_) {}
@@ -17607,7 +17619,7 @@ function spkmodCreateCinemaPhysicalFrame() {
 
 function spkmodInitCinema() {
 	if (!spkmodCinemaConfig.enabled) return;
-	if (typeof gameState === 'undefined' || !gameState?.camera || !window.THREE) return;
+	if (typeof gameState === 'undefined' || !gameState?.camera || !window.THREE || !gameState?.scene) return;
 
 	const classes = spkmodGetCSS3DClasses();
 	if (!classes) return;
@@ -17615,9 +17627,8 @@ function spkmodInitCinema() {
 	if (!spkmodCinemaContainer) {
 		spkmodCinemaContainer = document.createElement('div');
 		spkmodCinemaContainer.id = 'spkmod-cinema-container';
-		spkmodCinemaContainer.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 10;';
-		const canvasParent = document.querySelector('#sr-canvas-container') || document.body;
-		canvasParent.appendChild(spkmodCinemaContainer);
+		spkmodCinemaContainer.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; overflow: hidden; z-index: 3;';
+		document.body.appendChild(spkmodCinemaContainer);
 	}
 
 	if (!spkmodCinemaRenderer) {
@@ -17649,7 +17660,6 @@ function spkmodInitCinema() {
 	spkmodCinemaScreenObject.rotation.y = spkmodCinemaConfig.rotationY;
 
 	spkmodCreateCinemaPhysicalFrame();
-	spkmodStartCinemaLoop();
 }
 
 function spkmodSyncCinemaPlayback(force = false) {
@@ -17704,7 +17714,9 @@ function spkmodUpdateCinemaSpatialAudio() {
 		}
 	}
 
-	if (typeof spkmodUpdateCinemaFloatingPill === 'function') {
+	if (typeof window.spkmodUpdateCinemaFloatingPill === 'function') {
+		window.spkmodUpdateCinemaFloatingPill(dist <= 48, dist);
+	} else if (typeof spkmodUpdateCinemaFloatingPill === 'function') {
 		spkmodUpdateCinemaFloatingPill(dist <= 48, dist);
 	}
 }
@@ -17716,8 +17728,11 @@ function spkmodCinemaTick() {
 		return;
 	}
 
-	if (!spkmodCinemaScreenObject && window.THREE && typeof gameState !== 'undefined' && gameState?.camera) {
-		spkmodInitCinema();
+	if (!spkmodCinemaScreenObject) {
+		if (window.THREE && typeof gameState !== 'undefined' && gameState?.camera && gameState?.scene) {
+			spkmodInitCinema();
+		}
+		return;
 	}
 
 	const playerPos = (typeof gameState !== 'undefined' && gameState?.playerContainer?.position)
@@ -17735,7 +17750,9 @@ function spkmodCinemaTick() {
 			if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = 'none';
 			if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = false;
 			spkmodSendYtCommand('pauseVideo');
-			if (typeof spkmodUpdateCinemaFloatingPill === 'function') {
+			if (typeof window.spkmodUpdateCinemaFloatingPill === 'function') {
+				window.spkmodUpdateCinemaFloatingPill(false);
+			} else if (typeof spkmodUpdateCinemaFloatingPill === 'function') {
 				spkmodUpdateCinemaFloatingPill(false);
 			}
 		}
@@ -17827,12 +17844,58 @@ window.spkmodSyncCinemaPlayback = spkmodSyncCinemaPlayback;
 window.spkmodInitCinema = spkmodInitCinema;
 window.spkmodCinemaConfig = spkmodCinemaConfig;
 
+window.spkmodSetCinema = function(x, y, z, rotY) {
+	if (typeof x === "number") window.spkmodCinemaConfig.pos.x = x;
+	if (typeof y === "number") window.spkmodCinemaConfig.pos.y = y;
+	if (typeof z === "number") window.spkmodCinemaConfig.pos.z = z;
+	if (typeof rotY === "number") window.spkmodCinemaConfig.rotationY = rotY;
+	localStorage.setItem("spkmod-cinema-pos", JSON.stringify({
+		x: window.spkmodCinemaConfig.pos.x,
+		y: window.spkmodCinemaConfig.pos.y,
+		z: window.spkmodCinemaConfig.pos.z,
+		rotationY: window.spkmodCinemaConfig.rotationY
+	}));
+	if (spkmodCinemaScreenObject) {
+		spkmodCinemaScreenObject.position.set(window.spkmodCinemaConfig.pos.x, window.spkmodCinemaConfig.pos.y, window.spkmodCinemaConfig.pos.z);
+		spkmodCinemaScreenObject.rotation.y = window.spkmodCinemaConfig.rotationY;
+	}
+	if (spkmodCinemaFrameMesh) {
+		spkmodCinemaFrameMesh.position.set(window.spkmodCinemaConfig.pos.x, window.spkmodCinemaConfig.pos.y, window.spkmodCinemaConfig.pos.z);
+		spkmodCinemaFrameMesh.rotation.y = window.spkmodCinemaConfig.rotationY;
+	}
+	if (typeof chatLog === "function") {
+		chatLog(`🎬 Cinema moved to (${window.spkmodCinemaConfig.pos.x}, ${window.spkmodCinemaConfig.pos.y}, ${window.spkmodCinemaConfig.pos.z})`);
+	}
+	console.log("[Cinema] Position updated:", window.spkmodCinemaConfig.pos, "RotY:", window.spkmodCinemaConfig.rotationY);
+};
+
+window.spkmodGetCinemaStatus = function() {
+	const playerPos = (typeof gameState !== 'undefined' && gameState?.playerContainer?.position) ? gameState.playerContainer.position : null;
+	const dist = playerPos ? Math.hypot(playerPos.x - window.spkmodCinemaConfig.pos.x, playerPos.z - window.spkmodCinemaConfig.pos.z) : null;
+	const status = {
+		playerPos: playerPos ? { x: Number(playerPos.x.toFixed(2)), y: Number(playerPos.y.toFixed(2)), z: Number(playerPos.z.toFixed(2)) } : null,
+		cinemaPos: window.spkmodCinemaConfig.pos,
+		rotationY: window.spkmodCinemaConfig.rotationY,
+		distToCinema: dist !== null ? Number(dist.toFixed(2)) + "m" : "unknown",
+		inPillRange: dist !== null ? (dist <= 48) : false,
+		inRenderRange: dist !== null ? (dist < 85) : false,
+		screenObjectCreated: !!spkmodCinemaScreenObject,
+		cinemaModeActive: spkmodCinemaModeActive,
+		currentVideo: spkmodCinemaCurrentVideo
+	};
+	console.table(status);
+	return status;
+};
+
+// Start cinema loop immediately
+spkmodStartCinemaLoop();
+
 // Load playlist and initialize
-setTimeout(() => {
-	spkmodLoadMoviesPlaylist().then(() => {
+spkmodLoadMoviesPlaylist().then(() => {
+	if (typeof gameState !== 'undefined' && gameState?.camera && gameState?.scene && window.THREE) {
 		spkmodInitCinema();
-	}).catch(() => {});
-}, 1500);
+	}
+}).catch(() => {});
 
 
 const mapModalElements = {};
