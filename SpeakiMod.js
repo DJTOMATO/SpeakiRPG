@@ -3489,15 +3489,43 @@ function positionModalNicely(modal) {
 	if (!modal) return;
 	bringToFront(modal);
 
+	const isMobile = (typeof window.speakiMobile !== "undefined") ||
+		(typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent)) ||
+		(window.innerWidth <= 800);
+
 	const posKey = modal.id ? ("spkmod-pos-" + modal.id) : null;
 	const hasSavedPos = !!(posKey && window.localStorage && localStorage.getItem(posKey));
 	const hasBeenDragged = modal.dataset.userDragged === "true";
 
 	const curTop = parseFloat(modal.style.top);
 	const curLeft = parseFloat(modal.style.left);
-	const isOffscreen = isNaN(curTop) || isNaN(curLeft) || curTop > (window.innerHeight - 80) || curLeft > (window.innerWidth - 80) || curTop < 0;
+	const modalW = modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? 480 : (modal.id === "spkmod-stats-modal" ? 240 : (modal.id === "spkmod-jukebox-modal" ? 380 : 400)));
+	const modalH = modal.offsetHeight || 340;
+
+	// Check if top-left is out of bounds or if modal extends out of bounds on this screen
+	const isOffscreen = isNaN(curTop) || isNaN(curLeft) ||
+		curTop < 0 || curLeft < 0 ||
+		curTop > (window.innerHeight - 50) ||
+		curLeft > (window.innerWidth - 50) ||
+		(isMobile && (curLeft + Math.min(modalW, 160) > window.innerWidth || curTop + Math.min(modalH, 120) > window.innerHeight));
 
 	if (!isOffscreen && (hasSavedPos || hasBeenDragged) && modal.style.left && modal.style.top) {
+		if (isMobile) {
+			const clampedL = Math.max(10, Math.min(curLeft, window.innerWidth - modalW - 10));
+			const clampedT = Math.max(10, Math.min(curTop, window.innerHeight - modalH - 10));
+			modal.style.left = Math.round(clampedL) + "px";
+			modal.style.top = Math.round(clampedT) + "px";
+		}
+		return;
+	}
+
+	if (isMobile) {
+		const safeW = Math.min(modalW, window.innerWidth - 20);
+		const safeH = Math.min(modalH, window.innerHeight - 30);
+		const centerLeft = Math.max(10, Math.round((window.innerWidth - safeW) / 2));
+		const centerTop = Math.max(10, Math.round((window.innerHeight - safeH) / 2));
+		modal.style.left = centerLeft + "px";
+		modal.style.top = centerTop + "px";
 		return;
 	}
 
@@ -3510,7 +3538,7 @@ function positionModalNicely(modal) {
 	}
 
 	const hudRect = document.querySelector("#spkmod-hud")?.getBoundingClientRect();
-	const startLeft = hudRect && hudRect.right > 0 ? Math.round(hudRect.right + 10) : 260;
+	let startLeft = hudRect && hudRect.right > 0 ? Math.round(hudRect.right + 10) : 260;
 	const startTop = Math.max(50, hudRect && hudRect.top >= 50 ? Math.round(hudRect.top) : 50);
 
 	const allModals = [
@@ -3548,6 +3576,9 @@ function positionModalNicely(modal) {
 		modal.style.left = nextLeft + "px";
 		modal.style.top = nextTop + "px";
 	} else {
+		if (startLeft + modalW > window.innerWidth - 10) {
+			startLeft = Math.max(10, window.innerWidth - modalW - 10);
+		}
 		modal.style.left = startLeft + "px";
 		modal.style.top = startTop + "px";
 	}
@@ -3741,11 +3772,12 @@ function toggleSettingsModal() {
 	if (!lunHudElements.settingsModal) return;
 	const isClosed = lunHudElements.settingsModal.classList.contains("hidden");
 	if (isClosed) {
+		lunHudElements.settingsModal.classList.remove("hidden");
 		positionModalNicely(lunHudElements.settingsModal);
+		bringToFront(lunHudElements.settingsModal);
 		if (typeof updateHudBgDropdown === 'function') {
 			updateHudBgDropdown();
 		}
-		lunHudElements.settingsModal.classList.remove("hidden");
 	} else {
 		lunHudElements.settingsModal.classList.add("hidden");
 		if (typeof toggleQuickLoginSettings === "function") {
@@ -6977,11 +7009,12 @@ document.head.appendChild(buildElement(
 			position: fixed;
 			z-index: 600000;
 			width: max-content;
-			min-width: 520px;
-			max-width: none;
+			min-width: min(520px, calc(100vw - 20px));
+			max-width: min(600px, calc(100vw - 16px));
 			height: max-content;
-			max-height: none;
-			overflow: visible;
+			max-height: calc(100vh - 24px);
+			overflow-y: auto;
+			overflow-x: hidden;
 			box-sizing: border-box;
 			color: #FFF;
 			background: #000C;
@@ -6991,15 +7024,28 @@ document.head.appendChild(buildElement(
 			gap: 8px;
 			cursor: move;
 			user-select: none;
+			-webkit-overflow-scrolling: touch;
 		}
 		.spkmod-settings-grid {
 			display: grid;
 			grid-template-columns: max-content max-content;
 			gap: 10px;
 		}
-		@media (max-width: 500px) {
+		@media (max-width: 650px) {
+			#spkmod-settings-modal {
+				width: calc(100vw - 20px) !important;
+				max-width: calc(100vw - 20px) !important;
+				min-width: 0 !important;
+			}
 			.spkmod-settings-grid {
-				grid-template-columns: max-content;
+				grid-template-columns: 1fr;
+			}
+		}
+		@media (max-height: 500px) {
+			#spkmod-settings-modal {
+				max-height: calc(100vh - 16px) !important;
+				padding: 8px 10px;
+				gap: 5px;
 			}
 		}
 		.spkmod-settings-col {
@@ -7030,6 +7076,11 @@ document.head.appendChild(buildElement(
 		#spkmod-settings-close {
 			cursor: pointer;
 			user-select: none;
+			padding: 2px 8px;
+			font-size: 14px;
+			font-weight: bold;
+			line-height: 1;
+			touch-action: manipulation;
 		}
 		.spkmod-panel-btn {
 			color: #EEE;
@@ -7495,20 +7546,33 @@ document.body.appendChild(lunHudElements.lowHpOverlay);
 	const isMobileDevice = typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent));
 	if (isMobileDevice) {
 		const mobileBtnContainer = document.createElement("div");
-				mobileBtnContainer.id = "spkmod-mobile-btn-container";
-		mobileBtnContainer.style.cssText = "position: fixed; bottom: 80px; left: 10px; z-index: 2147483647; display: flex; flex-direction: column; gap: 8px;";
+		mobileBtnContainer.id = "spkmod-mobile-btn-container";
+		mobileBtnContainer.style.cssText = "position: fixed; bottom: 65px; left: 10px; z-index: 2147483647; display: flex; flex-direction: column; gap: 6px;";
 		
 		const createToggleBtn = (id, icon, onClick) => {
 			const btn = document.createElement("button");
 			btn.id = id;
 			btn.innerText = icon;
-			btn.style.cssText = "width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; user-select: none; opacity: 0.6; touch-action: none;";
-			btn.onclick = onClick;
+			btn.style.cssText = "width: 38px; height: 38px; border-radius: 50%; background: rgba(0,0,0,0.65); border: 1.5px solid rgba(255,255,255,0.3); color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; user-select: none; opacity: 0.85; touch-action: manipulation; box-shadow: 0 2px 8px rgba(0,0,0,0.5);";
+			
+			let lastTrigger = 0;
+			const handleTrigger = (e) => {
+				const now = Date.now();
+				if (now - lastTrigger < 250) return;
+				lastTrigger = now;
+				if (e) {
+					e.preventDefault();
+					e.stopPropagation();
+				}
+				onClick(e);
+			};
+
+			btn.addEventListener("click", handleTrigger);
+			btn.addEventListener("touchend", handleTrigger, { passive: false });
 			return btn;
 		};
 
 		const eyeBtn = createToggleBtn("spkmod-mobile-ui-toggle", "👁️", (e) => {
-			e.preventDefault(); 
 			const isHidden = document.body.classList.toggle("spkmod-ui-hidden");
 			if (typeof chatLog !== 'undefined' && typeof t !== 'undefined') {
 				chatLog(t(isHidden ? "uiHiddenMsg" : "uiShownMsg") || (isHidden ? "Mod UI Hidden" : "Mod UI Shown"));
@@ -7516,17 +7580,19 @@ document.body.appendChild(lunHudElements.lowHpOverlay);
 		});
 
 		const settingsBtn = createToggleBtn("spkmod-mobile-settings-toggle", "⚙️", (e) => {
-			e.preventDefault(); 
-			if (lunHudElements.settingsModal) {
+			if (typeof toggleSettingsModal === "function") {
+				toggleSettingsModal();
+			} else if (lunHudElements.settingsModal) {
 				const isHidden = lunHudElements.settingsModal.classList.toggle("hidden");
-				if (!isHidden && typeof updateHudBgDropdown === 'function') {
-					updateHudBgDropdown();
+				if (!isHidden) {
+					if (typeof positionModalNicely === "function") positionModalNicely(lunHudElements.settingsModal);
+					if (typeof bringToFront === "function") bringToFront(lunHudElements.settingsModal);
+					if (typeof updateHudBgDropdown === 'function') updateHudBgDropdown();
 				}
 			}
 		});
 
 		const panelBtn = createToggleBtn("spkmod-mobile-panel-toggle", "🔘", (e) => {
-			e.preventDefault(); 
 			const panel = document.getElementById("spkmod-panel");
 			if (panel) {
 				panel.classList.toggle("hidden");
@@ -7534,7 +7600,6 @@ document.body.appendChild(lunHudElements.lowHpOverlay);
 		});
 
 		const muteBtn = createToggleBtn("spkmod-mobile-mute-toggle", (typeof isGameMuted === "function" && isGameMuted()) ? "🔇" : "🔊", (e) => {
-			e.preventDefault();
 			if (typeof toggleGameMute === "function") toggleGameMute();
 		});
 
@@ -8672,7 +8737,7 @@ document.body.appendChild(
 		id: "spkmod-settings-modal",
 		className: "hidden"
 	}, [
-		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between; align-items: center;" }, [
+		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between; align-items: center; touch-action: none; user-select: none;" }, [
 			buildElement("div", { style: "display: flex; align-items: center; gap: 8px;" }, [
 				lunPanelElements.settingsHeader = buildElement("span", {
 					innerText: t("settingsHeader"),
