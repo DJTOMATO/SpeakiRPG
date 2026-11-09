@@ -856,7 +856,16 @@
         "resBlockDoorOpenUpper": "Door Open (Upper)",
         "resPackPromptName": "Enter resource pack name:",
         "resPackPromptAuthor": "Enter author name:",
-        "resPackExportEmpty": "No custom textures to export!"
+        "resPackExportEmpty": "No custom textures to export!",
+        "cinemaTitle": "Movie Theater",
+        "cinemaDesc": "In-game 3D cinema screen playing YouTube playlist in Zone 1 Festival Plaza",
+        "cinemaModeBtn": "🎬 Cinema Mode",
+        "cinemaExitBtn": "Exit Cinema Mode (Esc)",
+        "cinemaNowPlaying": "Now Playing",
+        "cinemaVolumeLabel": "Cinema Volume",
+        "cinemaReloadPlaylist": "Reload Playlist",
+        "cinemaPosAdjust": "Screen Position (X, Y, Z, Rot)",
+        "cinemaResetPos": "Reset Position"
     },
     "ja": {
         "langName": "日本語",
@@ -1745,7 +1754,16 @@
         "resBlockDoorOpenUpper": "開いたドア（上部）",
         "resPackPromptName": "リソースパック名を入力してください:",
         "resPackPromptAuthor": "作者名を入力してください:",
-        "resPackExportEmpty": "エクスポートするカスタムテクスチャがありません！"
+        "resPackExportEmpty": "エクスポートするカスタムテクスチャがありません！",
+        "cinemaTitle": "映画館シアター",
+        "cinemaDesc": "ゾーン1のお祭り広場でYouTubeプレイリストを上映するゲーム内3Dスクリーン",
+        "cinemaModeBtn": "🎬 シネマモード",
+        "cinemaExitBtn": "シネマモード終了 (Esc)",
+        "cinemaNowPlaying": "現在上映中",
+        "cinemaVolumeLabel": "シアター音量",
+        "cinemaReloadPlaylist": "プレイリスト再読込",
+        "cinemaPosAdjust": "画面位置調整 (X, Y, Z, 回転)",
+        "cinemaResetPos": "位置をリセット"
     },
     "ko": {
         "langName": "한국어",
@@ -2604,7 +2622,16 @@
         "resBlockDoorOpenUpper": "열린 문 (상단)",
         "resPackPromptName": "리소스 팩 이름을 입력하세요:",
         "resPackPromptAuthor": "제작자 이름을 입력하세요:",
-        "resPackExportEmpty": "내보낼 커스텀 텍스처가 없습니다!"
+        "resPackExportEmpty": "내보낼 커스텀 텍스처가 없습니다!",
+        "cinemaTitle": "야외 영화관",
+        "cinemaDesc": "1구역 축제 광장에서 유튜브 재생목록을 상영하는 인게임 3D 스크린",
+        "cinemaModeBtn": "🎬 영화관 모드",
+        "cinemaExitBtn": "영화관 모드 종료 (Esc)",
+        "cinemaNowPlaying": "현재 상영 중",
+        "cinemaVolumeLabel": "영화관 볼륨",
+        "cinemaReloadPlaylist": "재생목록 새로고침",
+        "cinemaPosAdjust": "스크린 위치 조정 (X, Y, Z, 회전)",
+        "cinemaResetPos": "위치 초기화"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -3463,7 +3490,16 @@
         "resBlockDoorOpenUpper": "開啟的門（上部）",
         "resPackPromptName": "請輸入資源包名稱：",
         "resPackPromptAuthor": "請輸入作者名稱：",
-        "resPackExportEmpty": "沒有可匯出的自訂材質！"
+        "resPackExportEmpty": "沒有可匯出的自訂材質！",
+        "cinemaTitle": "露天電影院",
+        "cinemaDesc": "在1區節日廣場播放YouTube播放列表的遊戲內3D螢幕",
+        "cinemaModeBtn": "🎬 影院模式",
+        "cinemaExitBtn": "退出影院模式 (Esc)",
+        "cinemaNowPlaying": "正在放映",
+        "cinemaVolumeLabel": "影院音量",
+        "cinemaReloadPlaylist": "重新載入播放列表",
+        "cinemaPosAdjust": "調整螢幕位置 (X, Y, Z, 旋轉)",
+        "cinemaResetPos": "重設位置"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -4322,7 +4358,16 @@
         "resBlockDoorOpenUpper": "开启的门（上部）",
         "resPackPromptName": "请输入资源包名称：",
         "resPackPromptAuthor": "请输入作者名称：",
-        "resPackExportEmpty": "没有可导出的自定义材质！"
+        "resPackExportEmpty": "没有可导出的自定义材质！",
+        "cinemaTitle": "露天电影院",
+        "cinemaDesc": "在1区节日广场播放YouTube播放列表的游戏内3D屏幕",
+        "cinemaModeBtn": "🎬 影院模式",
+        "cinemaExitBtn": "退出影院模式 (Esc)",
+        "cinemaNowPlaying": "正在放映",
+        "cinemaVolumeLabel": "影院音量",
+        "cinemaReloadPlaylist": "重新加载播放列表",
+        "cinemaPosAdjust": "调整屏幕位置 (X, Y, Z, 旋转)",
+        "cinemaResetPos": "重置位置"
     },
     "es-419": {
         "langName": "Español",
@@ -5181,6 +5226,15 @@
         "resBlockDoorOpenUpper": "Puerta abierta (Superior)",
         "resPackPromptName": "Ingresa el nombre del paquete de recursos:",
         "resPackPromptAuthor": "Ingresa el nombre del autor:",
-        "resPackExportEmpty": "¡No hay texturas personalizadas para exportar!"
+        "resPackExportEmpty": "¡No hay texturas personalizadas para exportar!",
+        "cinemaTitle": "Cine al Aire Libre",
+        "cinemaDesc": "Pantalla 3D en el juego que reproduce la lista de YouTube en la Plaza del Festival de la Zona 1",
+        "cinemaModeBtn": "🎬 Modo Cine",
+        "cinemaExitBtn": "Salir del Modo Cine (Esc)",
+        "cinemaNowPlaying": "Reproduciendo ahora",
+        "cinemaVolumeLabel": "Volumen del Cine",
+        "cinemaReloadPlaylist": "Recargar Lista",
+        "cinemaPosAdjust": "Ajustar Posición (X, Y, Z, Rot)",
+        "cinemaResetPos": "Restablecer Posición"
     }
 }

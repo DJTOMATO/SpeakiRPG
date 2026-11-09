@@ -8671,6 +8671,20 @@ document.body.appendChild(
 							toggleResourcePackModal();
 						}
 					}
+				}),
+
+				lunPanelElements.cinemaSettingsBtn = buildElement("button", {
+					id: "spkmod-settings-cinema-btn",
+					className: "spkmod-panel-btn",
+					style: "padding: 2px 6px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;",
+					innerText: "🎬 " + (t("cinemaModeBtn") || "Cinema Mode"),
+					title: t("cinemaDesc") || "Open Cinema Mode controls",
+					onclick: (e) => {
+						e.preventDefault();
+						if (typeof window.spkmodToggleCinemaMode === "function") {
+							window.spkmodToggleCinemaMode(true);
+						}
+					}
 				})
 			]),
 			buildElement("span", {
@@ -8973,6 +8987,63 @@ document.body.appendChild(
 						checked: lunMuteMinimizedEnabled,
 						title: "Automatically mute game audio when the window is minimized or hidden",
 						onchange: e => setMuteMinimized(e.target.checked)
+					})
+				]),
+
+				// Cinema / Movie Theater Controls
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.cinemaToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;",
+						innerText: "🎬 " + (t("cinemaTitle") || "Movie Theater"),
+						title: t("cinemaDesc") || "In-game 3D cinema screen playing YouTube playlist in Zone 1 Festival Plaza"
+					}),
+					lunPanelElements.cinemaToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: typeof spkmodCinemaConfig !== "undefined" ? spkmodCinemaConfig.enabled : true,
+						title: "Toggle 3D cinema screen in Zone 1 Festival Plaza",
+						onchange: e => {
+							if (typeof spkmodCinemaConfig !== "undefined") {
+								spkmodCinemaConfig.enabled = e.target.checked;
+								localStorage.setItem("spkmod-cinema-enabled", e.target.checked ? "true" : "false");
+								if (!e.target.checked && typeof spkmodSendYtCommand === "function") {
+									spkmodSendYtCommand("pauseVideo");
+								}
+							}
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat", style: "gap: 6px; align-items: center;" }, [
+					buildElement("span", {
+						style: "color: #aaa; font-size: 11px; flex: 1;",
+						innerText: "🔊 " + (t("cinemaVolumeLabel") || "Cinema Volume") + ":"
+					}),
+					buildElement("input", {
+						type: "range",
+						min: "0",
+						max: "100",
+						value: typeof spkmodCinemaConfig !== "undefined" ? spkmodCinemaConfig.volume : 80,
+						style: "width: 80px; height: 14px; cursor: pointer;",
+						oninput: e => {
+							const v = parseInt(e.target.value, 10);
+							if (typeof spkmodCinemaConfig !== "undefined") {
+								spkmodCinemaConfig.volume = v;
+								localStorage.setItem("spkmod-cinema-volume", String(v));
+							}
+						}
+					}),
+					buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 1px 6px; font-size: 10px; cursor: pointer;",
+						innerText: "🔄 " + (t("cinemaReloadPlaylist") || "Reload"),
+						title: "Reload movies.txt playlist",
+						onclick: () => {
+							if (typeof spkmodLoadMoviesPlaylist === "function") {
+								spkmodLoadMoviesPlaylist().then(() => {
+									if (typeof spkmodSyncCinemaPlayback === "function") spkmodSyncCinemaPlayback(true);
+									alert("🎬 " + (t("cinemaReloadPlaylist") || "Reload Playlist") + " OK!");
+								});
+							}
+						}
 					})
 				])
 			]),
@@ -13502,6 +13573,34 @@ document.addEventListener("contextmenu", (e) => {
     }
 }, true);
 
+// ============================================================================
+// CINEMA MODE FLOATING PILL (NEAR THEATER TRIGGER)
+// ============================================================================
+let spkmodCinemaPillEl = null;
+
+function spkmodUpdateCinemaFloatingPill(visible, dist) {
+    if (!visible) {
+        if (spkmodCinemaPillEl) spkmodCinemaPillEl.style.display = "none";
+        return;
+    }
+    if (!spkmodCinemaPillEl) {
+        spkmodCinemaPillEl = document.createElement("button");
+        spkmodCinemaPillEl.id = "spkmod-cinema-pill";
+        spkmodCinemaPillEl.className = "spkmod-floating-btn";
+        spkmodCinemaPillEl.style.cssText = "position: fixed; bottom: 84px; right: 20px; z-index: 2147483640; padding: 7px 14px; font-size: 13px; font-weight: bold; background: rgba(26, 20, 36, 0.92); color: #e8b84b; border: 1.5px solid #e8b84b; border-radius: 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.5); cursor: pointer; display: flex; align-items: center; gap: 6px; backdrop-filter: blur(6px); transition: transform 0.15s ease, background 0.15s ease;";
+        spkmodCinemaPillEl.onclick = e => {
+            e.preventDefault();
+            if (typeof window.spkmodToggleCinemaMode === "function") {
+                window.spkmodToggleCinemaMode(true);
+            }
+        };
+        document.body.appendChild(spkmodCinemaPillEl);
+    }
+    const btnText = typeof t === "function" ? t("cinemaModeBtn", "🎬 Cinema Mode") : "🎬 Cinema Mode";
+    spkmodCinemaPillEl.innerText = btnText;
+    spkmodCinemaPillEl.style.display = "flex";
+}
+
 
 const lunJumpAnimMs = 500;
 
@@ -15857,7 +15956,6 @@ window.spkmodResetAvatarColors = function() {
 	if (typeof updateLocalEditsUI === 'function') updateLocalEditsUI();
 };
 
-
 // ============================================================================
 // PUMPKIN CART TEXTURE REPLACEMENT SKINS (:SPK_88:, 1, 2, 3)
 // ============================================================================
@@ -17110,6 +17208,595 @@ window.spkmodToggleBurstSpam = function(forceState) {
 
 	if (typeof updateLocalEditsUI === 'function') updateLocalEditsUI();
 };
+
+// ============================================================================
+// IN-GAME 3D MOVIE THEATER & CINEMA PLAYER (CSS3DRENDERER + YOUTUBE)
+// ============================================================================
+
+const SPKMOD_CINEMA_DEFAULT_CONFIG = {
+	enabled: true,
+	volume: 80,
+	pos: { x: 44.0, y: 3.8, z: 62.0 },
+	rotationY: 0,
+	width: 12.8,
+	height: 7.2
+};
+
+let spkmodCinemaConfig = Object.assign({}, SPKMOD_CINEMA_DEFAULT_CONFIG);
+if (window.localStorage) {
+	try {
+		const en = localStorage.getItem("spkmod-cinema-enabled");
+		if (en !== null) spkmodCinemaConfig.enabled = en === "true";
+		const vol = localStorage.getItem("spkmod-cinema-volume");
+		if (vol !== null) spkmodCinemaConfig.volume = parseInt(vol, 10) || 80;
+		const posStr = localStorage.getItem("spkmod-cinema-pos");
+		if (posStr) {
+			const parsed = JSON.parse(posStr);
+			if (parsed && typeof parsed.x === "number") {
+				spkmodCinemaConfig.pos = { x: parsed.x, y: parsed.y ?? 3.8, z: parsed.z };
+				if (typeof parsed.rotationY === "number") spkmodCinemaConfig.rotationY = parsed.rotationY;
+			}
+		}
+	} catch (_) {}
+}
+
+let spkmodCinemaLoadedPlaylist = [];
+let spkmodCinemaCurrentVideo = null;
+let spkmodCinemaRenderer = null;
+let spkmodCinemaScene = null;
+let spkmodCinemaScreenObject = null;
+let spkmodCinemaFrameMesh = null;
+let spkmodCinemaContainer = null;
+let spkmodCinemaIframe = null;
+let spkmodCinemaRenderLoopId = null;
+let spkmodCinemaModeActive = false;
+let spkmodCinemaInZone = false;
+let spkmodCinemaLastVolume = -1;
+let spkmodCinemaLastSyncCheckMs = 0;
+
+function spkmodGetCSS3DClasses() {
+	if (window.SPKMOD_CSS3DRenderer && window.SPKMOD_CSS3DObject) {
+		return { CSS3DRenderer: window.SPKMOD_CSS3DRenderer, CSS3DObject: window.SPKMOD_CSS3DObject };
+	}
+	const THREE = window.THREE;
+	if (!THREE) return null;
+
+	class CSS3DObject extends THREE.Object3D {
+		constructor(element = document.createElement('div')) {
+			super();
+			this.isCSS3DObject = true;
+			this.element = element;
+			this.element.style.position = 'absolute';
+			this.element.style.pointerEvents = 'auto';
+			this.element.style.userSelect = 'none';
+			this.addEventListener('removed', () => {
+				this.traverse(object => {
+					if (object.element instanceof Element && object.element.parentNode !== null) {
+						object.element.parentNode.removeChild(object.element);
+					}
+				});
+			});
+		}
+		copy(source, recursive) {
+			super.copy(source, recursive);
+			this.element = source.element.cloneNode(true);
+			return this;
+		}
+	}
+
+	class CSS3DRenderer {
+		constructor(parameters = {}) {
+			const _this = this;
+			let _width, _height;
+			let _widthHalf, _heightHalf;
+
+			const domElement = parameters.element !== undefined ? parameters.element : document.createElement('div');
+			domElement.style.overflow = 'hidden';
+			this.domElement = domElement;
+
+			const cameraElement = document.createElement('div');
+			cameraElement.style.transformStyle = 'preserve-3d';
+			cameraElement.style.pointerEvents = 'none';
+			domElement.appendChild(cameraElement);
+
+			this.getSize = function () {
+				return { width: _width, height: _height };
+			};
+
+			this.render = function (scene, camera) {
+				const fov = camera.projectionMatrix.elements[5] * _heightHalf;
+
+				if (camera.parent === null) camera.updateMatrixWorld();
+
+				let cameraCSSMatrix;
+				if (camera.isOrthographicCamera) {
+					const tx = -(camera.right + camera.left) / 2;
+					const ty = (camera.top + camera.bottom) / 2;
+					cameraCSSMatrix = 'scale(' + fov + ')' + 'translate(' + epsilon(tx) + 'px,' + epsilon(ty) + 'px)' + getCameraCSSMatrix(camera.matrixWorldInverse);
+				} else {
+					cameraCSSMatrix = 'translateZ(' + epsilon(fov) + 'px)' + getCameraCSSMatrix(camera.matrixWorldInverse);
+				}
+
+				const style = cameraCSSMatrix + 'translate(' + epsilon(_widthHalf) + 'px,' + epsilon(_heightHalf) + 'px)';
+				cameraElement.style.transform = style;
+
+				renderObject(scene, scene, camera, cameraElement);
+			};
+
+			this.setSize = function (width, height) {
+				_width = width;
+				_height = height;
+				_widthHalf = _width / 2;
+				_heightHalf = _height / 2;
+				domElement.style.width = width + 'px';
+				domElement.style.height = height + 'px';
+				cameraElement.style.width = width + 'px';
+				cameraElement.style.height = height + 'px';
+			};
+
+			function epsilon(value) {
+				return Math.abs(value) < 1e-10 ? 0 : value;
+			}
+
+			function getCameraCSSMatrix(matrix) {
+				const elements = matrix.elements;
+				return 'matrix3d(' +
+					epsilon(elements[0]) + ',' +
+					epsilon(-elements[1]) + ',' +
+					epsilon(elements[2]) + ',' +
+					epsilon(elements[3]) + ',' +
+					epsilon(elements[4]) + ',' +
+					epsilon(-elements[5]) + ',' +
+					epsilon(elements[6]) + ',' +
+					epsilon(elements[7]) + ',' +
+					epsilon(elements[8]) + ',' +
+					epsilon(-elements[9]) + ',' +
+					epsilon(elements[10]) + ',' +
+					epsilon(elements[11]) + ',' +
+					epsilon(elements[12]) + ',' +
+					epsilon(-elements[13]) + ',' +
+					epsilon(elements[14]) + ',' +
+					epsilon(elements[15]) +
+				')';
+			}
+
+			function getObjectCSSMatrix(matrix) {
+				const elements = matrix.elements;
+				const matrix3d = 'matrix3d(' +
+					epsilon(elements[0]) + ',' +
+					epsilon(elements[1]) + ',' +
+					epsilon(elements[2]) + ',' +
+					epsilon(elements[3]) + ',' +
+					epsilon(-elements[4]) + ',' +
+					epsilon(-elements[5]) + ',' +
+					epsilon(-elements[6]) + ',' +
+					epsilon(-elements[7]) + ',' +
+					epsilon(elements[8]) + ',' +
+					epsilon(elements[9]) + ',' +
+					epsilon(elements[10]) + ',' +
+					epsilon(elements[11]) + ',' +
+					epsilon(elements[12]) + ',' +
+					epsilon(elements[13]) + ',' +
+					epsilon(elements[14]) + ',' +
+					epsilon(elements[15]) +
+				')';
+				return 'translate(-50%,-50%)' + matrix3d;
+			}
+
+			function renderObject(object, scene, camera, cameraElement) {
+				if (object.isCSS3DObject) {
+					const visible = (object.visible === true) && (object.layers.test(camera.layers) === true);
+					object.element.style.display = (visible === true) ? '' : 'none';
+					if (visible === true) {
+						if (typeof object.onBeforeRender === 'function') object.onBeforeRender(_this, scene, camera);
+						let matrix = object.matrixWorld;
+						if (object.parent !== scene) {
+							matrix = matrix.clone();
+						}
+						const style = getObjectCSSMatrix(matrix);
+						const element = object.element;
+						element.style.transform = style;
+						if (element.parentNode !== cameraElement) {
+							cameraElement.appendChild(element);
+						}
+						if (typeof object.onAfterRender === 'function') object.onAfterRender(_this, scene, camera);
+					}
+				}
+				for (let i = 0, l = object.children.length; i < l; i++) {
+					renderObject(object.children[i], scene, camera, cameraElement);
+				}
+			}
+		}
+	}
+
+	window.SPKMOD_CSS3DRenderer = CSS3DRenderer;
+	window.SPKMOD_CSS3DObject = CSS3DObject;
+	return { CSS3DRenderer, CSS3DObject };
+}
+
+function spkmodParseMoviesTxt(text) {
+	const lines = text.split(/\r?\n/);
+	const list = [];
+	for (const rawLine of lines) {
+		const line = rawLine.trim();
+		if (!line || line.startsWith('#')) continue;
+		const parts = line.split('|').map(s => s.trim());
+		const url = parts[0] || '';
+		const title = parts[1] || 'Movie';
+		const dur = parts[2] ? parseInt(parts[2], 10) : 0;
+
+		const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/i);
+		if (match && match[1]) {
+			list.push({
+				id: match[1],
+				title: title,
+				duration: isNaN(dur) ? 0 : dur,
+				url: url
+			});
+		}
+	}
+	return list;
+}
+
+async function spkmodLoadMoviesPlaylist() {
+	const defaultList = [
+		{ id: "dQw4w9WgXcQ", title: "Rick Astley - Never Gonna Give You Up", duration: 212 },
+		{ id: "jfKfPfyJRdk", title: "Lofi Girl - beats to relax/study to", duration: 0 },
+		{ id: "kJQP7kiw5Fk", title: "Luis Fonsi - Despacito ft. Daddy Yankee", duration: 282 },
+		{ id: "kffacxfA7G4", title: "Baby Shark Dance", duration: 136 },
+		{ id: "L_LUpnjgPso", title: "PSY - GANGNAM STYLE (강남스타일)", duration: 253 }
+	];
+
+	try {
+		const url = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/movies.txt?t=" + Date.now();
+		const res = await fetch(url, { cache: "no-store" });
+		if (res.ok) {
+			const text = await res.text();
+			const list = spkmodParseMoviesTxt(text);
+			if (list && list.length > 0) {
+				spkmodCinemaLoadedPlaylist = list;
+				return list;
+			}
+		}
+	} catch (_) {}
+
+	try {
+		const localRes = await fetch("movies.txt?t=" + Date.now());
+		if (localRes.ok) {
+			const text = await localRes.text();
+			const list = spkmodParseMoviesTxt(text);
+			if (list && list.length > 0) {
+				spkmodCinemaLoadedPlaylist = list;
+				return list;
+			}
+		}
+	} catch (_) {}
+
+	spkmodCinemaLoadedPlaylist = defaultList;
+	return defaultList;
+}
+
+function spkmodGetCinemaSyncedTrack() {
+	if (!spkmodCinemaLoadedPlaylist || spkmodCinemaLoadedPlaylist.length === 0) return null;
+
+	const validTracks = spkmodCinemaLoadedPlaylist.filter(t => t.duration > 0);
+	if (validTracks.length === 0) {
+		return { track: spkmodCinemaLoadedPlaylist[0], startSec: 0, trackIndex: 0, totalTracks: spkmodCinemaLoadedPlaylist.length };
+	}
+
+	const totalDuration = validTracks.reduce((acc, t) => acc + t.duration, 0);
+	const nowSec = Math.floor(Date.now() / 1000);
+	const cycleTime = nowSec % totalDuration;
+
+	let accum = 0;
+	for (let i = 0; i < validTracks.length; i++) {
+		const track = validTracks[i];
+		if (cycleTime >= accum && cycleTime < accum + track.duration) {
+			const startSec = Math.floor(cycleTime - accum);
+			return { track, startSec, trackIndex: i, totalTracks: validTracks.length };
+		}
+		accum += track.duration;
+	}
+	return { track: validTracks[0], startSec: 0, trackIndex: 0, totalTracks: validTracks.length };
+}
+
+function spkmodSendYtCommand(func, args = []) {
+	if (!spkmodCinemaIframe || !spkmodCinemaIframe.contentWindow) return;
+	try {
+		spkmodCinemaIframe.contentWindow.postMessage(JSON.stringify({
+			event: 'command',
+			func: func,
+			args: args
+		}), '*');
+	} catch (_) {}
+}
+
+function spkmodCreateCinemaPhysicalFrame() {
+	if (!window.THREE || typeof gameState === 'undefined' || !gameState?.scene) return;
+	const THREE = window.THREE;
+
+	if (spkmodCinemaFrameMesh) {
+		try { gameState.scene.remove(spkmodCinemaFrameMesh); } catch (_) {}
+		spkmodCinemaFrameMesh = null;
+	}
+
+	const group = new THREE.Group();
+	group.name = "spkmodCinemaPhysicalFrame";
+
+	const w = spkmodCinemaConfig.width;
+	const h = spkmodCinemaConfig.height;
+	const borderThick = 0.35;
+	const depth = 0.25;
+
+	const frameMat = new THREE.MeshStandardMaterial({
+		color: 0x18181f,
+		roughness: 0.7,
+		metalness: 0.2
+	});
+
+	const backGeo = new THREE.PlaneGeometry(w, h);
+	const backMat = new THREE.MeshBasicMaterial({ color: 0x050508, side: THREE.DoubleSide });
+	const backMesh = new THREE.Mesh(backGeo, backMat);
+	backMesh.position.z = -0.05;
+	group.add(backMesh);
+
+	const topBar = new THREE.Mesh(new THREE.BoxGeometry(w + borderThick * 2, borderThick, depth), frameMat);
+	topBar.position.set(0, h / 2 + borderThick / 2, 0);
+	group.add(topBar);
+
+	const bottomBar = new THREE.Mesh(new THREE.BoxGeometry(w + borderThick * 2, borderThick, depth), frameMat);
+	bottomBar.position.set(0, -h / 2 - borderThick / 2, 0);
+	group.add(bottomBar);
+
+	const leftBar = new THREE.Mesh(new THREE.BoxGeometry(borderThick, h, depth), frameMat);
+	leftBar.position.set(-w / 2 - borderThick / 2, 0, 0);
+	group.add(leftBar);
+
+	const rightBar = new THREE.Mesh(new THREE.BoxGeometry(borderThick, h, depth), frameMat);
+	rightBar.position.set(w / 2 + borderThick / 2, 0, 0);
+	group.add(rightBar);
+
+	const poleHeight = Math.max(1, spkmodCinemaConfig.pos.y - h / 2);
+	const poleGeo = new THREE.CylinderGeometry(0.18, 0.22, poleHeight, 16);
+	const poleMat = new THREE.MeshStandardMaterial({ color: 0x33333d, roughness: 0.5, metalness: 0.6 });
+
+	const leftPole = new THREE.Mesh(poleGeo, poleMat);
+	leftPole.position.set(-w * 0.42, -h / 2 - poleHeight / 2, 0);
+	group.add(leftPole);
+
+	const rightPole = new THREE.Mesh(poleGeo, poleMat);
+	rightPole.position.set(w * 0.42, -h / 2 - poleHeight / 2, 0);
+	group.add(rightPole);
+
+	group.position.set(spkmodCinemaConfig.pos.x, spkmodCinemaConfig.pos.y, spkmodCinemaConfig.pos.z);
+	group.rotation.y = spkmodCinemaConfig.rotationY;
+
+	gameState.scene.add(group);
+	spkmodCinemaFrameMesh = group;
+}
+
+function spkmodInitCinema() {
+	if (!spkmodCinemaConfig.enabled) return;
+	if (typeof gameState === 'undefined' || !gameState?.camera || !window.THREE) return;
+
+	const classes = spkmodGetCSS3DClasses();
+	if (!classes) return;
+
+	if (!spkmodCinemaContainer) {
+		spkmodCinemaContainer = document.createElement('div');
+		spkmodCinemaContainer.id = 'spkmod-cinema-container';
+		spkmodCinemaContainer.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 10;';
+		const canvasParent = document.querySelector('#sr-canvas-container') || document.body;
+		canvasParent.appendChild(spkmodCinemaContainer);
+	}
+
+	if (!spkmodCinemaRenderer) {
+		spkmodCinemaRenderer = new classes.CSS3DRenderer({ element: spkmodCinemaContainer });
+		spkmodCinemaRenderer.setSize(window.innerWidth, window.innerHeight);
+	}
+
+	if (!spkmodCinemaScene) {
+		spkmodCinemaScene = new window.THREE.Scene();
+	}
+
+	if (!spkmodCinemaScreenObject) {
+		const screenDiv = document.createElement('div');
+		screenDiv.id = 'spkmod-cinema-screen';
+		screenDiv.style.cssText = 'width: 1280px; height: 720px; background: #000; overflow: hidden; pointer-events: none; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.8);';
+
+		spkmodCinemaIframe = document.createElement('iframe');
+		spkmodCinemaIframe.id = 'spkmod-cinema-iframe';
+		spkmodCinemaIframe.style.cssText = 'width: 100%; height: 100%; border: none; pointer-events: auto;';
+		spkmodCinemaIframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+		screenDiv.appendChild(spkmodCinemaIframe);
+
+		spkmodCinemaScreenObject = new classes.CSS3DObject(screenDiv);
+		spkmodCinemaScreenObject.scale.set(0.01, 0.01, 0.01);
+		spkmodCinemaScene.add(spkmodCinemaScreenObject);
+	}
+
+	spkmodCinemaScreenObject.position.set(spkmodCinemaConfig.pos.x, spkmodCinemaConfig.pos.y, spkmodCinemaConfig.pos.z);
+	spkmodCinemaScreenObject.rotation.y = spkmodCinemaConfig.rotationY;
+
+	spkmodCreateCinemaPhysicalFrame();
+	spkmodStartCinemaLoop();
+}
+
+function spkmodSyncCinemaPlayback(force = false) {
+	const syncData = spkmodGetCinemaSyncedTrack();
+	if (!syncData) return;
+	const { track, startSec } = syncData;
+
+	const videoId = track.id;
+	if (force || spkmodCinemaCurrentVideo !== videoId) {
+		spkmodCinemaCurrentVideo = videoId;
+		if (spkmodCinemaIframe) {
+			const ytUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&start=${startSec}&origin=${encodeURIComponent(location.origin)}`;
+			spkmodCinemaIframe.src = ytUrl;
+		}
+	} else {
+		spkmodSendYtCommand('playVideo');
+	}
+
+	window.spkmodCurrentCinemaTitle = track.title || "Movie Theater";
+}
+
+function spkmodUpdateCinemaSpatialAudio() {
+	if (!spkmodCinemaConfig.enabled || !spkmodCinemaIframe) return;
+
+	const playerPos = (typeof gameState !== 'undefined' && gameState?.playerContainer?.position)
+		? gameState.playerContainer.position
+		: null;
+
+	if (!playerPos) return;
+
+	const dx = playerPos.x - spkmodCinemaConfig.pos.x;
+	const dz = playerPos.z - spkmodCinemaConfig.pos.z;
+	const dist = Math.hypot(dx, dz);
+
+	let targetVol = 0;
+	if (dist <= 15) {
+		targetVol = spkmodCinemaConfig.volume;
+	} else if (dist < 48) {
+		const factor = 1 - (dist - 15) / 33;
+		targetVol = Math.round(spkmodCinemaConfig.volume * Math.max(0, factor));
+	} else {
+		targetVol = 0;
+	}
+
+	if (targetVol !== spkmodCinemaLastVolume) {
+		spkmodCinemaLastVolume = targetVol;
+		if (targetVol > 0) {
+			spkmodSendYtCommand('unMute');
+			spkmodSendYtCommand('setVolume', [targetVol]);
+		} else {
+			spkmodSendYtCommand('setVolume', [0]);
+		}
+	}
+
+	if (typeof spkmodUpdateCinemaFloatingPill === 'function') {
+		spkmodUpdateCinemaFloatingPill(dist <= 48, dist);
+	}
+}
+
+function spkmodCinemaTick() {
+	if (!spkmodCinemaConfig.enabled) {
+		if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = 'none';
+		if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = false;
+		return;
+	}
+
+	if (!spkmodCinemaScreenObject && window.THREE && typeof gameState !== 'undefined' && gameState?.camera) {
+		spkmodInitCinema();
+	}
+
+	const playerPos = (typeof gameState !== 'undefined' && gameState?.playerContainer?.position)
+		? gameState.playerContainer.position
+		: null;
+
+	const curZone = (typeof gameState !== 'undefined' && gameState?.zoneId !== undefined) ? gameState.zoneId : 1;
+	const inZone = curZone === 1;
+	const dist = playerPos ? Math.hypot(playerPos.x - spkmodCinemaConfig.pos.x, playerPos.z - spkmodCinemaConfig.pos.z) : 999;
+	const inRange = inZone && dist < 85;
+
+	if (!inRange) {
+		if (spkmodCinemaInZone) {
+			spkmodCinemaInZone = false;
+			if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = 'none';
+			if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = false;
+			spkmodSendYtCommand('pauseVideo');
+			if (typeof spkmodUpdateCinemaFloatingPill === 'function') {
+				spkmodUpdateCinemaFloatingPill(false);
+			}
+		}
+		return;
+	}
+
+	if (!spkmodCinemaInZone) {
+		spkmodCinemaInZone = true;
+		if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = '';
+		if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = true;
+		spkmodSyncCinemaPlayback();
+	}
+
+	const now = Date.now();
+	if (now - spkmodCinemaLastSyncCheckMs > 3000) {
+		spkmodCinemaLastSyncCheckMs = now;
+		const syncData = spkmodGetCinemaSyncedTrack();
+		if (syncData && syncData.track && syncData.track.id !== spkmodCinemaCurrentVideo) {
+			spkmodSyncCinemaPlayback();
+		}
+	}
+
+	spkmodUpdateCinemaSpatialAudio();
+
+	if (spkmodCinemaRenderer && spkmodCinemaScene && gameState?.camera) {
+		spkmodCinemaRenderer.render(spkmodCinemaScene, gameState.camera);
+	}
+}
+
+function spkmodStartCinemaLoop() {
+	if (spkmodCinemaRenderLoopId) return;
+	function loop() {
+		spkmodCinemaTick();
+		spkmodCinemaRenderLoopId = requestAnimationFrame(loop);
+	}
+	spkmodCinemaRenderLoopId = requestAnimationFrame(loop);
+}
+
+window.spkmodToggleCinemaMode = function(explicit) {
+	spkmodCinemaModeActive = explicit !== undefined ? explicit : !spkmodCinemaModeActive;
+
+	if (spkmodCinemaContainer) {
+		spkmodCinemaContainer.style.pointerEvents = spkmodCinemaModeActive ? 'auto' : 'none';
+	}
+	const screenEl = document.getElementById('spkmod-cinema-screen');
+	if (screenEl) {
+		screenEl.style.pointerEvents = spkmodCinemaModeActive ? 'auto' : 'none';
+	}
+
+	let hudBar = document.getElementById('spkmod-cinema-hud-bar');
+	if (spkmodCinemaModeActive) {
+		if (document.pointerLockElement) {
+			try { document.exitPointerLock(); } catch (_) {}
+		}
+		if (!hudBar) {
+			hudBar = document.createElement('div');
+			hudBar.id = 'spkmod-cinema-hud-bar';
+			hudBar.style.cssText = 'position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 2147483640; background: rgba(18, 14, 26, 0.94); backdrop-filter: blur(8px); border: 1px solid rgba(232, 184, 75, 0.6); border-radius: 8px; padding: 6px 14px; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 18px rgba(0,0,0,0.6); color: #fff; font-size: 13px; font-weight: bold; pointer-events: auto;';
+			document.body.appendChild(hudBar);
+		}
+		const title = window.spkmodCurrentCinemaTitle || "Movie Theater";
+		hudBar.innerHTML = `
+			<span>🎬 <strong>${typeof t === "function" ? t("cinemaNowPlaying", "Now Playing") : "Now Playing"}:</strong> ${title}</span>
+			<button id="spkmod-cinema-exit-btn" class="spkmod-panel-btn" style="padding: 3px 10px; font-size: 12px; cursor: pointer; background: #e8b84b; color: #120e1a; font-weight: bold; border-radius: 4px; border: none;">${typeof t === "function" ? t("cinemaExitBtn", "Exit Cinema Mode (Esc)") : "Exit Cinema Mode (Esc)"}</button>
+		`;
+		hudBar.style.display = 'flex';
+		const exitBtn = document.getElementById('spkmod-cinema-exit-btn');
+		if (exitBtn) exitBtn.onclick = () => window.spkmodToggleCinemaMode(false);
+	} else {
+		if (hudBar) hudBar.style.display = 'none';
+	}
+};
+
+window.addEventListener('keydown', e => {
+	if (e.key === 'Escape' && spkmodCinemaModeActive) {
+		window.spkmodToggleCinemaMode(false);
+	}
+});
+
+window.addEventListener('resize', () => {
+	if (spkmodCinemaRenderer) {
+		spkmodCinemaRenderer.setSize(window.innerWidth, window.innerHeight);
+	}
+});
+
+// Load playlist and initialize
+setTimeout(() => {
+	spkmodLoadMoviesPlaylist().then(() => {
+		spkmodInitCinema();
+	}).catch(() => {});
+}, 1500);
 
 
 const mapModalElements = {};

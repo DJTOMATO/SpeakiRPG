@@ -1,0 +1,11 @@
+# ==============================================================================
+# SpeakiRPG Movie Theater Playlist
+# Format: YouTube_URL | Title | Duration_in_Seconds
+# If duration is 0, the video is treated as an endless livestream.
+# Lines starting with # are comments.
+# ==============================================================================
+https://www.youtube.com/watch?v=dQw4w9WgXcQ | Rick Astley - Never Gonna Give You Up | 212
+https://www.youtube.com/watch?v=jfKfPfyJRdk | Lofi Girl - beats to relax/study to | 0
+https://www.youtube.com/watch?v=kJQP7kiw5Fk | Luis Fonsi - Despacito ft. Daddy Yankee | 282
+https://www.youtube.com/watch?v=kffacxfA7G4 | Baby Shark Dance | 136
+https://www.youtube.com/watch?v=L_LUpnjgPso | PSY - GANGNAM STYLE (강남스타일) | 253
