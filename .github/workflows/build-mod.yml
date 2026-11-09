@@ -1,9 +1,6 @@
 name: Build SpeakiMod.js and distribute
 
 on:
-  push:
-    branches:
-      - develop
   workflow_dispatch:
 
 permissions:
