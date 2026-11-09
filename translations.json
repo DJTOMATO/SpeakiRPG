@@ -1794,7 +1794,18 @@
         "cinemaPrev": "前へ",
         "cinemaNext": "次へ",
         "cinemaRepeat": "リピート",
-        "cinemaSyncSchedule": "ライブ同期"
+        "cinemaSyncSchedule": "ライブ同期",
+        "cinemaTabMovies": "movies.txt",
+        "cinemaTabSongs": "Bolpop",
+        "cinemaClickToPlay": "クリックして動画を再生",
+        "cinemaPlayingBadge": "上映中",
+        "cinemaTrackSub": "トラック #{0} / {1} • {2} ({3})",
+        "cinemaModeSynced": "同期中",
+        "cinemaModeManual": "手動",
+        "cinemaRepeatAll": "リピート: すべて",
+        "cinemaRepeatOne": "リピート: 1曲",
+        "cinemaRepeatOff": "リピート: オフ",
+        "cinemaNoEntries": "{0} に動画が見つかりません"
     },
     "ko": {
         "langName": "한국어",
@@ -2672,7 +2683,18 @@
         "cinemaPrev": "이전",
         "cinemaNext": "다음",
         "cinemaRepeat": "반복",
-        "cinemaSyncSchedule": "라이브 동기화"
+        "cinemaSyncSchedule": "라이브 동기화",
+        "cinemaTabMovies": "movies.txt",
+        "cinemaTabSongs": "볼팝",
+        "cinemaClickToPlay": "클릭하여 영상 재생",
+        "cinemaPlayingBadge": "상영 중",
+        "cinemaTrackSub": "트랙 #{0} / {1} • {2} ({3})",
+        "cinemaModeSynced": "동기화됨",
+        "cinemaModeManual": "수동",
+        "cinemaRepeatAll": "반복: 전체",
+        "cinemaRepeatOne": "반복: 한 곡",
+        "cinemaRepeatOff": "반복: 끄기",
+        "cinemaNoEntries": "{0}에서 영상을 찾을 수 없습니다"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -3550,7 +3572,18 @@
         "cinemaPrev": "上一首",
         "cinemaNext": "下一首",
         "cinemaRepeat": "循環播放",
-        "cinemaSyncSchedule": "同步播放"
+        "cinemaSyncSchedule": "同步播放",
+        "cinemaTabMovies": "movies.txt",
+        "cinemaTabSongs": "Bolpop",
+        "cinemaClickToPlay": "點擊播放影片",
+        "cinemaPlayingBadge": "放映中",
+        "cinemaTrackSub": "曲目 #{0} / {1} • {2} ({3})",
+        "cinemaModeSynced": "已同步",
+        "cinemaModeManual": "手動",
+        "cinemaRepeatAll": "循環播放: 全部",
+        "cinemaRepeatOne": "循環播放: 單曲",
+        "cinemaRepeatOff": "循環播放: 關閉",
+        "cinemaNoEntries": "{0} 中找不到影片"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -4428,7 +4461,18 @@
         "cinemaPrev": "上一首",
         "cinemaNext": "下一首",
         "cinemaRepeat": "循环播放",
-        "cinemaSyncSchedule": "同步播放"
+        "cinemaSyncSchedule": "同步播放",
+        "cinemaTabMovies": "movies.txt",
+        "cinemaTabSongs": "Bolpop",
+        "cinemaClickToPlay": "点击播放视频",
+        "cinemaPlayingBadge": "放映中",
+        "cinemaTrackSub": "曲目 #{0} / {1} • {2} ({3})",
+        "cinemaModeSynced": "已同步",
+        "cinemaModeManual": "手动",
+        "cinemaRepeatAll": "循环播放: 全部",
+        "cinemaRepeatOne": "循环播放: 单曲",
+        "cinemaRepeatOff": "循环播放: 关闭",
+        "cinemaNoEntries": "{0} 中未找到视频"
     },
     "es-419": {
         "langName": "Español",
@@ -5306,6 +5350,17 @@
         "cinemaPrev": "Anterior",
         "cinemaNext": "Siguiente",
         "cinemaRepeat": "Repetir",
-        "cinemaSyncSchedule": "Sincronizar"
+        "cinemaSyncSchedule": "Sincronizar",
+        "cinemaTabMovies": "movies.txt",
+        "cinemaTabSongs": "Bolpop",
+        "cinemaClickToPlay": "Haz clic para reproducir",
+        "cinemaPlayingBadge": "REPRODUCIENDO",
+        "cinemaTrackSub": "Pista #{0} de {1} • {2} ({3})",
+        "cinemaModeSynced": "Sincronizado",
+        "cinemaModeManual": "Manual",
+        "cinemaRepeatAll": "Repetir: Todo",
+        "cinemaRepeatOne": "Repetir: Una",
+        "cinemaRepeatOff": "Repetir: Desactivado",
+        "cinemaNoEntries": "No se encontraron videos en {0}"
     }
 }

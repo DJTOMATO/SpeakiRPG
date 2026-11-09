@@ -13696,6 +13696,8 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         // Prevent native HTML5 text selection & drag-and-drop ghosting
         dock.ondragstart = (e) => { e.preventDefault(); return false; };
         dock.addEventListener("dragstart", (e) => e.preventDefault());
+        dock.addEventListener("wheel", (e) => e.stopPropagation(), { passive: true });
+        dock.addEventListener("touchmove", (e) => e.stopPropagation(), { passive: true });
 
         // 0. Dedicated Drag Anchor Handle
         const anchorBtn = document.createElement("span");
@@ -17903,207 +17905,11 @@ function spkmodParseMoviesTxt(text) {
 	return list;
 }
 
-const SPKMOD_CINEMA_I18N = {
-	en: {
-		cinemaTitle: "Monatium Cinema",
-		cinemaDesc: "In-game 3D screen playing YouTube playlist in Zone 1 Festival Plaza",
-		cinemaModeBtn: "🎬 Monatium Cinema",
-		cinemaExitBtn: "Exit Monatium Cinema (Esc)",
-		cinemaNowPlaying: "Now Playing",
-		cinemaVolumeLabel: "Monatium Cinema Volume",
-		cinemaMute: "Mute",
-		cinemaUnmute: "Unmute",
-		cinemaReloadPlaylist: "Reload Playlist",
-		cinemaPosAdjust: "Screen Position (X, Y, Z, Rot)",
-		cinemaResetPos: "Reset Position",
-		cinemaPlaylistBtn: "Playlist",
-		cinemaPlaylistTitle: "Monatium Cinema Playlist",
-		cinemaPlay: "Play",
-		cinemaPause: "Pause",
-		cinemaPrev: "Back",
-		cinemaNext: "Next",
-		cinemaRepeat: "Repeat",
-		cinemaSyncSchedule: "Live / Sync",
-		cinemaTabMovies: "movies.txt",
-		cinemaTabSongs: "Bolpop",
-		cinemaClickToPlay: "Click to play video",
-		cinemaPlayingBadge: "PLAYING",
-		cinemaTrackSub: "Track #{0} of {1} • {2} ({3})",
-		cinemaModeSynced: "Synced",
-		cinemaModeManual: "Manual",
-		cinemaRepeatAll: "Repeat: All",
-		cinemaRepeatOne: "Repeat: One",
-		cinemaRepeatOff: "Repeat: Off",
-		cinemaNoEntries: "No entries found in {0}"
-	},
-	ja: {
-		cinemaTitle: "モナティウム シネマ",
-		cinemaDesc: "ゾーン1のお祭り広場でYouTubeプレイリストを上映するゲーム内3Dスクリーン",
-		cinemaModeBtn: "🎬 モナティウム シネマ",
-		cinemaExitBtn: "モナティウム シネマ終了 (Esc)",
-		cinemaNowPlaying: "現在上映中",
-		cinemaVolumeLabel: "モナティウム シネマ音量",
-		cinemaMute: "ミュート",
-		cinemaUnmute: "ミュート解除",
-		cinemaReloadPlaylist: "プレイリスト再読込",
-		cinemaPosAdjust: "画面位置調整 (X, Y, Z, 回転)",
-		cinemaResetPos: "位置をリセット",
-		cinemaPlaylistBtn: "プレイリスト",
-		cinemaPlaylistTitle: "モナティウム シネマ プレイリスト",
-		cinemaPlay: "再生",
-		cinemaPause: "一時停止",
-		cinemaPrev: "前へ",
-		cinemaNext: "次へ",
-		cinemaRepeat: "リピート",
-		cinemaSyncSchedule: "ライブ同期",
-		cinemaTabMovies: "movies.txt",
-		cinemaTabSongs: "ボルポップ",
-		cinemaClickToPlay: "クリックして動画を再生",
-		cinemaPlayingBadge: "上映中",
-		cinemaTrackSub: "トラック #{0} / {1} • {2} ({3})",
-		cinemaModeSynced: "同期中",
-		cinemaModeManual: "手動",
-		cinemaRepeatAll: "リピート: 全曲",
-		cinemaRepeatOne: "リピート: 1曲",
-		cinemaRepeatOff: "リピート: オフ",
-		cinemaNoEntries: "{0} に動画が見つかりません"
-	},
-	ko: {
-		cinemaTitle: "모나티엄 영화관",
-		cinemaDesc: "1구역 축제 광장에서 유튜브 재생목록을 상영하는 인게임 3D 스크린",
-		cinemaModeBtn: "🎬 모나티엄 영화관",
-		cinemaExitBtn: "모나티엄 영화관 종료 (Esc)",
-		cinemaNowPlaying: "현재 상영 중",
-		cinemaVolumeLabel: "모나티엄 영화관 볼륨",
-		cinemaMute: "음소거",
-		cinemaUnmute: "음소거 해제",
-		cinemaReloadPlaylist: "재생목록 새로고침",
-		cinemaPosAdjust: "스크린 위치 조정 (X, Y, Z, 회전)",
-		cinemaResetPos: "위치 초기화",
-		cinemaPlaylistBtn: "재생목록",
-		cinemaPlaylistTitle: "모나티엄 영화관 재생목록",
-		cinemaPlay: "재생",
-		cinemaPause: "일시정지",
-		cinemaPrev: "이전",
-		cinemaNext: "다음",
-		cinemaRepeat: "반복",
-		cinemaSyncSchedule: "라이브 동기화",
-		cinemaTabMovies: "movies.txt",
-		cinemaTabSongs: "볼팝",
-		cinemaClickToPlay: "클릭하여 영상 재생",
-		cinemaPlayingBadge: "상영 중",
-		cinemaTrackSub: "트랙 #{0} / {1} • {2} ({3})",
-		cinemaModeSynced: "동기화됨",
-		cinemaModeManual: "수동",
-		cinemaRepeatAll: "반복: 전체",
-		cinemaRepeatOne: "반복: 한 곡",
-		cinemaRepeatOff: "반복: 끄기",
-		cinemaNoEntries: "{0}에서 영상을 찾을 수 없습니다"
-	},
-	"zh-TW": {
-		cinemaTitle: "莫納提姆影院",
-		cinemaDesc: "在1區節日廣場播放YouTube播放列表的遊戲內3D螢幕",
-		cinemaModeBtn: "🎬 莫納提姆影院",
-		cinemaExitBtn: "退出莫納提姆影院 (Esc)",
-		cinemaNowPlaying: "正在放映",
-		cinemaVolumeLabel: "莫納提姆影院音量",
-		cinemaMute: "靜音",
-		cinemaUnmute: "取消靜音",
-		cinemaReloadPlaylist: "重新載入播放列表",
-		cinemaPosAdjust: "調整螢幕位置 (X, Y, Z, 旋轉)",
-		cinemaResetPos: "重設位置",
-		cinemaPlaylistBtn: "播放列表",
-		cinemaPlaylistTitle: "莫納提姆影院播放列表",
-		cinemaPlay: "播放",
-		cinemaPause: "暫停",
-		cinemaPrev: "上一首",
-		cinemaNext: "下一首",
-		cinemaRepeat: "循環播放",
-		cinemaSyncSchedule: "同步播放",
-		cinemaTabMovies: "movies.txt",
-		cinemaTabSongs: "Bolpop",
-		cinemaClickToPlay: "點擊播放影片",
-		cinemaPlayingBadge: "放映中",
-		cinemaTrackSub: "曲目 #{0} / {1} • {2} ({3})",
-		cinemaModeSynced: "已同步",
-		cinemaModeManual: "手動",
-		cinemaRepeatAll: "循環播放: 全部",
-		cinemaRepeatOne: "循環播放: 單曲",
-		cinemaRepeatOff: "循環播放: 關閉",
-		cinemaNoEntries: "{0} 中找不到影片"
-	},
-	"zh-CN": {
-		cinemaTitle: "莫纳提姆影院",
-		cinemaDesc: "在1区节日广场播放YouTube播放列表的游戏内3D屏幕",
-		cinemaModeBtn: "🎬 莫纳提姆影院",
-		cinemaExitBtn: "退出莫纳提姆影院 (Esc)",
-		cinemaNowPlaying: "正在放映",
-		cinemaVolumeLabel: "莫纳提姆影院音量",
-		cinemaMute: "静音",
-		cinemaUnmute: "取消静音",
-		cinemaReloadPlaylist: "重新加载播放列表",
-		cinemaPosAdjust: "调整屏幕位置 (X, Y, Z, 旋转)",
-		cinemaResetPos: "重置位置",
-		cinemaPlaylistBtn: "播放列表",
-		cinemaPlaylistTitle: "莫纳提姆影院播放列表",
-		cinemaPlay: "播放",
-		cinemaPause: "暂停",
-		cinemaPrev: "上一首",
-		cinemaNext: "下一首",
-		cinemaRepeat: "循环播放",
-		cinemaSyncSchedule: "同步播放",
-		cinemaTabMovies: "movies.txt",
-		cinemaTabSongs: "Bolpop",
-		cinemaClickToPlay: "点击播放视频",
-		cinemaPlayingBadge: "放映中",
-		cinemaTrackSub: "曲目 #{0} / {1} • {2} ({3})",
-		cinemaModeSynced: "已同步",
-		cinemaModeManual: "手动",
-		cinemaRepeatAll: "循环播放: 全部",
-		cinemaRepeatOne: "循环播放: 单曲",
-		cinemaRepeatOff: "循环播放: 关闭",
-		cinemaNoEntries: "{0} 中未找到视频"
-	},
-	"es-419": {
-		cinemaTitle: "Cine Monatium",
-		cinemaDesc: "Pantalla 3D en el juego que reproduce la lista de YouTube en la Plaza del Festival de la Zona 1",
-		cinemaModeBtn: "🎬 Cine Monatium",
-		cinemaExitBtn: "Salir de Cine Monatium (Esc)",
-		cinemaNowPlaying: "Reproduciendo ahora",
-		cinemaVolumeLabel: "Volumen de Cine Monatium",
-		cinemaMute: "Silenciar",
-		cinemaUnmute: "Reactivar sonido",
-		cinemaReloadPlaylist: "Recargar Lista",
-		cinemaPosAdjust: "Ajustar Posición (X, Y, Z, Rot)",
-		cinemaResetPos: "Restablecer Posición",
-		cinemaPlaylistBtn: "Lista",
-		cinemaPlaylistTitle: "Lista de Cine Monatium",
-		cinemaPlay: "Reproducir",
-		cinemaPause: "Pausar",
-		cinemaPrev: "Anterior",
-		cinemaNext: "Siguiente",
-		cinemaRepeat: "Repetir",
-		cinemaSyncSchedule: "Sincronizar",
-		cinemaTabMovies: "movies.txt",
-		cinemaTabSongs: "Bolpop",
-		cinemaClickToPlay: "Haz clic para reproducir",
-		cinemaPlayingBadge: "REPRODUCIENDO",
-		cinemaTrackSub: "Pista #{0} de {1} • {2} ({3})",
-		cinemaModeSynced: "Sincronizado",
-		cinemaModeManual: "Manual",
-		cinemaRepeatAll: "Repetir: Todo",
-		cinemaRepeatOne: "Repetir: Una",
-		cinemaRepeatOff: "Repetir: Desactivado",
-		cinemaNoEntries: "No se encontraron videos en {0}"
-	}
-};
-
 function getCinemaText(key, ...args) {
+	if (typeof t === "function") return t(key, ...args);
 	const lang = (typeof spkmodLang !== "undefined" && spkmodLang) || "en";
 	let str = (typeof spkmodTranslations !== "undefined" && spkmodTranslations[lang] && spkmodTranslations[lang][key])
-		|| (typeof SPKMOD_CINEMA_I18N !== "undefined" && SPKMOD_CINEMA_I18N[lang] && SPKMOD_CINEMA_I18N[lang][key])
 		|| (typeof spkmodTranslations !== "undefined" && spkmodTranslations.en && spkmodTranslations.en[key])
-		|| (typeof SPKMOD_CINEMA_I18N !== "undefined" && SPKMOD_CINEMA_I18N.en && SPKMOD_CINEMA_I18N.en[key])
 		|| key;
 	args.forEach((a, i) => { str = str.split(`{${i}}`).join(a); });
 	return str;
@@ -18429,7 +18235,9 @@ function spkmodSyncCinemaPlayback(force = false) {
 	if (force || spkmodCinemaCurrentVideo !== videoId) {
 		spkmodCinemaCurrentVideo = videoId;
 		if (spkmodCinemaIframe) {
-			const ytUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&start=${startSec}&origin=${encodeURIComponent(location.origin)}`;
+			const isMuted = !!window.spkmodCinemaConfig?.muted;
+			const loopParam = (spkmodCinemaRepeatMode === 'one') ? `&loop=1&playlist=${videoId}` : '';
+			const ytUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&start=${startSec}&origin=${encodeURIComponent(location.origin)}${loopParam}`;
 			spkmodCinemaIframe.src = ytUrl;
 		}
 	} else {
@@ -18584,30 +18392,34 @@ function spkmodGetCinemaCurrentTrackIndex() {
 window.spkmodGetCinemaCurrentTrackIndex = spkmodGetCinemaCurrentTrackIndex;
 
 function spkmodPlayCinemaTrackIndex(index, startSec = 0) {
-	const currentList = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
-		? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
-		: (spkmodCinemaLoadedPlaylist || []);
-	if (!currentList || currentList.length === 0) return;
-	const count = currentList.length;
-	index = ((index % count) + count) % count;
+	try {
+		const currentList = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
+			? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
+			: (spkmodCinemaLoadedPlaylist || []);
+		if (!currentList || currentList.length === 0) return;
+		const count = currentList.length;
+		index = ((index % count) + count) % count;
 
-	spkmodCinemaLoadedPlaylist = currentList;
-	spkmodCinemaManualTrackIndex = index;
-	spkmodCinemaIsPaused = false;
-	const track = currentList[index];
-	if (!track) return;
+		spkmodCinemaLoadedPlaylist = currentList;
+		spkmodCinemaManualTrackIndex = index;
+		spkmodCinemaIsPaused = false;
+		const track = currentList[index];
+		if (!track) return;
 
-	spkmodCinemaCurrentVideo = track.id;
-	window.spkmodCurrentCinemaTitle = track.title || "Monatium Cinema";
+		spkmodCinemaCurrentVideo = track.id;
+		window.spkmodCurrentCinemaTitle = track.title || "Monatium Cinema";
 
-	if (spkmodCinemaIframe) {
-		const loopParam = (spkmodCinemaRepeatMode === 'one') ? `&loop=1&playlist=${track.id}` : '';
-		const ytUrl = `https://www.youtube.com/embed/${track.id}?enablejsapi=1&autoplay=1&mute=${window.spkmodCinemaConfig?.muted ? 1 : 0}&controls=1&modestbranding=1&rel=0&start=${startSec}&origin=${encodeURIComponent(location.origin)}${loopParam}`;
-		spkmodCinemaIframe.src = ytUrl;
+		if (spkmodCinemaIframe) {
+			const loopParam = (spkmodCinemaRepeatMode === 'one') ? `&loop=1&playlist=${track.id}` : '';
+			const ytUrl = `https://www.youtube.com/embed/${track.id}?enablejsapi=1&autoplay=1&mute=${window.spkmodCinemaConfig?.muted ? 1 : 0}&controls=1&modestbranding=1&rel=0&start=${startSec}&origin=${encodeURIComponent(location.origin)}${loopParam}`;
+			spkmodCinemaIframe.src = ytUrl;
+		}
+
+		spkmodUpdateCinemaSpatialAudio();
+		spkmodUpdateCinemaPlaybackUI();
+	} catch (err) {
+		console.error("[SpeakiMod+] Error playing cinema track at index:", index, err);
 	}
-
-	spkmodUpdateCinemaSpatialAudio();
-	spkmodUpdateCinemaPlaybackUI();
 }
 window.spkmodPlayCinemaTrackIndex = spkmodPlayCinemaTrackIndex;
 
@@ -18682,45 +18494,83 @@ function spkmodRenderCinemaModalList() {
 	if (countEl) countEl.innerText = `${tabLabel} (${playlist.length})`;
 
 	const curIdx = spkmodCinemaCurrentVideo ? playlist.findIndex(t => t.id === spkmodCinemaCurrentVideo) : -1;
-	listEl.innerHTML = "";
 
 	if (playlist.length === 0) {
 		listEl.innerHTML = `<div style="text-align:center;padding:20px;color:#888;font-size:12px;">${getCinemaText("cinemaNoEntries", tabLabel)}</div>`;
+		listEl.dataset.renderedKey = "";
 		return;
 	}
+
+	const renderedKey = `${spkmodCinemaActiveTab}_${playlist.length}`;
+
+	// If list items already exist and match current playlist, update highlight IN-PLACE without destroying elements
+	if (listEl.dataset.renderedKey === renderedKey && listEl.children.length === playlist.length) {
+		for (let i = 0; i < listEl.children.length; i++) {
+			const item = listEl.children[i];
+			const isActive = (i === curIdx);
+			item.style.background = isActive ? 'rgba(232, 184, 75, 0.18)' : 'rgba(255, 255, 255, 0.04)';
+			item.style.borderColor = isActive ? '#e8b84b' : 'rgba(255, 255, 255, 0.08)';
+			item.dataset.active = isActive ? 'true' : 'false';
+
+			const numSpan = item.querySelector(".spkmod-cinema-num");
+			if (numSpan) numSpan.style.color = isActive ? '#e8b84b' : '#888';
+
+			const titleSpan = item.querySelector(".spkmod-cinema-title");
+			if (titleSpan) {
+				titleSpan.style.fontWeight = isActive ? '700' : '600';
+				titleSpan.style.color = isActive ? '#ffc94a' : '#fff';
+			}
+
+			const durRow = item.querySelector(".spkmod-cinema-dur-row");
+			if (durRow) durRow.style.color = isActive ? '#e8b84b' : '#7c6894';
+
+			const badge = item.querySelector(".spkmod-cinema-badge");
+			if (badge) badge.style.display = isActive ? 'inline-block' : 'none';
+		}
+		return;
+	}
+
+	// Full re-render when tab or playlist length changes
+	listEl.dataset.renderedKey = renderedKey;
+	listEl.innerHTML = "";
 
 	playlist.forEach((track, i) => {
 		const isActive = (i === curIdx);
 		const item = document.createElement("div");
 		item.className = "spkmod-cinema-list-item";
-		item.style.cssText = `display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:8px;cursor:pointer;transition:background 0.12s, border-color 0.12s;background:${isActive ? 'rgba(232, 184, 75, 0.18)' : 'rgba(255, 255, 255, 0.04)'};border:1.5px solid ${isActive ? '#e8b84b' : 'rgba(255, 255, 255, 0.08)'};`;
+		item.setAttribute("data-no-drag", "true");
+		item.dataset.active = isActive ? 'true' : 'false';
+		item.style.cssText = `display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:8px;cursor:pointer;user-select:none;-webkit-user-select:none;transition:background 0.12s, border-color 0.12s;background:${isActive ? 'rgba(232, 184, 75, 0.18)' : 'rgba(255, 255, 255, 0.04)'};border:1.5px solid ${isActive ? '#e8b84b' : 'rgba(255, 255, 255, 0.08)'};pointer-events:auto;`;
 
 		item.onmouseenter = () => {
-			if (!isActive) item.style.background = "rgba(232, 184, 75, 0.1)";
+			if (item.dataset.active !== 'true') item.style.background = "rgba(232, 184, 75, 0.1)";
 		};
 		item.onmouseleave = () => {
-			if (!isActive) item.style.background = "rgba(255, 255, 255, 0.04)";
+			if (item.dataset.active !== 'true') item.style.background = "rgba(255, 255, 255, 0.04)";
 		};
 
+		item.onpointerdown = e => e.stopPropagation();
+		item.onmousedown = e => e.stopPropagation();
 		item.onclick = e => {
 			e.preventDefault();
+			e.stopPropagation();
 			spkmodPlayCinemaTrackIndex(i);
 		};
 
 		const dur = spkmodFormatDuration(track.duration, spkmodCinemaActiveTab === 'songs');
 		item.innerHTML = `
-			<span style="font-size:11px;font-weight:700;color:${isActive ? '#e8b84b' : '#888'};min-width:18px;">#${i + 1}</span>
-			<img src="https://i.ytimg.com/vi/${track.id}/mqdefault.jpg" style="width:44px;height:30px;border-radius:4px;object-fit:cover;border:1px solid rgba(232,184,75,0.3);flex-shrink:0;background:#0d0a14;">
-			<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+			<span class="spkmod-cinema-num" style="font-size:11px;font-weight:700;color:${isActive ? '#e8b84b' : '#888'};min-width:18px;pointer-events:none;">#${i + 1}</span>
+			<img src="https://i.ytimg.com/vi/${track.id}/mqdefault.jpg" style="width:44px;height:30px;border-radius:4px;object-fit:cover;border:1px solid rgba(232,184,75,0.3);flex-shrink:0;background:#0d0a14;pointer-events:none;">
+			<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;pointer-events:none;">
 				<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-					<span style="font-size:12px;font-weight:${isActive ? '700' : '600'};color:${isActive ? '#ffc94a' : '#fff'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">
+					<span class="spkmod-cinema-title" style="font-size:12px;font-weight:${isActive ? '700' : '600'};color:${isActive ? '#ffc94a' : '#fff'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">
 						${track.title || "Untitled Video"}
 					</span>
 					${track.author ? `<span style="font-size:10px;color:#baa7d1;opacity:0.9;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">${track.author}</span>` : ''}
 				</div>
-				<div style="font-size:10px;color:${isActive ? '#e8b84b' : '#7c6894'};display:flex;align-items:center;gap:6px;">
+				<div class="spkmod-cinema-dur-row" style="font-size:10px;color:${isActive ? '#e8b84b' : '#7c6894'};display:flex;align-items:center;gap:6px;">
 					<span>${dur}</span>
-					${isActive ? `<span style="background:#e8b84b;color:#120e1a;font-size:9px;font-weight:800;padding:1px 4px;border-radius:3px;">▶ ${getCinemaText("cinemaPlayingBadge")}</span>` : ''}
+					<span class="spkmod-cinema-badge" style="display:${isActive ? 'inline-block' : 'none'};background:#e8b84b;color:#120e1a;font-size:9px;font-weight:800;padding:1px 4px;border-radius:3px;">▶ ${getCinemaText("cinemaPlayingBadge")}</span>
 				</div>
 			</div>
 		`;
@@ -18911,6 +18761,40 @@ function spkmodBuildCinemaModal() {
 
 	const header = modal.querySelector("#spkmod-cinema-modal-header");
 	const nowCard = modal.querySelector("#spkmod-cinema-modal-now-card");
+	const listEl = modal.querySelector("#spkmod-cinema-modal-list");
+	if (listEl) {
+		listEl.setAttribute("data-no-drag", "true");
+		listEl.onpointerdown = e => e.stopPropagation();
+		listEl.onmousedown = e => e.stopPropagation();
+		listEl.addEventListener("wheel", e => e.stopPropagation(), { passive: true });
+		listEl.addEventListener("touchmove", e => e.stopPropagation(), { passive: true });
+	}
+
+	const scrollDelta = (e) => (e.deltaMode === 1 ? e.deltaY * 33 : (e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY));
+	modal.addEventListener("wheel", e => {
+		e.stopPropagation();
+		if (listEl && e.target !== listEl && !listEl.contains(e.target)) {
+			listEl.scrollTop += scrollDelta(e);
+		}
+	}, { passive: true });
+	modal.addEventListener("touchmove", e => e.stopPropagation(), { passive: true });
+	modal.addEventListener("mouseenter", () => {
+		if (document.pointerLockElement) {
+			try { document.exitPointerLock(); } catch (_) {}
+		}
+	});
+
+	modal.addEventListener("pointerdown", e => {
+		if (header && nowCard && !header.contains(e.target) && !nowCard.contains(e.target)) {
+			e.stopPropagation();
+		}
+	});
+	modal.addEventListener("mousedown", e => {
+		if (header && nowCard && !header.contains(e.target) && !nowCard.contains(e.target)) {
+			e.stopPropagation();
+		}
+	});
+
 	if (typeof makeDraggable === "function") {
 		makeDraggable(modal, [header, nowCard]);
 	}
@@ -19060,10 +18944,37 @@ function spkmodCinemaTick() {
 		spkmodCinemaInZone = true;
 		if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = '';
 		if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = true;
-		spkmodSyncCinemaPlayback();
-		spkmodSendYtCommand('unMute');
-		spkmodSendYtCommand('playVideo');
-		spkmodCinemaLastVolume = -1;
+
+		// 1. Resume existing track without restarting playlist
+		if (spkmodCinemaCurrentVideo && spkmodCinemaIframe) {
+			if (spkmodCinemaManualTrackIndex === null) {
+				const syncData = spkmodGetCinemaSyncedTrack();
+				if (syncData && syncData.track && syncData.track.id !== spkmodCinemaCurrentVideo) {
+					spkmodSyncCinemaPlayback();
+				} else {
+					spkmodSendYtCommand('playVideo');
+					if (syncData && typeof syncData.startSec === 'number') {
+						spkmodSendYtCommand('seekTo', [syncData.startSec, true]);
+					}
+				}
+			} else {
+				spkmodSendYtCommand('playVideo');
+			}
+		} else {
+			spkmodSyncCinemaPlayback();
+		}
+
+		// 2. Unmute and restore volume immediately
+		const isMuted = !!window.spkmodCinemaConfig?.muted;
+		const vol = isMuted ? 0 : (window.spkmodCinemaConfig?.volume ?? 80);
+		if (!isMuted) {
+			spkmodSendYtCommand('unMute');
+			spkmodSendYtCommand('setVolume', [vol]);
+		} else {
+			spkmodSendYtCommand('mute');
+			spkmodSendYtCommand('setVolume', [0]);
+		}
+		spkmodCinemaLastVolume = vol;
 	}
 
 	const now = Date.now();
@@ -19137,6 +19048,9 @@ function spkmodUpdateCinemaTopBar(visible) {
 			<button id="spkmod-cinema-exit-btn" class="spkmod-panel-btn" style="padding: 3px 10px; font-size: 12px; cursor: pointer; background: #e8b84b !important; color: #120e1a !important; font-weight: bold; border-radius: 4px; border: none; margin-left: 4px;">${getCinemaText("cinemaExitBtn")}</button>
 		`;
 
+		hudBar.addEventListener("wheel", e => e.stopPropagation(), { passive: true });
+		hudBar.addEventListener("touchmove", e => e.stopPropagation(), { passive: true });
+
 		const exitBtn = hudBar.querySelector('#spkmod-cinema-exit-btn');
 		if (exitBtn) {
 			exitBtn.onclick = () => {
@@ -19167,8 +19081,10 @@ function spkmodUpdateCinemaTopBar(visible) {
 		const hudPl = hudBar.querySelector('#spkmod-cinema-hud-playlist-btn');
 		if (hudPl) hudPl.onclick = () => window.spkmodToggleCinemaModal();
 	}
-	hudBar.style.display = 'flex';
-	spkmodUpdateCinemaPlaybackUI();
+	if (hudBar.style.display !== 'flex') {
+		hudBar.style.display = 'flex';
+		spkmodUpdateCinemaPlaybackUI();
+	}
 }
 window.spkmodUpdateCinemaTopBar = spkmodUpdateCinemaTopBar;
 
@@ -19212,7 +19128,19 @@ window.addEventListener('keydown', e => {
 window.addEventListener('message', e => {
 	try {
 		const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-		if (data && data.event === 'onStateChange') {
+		if (!data) return;
+
+		// Ensure YouTube is unmuted and volume applied as soon as player initializes or starts playing
+		if (data.event === 'onReady' || data.event === 'initialDelivery' || (data.event === 'onStateChange' && data.info === 1)) {
+			if (spkmodCinemaInZone && !window.spkmodCinemaConfig?.muted) {
+				spkmodSendYtCommand('unMute');
+				const vol = window.spkmodCinemaConfig?.volume ?? 80;
+				spkmodSendYtCommand('setVolume', [vol]);
+				spkmodCinemaLastVolume = vol;
+			}
+		}
+
+		if (data.event === 'onStateChange') {
 			if (data.info === 0) { // ENDED
 				if (spkmodCinemaRepeatMode === 'one') {
 					spkmodPlayCinemaTrackIndex(spkmodGetCinemaCurrentTrackIndex());
