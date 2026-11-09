@@ -318,6 +318,35 @@ var lunTrueFirstPersonActive = false;
 var lunSpeedometerEnabled = true;
 var lunCurrentSpeedMps = 0;
 
+// In-Game 3D Cinema / Movie Player Default Configuration
+var SPKMOD_CINEMA_DEFAULT_CONFIG = {
+	enabled: true,
+	volume: 80,
+	pos: { x: 44.0, y: 3.8, z: 62.0 },
+	rotationY: 0,
+	width: 12.8,
+	height: 7.2
+};
+
+window.spkmodCinemaConfig = Object.assign({}, SPKMOD_CINEMA_DEFAULT_CONFIG);
+if (typeof window !== "undefined" && window.localStorage) {
+	try {
+		const en = localStorage.getItem("spkmod-cinema-enabled");
+		if (en !== null) window.spkmodCinemaConfig.enabled = en === "true";
+		const vol = localStorage.getItem("spkmod-cinema-volume");
+		if (vol !== null) window.spkmodCinemaConfig.volume = parseInt(vol, 10) || 80;
+		const posStr = localStorage.getItem("spkmod-cinema-pos");
+		if (posStr) {
+			const parsed = JSON.parse(posStr);
+			if (parsed && typeof parsed.x === "number") {
+				window.spkmodCinemaConfig.pos = { x: parsed.x, y: parsed.y ?? 3.8, z: parsed.z };
+				if (typeof parsed.rotationY === "number") window.spkmodCinemaConfig.rotationY = parsed.rotationY;
+			}
+		}
+	} catch (_) {}
+}
+var spkmodCinemaConfig = window.spkmodCinemaConfig;
+
 
 
 
@@ -8999,14 +9028,14 @@ document.body.appendChild(
 					}),
 					lunPanelElements.cinemaToggleInput = buildElement("input", {
 						type: "checkbox",
-						checked: typeof spkmodCinemaConfig !== "undefined" ? spkmodCinemaConfig.enabled : true,
+						checked: (window.spkmodCinemaConfig ? window.spkmodCinemaConfig.enabled : true),
 						title: "Toggle 3D cinema screen in Zone 1 Festival Plaza",
 						onchange: e => {
-							if (typeof spkmodCinemaConfig !== "undefined") {
-								spkmodCinemaConfig.enabled = e.target.checked;
+							if (window.spkmodCinemaConfig) {
+								window.spkmodCinemaConfig.enabled = e.target.checked;
 								localStorage.setItem("spkmod-cinema-enabled", e.target.checked ? "true" : "false");
-								if (!e.target.checked && typeof spkmodSendYtCommand === "function") {
-									spkmodSendYtCommand("pauseVideo");
+								if (!e.target.checked && typeof window.spkmodSendYtCommand === "function") {
+									window.spkmodSendYtCommand("pauseVideo");
 								}
 							}
 						}
@@ -9021,12 +9050,12 @@ document.body.appendChild(
 						type: "range",
 						min: "0",
 						max: "100",
-						value: typeof spkmodCinemaConfig !== "undefined" ? spkmodCinemaConfig.volume : 80,
+						value: (window.spkmodCinemaConfig ? window.spkmodCinemaConfig.volume : 80),
 						style: "width: 80px; height: 14px; cursor: pointer;",
 						oninput: e => {
 							const v = parseInt(e.target.value, 10);
-							if (typeof spkmodCinemaConfig !== "undefined") {
-								spkmodCinemaConfig.volume = v;
+							if (window.spkmodCinemaConfig) {
+								window.spkmodCinemaConfig.volume = v;
 								localStorage.setItem("spkmod-cinema-volume", String(v));
 							}
 						}
@@ -9037,9 +9066,9 @@ document.body.appendChild(
 						innerText: "🔄 " + (t("cinemaReloadPlaylist") || "Reload"),
 						title: "Reload movies.txt playlist",
 						onclick: () => {
-							if (typeof spkmodLoadMoviesPlaylist === "function") {
-								spkmodLoadMoviesPlaylist().then(() => {
-									if (typeof spkmodSyncCinemaPlayback === "function") spkmodSyncCinemaPlayback(true);
+							if (typeof window.spkmodLoadMoviesPlaylist === "function") {
+								window.spkmodLoadMoviesPlaylist().then(() => {
+									if (typeof window.spkmodSyncCinemaPlayback === "function") window.spkmodSyncCinemaPlayback(true);
 									alert("🎬 " + (t("cinemaReloadPlaylist") || "Reload Playlist") + " OK!");
 								});
 							}
@@ -17213,7 +17242,7 @@ window.spkmodToggleBurstSpam = function(forceState) {
 // IN-GAME 3D MOVIE THEATER & CINEMA PLAYER (CSS3DRENDERER + YOUTUBE)
 // ============================================================================
 
-const SPKMOD_CINEMA_DEFAULT_CONFIG = {
+var SPKMOD_CINEMA_DEFAULT_CONFIG = window.SPKMOD_CINEMA_DEFAULT_CONFIG || {
 	enabled: true,
 	volume: 80,
 	pos: { x: 44.0, y: 3.8, z: 62.0 },
@@ -17222,7 +17251,8 @@ const SPKMOD_CINEMA_DEFAULT_CONFIG = {
 	height: 7.2
 };
 
-let spkmodCinemaConfig = Object.assign({}, SPKMOD_CINEMA_DEFAULT_CONFIG);
+var spkmodCinemaConfig = window.spkmodCinemaConfig || Object.assign({}, SPKMOD_CINEMA_DEFAULT_CONFIG);
+window.spkmodCinemaConfig = spkmodCinemaConfig;
 if (window.localStorage) {
 	try {
 		const en = localStorage.getItem("spkmod-cinema-enabled");
@@ -17240,19 +17270,19 @@ if (window.localStorage) {
 	} catch (_) {}
 }
 
-let spkmodCinemaLoadedPlaylist = [];
-let spkmodCinemaCurrentVideo = null;
-let spkmodCinemaRenderer = null;
-let spkmodCinemaScene = null;
-let spkmodCinemaScreenObject = null;
-let spkmodCinemaFrameMesh = null;
-let spkmodCinemaContainer = null;
-let spkmodCinemaIframe = null;
-let spkmodCinemaRenderLoopId = null;
-let spkmodCinemaModeActive = false;
-let spkmodCinemaInZone = false;
-let spkmodCinemaLastVolume = -1;
-let spkmodCinemaLastSyncCheckMs = 0;
+var spkmodCinemaLoadedPlaylist = [];
+var spkmodCinemaCurrentVideo = null;
+var spkmodCinemaRenderer = null;
+var spkmodCinemaScene = null;
+var spkmodCinemaScreenObject = null;
+var spkmodCinemaFrameMesh = null;
+var spkmodCinemaContainer = null;
+var spkmodCinemaIframe = null;
+var spkmodCinemaRenderLoopId = null;
+var spkmodCinemaModeActive = false;
+var spkmodCinemaInZone = false;
+var spkmodCinemaLastVolume = -1;
+var spkmodCinemaLastSyncCheckMs = 0;
 
 function spkmodGetCSS3DClasses() {
 	if (window.SPKMOD_CSS3DRenderer && window.SPKMOD_CSS3DObject) {
@@ -17790,6 +17820,12 @@ window.addEventListener('resize', () => {
 		spkmodCinemaRenderer.setSize(window.innerWidth, window.innerHeight);
 	}
 });
+
+window.spkmodLoadMoviesPlaylist = spkmodLoadMoviesPlaylist;
+window.spkmodSendYtCommand = spkmodSendYtCommand;
+window.spkmodSyncCinemaPlayback = spkmodSyncCinemaPlayback;
+window.spkmodInitCinema = spkmodInitCinema;
+window.spkmodCinemaConfig = spkmodCinemaConfig;
 
 // Load playlist and initialize
 setTimeout(() => {
