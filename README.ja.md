@@ -437,6 +437,8 @@ UI背景への作品使用を快く許可してくださったアーティスト
 
 **サードパーティコンポーネント：**
 * `SpeakiMod.js` – [BSD 3条項ライセンス](https://opensource.org/licenses/BSD-3-Clause)の下、[Alluseri 氏による SpeakiMod](https://github.com/Alluseri/SpeakiMod) から派生しています。
+  ソースコードは `develop` ブランチの `src` ディレクトリ内で管理されており、バンドルされたファイルは `main` ブランチを通じて配布されます。
+  ライセンスの全文は [`THIRD-PARTY-LICENSES`](./THIRD-PARTY-LICENSES) で確認できます。
 
 ---
 

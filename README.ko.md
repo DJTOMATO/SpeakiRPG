@@ -437,6 +437,8 @@ UI 배경으로 작품 사용을 흔쾌히 허락해 주신 아티스트 분들�
 
 **서드파티 구성요소:**
 * `SpeakiMod.js` – [BSD 3-Clause 라이선스](https://opensource.org/licenses/BSD-3-Clause)에 따라 [Alluseri의 SpeakiMod](https://github.com/Alluseri/SpeakiMod)에서 파생되었습니다.
+  소스 코드는 `develop` 브랜치의 `src` 디렉토리에서 관리되며, 번들 파일은 `main` 브랜치를 통해 배포됩니다.
+  라이선스 전문은 [`THIRD-PARTY-LICENSES`](./THIRD-PARTY-LICENSES)에서 확인할 수 있습니다.
 
 ---
 

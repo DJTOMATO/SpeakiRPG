@@ -439,6 +439,8 @@ A special thanks to the artists who kindly authorized the use of their artwork f
 
 **Third-Party Components:**
 * `SpeakiMod.js` – Derived from [SpeakiMod by Alluseri](https://github.com/Alluseri/SpeakiMod), licensed under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause).
+  The source code is maintained within the `src` directory of the `develop` branch and the bundled file is distributed via the `main` branch.
+  The full license text is available in [`THIRD-PARTY-LICENSES`](./THIRD-PARTY-LICENSES).
 
 ---
 

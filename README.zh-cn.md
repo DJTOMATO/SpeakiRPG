@@ -437,6 +437,8 @@ Speaki MMO 官方开发者（**GMDT**）发表的官方声明简体中文翻译�
 
 **第三方组件：**
 * `SpeakiMod.js` – 衍生自 [Alluseri 开发的 SpeakiMod](https://github.com/Alluseri/SpeakiMod)，采用 [BSD 3-Clause 授权条款](https://opensource.org/licenses/BSD-3-Clause)。
+  源代码维护在 `develop` 分支的 `src` 目录下，而打包后的文件则通过 `main` 分支进行分发。
+  完整的许可协议文本可在 [`THIRD-PARTY-LICENSES`](./THIRD-PARTY-LICENSES) 中查看。
 
 ---
 

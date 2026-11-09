@@ -4,7 +4,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 const vm = require('node:vm');
 
-const source = readFileSync(path.join(__dirname, '..', 'SpeakiMod.js'), 'utf8');
+const source = readFileSync(path.join(__dirname, '..', 'src', 'SpeakiMod.js'), 'utf8');
 // Exercise the actual button handlers without starting Electron, contacting the
 // game, or reading real account data. The mod is a single injected script.
 const allowlistStart = source.indexOf('const SPKMOD_SETTINGS_KEYS =');
