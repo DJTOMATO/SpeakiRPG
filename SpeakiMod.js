@@ -29468,8 +29468,9 @@ function spkmodGetCinemaSyncedTrack() {
 var spkmodCinemaYtReady = false;
 function spkmodSendYtCommand(func, args = []) {
 	if (!spkmodCinemaIframe || !spkmodCinemaIframe.contentWindow) return;
-	// Do not send playback commands before YouTube iframe API has initialized
-	if (!spkmodCinemaYtReady && func !== 'listening' && func !== 'mute' && func !== 'unMute') return;
+	// Do not send playback queries before YouTube iframe API has initialized,
+	// but ALWAYS allow commands that silence, stop, or pause the player!
+	if (!spkmodCinemaYtReady && func !== 'listening' && func !== 'mute' && func !== 'unMute' && func !== 'pauseVideo' && func !== 'stopVideo') return;
 	try {
 		spkmodCinemaIframe.contentWindow.postMessage(JSON.stringify({
 			event: 'command',
@@ -29603,6 +29604,19 @@ function spkmodSyncCinemaPlayback(force = false) {
 	spkmodCinemaCurrentVideo = videoId;
 	spkmodCinemaCurrentVideoStartTimeMs = Date.now() - (startSec * 1000);
 	window.spkmodCinemaCurrentVideoTimeSec = startSec;
+	window.spkmodCurrentCinemaTitle = track.title || "Monatium Cinema";
+
+	if (typeof spkmodRenderCinemaModalList === 'function' && spkmodIsCinemaModalOpen()) {
+		spkmodRenderCinemaModalList();
+	}
+	if (typeof spkmodUpdateCinemaPlaybackUI === "function") spkmodUpdateCinemaPlaybackUI();
+	if (typeof spkmodUpdateCinemaTimeDisplay === "function") spkmodUpdateCinemaTimeDisplay();
+
+	// NEVER load or start playback in iframe if player is outside cinema seats!
+	if (!spkmodCinemaInZone) {
+		spkmodCinemaIsPaused = true;
+		return;
+	}
 
 	if (isSameVideo) {
 		// Video is already loaded in iframe: seamlessly seek to sync time without iframe flash or reloading
@@ -29635,18 +29649,29 @@ function spkmodSyncCinemaPlayback(force = false) {
 			setTimeout(() => { spkmodSendYtCommand('getDuration'); }, 3000);
 		}
 	}
-
-	window.spkmodCurrentCinemaTitle = track.title || "Monatium Cinema";
-	if (typeof spkmodRenderCinemaModalList === 'function' && spkmodIsCinemaModalOpen()) {
-		spkmodRenderCinemaModalList();
-	}
-	if (typeof spkmodUpdateCinemaPlaybackUI === "function") spkmodUpdateCinemaPlaybackUI();
-	if (typeof spkmodUpdateCinemaTimeDisplay === "function") spkmodUpdateCinemaTimeDisplay();
 }
+
+function spkmodIsInMinigame() {
+	if (typeof gameState !== 'undefined') {
+		if (gameState?.selfMinigameRing) return true;
+		if (gameState?.minigame || gameState?.inMinigame) return true;
+		const zid = (gameState?.zoneId !== undefined) ? (gameState.zoneId % 10000) : 1;
+		if (zid >= 900 && zid <= 999) return true;
+	}
+	if (typeof window !== 'undefined' && window.lunActiveMinigamePanel) return true;
+	if (typeof document !== 'undefined') {
+		if (document.querySelector('.sr-minigame, .sr-minigame-game, .sr-minigame-canvas, .sr-minigame-entry-dialog.sr-panel--open')) {
+			return true;
+		}
+	}
+	return false;
+}
+window.spkmodIsInMinigame = spkmodIsInMinigame;
 
 function spkmodIsPlayerInCinemaSeats(playerPos) {
 	if (!playerPos) return false;
-	const curZone = (typeof gameState !== 'undefined' && gameState?.zoneId !== undefined) ? gameState.zoneId : 1;
+	if (spkmodIsInMinigame()) return false;
+	const curZone = (typeof gameState !== 'undefined' && gameState?.zoneId !== undefined) ? (gameState.zoneId % 10000) : 1;
 	if (curZone !== 1) return false;
 
 	// Seats bounding box with ~0.35m cushion around amphitheater seat coordinates:
@@ -29821,6 +29846,13 @@ function spkmodPlayCinemaTrackIndex(index, startSec = 0, isManual = true) {
 		window.spkmodCinemaCurrentVideoTimeSec = startSec;
 		window.spkmodCurrentCinemaTitle = track.title || "Monatium Cinema";
 
+		// NEVER load or start playback in iframe if player is outside cinema seats!
+		if (!spkmodCinemaInZone) {
+			spkmodCinemaIsPaused = true;
+			if (typeof spkmodUpdateCinemaPlaybackUI === "function") spkmodUpdateCinemaPlaybackUI();
+			return;
+		}
+
 		if (spkmodCinemaIframe) {
 			const isMuted = !!window.spkmodCinemaConfig?.muted;
 			const loopParam = (spkmodCinemaRepeatMode === 'one') ? `&loop=1&playlist=${track.id}` : '';
@@ -29855,6 +29887,8 @@ window.spkmodPlayCinemaTrackIndex = spkmodPlayCinemaTrackIndex;
 
 var spkmodCinemaLastAdvanceMs = 0;
 function spkmodAdvanceCinemaTrack(reason = "ended") {
+	if (!spkmodCinemaInZone) return; // Never advance or autoplay when player is outside cinema!
+
 	const now = Date.now();
 	if (now - spkmodCinemaLastAdvanceMs < 2000) return; // Prevent double trigger
 	spkmodCinemaLastAdvanceMs = now;
@@ -29912,6 +29946,7 @@ function spkmodAdvanceCinemaTrack(reason = "ended") {
 window.spkmodAdvanceCinemaTrack = spkmodAdvanceCinemaTrack;
 
 window.spkmodCinemaPlay = function() {
+	if (!spkmodCinemaInZone) return;
 	spkmodCinemaIsPaused = false;
 	spkmodSendYtCommand('playVideo');
 	if (spkmodCinemaInZone && !window.spkmodCinemaConfig?.muted && typeof window.spkmodSuppressGameBgm === 'function') {
@@ -29930,6 +29965,7 @@ window.spkmodCinemaPause = function() {
 };
 
 window.spkmodCinemaTogglePlayPause = function() {
+	if (!spkmodCinemaInZone) return;
 	if (spkmodCinemaIsPaused) {
 		window.spkmodCinemaPlay();
 	} else {
@@ -29938,11 +29974,13 @@ window.spkmodCinemaTogglePlayPause = function() {
 };
 
 window.spkmodCinemaPrev = function() {
+	if (!spkmodCinemaInZone) return;
 	const cur = spkmodGetCinemaCurrentTrackIndex();
 	spkmodPlayCinemaTrackIndex(cur - 1, 0, true);
 };
 
 window.spkmodCinemaNext = function() {
+	if (!spkmodCinemaInZone) return;
 	const cur = spkmodGetCinemaCurrentTrackIndex();
 	spkmodPlayCinemaTrackIndex(cur + 1, 0, true);
 };
@@ -30893,6 +30931,8 @@ function spkmodCinemaTick() {
 			if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = false;
 			spkmodSendYtCommand('pauseVideo');
 			spkmodSendYtCommand('mute');
+			spkmodSendYtCommand('setVolume', [0]);
+			spkmodCinemaLastVolume = 0;
 			if (typeof window.spkmodSuppressGameBgm === 'function') {
 				window.spkmodSuppressGameBgm(false, "cinema");
 			}
@@ -30917,6 +30957,29 @@ function spkmodCinemaTick() {
 				spkmodCinemaFrameMesh.visible = false;
 			}
 		}
+
+		// When outside cinema seats (in minigame, other map, or walked away):
+		const curZone = (typeof gameState !== 'undefined' && gameState?.zoneId !== undefined) ? (gameState.zoneId % 10000) : 1;
+		const isOutsideZone1OrMinigame = curZone !== 1 || spkmodIsInMinigame();
+		const isLongAway = spkmodCinemaLeftZoneTimeMs > 0 && (Date.now() - spkmodCinemaLeftZoneTimeMs >= 60000);
+
+		// If player transitioned to another map/minigame or has been away for > 60s, completely unload the iframe
+		if ((isOutsideZone1OrMinigame || isLongAway) && spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src !== 'about:blank') {
+			try {
+				spkmodSendYtCommand('pauseVideo');
+				spkmodSendYtCommand('stopVideo');
+				spkmodSendYtCommand('mute');
+			} catch (_) {}
+			spkmodCinemaIframe.src = 'about:blank';
+			spkmodCinemaYtReady = false;
+			window.spkmodCinemaLastPlayerState = -1;
+		} else if (spkmodCinemaIframe && (window.spkmodCinemaLastPlayerState === 1 || window.spkmodCinemaLastPlayerState === 3)) {
+			// Enforce pause & mute if still playing or buffering in background
+			spkmodSendYtCommand('pauseVideo');
+			spkmodSendYtCommand('mute');
+			spkmodSendYtCommand('setVolume', [0]);
+			spkmodCinemaLastVolume = 0;
+		}
 		return;
 	}
 
@@ -30932,9 +30995,11 @@ function spkmodCinemaTick() {
 		if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = '';
 		if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = true;
 
-		// 1. Resume existing track without restarting or re-seeking if briefly stepped away (< 60s)
-		const wasBrieflyAway = spkmodCinemaLeftZoneTimeMs > 0 && (Date.now() - spkmodCinemaLeftZoneTimeMs < 60000);
-		if (spkmodCinemaCurrentVideo && spkmodCinemaIframe && wasBrieflyAway) {
+		// 1. Resume existing track without restarting or re-seeking if briefly stepped away (< 60s) in Zone 1
+		const curZone = (typeof gameState !== 'undefined' && gameState?.zoneId !== undefined) ? (gameState.zoneId % 10000) : 1;
+		const wasInSameMap = curZone === 1 && !spkmodIsInMinigame();
+		const wasBrieflyAway = wasInSameMap && spkmodCinemaLeftZoneTimeMs > 0 && (Date.now() - spkmodCinemaLeftZoneTimeMs < 60000);
+		if (spkmodCinemaCurrentVideo && spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src !== 'about:blank' && wasBrieflyAway) {
 			spkmodSendYtCommand('playVideo');
 		} else {
 			spkmodSyncCinemaPlayback(true);
@@ -30966,13 +31031,13 @@ function spkmodCinemaTick() {
 	const now = Date.now();
 	if (now - spkmodCinemaLastSyncCheckMs > 1000) {
 		spkmodCinemaLastSyncCheckMs = now;
-		if (spkmodCinemaIframe) {
+		if (spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src !== 'about:blank') {
 			spkmodSendYtCommand('getCurrentTime');
 		}
 
 		if (spkmodCinemaManualTrackIndex === null) {
 			// SYNC MODE: Auto-tune when schedule transitions to next track
-			if (!spkmodCinemaCurrentVideo || !spkmodCinemaIframe || !spkmodCinemaIframe.src) {
+			if (!spkmodCinemaCurrentVideo || !spkmodCinemaIframe || !spkmodCinemaIframe.src || spkmodCinemaIframe.src === 'about:blank') {
 				spkmodSyncCinemaPlayback(true);
 			} else {
 				const synced = spkmodGetCinemaSyncedTrack();
@@ -31240,6 +31305,18 @@ window.addEventListener('message', e => {
 
 		if (playerState !== null) {
 			window.spkmodCinemaLastPlayerState = playerState;
+		}
+
+		// When player is outside cinema seats (e.g. minigame, other map, or walked away),
+		// strictly prevent background playback, time counting, and auto-advancing:
+		if (!spkmodCinemaInZone) {
+			if (playerState === 1 || playerState === 3 || data.event === 'onReady' || data.event === 'initialDelivery') {
+				spkmodSendYtCommand('pauseVideo');
+				spkmodSendYtCommand('mute');
+				spkmodSendYtCommand('setVolume', [0]);
+				spkmodCinemaLastVolume = 0;
+			}
+			return; // Drop playback advance and UI updates while outside the cinema
 		}
 
 		// Ensure YouTube is unmuted and volume applied as soon as player initializes or starts playing
