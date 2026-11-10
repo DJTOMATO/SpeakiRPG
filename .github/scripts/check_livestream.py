@@ -3,7 +3,7 @@ import re
 import json
 import urllib.request
 
-EXPECTED_CHANNEL_IDS = {"UC9BRLn9BCnDYHaoXigXe0dA", "UCgiIsLZFrdZUagCIQDCQX0b"}
+EXPECTED_CHANNEL_IDS = {"UC9BRLn9BCnDYHaoXigXe0dA"}
 
 def check_youtube_live(handle_or_channel):
     identifier = handle_or_channel.strip()
