@@ -3,7 +3,14 @@ import re
 import urllib.request
 
 def check_youtube_live(handle_or_channel):
-    url = f"https://www.youtube.com/{handle_or_channel}/live"
+    identifier = handle_or_channel.strip()
+    if identifier.startswith("UC"):
+        url = f"https://www.youtube.com/channel/{identifier}/live"
+    elif identifier.startswith("@"):
+        url = f"https://www.youtube.com/{identifier}/live"
+    else:
+        url = f"https://www.youtube.com/@{identifier}/live"
+
     req = urllib.request.Request(
         url,
         headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
@@ -42,14 +49,15 @@ def update_movies_with_live(movies_path):
     if not os.path.exists(movies_path):
         return False
         
+    # Both channel ID ("UC9BRLn9BCnDYHaoXigXe0dA") and handle ("@oagemono") now work correctly
     info = check_youtube_live("UC9BRLn9BCnDYHaoXigXe0dA")
     if not info or not info.get("video_id"):
-        print("[Livestream Check] Could not resolve live stream for @oagemono.")
+        print("[Livestream Check] Could not resolve live stream for channel.")
         return False
         
     video_id = info["video_id"]
     is_live = info["is_live"]
-    print(f"[Livestream Check] @oagemono -> video_id={video_id}, is_live={is_live}")
+    print(f"[Livestream Check] Channel -> video_id={video_id}, is_live={is_live}")
     
     with open(movies_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
