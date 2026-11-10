@@ -3523,6 +3523,9 @@ function positionModalNicely(modal) {
 		targetH = modal.offsetHeight || 300;
 	}
 
+	const modalW = targetW;
+	const modalH = targetH;
+
 	const curTop = parseFloat(modal.style.top);
 	const curLeft = parseFloat(modal.style.left);
 
@@ -3542,11 +3545,12 @@ function positionModalNicely(modal) {
 		return;
 	}
 
-	// Default placement for centered modals (custom CSS, resource packs, BBS, Settings on mobile)
+	// Default placement for centered / dockable modals (custom CSS, resource packs, BBS, Settings on mobile, Cinema playlist)
 	if (isMobile || modal === lunHudElements.bbsModal || modal.id === "spkmod-bbs-modal" ||
 		modal === lunHudElements.customCssModal || modal.id === "spkmod-css-modal" ||
-		modal === lunHudElements.resourcePackModal || modal.id === "spkmod-resource-pack-modal") {
-		const safeLeft = Math.max(10, Math.min(window.innerWidth - targetW - 10, Math.round((window.innerWidth - targetW) / 2)));
+		modal === lunHudElements.resourcePackModal || modal.id === "spkmod-resource-pack-modal" ||
+		modal.id === "spkmod-cinema-modal") {
+		const safeLeft = Math.max(10, Math.min(window.innerWidth - targetW - 10, (modal.id === "spkmod-cinema-modal" && !isMobile) ? (window.innerWidth - targetW - 25) : Math.round((window.innerWidth - targetW) / 2)));
 		const safeTop = Math.max(15, Math.min(window.innerHeight - targetH - 10, Math.round((window.innerHeight - targetH) / 2)));
 		modal.style.left = safeLeft + "px";
 		modal.style.top = safeTop + "px";
@@ -29461,8 +29465,11 @@ function spkmodGetCinemaSyncedTrack() {
 	return { track: tracks[0], startSec: 0, trackIndex: 0, totalTracks: tracks.length };
 }
 
+var spkmodCinemaYtReady = false;
 function spkmodSendYtCommand(func, args = []) {
 	if (!spkmodCinemaIframe || !spkmodCinemaIframe.contentWindow) return;
+	// Do not send playback commands before YouTube iframe API has initialized
+	if (!spkmodCinemaYtReady && func !== 'listening' && func !== 'mute' && func !== 'unMute') return;
 	try {
 		spkmodCinemaIframe.contentWindow.postMessage(JSON.stringify({
 			event: 'command',
@@ -29611,6 +29618,7 @@ function spkmodSyncCinemaPlayback(force = false) {
 			const ytUrl = track.isChannelLive
 				? `https://www.youtube.com/embed/live_stream?channel=${track.channelId}&enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&origin=${encodeURIComponent(location.origin)}`
 				: `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&start=${effectiveStart}&origin=${encodeURIComponent(location.origin)}${loopParam}`;
+			spkmodCinemaYtReady = false;
 			spkmodCinemaIframe.src = ytUrl;
 			spkmodCinemaIframe.onload = () => {
 				try {
@@ -29820,6 +29828,7 @@ function spkmodPlayCinemaTrackIndex(index, startSec = 0, isManual = true) {
 			const ytUrl = track.isChannelLive
 				? `https://www.youtube.com/embed/live_stream?channel=${track.channelId}&enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&origin=${encodeURIComponent(location.origin)}`
 				: `https://www.youtube.com/embed/${track.id}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&start=${effectiveStart}&origin=${encodeURIComponent(location.origin)}${loopParam}`;
+			spkmodCinemaYtReady = false;
 			spkmodCinemaIframe.src = ytUrl;
 			spkmodCinemaIframe.onload = () => {
 				try {
@@ -29858,9 +29867,11 @@ function spkmodAdvanceCinemaTrack(reason = "ended") {
 	const curIdx = spkmodGetCinemaCurrentTrackIndex();
 	const curTrack = list[curIdx];
 	if (curTrack && (curTrack.isLiveStream || (curTrack.isStream && curTrack.duration === 0))) {
-		curTrack.isOffline = true;
-		curTrack.isEnded = true;
-		console.log(`[SpeakiMod+] Stream ${curTrack.title || curTrack.id} ended. Advancing...`);
+		if (reason === "ended_event") {
+			curTrack.isOffline = true;
+			curTrack.isEnded = true;
+			console.log(`[SpeakiMod+] Stream ${curTrack.title || curTrack.id} ended. Advancing...`);
+		}
 	}
 
 	const isManual = spkmodCinemaManualTrackIndex !== null;
@@ -31151,6 +31162,7 @@ window.addEventListener('message', e => {
 	try {
 		const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
 		if (!data) return;
+		spkmodCinemaYtReady = true;
 
 		// 1. Capture dynamic duration & metadata from YouTube player delivery
 		let ytDur = 0;
@@ -31275,9 +31287,11 @@ window.addEventListener('message', e => {
 			: (spkmodCinemaLoadedPlaylist || []);
 		const curIdx = spkmodGetCinemaCurrentTrackIndex();
 		const curTrack = list[curIdx];
+		const isStreamTrack = !!(curTrack && (curTrack.isStream || curTrack.isLiveStream || curTrack.duration === 0));
 		const knownDur = (durTime && durTime > 0) ? durTime : ((curTrack && curTrack.duration > 0) ? curTrack.duration : (curTrack?.baseDuration || 0));
 
-		const isAtEnd = (curTime !== null && knownDur > 2 && curTime >= (knownDur - 1.0));
+		// Livestreams do NOT have a fixed end time; never treat a stream as ended via isAtEnd
+		const isAtEnd = !isStreamTrack && (curTime !== null && knownDur > 2 && curTime >= (knownDur - 1.0));
 
 		if (playerState === 0 || isAtEnd || (playerState === 2 && isAtEnd)) { // ENDED
 			spkmodAdvanceCinemaTrack(playerState === 0 ? "ended_event" : "at_end_time");
