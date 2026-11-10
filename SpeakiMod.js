@@ -1760,6 +1760,7 @@ var lunPanelElements = {
 	pinnedQuestHeader: null,
 	langSelect: null,
 	settingsHeader: null,
+	settingsResizeHandle: null,
 	customCssSettingsBtn: null,
 	customCssSectionBtn: null,
 	resourcePackSettingsBtn: null,
@@ -3259,6 +3260,7 @@ function makeDraggable(element, handles) {
 				target.tagName === 'A' ||
 				target.id?.includes('close') ||
 				target.id?.includes('refresh') ||
+				target.id?.includes('resize') ||
 				target.dataset?.noDrag === 'true' ||
 				target.closest('button') ||
 				target.closest('input') ||
@@ -3267,6 +3269,7 @@ function makeDraggable(element, handles) {
 				target.closest('a') ||
 				target.closest('[id*="close"]') ||
 				target.closest('[id*="refresh"]') ||
+				target.closest('[id*="resize"]') ||
 				target.closest('[data-no-drag="true"]')
 			);
 			if (isInteractive) return;
@@ -3489,9 +3492,9 @@ function positionModalNicely(modal) {
 	if (!modal) return;
 	bringToFront(modal);
 
-	const isMobile = (typeof window.speakiMobile !== "undefined") ||
-		(typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent)) ||
-		(window.innerWidth <= 800);
+	const isMobile = (typeof spkmodIsMobile === "function" ? spkmodIsMobile() : false) ||
+		(typeof window.speakiMobile !== "undefined") ||
+		(typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent));
 
 	const posKey = modal.id ? ("spkmod-pos-" + modal.id) : null;
 	const hasSavedPos = !!(posKey && window.localStorage && localStorage.getItem(posKey));
@@ -3500,8 +3503,8 @@ function positionModalNicely(modal) {
 	const curTop = parseFloat(modal.style.top);
 	const curLeft = parseFloat(modal.style.left);
 	const rect = (typeof modal.getBoundingClientRect === "function") ? modal.getBoundingClientRect() : null;
-	const modalW = (rect && rect.width > 0) ? rect.width : (modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? 380 : (modal.id === "spkmod-stats-modal" ? 240 : (modal.id === "spkmod-jukebox-modal" ? 360 : 380))));
-	const modalH = (rect && rect.height > 0) ? rect.height : (modal.offsetHeight || 280);
+	const modalW = (rect && rect.width > 0) ? rect.width : (modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? (isMobile ? 380 : 700) : (modal.id === "spkmod-stats-modal" ? 240 : (modal.id === "spkmod-jukebox-modal" ? 360 : 380))));
+	const modalH = (rect && rect.height > 0) ? rect.height : (modal.offsetHeight || (modal.id === "spkmod-settings-modal" ? (isMobile ? 420 : 540) : 280));
 
 	// Check if top-left is out of bounds or if modal extends out of bounds on this screen
 	const isOffscreen = isNaN(curTop) || isNaN(curLeft) ||
@@ -3513,7 +3516,8 @@ function positionModalNicely(modal) {
 	if (!isOffscreen && (hasSavedPos || hasBeenDragged) && modal.style.left && modal.style.top) {
 		if (isMobile) {
 			const clampedL = Math.max(10, Math.min(curLeft, window.innerWidth - modalW - 10));
-			const clampedT = Math.max(10, Math.min(curTop, window.innerHeight - modalH - 10));
+			const maxT = Math.max(10, window.innerHeight - 50);
+			const clampedT = Math.max(10, Math.min(curTop, maxT));
 			modal.style.left = Math.round(clampedL) + "px";
 			modal.style.top = Math.round(clampedT) + "px";
 		}
@@ -3565,7 +3569,7 @@ function positionModalNicely(modal) {
 			}
 		}
 
-		const approxWidth = modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? 480 : (modal.id === "spkmod-stats-modal" ? 240 : (modal.id === "spkmod-jukebox-modal" ? 380 : 400)));
+		const approxWidth = modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? (isMobile ? 380 : 700) : (modal.id === "spkmod-stats-modal" ? 240 : (modal.id === "spkmod-jukebox-modal" ? 380 : 400)));
 		let nextLeft = Math.round(rightmostRect.right + 10);
 		let nextTop = Math.max(50, Math.round(rightmostRect.top));
 
@@ -3649,6 +3653,11 @@ function resetWindowPositions() {
 			m.style.top = "";
 		}
 	});
+
+	if (lunHudElements.settingsModal) {
+		lunHudElements.settingsModal.style.width = "";
+		lunHudElements.settingsModal.style.height = "";
+	}
 
 	if (lunHudElements.bbsModal) {
 		lunHudElements.bbsModal.style.width = "520px";
@@ -7030,7 +7039,7 @@ document.head.appendChild(buildElement(
 			z-index: 600000;
 			width: max-content;
 			min-width: min(520px, calc(100vw - 20px));
-			max-width: min(600px, calc(100vw - 16px));
+			max-width: calc(100vw - 20px);
 			height: max-content;
 			max-height: calc(100vh - 24px);
 			overflow-y: auto;
@@ -7058,123 +7067,17 @@ document.head.appendChild(buildElement(
 				min-width: 0 !important;
 			}
 			.spkmod-settings-grid {
-				grid-template-columns: 1fr;
+				grid-template-columns: 1fr !important;
+			}
+			#spkmod-settings-resize-handle {
+				display: none !important;
 			}
 		}
-		@media (max-height: 550px), (max-width: 950px) {
+		@media (max-height: 500px) {
 			#spkmod-settings-modal {
-				min-width: 0 !important;
-				width: min(440px, calc(100vw - 16px)) !important;
-				max-width: calc(100vw - 16px) !important;
-				max-height: calc(100vh - 12px) !important;
-				padding: 6px 8px !important;
-				gap: 4px !important;
-				font-size: 11px !important;
-				transform: scale(calc(var(--spkmod-scale) * 0.84)) !important;
-				transform-origin: top left !important;
-			}
-			.spkmod-settings-grid {
-				gap: 6px !important;
-			}
-			.spkmod-settings-col {
-				padding: 4px 6px !important;
-				gap: 3px !important;
-			}
-			.spkmod-settings-col .spkmod-panel-cat {
-				gap: 4px !important;
-				font-size: 10px !important;
-			}
-			.spkmod-settings-slider {
-				width: 60px !important;
-				height: 4px !important;
-			}
-			.spkmod-panel-combo {
-				font-size: 10px !important;
-				padding: 1px 3px !important;
-				max-width: 80px !important;
-			}
-			.spkmod-panel-btn {
-				font-size: 10px !important;
-				padding: 2px 5px !important;
-			}
-			.spkmod-settings-section-title {
-				font-size: 10px !important;
-				padding-bottom: 2px !important;
-				margin-bottom: 1px !important;
-			}
-			#spkmod-settings-modal .spkmod-credits {
-				font-size: 9px !important;
-				line-height: 1.2 !important;
-				padding: 3px 5px !important;
-			}
-
-			/* Cinema HUD Bar Mobile Compact */
-			#spkmod-cinema-hud-bar {
-				top: 6px !important;
-				padding: 3px 8px !important;
-				gap: 5px !important;
-				font-size: 11px !important;
-				max-width: calc(100vw - 16px) !important;
-				border-radius: 6px !important;
-			}
-			#spkmod-cinema-hud-now-playing-container {
-				max-width: min(180px, 26vw) !important;
-				font-size: 10.5px !important;
-			}
-			#spkmod-cinema-hud-vol-slider {
-				width: 38px !important;
-			}
-			#spkmod-cinema-exit-btn {
-				padding: 2px 7px !important;
-				font-size: 10.5px !important;
-				margin-left: 2px !important;
-			}
-			#spkmod-cinema-hud-playlist-btn {
-				padding: 2px 5px !important;
-				font-size: 10px !important;
-			}
-
-			/* Cinema Floating Dock Mobile Compact */
-			#spkmod-cinema-dock {
-				padding: 2px 7px !important;
-				gap: 4px !important;
-				font-size: 11px !important;
-				border-radius: 16px !important;
-				max-width: calc(100vw - 20px) !important;
-			}
-			#spkmod-cinema-dock button {
-				font-size: 11px !important;
-				padding: 1px 2px !important;
-			}
-			#spkmod-cinema-dock #spkmod-cinema-vol-slider {
-				width: 38px !important;
-			}
-			#spkmod-cinema-dock #spkmod-cinema-vol-label {
-				font-size: 10px !important;
-				min-width: 24px !important;
-			}
-
-			/* Cinema Playlist Modal Mobile Compact */
-			#spkmod-cinema-modal {
-				width: min(340px, calc(100vw - 16px)) !important;
-				max-height: calc(100vh - 12px) !important;
-				padding: 8px 10px !important;
-				gap: 5px !important;
-			}
-			#spkmod-cinema-modal-list {
-				max-height: 140px !important;
-				min-height: 80px !important;
-			}
-			#spkmod-cinema-modal-thumb {
-				width: 44px !important;
-				height: 32px !important;
-			}
-			#spkmod-cinema-modal-now-card {
-				padding: 5px 7px !important;
-				gap: 6px !important;
-			}
-			#spkmod-cinema-modal-controls {
-				padding: 3px 6px !important;
+				max-height: calc(100vh - 16px) !important;
+				padding: 8px 10px;
+				gap: 5px;
 			}
 		}
 		body.spkmod-is-mobile #spkmod-settings-modal {
@@ -7189,7 +7092,11 @@ document.head.appendChild(buildElement(
 			transform-origin: top left !important;
 		}
 		body.spkmod-is-mobile .spkmod-settings-grid {
+			grid-template-columns: 1fr !important;
 			gap: 6px !important;
+		}
+		body.spkmod-is-mobile #spkmod-settings-resize-handle {
+			display: none !important;
 		}
 		body.spkmod-is-mobile .spkmod-settings-col {
 			padding: 4px 6px !important;
@@ -9808,13 +9715,41 @@ document.body.appendChild(
 					window.__spkmodGlasClicks = 0;
 				}
 			}
-		})
+		}),
+
+		lunPanelElements.settingsResizeHandle = buildElement("div", {
+			id: "spkmod-settings-resize-handle",
+			title: t("bbsResizeTooltip") || "Drag to resize window",
+			style: "position: sticky; bottom: -6px; margin-top: auto; margin-right: -6px; margin-bottom: -6px; align-self: flex-end; width: 18px; height: 18px; cursor: nwse-resize; display: flex; align-items: flex-end; justify-content: flex-end; padding: 2px; user-select: none; z-index: 10; touch-action: none;"
+		}, [
+			buildElement("span", {
+				innerHTML: '<svg viewBox="0 0 10 10" width="10" height="10" style="opacity: 0.65; display: block; pointer-events: none;"><path d="M9 1 L1 9 M9 5 L5 9 M9 9 L9 9" stroke="#e8b84b" stroke-width="1.2" stroke-linecap="round"/></svg>'
+			})
+		])
 
 	])
 );
+if (lunPanelElements.settingsResizeHandle) {
+	lunPanelElements.settingsResizeHandle.onmouseenter = () => {
+		const p = lunPanelElements.settingsResizeHandle.querySelector("path");
+		if (p) p.setAttribute("stroke", "#ffd56b");
+	};
+	lunPanelElements.settingsResizeHandle.onmouseleave = () => {
+		const p = lunPanelElements.settingsResizeHandle.querySelector("path");
+		if (p) p.setAttribute("stroke", "#e8b84b");
+	};
+}
 setTimeout(() => {
 	if (typeof makeDraggable === 'function' && lunHudElements.settingsModal) {
 		makeDraggable(lunHudElements.settingsModal, [lunHudElements.settingsModal]);
+	}
+	if (typeof makeResizable === 'function' && lunHudElements.settingsModal && lunPanelElements.settingsResizeHandle) {
+		makeResizable(lunHudElements.settingsModal, lunPanelElements.settingsResizeHandle, {
+			minWidth: 440,
+			minHeight: 280,
+			storageKey: "spkmod-size-spkmod-settings-modal",
+			restoreSize: true
+		});
 	}
 }, 500);
 
