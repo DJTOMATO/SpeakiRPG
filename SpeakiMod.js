@@ -3534,11 +3534,13 @@ function positionModalNicely(modal) {
 		return;
 	}
 
-	if (modal === lunHudElements.bbsModal || modal.id === "spkmod-bbs-modal") {
-		const modalWidth = modal.offsetWidth || 520;
-		const safeLeft = Math.max(20, Math.round((window.innerWidth - modalWidth) / 2));
+	if (modal === lunHudElements.bbsModal || modal.id === "spkmod-bbs-modal" ||
+		modal === lunHudElements.customCssModal || modal.id === "spkmod-css-modal" ||
+		modal === lunHudElements.resourcePackModal || modal.id === "spkmod-resource-pack-modal") {
+		const modalWidth = modal.offsetWidth || (modal.id === "spkmod-resource-pack-modal" ? (isMobile ? 520 : 660) : (modal.id === "spkmod-css-modal" ? (isMobile ? 480 : 580) : 520));
+		const safeLeft = Math.max(10, Math.round((window.innerWidth - modalWidth) / 2));
 		modal.style.left = safeLeft + "px";
-		modal.style.top = "60px";
+		modal.style.top = isMobile ? "20px" : "50px";
 		return;
 	}
 
@@ -3575,7 +3577,11 @@ function positionModalNicely(modal) {
 
 		if (nextLeft + approxWidth > window.innerWidth - 10) {
 			nextLeft = Math.max(10, Math.min(Math.round(rightmostRect.left + 30), window.innerWidth - approxWidth - 10));
-			nextTop = Math.max(50, Math.min(Math.round(rightmostRect.top + 35), window.innerHeight - 100));
+			nextTop = Math.max(40, Math.min(Math.round(rightmostRect.top + 35), window.innerHeight - 100));
+		}
+
+		if (nextTop + modalH > window.innerHeight - 20) {
+			nextTop = Math.max(30, window.innerHeight - modalH - 20);
 		}
 
 		modal.style.left = nextLeft + "px";
@@ -3583,6 +3589,9 @@ function positionModalNicely(modal) {
 	} else {
 		if (startLeft + modalW > window.innerWidth - 10) {
 			startLeft = Math.max(10, window.innerWidth - modalW - 10);
+		}
+		if (startTop + modalH > window.innerHeight - 20) {
+			startTop = Math.max(30, window.innerHeight - modalH - 20);
 		}
 		modal.style.left = startLeft + "px";
 		modal.style.top = startTop + "px";
@@ -4835,14 +4844,13 @@ function suppressGameBgm(mute) {
             }
         });
     } else {
-        if (!state.isBgmSuppressed) return;
         state.isBgmSuppressed = false;
         try {
             if (window.localStorage) localStorage.setItem("spkmod-is-bgm-suppressed", "false");
         } catch (_) {}
 
         let restoreVol = getUserActualBgmVolume();
-        if (restoreVol === null || !Number.isFinite(restoreVol)) {
+        if (restoreVol === null || !Number.isFinite(restoreVol) || restoreVol <= 0) {
             restoreVol = 70;
         }
         restoreVol = Math.max(0, Math.min(100, restoreVol));
@@ -5334,6 +5342,22 @@ function buildJukeboxUI() {
         modal.classList.add('hidden');
         state.modalVisible = false;
         if (window.localStorage) localStorage.setItem("spkmod-jukebox-visible", "false");
+
+        const isMobile = (typeof spkmodIsMobile === "function" ? spkmodIsMobile() : false) ||
+            (typeof window.speakiMobile !== "undefined") ||
+            (typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent));
+
+        if (isMobile) {
+            if (state.player && typeof state.player.pauseVideo === 'function') {
+                try { state.player.pauseVideo(); } catch (_) {}
+            }
+            state.isPlaying = false;
+            state.isChangingTrack = false;
+            suppressGameBgm(false);
+            updateJukeboxUI();
+        } else if (!state.isPlaying) {
+            suppressGameBgm(false);
+        }
     });
 
     const thumbImg = modal.querySelector('#spkmod-jukebox-thumb');
@@ -5689,6 +5713,22 @@ function toggleMusicPlayer(forceState) {
         modal.classList.add("hidden");
         state.modalVisible = false;
         if (window.localStorage) localStorage.setItem("spkmod-jukebox-visible", "false");
+
+        const isMobile = (typeof spkmodIsMobile === "function" ? spkmodIsMobile() : false) ||
+            (typeof window.speakiMobile !== "undefined") ||
+            (typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent));
+
+        if (isMobile) {
+            if (state.player && typeof state.player.pauseVideo === 'function') {
+                try { state.player.pauseVideo(); } catch (_) {}
+            }
+            state.isPlaying = false;
+            state.isChangingTrack = false;
+            suppressGameBgm(false);
+            updateJukeboxUI();
+        } else if (!state.isPlaying) {
+            suppressGameBgm(false);
+        }
     }
 }
 window.toggleMusicPlayer = toggleMusicPlayer;
@@ -7037,11 +7077,11 @@ document.head.appendChild(buildElement(
 			flex-direction: column;
 			position: fixed;
 			z-index: 600000;
-			width: max-content;
-			min-width: min(520px, calc(100vw - 20px));
+			width: min(720px, calc(100vw - 20px));
+			min-width: min(440px, calc(100vw - 20px));
 			max-width: calc(100vw - 20px);
 			height: max-content;
-			max-height: calc(100vh - 24px);
+			max-height: calc(100vh - 40px);
 			overflow-y: auto;
 			overflow-x: hidden;
 			box-sizing: border-box;
@@ -7057,10 +7097,10 @@ document.head.appendChild(buildElement(
 		}
 		.spkmod-settings-grid {
 			display: grid;
-			grid-template-columns: max-content max-content;
+			grid-template-columns: 1fr 1fr;
 			gap: 10px;
 		}
-		@media (max-width: 650px) {
+		@media (max-width: 720px) {
 			#spkmod-settings-modal {
 				width: calc(100vw - 20px) !important;
 				max-width: calc(100vw - 20px) !important;
@@ -7082,13 +7122,22 @@ document.head.appendChild(buildElement(
 		}
 		body.spkmod-is-mobile #spkmod-settings-modal {
 			min-width: 0 !important;
-			width: min(440px, calc(100vw - 16px)) !important;
+			width: min(640px, calc(100vw - 16px)) !important;
 			max-width: calc(100vw - 16px) !important;
 			max-height: calc(100vh - 12px) !important;
 			padding: 6px 8px !important;
 			gap: 4px !important;
 			font-size: 11px !important;
-			transform: scale(calc(var(--spkmod-scale) * 0.84)) !important;
+			transform: scale(calc(var(--spkmod-scale) * 0.88)) !important;
+			transform-origin: top left !important;
+		}
+		body.spkmod-is-mobile #spkmod-css-modal,
+		body.spkmod-is-mobile #spkmod-resource-pack-modal {
+			width: min(640px, calc(100vw - 16px)) !important;
+			max-width: calc(100vw - 16px) !important;
+			min-width: 0 !important;
+			max-height: calc(100vh - 16px) !important;
+			transform: scale(calc(var(--spkmod-scale) * 0.88)) !important;
 			transform-origin: top left !important;
 		}
 		body.spkmod-is-mobile .spkmod-settings-grid {
@@ -7200,6 +7249,8 @@ document.head.appendChild(buildElement(
 			border: 1px solid rgba(255, 255, 255, 0.08);
 			border-radius: 6px;
 			padding: 8px;
+			min-width: 0;
+			box-sizing: border-box;
 		}
 		.spkmod-settings-col .spkmod-panel-cat {
 			gap: 8px;
@@ -9324,10 +9375,12 @@ document.body.appendChild(
 								localStorage.setItem("spkmod-cinema-volume", String(v));
 							}
 						}
-					}),
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat", style: "gap: 6px;" }, [
 					lunPanelElements.cinemaReloadBtn = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 1px 6px; font-size: 10px; cursor: pointer;",
+						style: "padding: 2px 6px; font-size: 10px; cursor: pointer; flex: 1;",
 						innerText: "🔄 " + (t("cinemaReloadPlaylist") || "Reload"),
 						title: t("cinemaReloadPlaylist") || "Reload playlist",
 						onclick: () => {
@@ -9341,7 +9394,7 @@ document.body.appendChild(
 					}),
 					buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 1px 6px; font-size: 10px; cursor: pointer;",
+						style: "padding: 2px 6px; font-size: 10px; cursor: pointer; flex: 1;",
 						innerText: "📋 " + (t("cinemaPlaylistBtn") || "Playlist"),
 						title: t("cinemaPlaylistTitle") || "Open Monatium Cinema Playlist",
 						onclick: () => {
@@ -10454,6 +10507,9 @@ function toggleCustomCssModal(explicitState) {
 		if (customCssModalElements.livePreviewToggle) {
 			customCssModalElements.livePreviewToggle.checked = lunCustomCssLivePreview;
 		}
+		if (typeof positionModalNicely === "function") {
+			positionModalNicely(lunHudElements.customCssModal);
+		}
 		lunHudElements.customCssModal.classList.remove("hidden");
 		if (customCssModalElements.textarea) {
 			setTimeout(() => customCssModalElements.textarea.focus(), 50);
@@ -11419,6 +11475,9 @@ function toggleResourcePackModal(explicitState) {
 			resourcePackModalElements.enableToggle.checked = lunResourcePackEnabled;
 		}
 		spkmodRenderResourcePackBlockList();
+		if (typeof positionModalNicely === "function") {
+			positionModalNicely(lunHudElements.resourcePackModal);
+		}
 		lunHudElements.resourcePackModal.classList.remove("hidden");
 	} else {
 		lunHudElements.resourcePackModal.classList.add("hidden");
@@ -28711,6 +28770,8 @@ var spkmodCinemaModeActive = false;
 var spkmodCinemaInZone = false;
 var spkmodCinemaLastVolume = -1;
 var spkmodCinemaLastSyncCheckMs = 0;
+var spkmodCinemaLeftZoneTimeMs = 0;
+var spkmodCinemaCurrentVideoStartTimeMs = Date.now();
 var spkmodCinemaTopBarDismissed = false;
 var spkmodCinemaRepeatMode = "all"; // 'all' | 'one' | 'off'
 if (window.localStorage) {
@@ -29011,11 +29072,13 @@ function spkmodParseMoviesTxt(text) {
 			}
 
 			const isStream = explicitStream || (dur === 0 && url.includes('/live'));
+			const baseDur = (dur && dur > 0) ? dur : (isStream ? 600 : 300);
 			const item = {
 				id: id,
 				title: title,
 				author: author,
 				duration: isNaN(dur) ? 0 : dur,
+				baseDuration: baseDur,
 				url: url,
 				isStream: isStream,
 				isLiveStream: isStream
@@ -29068,12 +29131,12 @@ window.spkmodGetCinemaText = getCinemaText;
 
 async function spkmodLoadMoviesPlaylist() {
 	const defaultList = [
-		{ id: "EstBwd8DcSw", title: "oage", author: "", duration: 0, isStream: true, isLiveStream: true },
-		{ id: "yaIEanyk6WI", title: "Speaki MMO MV-Don't bully SPEAKI", author: "", duration: 496 },
-		{ id: "pu_ULvS0l2k", title: "ｽﾋﾟｷ × バニラ求人 MMOスピキver. スピキMMORPG Speaki 스피키 키우기", author: "", duration: 64 },
-		{ id: "ifMMrYSEncM", title: "I interviewed the ONLY Max-Level Speaki in the Game!", author: "Speaki MMO", duration: 735 },
-		{ id: "nC1WFWF3G8o", title: "Speaki MMO MV – The Price of Peace", author: "", duration: 98 },
-		{ id: "wn069Hag470", title: "speaki cuayo for an hour!", author: "", duration: 3610 }
+		{ id: "EstBwd8DcSw", title: "oage", author: "", duration: 0, baseDuration: 600, isStream: true, isLiveStream: true },
+		{ id: "yaIEanyk6WI", title: "Speaki MMO MV-Don't bully SPEAKI", author: "", duration: 496, baseDuration: 496 },
+		{ id: "pu_ULvS0l2k", title: "ｽﾋﾟｷ × バニラ求人 MMOスピキver. スピキMMORPG Speaki 스피키 키우기", author: "", duration: 64, baseDuration: 64 },
+		{ id: "ifMMrYSEncM", title: "I interviewed the ONLY Max-Level Speaki in the Game!", author: "Speaki MMO", duration: 735, baseDuration: 735 },
+		{ id: "nC1WFWF3G8o", title: "Speaki MMO MV – The Price of Peace", author: "", duration: 98, baseDuration: 98 },
+		{ id: "wn069Hag470", title: "speaki cuayo for an hour!", author: "", duration: 3610, baseDuration: 3610 }
 	];
 
 	try {
@@ -29123,7 +29186,7 @@ async function spkmodLoadSongsPlaylist() {
 			const rawTitle = Array.isArray(t) ? t[1] : (t.title || "");
 			const rawAuthor = Array.isArray(t) ? (t[2] || "") : (t.author || "");
 			const dur = (Array.isArray(t) && t[3]) ? (parseInt(t[3], 10) || 210) : (t.duration || 210);
-			return { id, title: rawTitle || id, author: rawAuthor, duration: dur, url: `https://www.youtube.com/watch?v=${id}` };
+			return { id, title: rawTitle || id, author: rawAuthor, duration: dur, baseDuration: dur, url: `https://www.youtube.com/watch?v=${id}` };
 		}).filter(t => t.id);
 	};
 
@@ -29134,7 +29197,7 @@ async function spkmodLoadSongsPlaylist() {
 			const rawTitle = Array.isArray(t) ? t[1] : (t.title || "");
 			const rawAuthor = Array.isArray(t) ? (t[2] || "") : (t.author || "");
 			const dur = (Array.isArray(t) && t[3]) ? (parseInt(t[3], 10) || 210) : (t.duration || 210);
-			return { id, title: rawTitle || id, author: rawAuthor, duration: dur, url: `https://www.youtube.com/watch?v=${id}` };
+			return { id, title: rawTitle || id, author: rawAuthor, duration: dur, baseDuration: dur, url: `https://www.youtube.com/watch?v=${id}` };
 		}).filter(t => t.id);
 		if (list.length > 0) {
 			spkmodCinemaPlaylists.songs = list;
@@ -29263,32 +29326,26 @@ function spkmodGetCinemaSyncedTrack() {
 		return { track: currentList[0], startSec: 0, trackIndex: 0, totalTracks: currentList.length };
 	}
 
-	// 1. If an active livestream is broadcasting, prioritize it as the live program!
-	const activeLive = availableTracks.find(t => (t.duration === 0 || t.isLive) && t.isActiveLive);
-	if (activeLive) {
-		const origIdx = currentList.findIndex(t => t.id === activeLive.id);
-		return { track: activeLive, startSec: 0, trackIndex: origIdx >= 0 ? origIdx : 0, totalTracks: currentList.length };
-	}
+	// Scheduled programming with real-time TV broadcast sync
+	const getDur = (t) => {
+		if (t.baseDuration && t.baseDuration > 0) return t.baseDuration;
+		if (t.duration && t.duration > 0) return t.duration;
+		return (spkmodCinemaActiveTab === 'songs') ? 210 : 300;
+	};
 
-	// 2. Scheduled programming with real-time TV broadcast sync
-	// Include all regular videos (even if duration is pending detection)
-	const scheduledTracks = availableTracks.filter(t => t.duration > 0 || !t.isStream);
-	const pool = scheduledTracks.length > 0 ? scheduledTracks : availableTracks;
-
-	const getDur = (t) => (t.duration && t.duration > 0) ? t.duration : (spkmodCinemaActiveTab === 'songs' ? 210 : 300);
-	const totalDuration = pool.reduce((acc, t) => acc + getDur(t), 0);
+	const totalDuration = availableTracks.reduce((acc, t) => acc + getDur(t), 0);
 	if (totalDuration <= 0) {
-		return { track: pool[0], startSec: 0, trackIndex: 0, totalTracks: currentList.length };
+		return { track: availableTracks[0], startSec: 0, trackIndex: 0, totalTracks: currentList.length };
 	}
 
 	// Independent channel seeds so Movie and Bolpop run on separate TV programming cycles
 	const channelSeed = (spkmodCinemaActiveTab === 'songs') ? 7919 : 0;
 	const nowSec = Math.floor(Date.now() / 1000) + channelSeed;
-	const cycleTime = nowSec % totalDuration;
+	const cycleTime = ((nowSec % totalDuration) + totalDuration) % totalDuration;
 
 	let accum = 0;
-	for (let i = 0; i < pool.length; i++) {
-		const track = pool[i];
+	for (let i = 0; i < availableTracks.length; i++) {
+		const track = availableTracks[i];
 		const dur = getDur(track);
 		if (cycleTime >= accum && cycleTime < accum + dur) {
 			const startSec = Math.floor(cycleTime - accum);
@@ -29298,7 +29355,7 @@ function spkmodGetCinemaSyncedTrack() {
 		accum += dur;
 	}
 
-	const fallbackTrack = pool[0];
+	const fallbackTrack = availableTracks[0];
 	const fallbackIdx = currentList.findIndex(t => t.id === fallbackTrack.id);
 	return { track: fallbackTrack, startSec: 0, trackIndex: fallbackIdx >= 0 ? fallbackIdx : 0, totalTracks: currentList.length };
 }
@@ -29432,6 +29489,8 @@ function spkmodSyncCinemaPlayback(force = false) {
 	const videoId = track.id;
 	if (force || spkmodCinemaCurrentVideo !== videoId) {
 		spkmodCinemaCurrentVideo = videoId;
+		spkmodCinemaManualTrackIndex = null;
+		spkmodCinemaCurrentVideoStartTimeMs = Date.now() - (startSec * 1000);
 		if (spkmodCinemaIframe) {
 			const isMuted = !!window.spkmodCinemaConfig?.muted;
 			const loopParam = (spkmodCinemaRepeatMode === 'one') ? `&loop=1&playlist=${videoId}` : '';
@@ -29598,7 +29657,7 @@ function spkmodGetCinemaCurrentTrackIndex() {
 }
 window.spkmodGetCinemaCurrentTrackIndex = spkmodGetCinemaCurrentTrackIndex;
 
-function spkmodPlayCinemaTrackIndex(index, startSec = 0) {
+function spkmodPlayCinemaTrackIndex(index, startSec = 0, isManual = true) {
 	try {
 		const currentList = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
 			? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
@@ -29608,12 +29667,13 @@ function spkmodPlayCinemaTrackIndex(index, startSec = 0) {
 		index = ((index % count) + count) % count;
 
 		spkmodCinemaLoadedPlaylist = currentList;
-		spkmodCinemaManualTrackIndex = index;
+		spkmodCinemaManualTrackIndex = isManual ? index : null;
 		spkmodCinemaIsPaused = false;
 		const track = currentList[index];
 		if (!track) return;
 
 		spkmodCinemaCurrentVideo = track.id;
+		spkmodCinemaCurrentVideoStartTimeMs = Date.now() - (startSec * 1000);
 		window.spkmodCurrentCinemaTitle = track.title || "Monatium Cinema";
 
 		if (spkmodCinemaIframe) {
@@ -29654,7 +29714,7 @@ window.spkmodCinemaTogglePlayPause = function() {
 
 window.spkmodCinemaPrev = function() {
 	const cur = spkmodGetCinemaCurrentTrackIndex();
-	spkmodPlayCinemaTrackIndex(cur - 1);
+	spkmodPlayCinemaTrackIndex(cur - 1, 0, true);
 };
 
 window.spkmodCinemaNext = function() {
@@ -29668,7 +29728,7 @@ window.spkmodCinemaNext = function() {
 		spkmodUpdateCinemaPlaybackUI();
 		return;
 	}
-	spkmodPlayCinemaTrackIndex(cur + 1);
+	spkmodPlayCinemaTrackIndex(cur + 1, 0, true);
 };
 
 window.spkmodCinemaToggleRepeat = function() {
@@ -30537,6 +30597,7 @@ function spkmodCinemaTick() {
 		spkmodUpdateCinemaTopBar(false);
 		if (spkmodCinemaInZone) {
 			spkmodCinemaInZone = false;
+			spkmodCinemaLeftZoneTimeMs = Date.now();
 			if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = 'none';
 			if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = false;
 			spkmodSendYtCommand('pauseVideo');
@@ -30575,23 +30636,12 @@ function spkmodCinemaTick() {
 		if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = '';
 		if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = true;
 
-		// 1. Resume existing track without restarting playlist
-		if (spkmodCinemaCurrentVideo && spkmodCinemaIframe) {
-			if (spkmodCinemaManualTrackIndex === null) {
-				const syncData = spkmodGetCinemaSyncedTrack();
-				if (syncData && syncData.track && syncData.track.id !== spkmodCinemaCurrentVideo) {
-					spkmodSyncCinemaPlayback();
-				} else {
-					spkmodSendYtCommand('playVideo');
-					if (syncData && typeof syncData.startSec === 'number') {
-						spkmodSendYtCommand('seekTo', [syncData.startSec, true]);
-					}
-				}
-			} else {
-				spkmodSendYtCommand('playVideo');
-			}
+		// 1. Resume existing track without restarting or re-seeking if briefly stepped away (< 60s)
+		const wasBrieflyAway = spkmodCinemaLeftZoneTimeMs > 0 && (Date.now() - spkmodCinemaLeftZoneTimeMs < 60000);
+		if (spkmodCinemaCurrentVideo && spkmodCinemaIframe && wasBrieflyAway) {
+			spkmodSendYtCommand('playVideo');
 		} else {
-			spkmodSyncCinemaPlayback();
+			spkmodSyncCinemaPlayback(true);
 		}
 
 		// 2. Unmute and restore volume immediately
@@ -30611,9 +30661,20 @@ function spkmodCinemaTick() {
 	if (now - spkmodCinemaLastSyncCheckMs > 3000) {
 		spkmodCinemaLastSyncCheckMs = now;
 		if (spkmodCinemaManualTrackIndex === null) {
-			const syncData = spkmodGetCinemaSyncedTrack();
-			if (syncData && syncData.track && syncData.track.id !== spkmodCinemaCurrentVideo) {
-				spkmodSyncCinemaPlayback();
+			if (!spkmodCinemaCurrentVideo || !spkmodCinemaIframe || !spkmodCinemaIframe.src) {
+				spkmodSyncCinemaPlayback(true);
+			} else if (!spkmodCinemaIsPaused) {
+				const list = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
+					? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
+					: (spkmodCinemaLoadedPlaylist || []);
+				const curIdx = spkmodGetCinemaCurrentTrackIndex();
+				const curTrack = list[curIdx];
+				const dur = (curTrack && curTrack.duration > 0) ? curTrack.duration : (spkmodCinemaActiveTab === 'songs' ? 210 : 300);
+				const elapsedSec = (now - spkmodCinemaCurrentVideoStartTimeMs) / 1000;
+				if (!curTrack?.isLiveStream && !curTrack?.isStream && elapsedSec > (dur + 25)) {
+					console.log(`[SpeakiMod+] Watchdog: ${curTrack?.title || 'track'} exceeded duration (${elapsedSec}s > ${dur}s). Advancing naturally...`);
+					spkmodPlayCinemaTrackIndex(curIdx + 1, 0, false);
+				}
 			}
 		}
 	}
@@ -30841,19 +30902,16 @@ window.addEventListener('message', e => {
 				: (spkmodCinemaLoadedPlaylist || []);
 			const curIdx = spkmodGetCinemaCurrentTrackIndex();
 			const curTrack = list[curIdx];
-			if (curTrack && (curTrack.isLiveStream || (curTrack.isStream && curTrack.duration === 0))) {
+			if (curTrack) {
 				curTrack.isOffline = true;
 				curTrack.isEnded = true;
-				console.log(`[SpeakiMod+] Stream ${curTrack.title} (${curTrack.id}) offline/error. Advancing schedule...`);
-				if (spkmodCinemaManualTrackIndex === null) {
-					spkmodSyncCinemaPlayback(true);
-				} else {
-					window.spkmodCinemaNext();
-				}
-				spkmodRenderCinemaModalList();
-				spkmodUpdateCinemaPlaybackUI();
-				return;
+				console.log(`[SpeakiMod+] Track ${curTrack.title || curTrack.id} (${curTrack.id}) error. Advancing to next track...`);
 			}
+			const isManual = spkmodCinemaManualTrackIndex !== null;
+			spkmodPlayCinemaTrackIndex(curIdx + 1, 0, isManual);
+			spkmodRenderCinemaModalList();
+			spkmodUpdateCinemaPlaybackUI();
+			return;
 		}
 
 		if (data.event === 'onStateChange') {
@@ -30866,30 +30924,25 @@ window.addEventListener('message', e => {
 				if (curTrack && (curTrack.isLiveStream || (curTrack.isStream && curTrack.duration === 0))) {
 					curTrack.isOffline = true;
 					curTrack.isEnded = true;
-					console.log(`[SpeakiMod+] Stream ${curTrack.title} (${curTrack.id}) ended. Advancing schedule...`);
-					if (spkmodCinemaManualTrackIndex === null) {
-						spkmodSyncCinemaPlayback(true);
-					} else {
-						window.spkmodCinemaNext();
-					}
-					spkmodRenderCinemaModalList();
-					spkmodUpdateCinemaPlaybackUI();
-					return;
+					console.log(`[SpeakiMod+] Stream ${curTrack.title} (${curTrack.id}) ended. Advancing...`);
 				}
 
+				const isManual = spkmodCinemaManualTrackIndex !== null;
 				if (spkmodCinemaRepeatMode === 'one') {
-					spkmodPlayCinemaTrackIndex(spkmodGetCinemaCurrentTrackIndex());
+					spkmodPlayCinemaTrackIndex(curIdx, 0, isManual);
 				} else if (spkmodCinemaRepeatMode === 'all') {
-					window.spkmodCinemaNext();
+					spkmodPlayCinemaTrackIndex(curIdx + 1, 0, isManual);
 				} else if (spkmodCinemaRepeatMode === 'off') {
-					const cur = spkmodGetCinemaCurrentTrackIndex();
-					if (cur < list.length - 1) {
-						window.spkmodCinemaNext();
+					if (curIdx < list.length - 1) {
+						spkmodPlayCinemaTrackIndex(curIdx + 1, 0, isManual);
 					} else {
 						spkmodCinemaIsPaused = true;
 						spkmodUpdateCinemaPlaybackUI();
 					}
 				}
+				spkmodRenderCinemaModalList();
+				spkmodUpdateCinemaPlaybackUI();
+				return;
 			} else if (data.info === 1) { // PLAYING
 				const list = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
 					? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
