@@ -29042,6 +29042,36 @@ function spkmodParseMoviesTxt(text) {
 			}
 		}
 
+		let channelId = null;
+		const chMatch = url.match(/channel[=/](UC[\w-]{22})/i);
+		if (chMatch) {
+			channelId = chMatch[1];
+		} else if (url.includes('@oagemono')) {
+			channelId = 'UCgiIsLZFrdZUagCIQDCQX0b';
+		}
+
+		if (channelId) {
+			const id = 'live_' + channelId;
+			const isStream = true;
+			const baseDur = (dur && dur > 0) ? dur : 600;
+			const item = {
+				id: id,
+				channelId: channelId,
+				title: title || 'oage (Live)',
+				author: author || 'oagemono',
+				duration: 0,
+				baseDuration: baseDur,
+				url: url,
+				isStream: true,
+				isLiveStream: true,
+				isChannelLive: true,
+				isOffline: false,
+				isEnded: false
+			};
+			list.push(item);
+			continue;
+		}
+
 		const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/i);
 		if (match && match[1]) {
 			const id = match[1];
@@ -29131,7 +29161,7 @@ window.spkmodGetCinemaText = getCinemaText;
 
 async function spkmodLoadMoviesPlaylist() {
 	const defaultList = [
-		{ id: "EstBwd8DcSw", title: "oage", author: "", duration: 0, baseDuration: 600, isStream: true, isLiveStream: true },
+		{ id: "live_UCgiIsLZFrdZUagCIQDCQX0b", channelId: "UCgiIsLZFrdZUagCIQDCQX0b", title: "oage", author: "oagemono", duration: 0, baseDuration: 600, isStream: true, isLiveStream: true, isChannelLive: true },
 		{ id: "yaIEanyk6WI", title: "Speaki MMO MV-Don't bully SPEAKI", author: "", duration: 496, baseDuration: 496 },
 		{ id: "pu_ULvS0l2k", title: "ｽﾋﾟｷ × バニラ求人 MMOスピキver. スピキMMORPG Speaki 스피키 키우기", author: "", duration: 64, baseDuration: 64 },
 		{ id: "ifMMrYSEncM", title: "I interviewed the ONLY Max-Level Speaki in the Game!", author: "Speaki MMO", duration: 735, baseDuration: 735 },
@@ -29494,7 +29524,9 @@ function spkmodSyncCinemaPlayback(force = false) {
 		if (spkmodCinemaIframe) {
 			const isMuted = !!window.spkmodCinemaConfig?.muted;
 			const loopParam = (spkmodCinemaRepeatMode === 'one') ? `&loop=1&playlist=${videoId}` : '';
-			const ytUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&start=${startSec}&origin=${encodeURIComponent(location.origin)}${loopParam}`;
+			const ytUrl = track.isChannelLive
+				? `https://www.youtube.com/embed/live_stream?channel=${track.channelId}&enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&origin=${encodeURIComponent(location.origin)}`
+				: `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&start=${startSec}&origin=${encodeURIComponent(location.origin)}${loopParam}`;
 			spkmodCinemaIframe.src = ytUrl;
 			setTimeout(() => { spkmodSendYtCommand('getDuration'); }, 1200);
 			setTimeout(() => { spkmodSendYtCommand('getDuration'); }, 2500);
@@ -29677,8 +29709,11 @@ function spkmodPlayCinemaTrackIndex(index, startSec = 0, isManual = true) {
 		window.spkmodCurrentCinemaTitle = track.title || "Monatium Cinema";
 
 		if (spkmodCinemaIframe) {
+			const isMuted = !!window.spkmodCinemaConfig?.muted;
 			const loopParam = (spkmodCinemaRepeatMode === 'one') ? `&loop=1&playlist=${track.id}` : '';
-			const ytUrl = `https://www.youtube.com/embed/${track.id}?enablejsapi=1&autoplay=1&mute=${window.spkmodCinemaConfig?.muted ? 1 : 0}&controls=1&modestbranding=1&rel=0&start=${startSec}&origin=${encodeURIComponent(location.origin)}${loopParam}`;
+			const ytUrl = track.isChannelLive
+				? `https://www.youtube.com/embed/live_stream?channel=${track.channelId}&enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&origin=${encodeURIComponent(location.origin)}`
+				: `https://www.youtube.com/embed/${track.id}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&start=${startSec}&origin=${encodeURIComponent(location.origin)}${loopParam}`;
 			spkmodCinemaIframe.src = ytUrl;
 			setTimeout(() => { spkmodSendYtCommand('getDuration'); }, 1200);
 			setTimeout(() => { spkmodSendYtCommand('getDuration'); }, 2500);
@@ -29814,6 +29849,15 @@ function hideCinemaThumbPreview() {
 	}
 }
 
+function spkmodGetTrackThumbnail(track) {
+	if (!track) return "";
+	if (track.liveVideoId) return `https://i.ytimg.com/vi/${track.liveVideoId}/mqdefault.jpg`;
+	if (track.isChannelLive || (track.id && track.id.startsWith("live_"))) {
+		return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="88" height="60" viewBox="0 0 88 60"><rect width="88" height="60" fill="%231a1025"/><circle cx="26" cy="30" r="6" fill="%23ff3344"/><text x="38" y="35" fill="%23fff" font-family="sans-serif" font-size="13" font-weight="bold">LIVE</text></svg>';
+	}
+	return `https://i.ytimg.com/vi/${track.id}/mqdefault.jpg`;
+}
+
 function spkmodRenderCinemaModalList() {
 	if (!spkmodCinemaModalEl) return;
 	const listEl = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-list");
@@ -29902,7 +29946,7 @@ function spkmodRenderCinemaModalList() {
 		const dur = spkmodFormatDuration(track.duration, spkmodCinemaActiveTab === 'songs', track.isOffline || track.isEnded, track.isStream || track.isLiveStream);
 		item.innerHTML = `
 			<span class="spkmod-cinema-num" style="font-size:11px;font-weight:700;color:${isActive ? '#e8b84b' : '#888'};min-width:18px;pointer-events:none;">#${i + 1}</span>
-			<img class="spkmod-cinema-row-thumb" src="https://i.ytimg.com/vi/${track.id}/mqdefault.jpg" style="width:44px;height:30px;border-radius:4px;object-fit:cover;border:1px solid rgba(232,184,75,0.3);flex-shrink:0;background:#0d0a14;cursor:pointer;pointer-events:auto;transition:transform 0.12s ease;">
+			<img class="spkmod-cinema-row-thumb" src="${spkmodGetTrackThumbnail(track)}" style="width:44px;height:30px;border-radius:4px;object-fit:cover;border:1px solid rgba(232,184,75,0.3);flex-shrink:0;background:#0d0a14;cursor:pointer;pointer-events:auto;transition:transform 0.12s ease;">
 			<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;pointer-events:none;">
 				<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
 					<span class="spkmod-cinema-title" style="font-size:12px;font-weight:${isActive ? '700' : '600'};color:${isActive ? '#ffc94a' : '#fff'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">
@@ -29950,7 +29994,7 @@ function spkmodUpdateCinemaPlaybackUI() {
 	if (spkmodCinemaModalEl) {
 		const thumb = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-thumb");
 		if (thumb) {
-			thumb.src = `https://i.ytimg.com/vi/${track.id}/mqdefault.jpg`;
+			thumb.src = spkmodGetTrackThumbnail(track);
 			if (spkmodCinemaThumbPreview && spkmodCinemaThumbPreview.style.display === "block") {
 				showCinemaThumbPreview(thumb);
 			}
@@ -30845,15 +30889,19 @@ window.addEventListener('message', e => {
 			}
 		}
 
-		if (ytDur > 0 || ytTitle) {
+		if (ytDur > 0 || ytTitle || ytVid) {
 			const targetId = ytVid || spkmodCinemaCurrentVideo;
 			if (targetId) {
 				const list = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
 					? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
 					: (spkmodCinemaLoadedPlaylist || []);
-				const targetTrack = list.find(t => t.id === targetId);
+				const targetTrack = list.find(t => t.id === targetId || (t.isChannelLive && spkmodCinemaCurrentVideo === t.id));
 				if (targetTrack) {
 					let changed = false;
+					if (ytVid && targetTrack.isChannelLive && targetTrack.liveVideoId !== ytVid) {
+						targetTrack.liveVideoId = ytVid;
+						changed = true;
+					}
 					if (ytDur > 0 && !targetTrack.isLiveStream) {
 						if (!targetTrack.duration || targetTrack.duration <= 0 || Math.abs(targetTrack.duration - ytDur) > 3) {
 							targetTrack.duration = ytDur;

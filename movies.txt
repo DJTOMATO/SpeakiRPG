@@ -10,7 +10,7 @@
 # - If duration is explicitly 0 (or a /live URL), it is treated as a livestream.
 # - Lines starting with # are comments.
 # ==============================================================================
-https://www.youtube.com/watch?v=EstBwd8DcSw | oage | 0
+https://www.youtube.com/embed/live_stream?channel=UCgiIsLZFrdZUagCIQDCQX0b | oage | 0
 https://www.youtube.com/watch?v=yaIEanyk6WI | Speaki MMO MV-Don't bully SPEAKI | 496
 https://www.youtube.com/watch?v=pu_ULvS0l2k | ｽﾋﾟｷ × バニラ求人 MMOスピキver. スピキMMORPG Speaki 스피키 키우기 | 64
 https://www.youtube.com/watch?v=ifMMrYSEncM | I interviewed the ONLY Max-Level Speaki in the Game! by Speaki MMO | 735
