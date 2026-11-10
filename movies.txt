@@ -1,13 +1,19 @@
 # ==============================================================================
 # SpeakiRPG Movie Theater Playlist
-# Format: YouTube_URL | Title | Duration_in_Seconds
-# If duration is 0, the video is treated as an endless livestream.
-# Lines starting with # are comments.
+# Format: YouTube_URL [ | Title ] [ | Duration_in_Seconds ]
+#
+# DURATION IS OPTIONAL:
+# - If you omit the duration (e.g. "URL | Title" or just "URL"), Cinema will
+#   automatically grab the duration directly from the YouTube player!
+# - Run "python tools/update_movies.py" or "python tools/bundle.py" to auto-fill
+#   missing titles and durations anytime.
+# - If duration is explicitly 0 (or a /live URL), it is treated as a livestream.
+# - Lines starting with # are comments.
 # ==============================================================================
 https://www.youtube.com/watch?v=EstBwd8DcSw | oage | 0
-https://www.youtube.com/watch?v=yaIEanyk6WI | Speaki MMO MV-Don't bully SPEAKI | 495
+https://www.youtube.com/watch?v=yaIEanyk6WI | Speaki MMO MV-Don't bully SPEAKI | 496
 https://www.youtube.com/watch?v=pu_ULvS0l2k | ｽﾋﾟｷ × バニラ求人 MMOスピキver. スピキMMORPG Speaki 스피키 키우기 | 64
-https://www.youtube.com/watch?v=ifMMrYSEncM | I interviewed the ONLY Max-Level Speaki in the Game! by Speaki MMO | 734 
+https://www.youtube.com/watch?v=ifMMrYSEncM | I interviewed the ONLY Max-Level Speaki in the Game! by Speaki MMO | 735
 https://www.youtube.com/watch?v=nC1WFWF3G8o | Speaki MMO MV – The Price of Peace | 98
-https://www.youtube.com/watch?v=wn069Hag470 | speaki cuayo for an hour! | 999
+https://www.youtube.com/watch?v=wn069Hag470 | speaki cuayo for an hour! | 3610
 
