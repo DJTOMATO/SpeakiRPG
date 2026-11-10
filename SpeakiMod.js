@@ -28770,6 +28770,8 @@ var spkmodCinemaModeActive = false;
 var spkmodCinemaInZone = false;
 var spkmodCinemaLastVolume = -1;
 var spkmodCinemaLastSyncCheckMs = 0;
+var spkmodCinemaLastTimeUpdateMs = 0;
+window.spkmodCinemaCurrentVideoTimeSec = 0;
 var spkmodCinemaLeftZoneTimeMs = 0;
 var spkmodCinemaCurrentVideoStartTimeMs = Date.now();
 var spkmodCinemaTopBarDismissed = false;
@@ -29546,6 +29548,7 @@ function spkmodSyncCinemaPlayback(force = false) {
 		spkmodCinemaCurrentVideo = videoId;
 		spkmodCinemaManualTrackIndex = null;
 		spkmodCinemaCurrentVideoStartTimeMs = Date.now() - (startSec * 1000);
+		window.spkmodCinemaCurrentVideoTimeSec = startSec;
 		if (spkmodCinemaIframe) {
 			const isMuted = !!window.spkmodCinemaConfig?.muted;
 			const loopParam = (spkmodCinemaRepeatMode === 'one') ? `&loop=1&playlist=${videoId}` : '';
@@ -29696,10 +29699,11 @@ window.spkmodToggleCinemaMute = function() {
 
 function spkmodFormatDuration(sec, isSong = false, isEnded = false, isStream = false) {
 	if (isEnded) return "⚪ Stream Ended";
-	if (sec && sec > 0) {
-		const h = Math.floor(sec / 3600);
-		const m = Math.floor((sec % 3600) / 60);
-		const s = Math.floor(sec % 60);
+	if (typeof sec === 'number' && !isNaN(sec) && sec >= 0) {
+		const totalSec = Math.floor(sec);
+		const h = Math.floor(totalSec / 3600);
+		const m = Math.floor((totalSec % 3600) / 60);
+		const s = Math.floor(totalSec % 60);
 		if (h > 0) {
 			return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
 		}
@@ -29743,6 +29747,7 @@ function spkmodPlayCinemaTrackIndex(index, startSec = 0, isManual = true) {
 
 		spkmodCinemaCurrentVideo = track.id;
 		spkmodCinemaCurrentVideoStartTimeMs = Date.now() - (startSec * 1000);
+		window.spkmodCinemaCurrentVideoTimeSec = startSec;
 		window.spkmodCurrentCinemaTitle = track.title || "Monatium Cinema";
 
 		if (spkmodCinemaIframe) {
@@ -30058,6 +30063,56 @@ function spkmodRenderCinemaModalList() {
 	});
 }
 
+function spkmodUpdateCinemaTimeDisplay() {
+	const list = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
+		? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
+		: (spkmodCinemaLoadedPlaylist || []);
+	const curIdx = spkmodGetCinemaCurrentTrackIndex();
+	const track = list[curIdx];
+	if (!track) return;
+
+	let curSec = 0;
+	if (window.spkmodCinemaCurrentVideoTimeSec !== undefined && window.spkmodCinemaCurrentVideoTimeSec > 0) {
+		curSec = Math.floor(window.spkmodCinemaCurrentVideoTimeSec);
+	} else if (spkmodCinemaCurrentVideoStartTimeMs > 0) {
+		curSec = Math.max(0, Math.floor((Date.now() - spkmodCinemaCurrentVideoStartTimeMs) / 1000));
+	}
+	if (track.duration > 0 && curSec > track.duration) {
+		curSec = track.duration;
+	}
+
+	const isStream = track.isStream || track.isLiveStream || track.duration === 0;
+	const durStr = spkmodFormatDuration(track.duration, spkmodCinemaActiveTab === 'songs', track.isOffline || track.isEnded, isStream);
+	const timeText = isStream
+		? "🔴 LIVE"
+		: `${spkmodFormatDuration(curSec)} / ${durStr}`;
+
+	// 1. Update Cinema Modal subtitle
+	if (spkmodCinemaModalEl && !spkmodCinemaModalEl.classList.contains("hidden")) {
+		const subEl = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-sub");
+		if (subEl) {
+			const mode = (spkmodCinemaManualTrackIndex === null) ? `🔴 ${getCinemaText("cinemaModeSynced")}` : getCinemaText("cinemaModeManual");
+			subEl.innerText = getCinemaText("cinemaTrackSub", curIdx + 1, list.length, timeText, mode);
+		}
+		// Update active row duration in playlist drawer
+		const listEl = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-list");
+		if (listEl && listEl.children[curIdx]) {
+			const activeItem = listEl.children[curIdx];
+			const durSpan = activeItem.querySelector(".spkmod-cinema-dur-row span:first-child");
+			if (durSpan) {
+				durSpan.innerText = isStream ? "🔴 LIVE" : `${spkmodFormatDuration(curSec)} / ${durStr}`;
+			}
+		}
+	}
+
+	// 2. Update Top HUD Bar
+	const hudTime = document.getElementById("spkmod-cinema-hud-time");
+	if (hudTime) {
+		hudTime.innerText = `(${timeText})`;
+	}
+}
+window.spkmodUpdateCinemaTimeDisplay = spkmodUpdateCinemaTimeDisplay;
+
 function spkmodUpdateCinemaPlaybackUI() {
 	const curIdx = spkmodGetCinemaCurrentTrackIndex();
 	const playlist = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
@@ -30087,12 +30142,7 @@ function spkmodUpdateCinemaPlaybackUI() {
 			authorEl.innerText = track.author || "";
 			authorEl.style.display = track.author ? "block" : "none";
 		}
-		const subEl = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-sub");
-		if (subEl) {
-			const dur = spkmodFormatDuration(track.duration, spkmodCinemaActiveTab === 'songs', track.isOffline || track.isEnded, track.isStream || track.isLiveStream);
-			const mode = (spkmodCinemaManualTrackIndex === null) ? `🔴 ${getCinemaText("cinemaModeSynced")}` : getCinemaText("cinemaModeManual");
-			subEl.innerText = getCinemaText("cinemaTrackSub", curIdx + 1, playlist.length, dur, mode);
-		}
+		spkmodUpdateCinemaTimeDisplay();
 		const syncBtn = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-sync-btn");
 		if (syncBtn) {
 			const isSynced = (spkmodCinemaManualTrackIndex === null);
@@ -30812,6 +30862,13 @@ function spkmodCinemaTick() {
 		}
 	}
 
+	if (now - spkmodCinemaLastTimeUpdateMs > 750) {
+		spkmodCinemaLastTimeUpdateMs = now;
+		if (typeof spkmodUpdateCinemaTimeDisplay === 'function') {
+			spkmodUpdateCinemaTimeDisplay();
+		}
+	}
+
 	spkmodUpdateCinemaSpatialAudio();
 
 	// Automatically show top HUD bar inside cinema area unless dismissed by player
@@ -30865,7 +30922,8 @@ function spkmodUpdateCinemaTopBar(visible) {
 			? getCinemaText("cinemaRepeatOne")
 			: (spkmodCinemaRepeatMode === "all" ? getCinemaText("cinemaRepeatAll") : getCinemaText("cinemaRepeatOff"));
 		hudBar.innerHTML = `
-			<span id="spkmod-cinema-hud-now-playing-container" style="display:inline-flex;align-items:center;gap:4px;min-width:0;max-width:${isMobile ? 'min(170px, 24vw)' : 'min(280px, 32vw)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;">🎬 <strong id="spkmod-cinema-hud-now-playing-label" style="flex-shrink:0;">${getCinemaText("cinemaNowPlaying")}:</strong> <span id="spkmod-cinema-hud-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${title}</span></span>
+			<span id="spkmod-cinema-hud-now-playing-container" style="display:inline-flex;align-items:center;gap:4px;min-width:0;max-width:${isMobile ? 'min(150px, 20vw)' : 'min(240px, 28vw)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;">🎬 <strong id="spkmod-cinema-hud-now-playing-label" style="flex-shrink:0;">${getCinemaText("cinemaNowPlaying")}:</strong> <span id="spkmod-cinema-hud-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${title}</span></span>
+			<span id="spkmod-cinema-hud-time" style="color:#e8b84b;font-size:${isMobile ? 10 : 11}px;margin:0 2px;flex-shrink:0;font-variant-numeric:tabular-nums;font-weight:700;"></span>
 			<div style="width: 1px; height: 14px; background: rgba(232, 184, 75, 0.4); margin: 0 2px; flex-shrink: 0;"></div>
 			<button id="spkmod-cinema-hud-prev-btn" title="${getCinemaText("cinemaPrev")}" style="background:none;border:none;color:#ffc94a;font-size:${isMobile ? 11 : 13}px;cursor:pointer;padding:2px 3px;flex-shrink:0;">⏮️</button>
 			<button id="spkmod-cinema-hud-play-btn" title="Play / Pause" style="background:none;border:none;color:#ffc94a;font-size:${isMobile ? 11 : 13}px;cursor:pointer;padding:2px 3px;flex-shrink:0;">${spkmodCinemaIsPaused ? "▶️" : "⏸️"}</button>
@@ -31069,6 +31127,14 @@ window.addEventListener('message', e => {
 
 		const curTime = (data.info && typeof data.info.currentTime === 'number') ? data.info.currentTime : null;
 		const durTime = (data.info && typeof data.info.duration === 'number') ? data.info.duration : null;
+
+		if (curTime !== null && curTime >= 0) {
+			window.spkmodCinemaCurrentVideoTimeSec = curTime;
+			spkmodCinemaCurrentVideoStartTimeMs = Date.now() - (curTime * 1000);
+			if (typeof spkmodUpdateCinemaTimeDisplay === 'function') {
+				spkmodUpdateCinemaTimeDisplay();
+			}
+		}
 		const isAtEnd = (curTime !== null && durTime !== null && durTime > 2 && curTime >= durTime - 0.75);
 
 		if (playerState === 0 || isAtEnd) { // ENDED
