@@ -42,7 +42,7 @@ def update_movies_with_live(movies_path):
     if not os.path.exists(movies_path):
         return False
         
-    info = check_youtube_live("@oagemono")
+    info = check_youtube_live("UC9BRLn9BCnDYHaoXigXe0dA")
     if not info or not info.get("video_id"):
         print("[Livestream Check] Could not resolve live stream for @oagemono.")
         return False
