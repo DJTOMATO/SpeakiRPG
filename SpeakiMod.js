@@ -29366,55 +29366,57 @@ function spkmodGetCinemaSyncedTrack() {
 		: (spkmodCinemaLoadedPlaylist || []);
 	if (!currentList || currentList.length === 0) return null;
 
-	// Exclude ended or offline streams
-	const availableTracks = currentList.filter(t => !t.isOffline && !t.isEnded);
-	if (availableTracks.length === 0) {
-		return { track: currentList[0], startSec: 0, trackIndex: 0, totalTracks: currentList.length };
-	}
+	const tracks = currentList;
 
-	// Scheduled programming with real-time TV broadcast sync
+	// Scheduled programming with fixed, immutable base durations to keep timeline static and deterministic
 	const getDur = (t) => {
-		if (t.duration && t.duration > 0) return t.duration;
 		if (t.baseDuration && t.baseDuration > 0) return t.baseDuration;
+		if (t.duration && t.duration > 0) return t.duration;
 		return (spkmodCinemaActiveTab === 'songs') ? 210 : 300;
 	};
 
-	const totalDuration = availableTracks.reduce((acc, t) => acc + getDur(t), 0);
+	const totalDuration = tracks.reduce((acc, t) => acc + getDur(t), 0);
 	if (totalDuration <= 0) {
-		return { track: availableTracks[0], startSec: 0, trackIndex: 0, totalTracks: currentList.length };
+		return { track: tracks[0], startSec: 0, trackIndex: 0, totalTracks: tracks.length };
 	}
 
-	// Independent channel seeds so Movie and Bolpop run on separate TV programming cycles
+	// Anchor time to UTC day seconds (0..86399) so all clients globally share the exact same broadcast
+	const nowSec = Math.floor(Date.now() / 1000);
+	const daySec = ((nowSec % 86400) + 86400) % 86400;
 	const channelSeed = (spkmodCinemaActiveTab === 'songs') ? 7919 : 0;
-	const nowSec = Math.floor(Date.now() / 1000) + channelSeed;
-	const cycleTime = ((nowSec % totalDuration) + totalDuration) % totalDuration;
+	const cycleTime = (daySec + channelSeed) % totalDuration;
 
 	let accum = 0;
-	for (let i = 0; i < availableTracks.length; i++) {
-		const track = availableTracks[i];
-		const dur = getDur(track);
-		if (cycleTime >= accum && cycleTime < accum + dur) {
+	for (let i = 0; i < tracks.length; i++) {
+		const track = tracks[i];
+		const slotDur = getDur(track);
+		if (cycleTime >= accum && cycleTime < accum + slotDur) {
 			let startSec = Math.floor(cycleTime - accum);
-			// Overflow check: If slot was longer than actual video duration and video has already finished,
-			// immediately tune to next track at 0:00 instead of seeking past end
-			if (!track.isStream && !track.isLiveStream && track.duration > 0 && startSec >= (track.duration - 2)) {
-				const nextI = (i + 1) % availableTracks.length;
-				const nextTrack = availableTracks[nextI];
-				const nextOrigIdx = currentList.findIndex(t => t.id === nextTrack.id);
-				return { track: nextTrack, startSec: 0, trackIndex: nextOrigIdx >= 0 ? nextOrigIdx : nextI, totalTracks: currentList.length };
+
+			// If current track is marked offline or ended, gracefully play next track without shifting the grid
+			if (track.isOffline || track.isEnded) {
+				const nextI = (i + 1) % tracks.length;
+				return { track: tracks[nextI], startSec: 0, trackIndex: nextI, totalTracks: tracks.length };
 			}
+
+			// Livestreams are always watched live from current edge (startSec 0)
 			if (track.isStream || track.isLiveStream || track.duration === 0) {
-				startSec = 0;
+				return { track, startSec: 0, trackIndex: i, totalTracks: tracks.length };
 			}
-			const origIdx = currentList.findIndex(t => t.id === track.id);
-			return { track, startSec, trackIndex: origIdx >= 0 ? origIdx : i, totalTracks: currentList.length };
+
+			// Video duration check: if actual video is shorter than its broadcast slot, tune to next track
+			const actualDur = (track.duration && track.duration > 0) ? track.duration : slotDur;
+			if (actualDur > 0 && startSec >= (actualDur - 1)) {
+				const nextI = (i + 1) % tracks.length;
+				return { track: tracks[nextI], startSec: 0, trackIndex: nextI, totalTracks: tracks.length };
+			}
+
+			return { track, startSec, trackIndex: i, totalTracks: tracks.length };
 		}
-		accum += dur;
+		accum += slotDur;
 	}
 
-	const fallbackTrack = availableTracks[0];
-	const fallbackIdx = currentList.findIndex(t => t.id === fallbackTrack.id);
-	return { track: fallbackTrack, startSec: 0, trackIndex: fallbackIdx >= 0 ? fallbackIdx : 0, totalTracks: currentList.length };
+	return { track: tracks[0], startSec: 0, trackIndex: 0, totalTracks: tracks.length };
 }
 
 function spkmodSendYtCommand(func, args = []) {
@@ -29544,11 +29546,22 @@ function spkmodSyncCinemaPlayback(force = false) {
 	const { track, startSec } = syncData;
 
 	const videoId = track.id;
-	if (force || spkmodCinemaCurrentVideo !== videoId) {
-		spkmodCinemaCurrentVideo = videoId;
-		spkmodCinemaManualTrackIndex = null;
-		spkmodCinemaCurrentVideoStartTimeMs = Date.now() - (startSec * 1000);
-		window.spkmodCinemaCurrentVideoTimeSec = startSec;
+	spkmodCinemaManualTrackIndex = null;
+	spkmodCinemaIsPaused = false;
+
+	const isSameVideo = (spkmodCinemaCurrentVideo === videoId && spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src.includes(videoId));
+
+	spkmodCinemaCurrentVideo = videoId;
+	spkmodCinemaCurrentVideoStartTimeMs = Date.now() - (startSec * 1000);
+	window.spkmodCinemaCurrentVideoTimeSec = startSec;
+
+	if (isSameVideo) {
+		// Video is already loaded in iframe: seamlessly seek to sync time without iframe flash or reloading
+		const effectiveStart = (track.isStream || track.isLiveStream || track.duration === 0) ? 0 : startSec;
+		spkmodSendYtCommand('seekTo', [effectiveStart, true]);
+		spkmodSendYtCommand('playVideo');
+	} else {
+		// New video or initial load
 		if (spkmodCinemaIframe) {
 			const isMuted = !!window.spkmodCinemaConfig?.muted;
 			const loopParam = (spkmodCinemaRepeatMode === 'one') ? `&loop=1&playlist=${videoId}` : '';
@@ -29571,12 +29584,14 @@ function spkmodSyncCinemaPlayback(force = false) {
 			setTimeout(() => { spkmodSendYtCommand('getDuration'); }, 1500);
 			setTimeout(() => { spkmodSendYtCommand('getDuration'); }, 3000);
 		}
-	} else {
-		spkmodSendYtCommand('playVideo');
 	}
 
 	window.spkmodCurrentCinemaTitle = track.title || "Monatium Cinema";
+	if (typeof spkmodRenderCinemaModalList === 'function' && spkmodCinemaModalOpen) {
+		spkmodRenderCinemaModalList();
+	}
 	if (typeof spkmodUpdateCinemaPlaybackUI === "function") spkmodUpdateCinemaPlaybackUI();
+	if (typeof spkmodUpdateCinemaTimeDisplay === "function") spkmodUpdateCinemaTimeDisplay();
 }
 
 function spkmodIsPlayerInCinemaSeats(playerPos) {
@@ -29801,6 +29816,15 @@ function spkmodAdvanceCinemaTrack(reason = "ended") {
 	}
 
 	const isManual = spkmodCinemaManualTrackIndex !== null;
+
+	if (!isManual) {
+		// IN SYNC / LIVE BROADCAST MODE: Re-tune smoothly to current broadcast schedule!
+		console.log(`[SpeakiMod+] Synced cinema track ended (${reason}). Auto-tuning to broadcast schedule...`);
+		spkmodSyncCinemaPlayback(false);
+		return;
+	}
+
+	// IN MANUAL PLAYLIST MODE: Advance sequentially
 	let nextIdx = curIdx + 1;
 	if (spkmodCinemaRepeatMode === 'one') {
 		nextIdx = curIdx;
@@ -29812,8 +29836,8 @@ function spkmodAdvanceCinemaTrack(reason = "ended") {
 		}
 	}
 
-	console.log(`[SpeakiMod+] Advancing cinema track (${reason}): #${curIdx + 1} -> #${((nextIdx % list.length) + list.length) % list.length + 1}`);
-	spkmodPlayCinemaTrackIndex(nextIdx, 0, isManual);
+	console.log(`[SpeakiMod+] Advancing manual cinema track (${reason}): #${curIdx + 1} -> #${((nextIdx % list.length) + list.length) % list.length + 1}`);
+	spkmodPlayCinemaTrackIndex(nextIdx, 0, true);
 	if (typeof spkmodRenderCinemaModalList === 'function' && spkmodCinemaModalOpen) {
 		spkmodRenderCinemaModalList();
 	}
@@ -29849,7 +29873,8 @@ window.spkmodCinemaPrev = function() {
 };
 
 window.spkmodCinemaNext = function() {
-	spkmodAdvanceCinemaTrack("manual_next");
+	const cur = spkmodGetCinemaCurrentTrackIndex();
+	spkmodPlayCinemaTrackIndex(cur + 1, 0, true);
 };
 
 window.spkmodCinemaToggleRepeat = function() {
@@ -30072,17 +30097,21 @@ function spkmodUpdateCinemaTimeDisplay() {
 	if (!track) return;
 
 	let curSec = 0;
-	if (window.spkmodCinemaCurrentVideoTimeSec !== undefined && window.spkmodCinemaCurrentVideoTimeSec > 0) {
-		curSec = Math.floor(window.spkmodCinemaCurrentVideoTimeSec);
+	if (spkmodCinemaIsPaused) {
+		curSec = Math.floor(window.spkmodCinemaCurrentVideoTimeSec || 0);
 	} else if (spkmodCinemaCurrentVideoStartTimeMs > 0) {
 		curSec = Math.max(0, Math.floor((Date.now() - spkmodCinemaCurrentVideoStartTimeMs) / 1000));
+	} else if (window.spkmodCinemaCurrentVideoTimeSec !== undefined && window.spkmodCinemaCurrentVideoTimeSec > 0) {
+		curSec = Math.floor(window.spkmodCinemaCurrentVideoTimeSec);
 	}
-	if (track.duration > 0 && curSec > track.duration) {
-		curSec = track.duration;
+
+	const totalDur = (track.duration && track.duration > 0) ? track.duration : (track.baseDuration || 0);
+	if (totalDur > 0 && curSec > totalDur) {
+		curSec = totalDur;
 	}
 
 	const isStream = track.isStream || track.isLiveStream || track.duration === 0;
-	const durStr = spkmodFormatDuration(track.duration, spkmodCinemaActiveTab === 'songs', track.isOffline || track.isEnded, isStream);
+	const durStr = spkmodFormatDuration(totalDur, spkmodCinemaActiveTab === 'songs', track.isOffline || track.isEnded, isStream);
 	const timeText = isStream
 		? "🔴 LIVE"
 		: `${spkmodFormatDuration(curSec)} / ${durStr}`;
@@ -30109,6 +30138,12 @@ function spkmodUpdateCinemaTimeDisplay() {
 	const hudTime = document.getElementById("spkmod-cinema-hud-time");
 	if (hudTime) {
 		hudTime.innerText = `(${timeText})`;
+	}
+
+	// 3. Update Bottom Floating Dock
+	const dockTime = document.getElementById("spkmod-cinema-dock-time");
+	if (dockTime) {
+		dockTime.innerText = isStream ? "🔴 LIVE" : `(${spkmodFormatDuration(curSec)} / ${durStr})`;
 	}
 }
 window.spkmodUpdateCinemaTimeDisplay = spkmodUpdateCinemaTimeDisplay;
@@ -30472,6 +30507,11 @@ function spkmodUpdateCinemaFloatingPill(visible, dist) {
         modeBtn.innerHTML = isMobile ? "🎬 Cinema" : (getCinemaText("cinemaModeBtn") || "🎬 Monatium Cinema");
         dock.appendChild(modeBtn);
 
+        const dockTime = document.createElement("span");
+        dockTime.id = "spkmod-cinema-dock-time";
+        dockTime.style.cssText = `color: #ffc94a; font-size: ${isMobile ? 10 : 11}px; font-variant-numeric: tabular-nums; opacity: 0.9; margin: 0 1px;`;
+        dock.appendChild(dockTime);
+
         // 2. Playlist Modal Button
         const plBtn = document.createElement("button");
         plBtn.id = "spkmod-cinema-dock-pl-btn";
@@ -30833,36 +30873,43 @@ function spkmodCinemaTick() {
 	}
 
 	const now = Date.now();
-	if (now - spkmodCinemaLastSyncCheckMs > 3000) {
+	if (now - spkmodCinemaLastSyncCheckMs > 1000) {
 		spkmodCinemaLastSyncCheckMs = now;
 		if (spkmodCinemaIframe) {
-			spkmodSendYtCommand('getDuration');
 			spkmodSendYtCommand('getCurrentTime');
-			spkmodSendYtCommand('getPlayerState');
-		}
-		if (spkmodCinemaManualTrackIndex === null) {
-			if (!spkmodCinemaCurrentVideo || !spkmodCinemaIframe || !spkmodCinemaIframe.src) {
-				spkmodSyncCinemaPlayback(true);
-			}
 		}
 
-		if (!spkmodCinemaIsPaused && spkmodCinemaCurrentVideo) {
-			const list = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
-				? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
-				: (spkmodCinemaLoadedPlaylist || []);
-			const curIdx = spkmodGetCinemaCurrentTrackIndex();
-			const curTrack = list[curIdx];
-			const dur = (curTrack && curTrack.duration > 0) ? curTrack.duration : (spkmodCinemaActiveTab === 'songs' ? 210 : 300);
-			const elapsedSec = (now - spkmodCinemaCurrentVideoStartTimeMs) / 1000;
-			const isYtPlaying = (window.spkmodCinemaLastPlayerState === 1);
-			if (!curTrack?.isLiveStream && !curTrack?.isStream && !isYtPlaying && elapsedSec > (dur + 4)) {
-				console.log(`[SpeakiMod+] Watchdog: ${curTrack?.title || 'track'} exceeded duration (${elapsedSec}s > ${dur}s). Advancing naturally...`);
-				spkmodAdvanceCinemaTrack("watchdog");
+		if (spkmodCinemaManualTrackIndex === null) {
+			// SYNC MODE: Auto-tune when schedule transitions to next track
+			if (!spkmodCinemaCurrentVideo || !spkmodCinemaIframe || !spkmodCinemaIframe.src) {
+				spkmodSyncCinemaPlayback(true);
+			} else {
+				const synced = spkmodGetCinemaSyncedTrack();
+				if (synced && synced.track.id !== spkmodCinemaCurrentVideo) {
+					console.log(`[SpeakiMod+] Broadcast schedule transitioned from ${spkmodCinemaCurrentVideo} to ${synced.track.id}. Auto-tuning...`);
+					spkmodSyncCinemaPlayback(false);
+				}
+			}
+		} else {
+			// MANUAL MODE: Watchdog for frozen/stalled playback past track duration
+			if (!spkmodCinemaIsPaused && spkmodCinemaCurrentVideo) {
+				const list = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
+					? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
+					: (spkmodCinemaLoadedPlaylist || []);
+				const curIdx = spkmodGetCinemaCurrentTrackIndex();
+				const curTrack = list[curIdx];
+				const dur = (curTrack && curTrack.duration > 0) ? curTrack.duration : (curTrack?.baseDuration || (spkmodCinemaActiveTab === 'songs' ? 210 : 300));
+				const elapsedSec = (now - spkmodCinemaCurrentVideoStartTimeMs) / 1000;
+				const isYtPlaying = (window.spkmodCinemaLastPlayerState === 1);
+				if (!curTrack?.isLiveStream && !curTrack?.isStream && !isYtPlaying && elapsedSec > (dur + 2)) {
+					console.log(`[SpeakiMod+] Watchdog: ${curTrack?.title || 'track'} exceeded duration (${elapsedSec}s > ${dur}s). Advancing naturally...`);
+					spkmodAdvanceCinemaTrack("watchdog");
+				}
 			}
 		}
 	}
 
-	if (now - spkmodCinemaLastTimeUpdateMs > 750) {
+	if (now - spkmodCinemaLastTimeUpdateMs > 500) {
 		spkmodCinemaLastTimeUpdateMs = now;
 		if (typeof spkmodUpdateCinemaTimeDisplay === 'function') {
 			spkmodUpdateCinemaTimeDisplay();
@@ -31135,9 +31182,17 @@ window.addEventListener('message', e => {
 				spkmodUpdateCinemaTimeDisplay();
 			}
 		}
-		const isAtEnd = (curTime !== null && durTime !== null && durTime > 2 && curTime >= durTime - 0.75);
 
-		if (playerState === 0 || isAtEnd) { // ENDED
+		const list = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
+			? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
+			: (spkmodCinemaLoadedPlaylist || []);
+		const curIdx = spkmodGetCinemaCurrentTrackIndex();
+		const curTrack = list[curIdx];
+		const knownDur = (durTime && durTime > 0) ? durTime : ((curTrack && curTrack.duration > 0) ? curTrack.duration : (curTrack?.baseDuration || 0));
+
+		const isAtEnd = (curTime !== null && knownDur > 2 && curTime >= (knownDur - 1.0));
+
+		if (playerState === 0 || isAtEnd || (playerState === 2 && isAtEnd)) { // ENDED
 			spkmodAdvanceCinemaTrack(playerState === 0 ? "ended_event" : "at_end_time");
 			return;
 		} else if (playerState === 1) { // PLAYING
