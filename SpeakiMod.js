@@ -4690,13 +4690,17 @@ function findJukeboxBgmNodes() {
     const nodes = [];
     try {
         const gs = window.gameState || (typeof gameState !== 'undefined' ? gameState : null);
+        const checkChild = (child) => {
+            if (child && (child.isAudio || child.type === 'Audio' || child.type === 'PositionalAudio') && child.loop) {
+                nodes.push(child);
+            }
+        };
         const camera = gs?.camera || gs?.speakovHost?.camera || gs?.miningHost?.camera;
-        if (camera) {
-            camera.traverse(child => {
-                if (child && (child.isAudio || child.type === 'Audio') && child.loop) {
-                    nodes.push(child);
-                }
-            });
+        if (camera && typeof camera.traverse === "function") {
+            camera.traverse(checkChild);
+        }
+        if (gs?.scene && typeof gs.scene.traverse === "function") {
+            gs.scene.traverse(checkChild);
         }
     } catch (_) {}
     return nodes;
@@ -4773,6 +4777,18 @@ function findNativeBgmSlider() {
     return null;
 }
 
+var spkmodBgmSuppressSources = {
+    jukebox: false,
+    cinema: false
+};
+
+function spkmodSuppressGameBgm(mute, source = "cinema") {
+    spkmodBgmSuppressSources[source] = !!mute;
+    const shouldMute = !!(spkmodBgmSuppressSources.jukebox || spkmodBgmSuppressSources.cinema);
+    suppressGameBgm(shouldMute);
+}
+window.spkmodSuppressGameBgm = spkmodSuppressGameBgm;
+
 function suppressGameBgm(mute) {
     const state = window.__speakiMusicState;
     hookNativeSettingsVolume();
@@ -4807,7 +4823,8 @@ function suppressGameBgm(mute) {
 				}
 			} catch (_) {}
 		}
-		if (currentVol === null) currentVol = getUserActualBgmVolume() ?? 70; // Native game default is 70
+		if (currentVol === null || currentVol <= 0) currentVol = getUserActualBgmVolume() ?? 70; // Native game default is 70
+		if (currentVol <= 0) currentVol = 70;
 
         setUserActualBgmVolume(currentVol);
         state.isBgmSuppressed = true;
@@ -4820,6 +4837,7 @@ function suppressGameBgm(mute) {
             if (slider) {
                 slider.value = '0';
                 slider.dispatchEvent(new Event('input', { bubbles: true }));
+                slider.dispatchEvent(new Event('change', { bubbles: true }));
             }
             if (typeof window.updateGameSettings === "function") {
                 try { window.updateGameSettings({ bgmVolume: 0 }); } catch (_) {}
@@ -4839,8 +4857,17 @@ function suppressGameBgm(mute) {
 
         nodes.forEach(node => {
             if (node.gain?.gain) {
-                node.__savedGain = node.gain.gain.value;
+                if (node.__savedGain === undefined || node.__savedGain === 0) {
+                    node.__savedGain = node.gain.gain.value > 0 ? node.gain.gain.value : (currentVol / 100);
+                }
                 node.gain.gain.value = 0;
+            }
+        });
+
+        document.querySelectorAll("audio").forEach(el => {
+            if (!el.id?.startsWith("spkmod-") && !el.closest("#spkmod-")) {
+                if (el.__savedVolume === undefined) el.__savedVolume = el.volume;
+                el.volume = 0;
             }
         });
     } else {
@@ -4860,6 +4887,7 @@ function suppressGameBgm(mute) {
             if (slider) {
                 slider.value = String(restoreVol);
                 slider.dispatchEvent(new Event('input', { bubbles: true }));
+                slider.dispatchEvent(new Event('change', { bubbles: true }));
             }
             if (typeof window.updateGameSettings === "function") {
                 try { window.updateGameSettings({ bgmVolume: restoreVol }); } catch (_) {}
@@ -4882,6 +4910,22 @@ function suppressGameBgm(mute) {
                 node.gain.gain.value = (node.__savedGain !== undefined && node.__savedGain > 0)
                     ? node.__savedGain
                     : (restoreVol / 100);
+            }
+            if (node.isPlaying === false && typeof node.play === "function") {
+                try { node.play(); } catch (_) {}
+            }
+        });
+
+        document.querySelectorAll("audio").forEach(el => {
+            if (!el.id?.startsWith("spkmod-") && !el.closest("#spkmod-")) {
+                if (el.__savedVolume !== undefined) {
+                    el.volume = el.__savedVolume;
+                } else {
+                    el.volume = restoreVol / 100;
+                }
+                if (el.paused && el.loop) {
+                    try { el.play(); } catch (_) {}
+                }
             }
         });
     }
@@ -4936,12 +4980,12 @@ function playTrackAtIndex(idx, userInitiated = true) {
     state.currentTrackAuthor = item[2] || "";
 
     state.isChangingTrack = true;
-    suppressGameBgm(true);
+    spkmodSuppressGameBgm(true, "jukebox");
     if (state.changeTrackTimeout) clearTimeout(state.changeTrackTimeout);
     state.changeTrackTimeout = setTimeout(() => {
         if (state.isChangingTrack && !state.isPlaying) {
             state.isChangingTrack = false;
-            suppressGameBgm(false);
+            spkmodSuppressGameBgm(false, "jukebox");
         }
     }, 10000);
 
@@ -5017,10 +5061,10 @@ function switchJukeboxPlaylist(key, autoPlay = false) {
         if (state.player && state.isReady) {
             try { state.player.stopVideo(); } catch (_) {}
         }
-        suppressGameBgm(false);
+        spkmodSuppressGameBgm(false, "jukebox");
     } else if (autoPlay) {
         state.isChangingTrack = true;
-        suppressGameBgm(true);
+        spkmodSuppressGameBgm(true, "jukebox");
     }
 
     const modal = lunHudElements.jukeboxModal;
@@ -5269,7 +5313,7 @@ function buildJukeboxUI() {
             if (state.changeTrackTimeout) clearTimeout(state.changeTrackTimeout);
             state.isPlaying = false;
             state.player.pauseVideo();
-            suppressGameBgm(false);
+            spkmodSuppressGameBgm(false, "jukebox");
 		} else {
 			state.isChangingTrack = false;
 			const tracks = getActiveJukeboxTracks();
@@ -5279,7 +5323,7 @@ function buildJukeboxUI() {
 			if (wantVid && loadedVid !== wantVid) {
 				playTrackAtIndex(state.currentTrackIndex);
 			} else {
-				suppressGameBgm(true);
+				spkmodSuppressGameBgm(true, "jukebox");
 				state.player.playVideo();
 			}
 		}
@@ -5353,10 +5397,10 @@ function buildJukeboxUI() {
             }
             state.isPlaying = false;
             state.isChangingTrack = false;
-            suppressGameBgm(false);
+            spkmodSuppressGameBgm(false, "jukebox");
             updateJukeboxUI();
         } else if (!state.isPlaying) {
-            suppressGameBgm(false);
+            spkmodSuppressGameBgm(false, "jukebox");
         }
     });
 
@@ -5617,7 +5661,7 @@ function initJukeboxPlayer() {
                     if (state.isPlaying) {
                         playNext();
                     } else {
-                        suppressGameBgm(false);
+                        spkmodSuppressGameBgm(false, "jukebox");
                     }
                 },
                 onStateChange: (e) => {
@@ -5628,7 +5672,7 @@ function initJukeboxPlayer() {
                             state.changeTrackTimeout = null;
                         }
                         state.isPlaying = true;
-                        suppressGameBgm(true);
+                        spkmodSuppressGameBgm(true, "jukebox");
 
                         const curVid = state.player.getVideoData()?.video_id;
                         const tracks = getActiveJukeboxTracks();
@@ -5658,14 +5702,14 @@ function initJukeboxPlayer() {
                             return;
                         }
                         state.isPlaying = false;
-                        suppressGameBgm(false);
+                        spkmodSuppressGameBgm(false, "jukebox");
                         if (state.updateInterval) {
                             clearInterval(state.updateInterval);
                             state.updateInterval = null;
                         }
                     } else if (e.data === 3 || e.data === -1) { // Buffering or Unstarted
                         if (state.isChangingTrack || state.isPlaying) {
-                            suppressGameBgm(true);
+                            spkmodSuppressGameBgm(true, "jukebox");
                         }
                     } else if (e.data === 0) { // Track Ended
                         if (state.repeatMode === 'one') {
@@ -5684,7 +5728,7 @@ function initJukeboxPlayer() {
                                 state.changeTrackTimeout = null;
                             }
                             state.isPlaying = false;
-                            suppressGameBgm(false);
+                            spkmodSuppressGameBgm(false, "jukebox");
                         }
                     }
                     updateJukeboxUI();
@@ -5724,10 +5768,10 @@ function toggleMusicPlayer(forceState) {
             }
             state.isPlaying = false;
             state.isChangingTrack = false;
-            suppressGameBgm(false);
+            spkmodSuppressGameBgm(false, "jukebox");
             updateJukeboxUI();
         } else if (!state.isPlaying) {
-            suppressGameBgm(false);
+            spkmodSuppressGameBgm(false, "jukebox");
         }
     }
 }
@@ -28759,6 +28803,7 @@ var spkmodCinemaCurrentVideo = null;
 var spkmodCinemaManualTrackIndex = null;
 var spkmodCinemaIsPaused = false;
 var spkmodCinemaModalEl = null;
+var spkmodCinemaModalWasOpenBeforeLeaving = false;
 var spkmodCinemaRenderer = null;
 var spkmodCinemaScene = null;
 var spkmodCinemaScreenObject = null;
@@ -29380,11 +29425,10 @@ function spkmodGetCinemaSyncedTrack() {
 		return { track: tracks[0], startSec: 0, trackIndex: 0, totalTracks: tracks.length };
 	}
 
-	// Anchor time to UTC day seconds (0..86399) so all clients globally share the exact same broadcast
+	// Spread videos sequentially along universal UTC timezone on an infinite loop
 	const nowSec = Math.floor(Date.now() / 1000);
-	const daySec = ((nowSec % 86400) + 86400) % 86400;
 	const channelSeed = (spkmodCinemaActiveTab === 'songs') ? 7919 : 0;
-	const cycleTime = (daySec + channelSeed) % totalDuration;
+	const cycleTime = ((nowSec + channelSeed) % totalDuration + totalDuration) % totalDuration;
 
 	let accum = 0;
 	for (let i = 0; i < tracks.length; i++) {
@@ -29692,9 +29736,15 @@ window.spkmodSetCinemaVolume = function(vol, isMuted) {
 	if (window.spkmodCinemaConfig.muted || effectiveVol === 0) {
 		spkmodSendYtCommand('mute');
 		spkmodSendYtCommand('setVolume', [0]);
+		if (typeof window.spkmodSuppressGameBgm === 'function') {
+			window.spkmodSuppressGameBgm(false, "cinema");
+		}
 	} else {
 		spkmodSendYtCommand('unMute');
 		spkmodSendYtCommand('setVolume', [effectiveVol]);
+		if (spkmodCinemaInZone && !spkmodCinemaIsPaused && typeof window.spkmodSuppressGameBgm === 'function') {
+			window.spkmodSuppressGameBgm(true, "cinema");
+		}
 	}
 	spkmodCinemaLastVolume = effectiveVol;
 	spkmodSyncCinemaVolumeUI();
@@ -29850,12 +29900,18 @@ window.spkmodAdvanceCinemaTrack = spkmodAdvanceCinemaTrack;
 window.spkmodCinemaPlay = function() {
 	spkmodCinemaIsPaused = false;
 	spkmodSendYtCommand('playVideo');
+	if (spkmodCinemaInZone && !window.spkmodCinemaConfig?.muted && typeof window.spkmodSuppressGameBgm === 'function') {
+		window.spkmodSuppressGameBgm(true, "cinema");
+	}
 	spkmodUpdateCinemaPlaybackUI();
 };
 
 window.spkmodCinemaPause = function() {
 	spkmodCinemaIsPaused = true;
 	spkmodSendYtCommand('pauseVideo');
+	if (typeof window.spkmodSuppressGameBgm === 'function') {
+		window.spkmodSuppressGameBgm(false, "cinema");
+	}
 	spkmodUpdateCinemaPlaybackUI();
 };
 
@@ -30429,6 +30485,8 @@ window.spkmodToggleCinemaModal = function(forceState) {
 
 	if (shouldShow) {
 		modal.classList.remove("hidden");
+		spkmodCinemaModalOpen = true;
+		spkmodCinemaModalWasOpenBeforeLeaving = true;
 		if (typeof positionModalNicely === "function") {
 			positionModalNicely(modal);
 		}
@@ -30436,6 +30494,10 @@ window.spkmodToggleCinemaModal = function(forceState) {
 		spkmodUpdateCinemaPlaybackUI();
 	} else {
 		modal.classList.add("hidden");
+		spkmodCinemaModalOpen = false;
+		if (forceState === false) {
+			spkmodCinemaModalWasOpenBeforeLeaving = false;
+		}
 		hideCinemaThumbPreview();
 	}
 };
@@ -30817,6 +30879,9 @@ function spkmodCinemaTick() {
 			if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = false;
 			spkmodSendYtCommand('pauseVideo');
 			spkmodSendYtCommand('mute');
+			if (typeof window.spkmodSuppressGameBgm === 'function') {
+				window.spkmodSuppressGameBgm(false, "cinema");
+			}
 			if (spkmodCinemaModeActive && typeof window.spkmodToggleCinemaMode === 'function') {
 				window.spkmodToggleCinemaMode(false);
 			}
@@ -30826,7 +30891,9 @@ function spkmodCinemaTick() {
 				spkmodUpdateCinemaFloatingPill(false);
 			}
 			if (spkmodCinemaModalEl && !spkmodCinemaModalEl.classList.contains('hidden')) {
+				spkmodCinemaModalWasOpenBeforeLeaving = true;
 				spkmodCinemaModalEl.classList.add('hidden');
+				spkmodCinemaModalOpen = false;
 			}
 		} else {
 			if (spkmodCinemaContainer && spkmodCinemaContainer.style.display !== 'none') {
@@ -30870,6 +30937,16 @@ function spkmodCinemaTick() {
 			spkmodSendYtCommand('setVolume', [0]);
 		}
 		spkmodCinemaLastVolume = vol;
+
+		// 3. Mute game BGM while in cinema
+		if (!isMuted && typeof window.spkmodSuppressGameBgm === 'function') {
+			window.spkmodSuppressGameBgm(true, "cinema");
+		}
+
+		// 4. Remember & restore playlist modal if it was open before leaving
+		if (spkmodCinemaModalWasOpenBeforeLeaving) {
+			window.spkmodToggleCinemaModal(true);
+		}
 	}
 
 	const now = Date.now();
@@ -31041,9 +31118,15 @@ window.spkmodToggleCinemaMode = function(explicit) {
 		}
 		spkmodCinemaTopBarDismissed = false;
 		spkmodUpdateCinemaTopBar(true);
+		if (!window.spkmodCinemaConfig?.muted && typeof window.spkmodSuppressGameBgm === 'function') {
+			window.spkmodSuppressGameBgm(true, "cinema");
+		}
 	} else {
 		spkmodCinemaTopBarDismissed = true;
 		spkmodUpdateCinemaTopBar(false);
+		if (!spkmodCinemaInZone && typeof window.spkmodSuppressGameBgm === 'function') {
+			window.spkmodSuppressGameBgm(false, "cinema");
+		}
 	}
 };
 
