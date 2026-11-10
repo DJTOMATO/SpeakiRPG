@@ -1472,13 +1472,7 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 
 (async function() {
 	try {
-		let res = null;
-		try {
-			res = await fetch("translations.json?t=" + Date.now());
-		} catch (_) {}
-		if (!res || !res.ok) {
-			res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/translations.json?t=" + Date.now());
-		}
+		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/translations.json?t=" + Date.now(), { cache: "no-store" });
 		if (res && res.ok) {
 			const data = await res.json();
 			if (data && data.en) {
@@ -1493,7 +1487,7 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 			}
 		}
 	} catch (e) {
-		console.warn("[SpeakiMod+] Failed to load translations.json:", e);
+		console.warn("[SpeakiMod+] Failed to load translations.json from GitHub:", e);
 	}
 })();
 
@@ -3500,47 +3494,62 @@ function positionModalNicely(modal) {
 	const hasSavedPos = !!(posKey && window.localStorage && localStorage.getItem(posKey));
 	const hasBeenDragged = modal.dataset.userDragged === "true";
 
+	// Determine accurate target dimensions even when modal is currently hidden
+	let targetW = 380;
+	let targetH = 300;
+	if (modal.id === "spkmod-settings-modal") {
+		targetW = isMobile ? Math.min(740, window.innerWidth - 20) : 700;
+		targetH = isMobile ? Math.min(500, window.innerHeight - 30) : 540;
+	} else if (modal.id === "spkmod-css-modal") {
+		targetW = isMobile ? Math.min(600, window.innerWidth - 20) : 580;
+		targetH = isMobile ? Math.min(460, window.innerHeight - 30) : 500;
+	} else if (modal.id === "spkmod-resource-pack-modal") {
+		targetW = isMobile ? Math.min(640, window.innerWidth - 20) : 660;
+		targetH = isMobile ? Math.min(480, window.innerHeight - 30) : 540;
+	} else if (modal.id === "spkmod-bbs-modal") {
+		targetW = isMobile ? Math.min(520, window.innerWidth - 20) : 540;
+		targetH = isMobile ? Math.min(460, window.innerHeight - 30) : 500;
+	} else if (modal.id === "spkmod-stats-modal") {
+		targetW = 240;
+		targetH = 280;
+	} else if (modal.id === "spkmod-jukebox-modal") {
+		targetW = isMobile ? Math.min(360, window.innerWidth - 20) : 380;
+		targetH = isMobile ? Math.min(440, window.innerHeight - 30) : 460;
+	} else if (modal.id === "spkmod-cinema-modal") {
+		targetW = isMobile ? Math.min(380, window.innerWidth - 20) : 400;
+		targetH = isMobile ? Math.min(500, window.innerHeight - 30) : 560;
+	} else {
+		targetW = modal.offsetWidth || 380;
+		targetH = modal.offsetHeight || 300;
+	}
+
 	const curTop = parseFloat(modal.style.top);
 	const curLeft = parseFloat(modal.style.left);
-	const rect = (typeof modal.getBoundingClientRect === "function") ? modal.getBoundingClientRect() : null;
-	const modalW = (rect && rect.width > 0) ? rect.width : (modal.offsetWidth || (modal.id === "spkmod-settings-modal" ? (isMobile ? 380 : 700) : (modal.id === "spkmod-stats-modal" ? 240 : (modal.id === "spkmod-jukebox-modal" ? 360 : 380))));
-	const modalH = (rect && rect.height > 0) ? rect.height : (modal.offsetHeight || (modal.id === "spkmod-settings-modal" ? (isMobile ? 420 : 540) : 280));
 
 	// Check if top-left is out of bounds or if modal extends out of bounds on this screen
 	const isOffscreen = isNaN(curTop) || isNaN(curLeft) ||
 		curTop < 0 || curLeft < 0 ||
 		curTop > (window.innerHeight - 50) ||
 		curLeft > (window.innerWidth - 50) ||
-		(isMobile && (curLeft + Math.min(modalW, 160) > window.innerWidth || curTop + Math.min(modalH, 120) > window.innerHeight));
+		(curLeft + Math.min(targetW, 160) > window.innerWidth || curTop + Math.min(targetH, 120) > window.innerHeight);
 
 	if (!isOffscreen && (hasSavedPos || hasBeenDragged) && modal.style.left && modal.style.top) {
-		if (isMobile) {
-			const clampedL = Math.max(10, Math.min(curLeft, window.innerWidth - modalW - 10));
-			const maxT = Math.max(10, window.innerHeight - 50);
-			const clampedT = Math.max(10, Math.min(curTop, maxT));
-			modal.style.left = Math.round(clampedL) + "px";
-			modal.style.top = Math.round(clampedT) + "px";
-		}
+		const clampedL = Math.max(10, Math.min(curLeft, window.innerWidth - targetW - 10));
+		const maxT = Math.max(10, window.innerHeight - 50);
+		const clampedT = Math.max(10, Math.min(curTop, maxT));
+		modal.style.left = Math.round(clampedL) + "px";
+		modal.style.top = Math.round(clampedT) + "px";
 		return;
 	}
 
-	if (isMobile) {
-		const safeW = Math.min(modalW, window.innerWidth - 20);
-		const safeH = Math.min(modalH, window.innerHeight - 30);
-		const centerLeft = Math.max(10, Math.round((window.innerWidth - safeW) / 2));
-		const centerTop = Math.max(10, Math.round((window.innerHeight - safeH) / 2));
-		modal.style.left = centerLeft + "px";
-		modal.style.top = centerTop + "px";
-		return;
-	}
-
-	if (modal === lunHudElements.bbsModal || modal.id === "spkmod-bbs-modal" ||
+	// Default placement for centered modals (custom CSS, resource packs, BBS, Settings on mobile)
+	if (isMobile || modal === lunHudElements.bbsModal || modal.id === "spkmod-bbs-modal" ||
 		modal === lunHudElements.customCssModal || modal.id === "spkmod-css-modal" ||
 		modal === lunHudElements.resourcePackModal || modal.id === "spkmod-resource-pack-modal") {
-		const modalWidth = modal.offsetWidth || (modal.id === "spkmod-resource-pack-modal" ? (isMobile ? 520 : 660) : (modal.id === "spkmod-css-modal" ? (isMobile ? 480 : 580) : 520));
-		const safeLeft = Math.max(10, Math.round((window.innerWidth - modalWidth) / 2));
+		const safeLeft = Math.max(10, Math.min(window.innerWidth - targetW - 10, Math.round((window.innerWidth - targetW) / 2)));
+		const safeTop = Math.max(15, Math.min(window.innerHeight - targetH - 10, Math.round((window.innerHeight - targetH) / 2)));
 		modal.style.left = safeLeft + "px";
-		modal.style.top = isMobile ? "20px" : "50px";
+		modal.style.top = safeTop + "px";
 		return;
 	}
 
@@ -4193,7 +4202,12 @@ function applyRadioTrackList(data) {
     }
 
     if (Array.isArray(data.bolpop) && data.bolpop.length > 0) {
-        SPKMOD_BOLPOP_TRACKS = data.bolpop.map(t => Array.isArray(t) ? t : [t.id || t.videoId || "", t.title || "", t.author || ""]).filter(t => t[0]);
+        SPKMOD_BOLPOP_TRACKS = data.bolpop.map(t => {
+            if (Array.isArray(t)) {
+                return [t[0], t[1] || "", t[2] || "", (t[3] !== undefined ? (parseInt(t[3], 10) || 0) : 0)];
+            }
+            return [t.id || t.videoId || "", t.title || "", t.author || "", (t.duration !== undefined ? (parseInt(t.duration, 10) || 0) : 0)];
+        }).filter(t => t[0]);
         if (typeof window !== "undefined") window.SPKMOD_BOLPOP_TRACKS = SPKMOD_BOLPOP_TRACKS;
         updated = true;
     }
@@ -7166,27 +7180,32 @@ document.head.appendChild(buildElement(
 		}
 		body.spkmod-is-mobile #spkmod-settings-modal {
 			min-width: 0 !important;
-			width: min(640px, calc(100vw - 16px)) !important;
+			width: min(760px, calc(100vw - 16px)) !important;
 			max-width: calc(100vw - 16px) !important;
 			max-height: calc(100vh - 12px) !important;
 			padding: 6px 8px !important;
 			gap: 4px !important;
 			font-size: 11px !important;
-			transform: scale(calc(var(--spkmod-scale) * 0.88)) !important;
+			transform: scale(calc(var(--spkmod-scale) * 0.95)) !important;
 			transform-origin: top left !important;
 		}
 		body.spkmod-is-mobile #spkmod-css-modal,
 		body.spkmod-is-mobile #spkmod-resource-pack-modal {
-			width: min(640px, calc(100vw - 16px)) !important;
+			width: min(720px, calc(100vw - 16px)) !important;
 			max-width: calc(100vw - 16px) !important;
 			min-width: 0 !important;
 			max-height: calc(100vh - 16px) !important;
-			transform: scale(calc(var(--spkmod-scale) * 0.88)) !important;
+			transform: scale(calc(var(--spkmod-scale) * 0.95)) !important;
 			transform-origin: top left !important;
 		}
 		body.spkmod-is-mobile .spkmod-settings-grid {
-			grid-template-columns: 1fr !important;
+			grid-template-columns: 1fr 1fr !important;
 			gap: 6px !important;
+		}
+		@media (max-width: 520px) {
+			body.spkmod-is-mobile .spkmod-settings-grid {
+				grid-template-columns: 1fr !important;
+			}
 		}
 		body.spkmod-is-mobile #spkmod-settings-resize-handle {
 			display: none !important;
@@ -8988,7 +9007,7 @@ document.body.appendChild(
 		className: "hidden"
 	}, [
 		buildElement("div", { className: "spkmod-panel-cat", style: "justify-content: space-between; align-items: center; touch-action: none; user-select: none;" }, [
-			buildElement("div", { style: "display: flex; align-items: center; gap: 8px;" }, [
+			buildElement("div", { style: "display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; min-width: 0;" }, [
 				lunPanelElements.settingsHeader = buildElement("span", {
 					innerText: t("settingsHeader"),
 					style: "font-weight: bold;"
@@ -9041,7 +9060,7 @@ document.body.appendChild(
 					id: "spkmod-settings-cinema-btn",
 					className: "spkmod-panel-btn",
 					style: "padding: 2px 6px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;",
-					innerText: t("cinemaModeBtn") || "🎬 Monatium Cinema",
+					innerText: (t("cinemaModeBtn") ? ("🎬 " + t("cinemaModeBtn").replace(/^🎬\s*/, "")) : "🎬 Monatium Cinema"),
 					title: t("cinemaDesc") || "Open Monatium Cinema controls",
 					onclick: (e) => {
 						e.preventDefault();
@@ -10527,8 +10546,9 @@ function buildCustomCssModal() {
 			lunHudElements.customCssModal.style.height = "500px";
 		}
 		if (lunHudElements.customCssModal && !(window.localStorage && (localStorage.getItem("spkmod-pos-x-spkmod-css-modal") || localStorage.getItem("spkmod-pos-spkmod-css-modal")))) {
-			lunHudElements.customCssModal.style.left = "calc(50% - 290px)";
-			lunHudElements.customCssModal.style.top = "calc(50% - 250px)";
+			if (typeof positionModalNicely === "function") {
+				positionModalNicely(lunHudElements.customCssModal);
+			}
 		}
 	}, 500);
 
@@ -10944,16 +10964,8 @@ async function spkmodFetchResourcePacksXml() {
 			if (packs && packs.length > 0) return packs;
 		}
 	} catch (e) {
-		console.warn("[SpeakiMod+] Failed to load remote resourcespacks.xml, checking local file:", e);
+		console.warn("[SpeakiMod+] Failed to load remote resourcespacks.xml:", e);
 	}
-	try {
-		const localRes = await fetch("resourcespacks.xml?t=" + Date.now());
-		if (localRes.ok) {
-			const xmlText = await localRes.text();
-			const packs = spkmodParseResourcePacksXml(xmlText);
-			if (packs && packs.length > 0) return packs;
-		}
-	} catch (_) {}
 	return spkmodGetFallbackResourcePacks();
 }
 
@@ -11315,8 +11327,9 @@ function buildResourcePackModal() {
 			lunHudElements.resourcePackModal.style.height = "540px";
 		}
 		if (lunHudElements.resourcePackModal && !(window.localStorage && (localStorage.getItem("spkmod-pos-x-spkmod-respack-modal") || localStorage.getItem("spkmod-pos-spkmod-respack-modal")))) {
-			lunHudElements.resourcePackModal.style.left = "calc(50% - 330px)";
-			lunHudElements.resourcePackModal.style.top = "calc(50% - 270px)";
+			if (typeof positionModalNicely === "function") {
+				positionModalNicely(lunHudElements.resourcePackModal);
+			}
 		}
 	}, 500);
 
@@ -28803,7 +28816,12 @@ var spkmodCinemaCurrentVideo = null;
 var spkmodCinemaManualTrackIndex = null;
 var spkmodCinemaIsPaused = false;
 var spkmodCinemaModalEl = null;
+var spkmodCinemaModalOpen = false;
 var spkmodCinemaModalWasOpenBeforeLeaving = false;
+
+function spkmodIsCinemaModalOpen() {
+	return !!(spkmodCinemaModalOpen || (spkmodCinemaModalEl && !spkmodCinemaModalEl.classList.contains('hidden')));
+}
 var spkmodCinemaRenderer = null;
 var spkmodCinemaScene = null;
 var spkmodCinemaScreenObject = null;
@@ -29180,7 +29198,7 @@ function spkmodParseMoviesTxt(text) {
 							try { localStorage.setItem('spkmod_cinema_author_' + id, data.author_name); } catch (_) {}
 						}
 						if (updated) {
-							if (typeof spkmodRenderCinemaModalList === 'function' && spkmodCinemaModalOpen) {
+							if (typeof spkmodRenderCinemaModalList === 'function' && spkmodIsCinemaModalOpen()) {
 								spkmodRenderCinemaModalList();
 							}
 							if (typeof spkmodUpdateCinemaPlaybackUI === 'function') {
@@ -29216,21 +29234,7 @@ async function spkmodLoadMoviesPlaylist() {
 		{ id: "wn069Hag470", title: "speaki cuayo for an hour!", author: "", duration: 3610, baseDuration: 3610 }
 	];
 
-	try {
-		const localRes = await fetch("movies.txt?t=" + Date.now());
-		if (localRes.ok) {
-			const text = await localRes.text();
-			const list = spkmodParseMoviesTxt(text);
-			if (list && list.length > 0) {
-				spkmodCinemaPlaylists.movies = list;
-				if (spkmodCinemaActiveTab === 'movies') {
-					spkmodCinemaLoadedPlaylist = list;
-				}
-				return list;
-			}
-		}
-	} catch (_) {}
-
+	// Load movies.txt directly from GitHub (never fetch relative URL on game server)
 	try {
 		const url = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/movies.txt?t=" + Date.now();
 		const res = await fetch(url, { cache: "no-store" });
@@ -29245,7 +29249,9 @@ async function spkmodLoadMoviesPlaylist() {
 				return list;
 			}
 		}
-	} catch (_) {}
+	} catch (e) {
+		console.warn("[SpeakiMod+] Failed to load movies.txt from GitHub:", e);
+	}
 
 	spkmodCinemaPlaylists.movies = defaultList;
 	if (spkmodCinemaActiveTab === 'movies') {
@@ -29274,37 +29280,11 @@ async function spkmodLoadSongsPlaylist() {
 		}).filter(t => t.id);
 	};
 
-	// 1. Try window.SPKMOD_BOLPOP_TRACKS if already populated by radio module
+	// 1. If window.SPKMOD_BOLPOP_TRACKS is already populated and has duration info, use it
 	if (typeof window !== "undefined" && Array.isArray(window.SPKMOD_BOLPOP_TRACKS) && window.SPKMOD_BOLPOP_TRACKS.length > 0) {
-		const list = window.SPKMOD_BOLPOP_TRACKS.map(t => {
-			const id = Array.isArray(t) ? t[0] : (t.id || t.videoId || "");
-			const rawTitle = Array.isArray(t) ? t[1] : (t.title || "");
-			const rawAuthor = Array.isArray(t) ? (t[2] || "") : (t.author || "");
-			let dur = (Array.isArray(t) && t[3]) ? (parseInt(t[3], 10) || 0) : (t.duration || 0);
-			if (!dur || dur <= 0) {
-				try {
-					const cached = localStorage.getItem('spkmod_cinema_dur_' + id);
-					if (cached) dur = parseInt(cached, 10) || 0;
-				} catch (_) {}
-			}
-			if (!dur || dur <= 0) dur = 210;
-			return { id, title: rawTitle || id, author: rawAuthor, duration: dur, baseDuration: dur, url: `https://www.youtube.com/watch?v=${id}` };
-		}).filter(t => t.id);
-		if (list.length > 0) {
-			spkmodCinemaPlaylists.songs = list;
-			if (spkmodCinemaActiveTab === 'songs') {
-				spkmodCinemaLoadedPlaylist = list;
-			}
-			return list;
-		}
-	}
-
-	// 2. Try fetching local radio.json
-	try {
-		const localRes = await fetch("radio.json?t=" + Date.now());
-		if (localRes.ok) {
-			const data = await localRes.json();
-			const list = parseBolpopData(data);
+		const hasDurations = window.SPKMOD_BOLPOP_TRACKS.some(t => Array.isArray(t) ? (t[3] > 0) : (t.duration > 0));
+		if (hasDurations) {
+			const list = parseBolpopData({ bolpop: window.SPKMOD_BOLPOP_TRACKS });
 			if (list && list.length > 0) {
 				spkmodCinemaPlaylists.songs = list;
 				if (spkmodCinemaActiveTab === 'songs') {
@@ -29313,9 +29293,9 @@ async function spkmodLoadSongsPlaylist() {
 				return list;
 			}
 		}
-	} catch (_) {}
+	}
 
-	// 3. Try fetching remote radio.json
+	// 2. Fetch directly from GitHub (never fetch relative radio.json on game server)
 	try {
 		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/radio.json?t=" + Date.now(), { cache: "no-store" });
 		if (res.ok) {
@@ -29326,10 +29306,28 @@ async function spkmodLoadSongsPlaylist() {
 				if (spkmodCinemaActiveTab === 'songs') {
 					spkmodCinemaLoadedPlaylist = list;
 				}
+				if (typeof window !== "undefined") {
+					window.SPKMOD_BOLPOP_TRACKS = data.bolpop;
+					try { localStorage.setItem("spkmod-radio-cache", JSON.stringify(data)); } catch (_) {}
+				}
 				return list;
 			}
 		}
-	} catch (_) {}
+	} catch (e) {
+		console.warn("[SpeakiMod+] Failed to load remote radio.json from GitHub:", e);
+	}
+
+	// 3. Fallback to window.SPKMOD_BOLPOP_TRACKS or localStorage cache
+	if (typeof window !== "undefined" && Array.isArray(window.SPKMOD_BOLPOP_TRACKS) && window.SPKMOD_BOLPOP_TRACKS.length > 0) {
+		const list = parseBolpopData({ bolpop: window.SPKMOD_BOLPOP_TRACKS });
+		if (list && list.length > 0) {
+			spkmodCinemaPlaylists.songs = list;
+			if (spkmodCinemaActiveTab === 'songs') {
+				spkmodCinemaLoadedPlaylist = list;
+			}
+			return list;
+		}
+	}
 
 	// 4. Try localStorage radio cache
 	try {
@@ -29413,10 +29411,10 @@ function spkmodGetCinemaSyncedTrack() {
 
 	const tracks = currentList;
 
-	// Scheduled programming with fixed, immutable base durations to keep timeline static and deterministic
+	// Scheduled programming with accurate durations to keep timeline continuous and synchronized
 	const getDur = (t) => {
-		if (t.baseDuration && t.baseDuration > 0) return t.baseDuration;
 		if (t.duration && t.duration > 0) return t.duration;
+		if (t.baseDuration && t.baseDuration > 0) return t.baseDuration;
 		return (spkmodCinemaActiveTab === 'songs') ? 210 : 300;
 	};
 
@@ -29444,13 +29442,13 @@ function spkmodGetCinemaSyncedTrack() {
 			}
 
 			// Livestreams are always watched live from current edge (startSec 0)
-			if (track.isStream || track.isLiveStream || track.duration === 0) {
+			if (track.isStream || track.isLiveStream) {
 				return { track, startSec: 0, trackIndex: i, totalTracks: tracks.length };
 			}
 
 			// Video duration check: if actual video is shorter than its broadcast slot, tune to next track
 			const actualDur = (track.duration && track.duration > 0) ? track.duration : slotDur;
-			if (actualDur > 0 && startSec >= (actualDur - 1)) {
+			if (actualDur > 0 && startSec >= actualDur) {
 				const nextI = (i + 1) % tracks.length;
 				return { track: tracks[nextI], startSec: 0, trackIndex: nextI, totalTracks: tracks.length };
 			}
@@ -29601,7 +29599,7 @@ function spkmodSyncCinemaPlayback(force = false) {
 
 	if (isSameVideo) {
 		// Video is already loaded in iframe: seamlessly seek to sync time without iframe flash or reloading
-		const effectiveStart = (track.isStream || track.isLiveStream || track.duration === 0) ? 0 : startSec;
+		const effectiveStart = (track.isStream || track.isLiveStream) ? 0 : startSec;
 		spkmodSendYtCommand('seekTo', [effectiveStart, true]);
 		spkmodSendYtCommand('playVideo');
 	} else {
@@ -29609,7 +29607,7 @@ function spkmodSyncCinemaPlayback(force = false) {
 		if (spkmodCinemaIframe) {
 			const isMuted = !!window.spkmodCinemaConfig?.muted;
 			const loopParam = (spkmodCinemaRepeatMode === 'one') ? `&loop=1&playlist=${videoId}` : '';
-			const effectiveStart = (track.isStream || track.isLiveStream || track.duration === 0) ? 0 : startSec;
+			const effectiveStart = (track.isStream || track.isLiveStream) ? 0 : startSec;
 			const ytUrl = track.isChannelLive
 				? `https://www.youtube.com/embed/live_stream?channel=${track.channelId}&enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&origin=${encodeURIComponent(location.origin)}`
 				: `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&start=${effectiveStart}&origin=${encodeURIComponent(location.origin)}${loopParam}`;
@@ -29631,7 +29629,7 @@ function spkmodSyncCinemaPlayback(force = false) {
 	}
 
 	window.spkmodCurrentCinemaTitle = track.title || "Monatium Cinema";
-	if (typeof spkmodRenderCinemaModalList === 'function' && spkmodCinemaModalOpen) {
+	if (typeof spkmodRenderCinemaModalList === 'function' && spkmodIsCinemaModalOpen()) {
 		spkmodRenderCinemaModalList();
 	}
 	if (typeof spkmodUpdateCinemaPlaybackUI === "function") spkmodUpdateCinemaPlaybackUI();
@@ -29868,9 +29866,14 @@ function spkmodAdvanceCinemaTrack(reason = "ended") {
 	const isManual = spkmodCinemaManualTrackIndex !== null;
 
 	if (!isManual) {
-		// IN SYNC / LIVE BROADCAST MODE: Re-tune smoothly to current broadcast schedule!
 		console.log(`[SpeakiMod+] Synced cinema track ended (${reason}). Auto-tuning to broadcast schedule...`);
-		spkmodSyncCinemaPlayback(false);
+		const synced = spkmodGetCinemaSyncedTrack();
+		if (synced && synced.track.id === curTrack?.id && (reason === "ended_event" || reason === "at_end_time")) {
+			const nextIdx = (synced.trackIndex + 1) % list.length;
+			spkmodPlayCinemaTrackIndex(nextIdx, 0, false);
+		} else {
+			spkmodSyncCinemaPlayback(false);
+		}
 		return;
 	}
 
@@ -29888,7 +29891,7 @@ function spkmodAdvanceCinemaTrack(reason = "ended") {
 
 	console.log(`[SpeakiMod+] Advancing manual cinema track (${reason}): #${curIdx + 1} -> #${((nextIdx % list.length) + list.length) % list.length + 1}`);
 	spkmodPlayCinemaTrackIndex(nextIdx, 0, true);
-	if (typeof spkmodRenderCinemaModalList === 'function' && spkmodCinemaModalOpen) {
+	if (typeof spkmodRenderCinemaModalList === 'function' && spkmodIsCinemaModalOpen()) {
 		spkmodRenderCinemaModalList();
 	}
 	if (typeof spkmodUpdateCinemaPlaybackUI === 'function') {
@@ -31182,6 +31185,7 @@ window.addEventListener('message', e => {
 					if (ytDur > 0 && !targetTrack.isLiveStream) {
 						if (!targetTrack.duration || targetTrack.duration <= 0 || Math.abs(targetTrack.duration - ytDur) > 3) {
 							targetTrack.duration = ytDur;
+							targetTrack.baseDuration = ytDur;
 							targetTrack.isStream = false;
 							changed = true;
 							try { localStorage.setItem('spkmod_cinema_dur_' + targetTrack.id, String(ytDur)); } catch (_) {}
@@ -31199,7 +31203,7 @@ window.addEventListener('message', e => {
 					}
 					if (changed) {
 						window.spkmodCurrentCinemaTitle = targetTrack.title || "Monatium Cinema";
-						if (typeof spkmodRenderCinemaModalList === 'function' && spkmodCinemaModalOpen) {
+						if (typeof spkmodRenderCinemaModalList === 'function' && spkmodIsCinemaModalOpen()) {
 							spkmodRenderCinemaModalList();
 						}
 						if (typeof spkmodUpdateCinemaPlaybackUI === 'function') {
