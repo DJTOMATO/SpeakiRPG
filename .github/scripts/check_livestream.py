@@ -5,11 +5,11 @@ import urllib.request
 def check_youtube_live(handle_or_channel):
     identifier = handle_or_channel.strip()
     if identifier.startswith("UC"):
-        url = f"https://www.youtube.com/channel/{identifier}/live"
+        url = f"https://www.youtube.com/channel/{identifier}/streams"
     elif identifier.startswith("@"):
-        url = f"https://www.youtube.com/{identifier}/live"
+        url = f"https://www.youtube.com/{identifier}/streams"
     else:
-        url = f"https://www.youtube.com/@{identifier}/live"
+        url = f"https://www.youtube.com/@{identifier}/streams"
 
     req = urllib.request.Request(
         url,
@@ -17,17 +17,18 @@ def check_youtube_live(handle_or_channel):
     )
     try:
         res = urllib.request.urlopen(req, timeout=10)
-        final_url = res.geturl()
         html = res.read().decode("utf-8", errors="ignore")
         
-        canonical = re.findall(r'<link\s+rel="canonical"\s+href="([^"]+)"', html)
-        can_url = canonical[0] if canonical else final_url
-        
-        vid_match = re.search(r'watch\?v=([a-zA-Z0-9_-]{11})', can_url) or re.search(r'watch\?v=([a-zA-Z0-9_-]{11})', html)
-        if not vid_match:
+        # Find all video watch links in the streams page; the first one is usually the active/latest stream
+        matches = re.findall(r'/watch\?v=([a-zA-Z0-9_-]{11})', html)
+        if not matches:
             return None
             
-        video_id = vid_match.group(1)
+        # Deduplicate while preserving order to get the latest video ID
+        seen = set()
+        unique_matches = [m for m in matches if not (m in seen or seen.add(m))]
+        video_id = unique_matches[0]
+        
         is_live = ('"isLive":true' in html) or ('"isLiveContent":true' in html)
         
         title_match = re.search(r'<title>(.*?)</title>', html)
@@ -49,15 +50,14 @@ def update_movies_with_live(movies_path):
     if not os.path.exists(movies_path):
         return False
         
-    # Both channel ID ("UC9BRLn9BCnDYHaoXigXe0dA") and handle ("@oagemono") now work correctly
     info = check_youtube_live("UC9BRLn9BCnDYHaoXigXe0dA")
     if not info or not info.get("video_id"):
-        print("[Livestream Check] Could not resolve live stream for channel.")
+        print("[Livestream Check] Could not resolve stream for @oagemono.")
         return False
         
     video_id = info["video_id"]
     is_live = info["is_live"]
-    print(f"[Livestream Check] Channel -> video_id={video_id}, is_live={is_live}")
+    print(f"[Livestream Check] @oagemono -> video_id={video_id}, is_live={is_live}")
     
     with open(movies_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
