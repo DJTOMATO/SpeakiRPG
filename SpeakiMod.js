@@ -4947,11 +4947,38 @@ function initYouTubeApi(cb) {
         cb();
         return;
     }
-    const origReady = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = function() {
-        if (typeof origReady === 'function') origReady();
-        cb();
-    };
+    if (!window.__spkmodYtCallbacks) {
+        window.__spkmodYtCallbacks = [];
+    }
+    window.__spkmodYtCallbacks.push(cb);
+
+    function flushCallbacks() {
+        if (window.__spkmodYtCallbacks && window.__spkmodYtCallbacks.length > 0) {
+            const list = window.__spkmodYtCallbacks.slice();
+            window.__spkmodYtCallbacks = [];
+            list.forEach(fn => { try { fn(); } catch (_) {} });
+        }
+    }
+
+    if (!window.__spkmodYtHooked) {
+        const origReady = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = function() {
+            if (typeof origReady === 'function') {
+                try { origReady(); } catch (_) {}
+            }
+            flushCallbacks();
+        };
+        window.__spkmodYtHooked = true;
+    }
+
+    const checkTimer = setInterval(() => {
+        if (window.YT && window.YT.Player) {
+            clearInterval(checkTimer);
+            flushCallbacks();
+        }
+    }, 100);
+    setTimeout(() => clearInterval(checkTimer), 10000);
+
     if (!document.getElementById('__yt_iframe_api_script')) {
         const tag = document.createElement('script');
         tag.id = '__yt_iframe_api_script';
@@ -4965,7 +4992,10 @@ function createYtContainer() {
     if (!container) {
         container = document.createElement('div');
         container.id = 'spkmod-yt-iframe-container';
-        container.style.cssText = 'position:fixed;bottom:-500px;left:-500px;width:240px;height:160px;opacity:0.01;pointer-events:none;z-index:-1000;';
+        // In-viewport positioning ensures mobile browsers (Chromium/WebKit) do not throttle,
+        // suspend, or disallow audio/video playback inside the iframe.
+        // opacity: 0.01 and pointer-events: none ensures it is invisible to users and passes touch inputs through.
+        container.style.cssText = 'position:fixed;top:0;left:0;width:240px;height:160px;opacity:0.01;pointer-events:none;z-index:0;overflow:hidden;';
         container.innerHTML = '<div id="spkmod-yt-player-target"></div>';
         document.body.appendChild(container);
     }
@@ -5008,7 +5038,15 @@ function playTrackAtIndex(idx, userInitiated = true) {
                 videoId: item[0],
                 startSeconds: 0
             });
+            if (typeof state.player.playVideo === 'function') {
+                state.player.playVideo();
+            }
         } catch (_) {}
+    } else {
+        state.pendingPlay = true;
+        if (!state.player) {
+            initJukeboxPlayer();
+        }
     }
 }
 
@@ -5318,12 +5356,16 @@ function buildJukeboxUI() {
     const nowPlayingHeartBtn = modal.querySelector('#spkmod-jukebox-heart-btn');
 
     btnPlay.addEventListener('click', () => {
-        if (!state.player || !state.isReady) return;
+        if (!state.player || !state.isReady) {
+            state.pendingPlay = true;
+            if (!state.player) initJukeboxPlayer();
+            return;
+        }
         if (state.isPlaying) {
             state.isChangingTrack = false;
             if (state.changeTrackTimeout) clearTimeout(state.changeTrackTimeout);
             state.isPlaying = false;
-            state.player.pauseVideo();
+            try { state.player.pauseVideo(); } catch (_) {}
             spkmodSuppressGameBgm(false, "jukebox");
 		} else {
 			state.isChangingTrack = false;
@@ -5335,7 +5377,7 @@ function buildJukeboxUI() {
 				playTrackAtIndex(state.currentTrackIndex);
 			} else {
 				spkmodSuppressGameBgm(true, "jukebox");
-				state.player.playVideo();
+				try { state.player.playVideo(); } catch (_) {}
 			}
 		}
     });
@@ -5398,19 +5440,7 @@ function buildJukeboxUI() {
         state.modalVisible = false;
         if (window.localStorage) localStorage.setItem("spkmod-jukebox-visible", "false");
 
-        const isMobile = (typeof spkmodIsMobile === "function" ? spkmodIsMobile() : false) ||
-            (typeof window.speakiMobile !== "undefined") ||
-            (typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent));
-
-        if (isMobile) {
-            if (state.player && typeof state.player.pauseVideo === 'function') {
-                try { state.player.pauseVideo(); } catch (_) {}
-            }
-            state.isPlaying = false;
-            state.isChangingTrack = false;
-            spkmodSuppressGameBgm(false, "jukebox");
-            updateJukeboxUI();
-        } else if (!state.isPlaying) {
+        if (!state.isPlaying) {
             spkmodSuppressGameBgm(false, "jukebox");
         }
     });
@@ -5638,6 +5668,8 @@ function updateJukeboxUI() {
 }
 
 function initJukeboxPlayer() {
+    if (window.__speakiJukeboxIniting) return;
+    window.__speakiJukeboxIniting = true;
     const targetId = createYtContainer();
     buildJukeboxUI();
     const state = window.__speakiMusicState;
@@ -5654,13 +5686,38 @@ function initJukeboxPlayer() {
                 controls: 0,
                 disablekb: 1,
                 fs: 0,
+                playsinline: 1,
                 enablejsapi: 1,
-                origin: window.location.origin
+                origin: (typeof window !== "undefined" && window.location && window.location.origin) ? window.location.origin : undefined
             },
             events: {
                 onReady: () => {
+                    const iframe = (state.player && typeof state.player.getIframe === 'function') ? state.player.getIframe() : document.getElementById(targetId);
+                    if (iframe) {
+                        try {
+                            iframe.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
+                            iframe.setAttribute('playsinline', '1');
+                        } catch (_) {}
+                    }
                     state.isReady = true;
-                    state.player.setVolume(state.volume);
+                    try { state.player.setVolume(state.volume); } catch (_) {}
+
+                    if (state.pendingPlay || state.isChangingTrack) {
+                        state.pendingPlay = false;
+                        const tracks = getActiveJukeboxTracks();
+                        const cur = tracks[state.currentTrackIndex];
+                        if (cur && cur[0]) {
+                            try {
+                                state.player.loadVideoById({
+                                    videoId: cur[0],
+                                    startSeconds: 0
+                                });
+                                if (typeof state.player.playVideo === 'function') {
+                                    state.player.playVideo();
+                                }
+                            } catch (_) {}
+                        }
+                    }
                 },
                 onError: (e) => {
                     console.warn("[SpeakiMod+] Jukebox player error:", e.data);
@@ -5769,31 +5826,21 @@ function toggleMusicPlayer(forceState) {
         state.modalVisible = false;
         if (window.localStorage) localStorage.setItem("spkmod-jukebox-visible", "false");
 
-        const isMobile = (typeof spkmodIsMobile === "function" ? spkmodIsMobile() : false) ||
-            (typeof window.speakiMobile !== "undefined") ||
-            (typeof navigator !== "undefined" && /mobi|android|iphone|ipad|ipod/i.test(navigator.userAgent));
-
-        if (isMobile) {
-            if (state.player && typeof state.player.pauseVideo === 'function') {
-                try { state.player.pauseVideo(); } catch (_) {}
-            }
-            state.isPlaying = false;
-            state.isChangingTrack = false;
-            spkmodSuppressGameBgm(false, "jukebox");
-            updateJukeboxUI();
-        } else if (!state.isPlaying) {
+        if (!state.isPlaying) {
             spkmodSuppressGameBgm(false, "jukebox");
         }
     }
 }
 window.toggleMusicPlayer = toggleMusicPlayer;
 
-// Auto-restore modal if user left it open on previous session
+// Auto-restore modal if user left it open on previous session, or pre-init player in background
 setTimeout(() => {
     try {
         const wasOpen = localStorage.getItem("spkmod-jukebox-visible") === "true";
         if (wasOpen) {
             toggleMusicPlayer(true);
+        } else {
+            initJukeboxPlayer();
         }
     } catch (_) {}
 }, 1500);
