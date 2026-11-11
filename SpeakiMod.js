@@ -326,7 +326,8 @@ var SPKMOD_CINEMA_DEFAULT_CONFIG = {
 	pos: { x: 75.0, y: 4.2, z: 32.5 },
 	rotationY: 1.6000,
 	width: 12.8,
-	height: 7.2
+	height: 7.2,
+	occlusion: true
 };
 
 window.spkmodCinemaConfig = Object.assign({}, SPKMOD_CINEMA_DEFAULT_CONFIG);
@@ -342,6 +343,8 @@ if (typeof window !== "undefined" && window.localStorage) {
 		if (mutedStr !== null) window.spkmodCinemaConfig.muted = mutedStr === "true";
 		const vol = localStorage.getItem("spkmod-cinema-volume");
 		if (vol !== null) window.spkmodCinemaConfig.volume = parseInt(vol, 10) || 80;
+		const occ = localStorage.getItem("spkmod-cinema-occlusion");
+		if (occ !== null) window.spkmodCinemaConfig.occlusion = occ === "true";
 		const posStr = localStorage.getItem("spkmod-cinema-pos");
 		if (posStr) {
 			const parsed = JSON.parse(posStr);
@@ -9439,6 +9442,8 @@ document.body.appendChild(
 									}
 									const cont = document.getElementById("spkmod-cinema-container");
 									if (cont) cont.style.display = "none";
+									const occ = document.getElementById("spkmod-cinema-occlusion-canvas");
+									if (occ) occ.style.display = "none";
 									if (window.spkmodCinemaFrameMesh) window.spkmodCinemaFrameMesh.visible = false;
 									if (typeof window.spkmodUpdateCinemaFloatingPill === "function") {
 										window.spkmodUpdateCinemaFloatingPill(false);
@@ -9446,6 +9451,26 @@ document.body.appendChild(
 								} else {
 									if (typeof window.spkmodInitCinema === "function") window.spkmodInitCinema();
 								}
+							}
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.cinemaOcclusionLabel = buildElement("span", {
+						style: "color: #ddd; font-size: 11px; flex: 1;",
+						innerText: "👥 " + (t("cinemaOcclusionToggle") || "Spiki Occlusion (Avatars block screen)"),
+						title: "Avatars standing in front of screen will naturally obscure the movie"
+					}),
+					lunPanelElements.cinemaOcclusionInput = buildElement("input", {
+						type: "checkbox",
+						checked: (window.spkmodCinemaConfig ? window.spkmodCinemaConfig.occlusion !== false : true),
+						title: "Toggle avatar occlusion in front of cinema screen",
+						onchange: e => {
+							if (typeof window.spkmodToggleCinemaOcclusion === "function") {
+								window.spkmodToggleCinemaOcclusion(e.target.checked);
+							} else if (window.spkmodCinemaConfig) {
+								window.spkmodCinemaConfig.occlusion = e.target.checked;
+								localStorage.setItem("spkmod-cinema-occlusion", e.target.checked ? "true" : "false");
 							}
 						}
 					})
@@ -28981,7 +29006,8 @@ var SPKMOD_CINEMA_DEFAULT_CONFIG = window.SPKMOD_CINEMA_DEFAULT_CONFIG || {
 	pos: { x: 75.0, y: 4.2, z: 32.5 },
 	rotationY: 1.6000,
 	width: 12.8,
-	height: 7.2
+	height: 7.2,
+	occlusion: true
 };
 
 var spkmodCinemaConfig = window.spkmodCinemaConfig || Object.assign({}, SPKMOD_CINEMA_DEFAULT_CONFIG);
@@ -28998,6 +29024,8 @@ if (window.localStorage) {
 		if (mutedStr !== null) spkmodCinemaConfig.muted = mutedStr === "true";
 		const vol = localStorage.getItem("spkmod-cinema-volume");
 		if (vol !== null) spkmodCinemaConfig.volume = parseInt(vol, 10) || 80;
+		const occ = localStorage.getItem("spkmod-cinema-occlusion");
+		if (occ !== null) spkmodCinemaConfig.occlusion = occ === "true";
 		const posStr = localStorage.getItem("spkmod-cinema-pos");
 		if (posStr) {
 			const parsed = JSON.parse(posStr);
@@ -29038,6 +29066,11 @@ var spkmodCinemaFrameMesh = null;
 var spkmodCinemaContainer = null;
 var spkmodCinemaIframe = null;
 var spkmodCinemaRenderLoopId = null;
+var spkmodCinemaOcclusionRenderer = null;
+var spkmodCinemaOcclusionScene = null;
+var spkmodCinemaOcclusionCanvas = null;
+var spkmodCinemaOccluderMesh = null;
+var spkmodCinemaOcclusionAvatarGroup = null;
 var spkmodCinemaModeActive = false;
 var spkmodCinemaInZone = false;
 var spkmodCinemaLastVolume = -1;
@@ -29793,6 +29826,294 @@ function spkmodInitCinema() {
 	spkmodCinemaScreenObject.rotation.y = spkmodCinemaConfig.rotationY;
 
 	spkmodCreateCinemaPhysicalFrame();
+	spkmodInitCinemaOcclusion();
+}
+
+function spkmodInitCinemaOcclusion() {
+	if (typeof window === 'undefined' || !window.THREE) return;
+	const THREE = window.THREE;
+
+	if (!spkmodCinemaOcclusionCanvas) {
+		spkmodCinemaOcclusionCanvas = document.createElement('canvas');
+		spkmodCinemaOcclusionCanvas.id = 'spkmod-cinema-occlusion-canvas';
+		spkmodCinemaOcclusionCanvas.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; overflow: hidden; z-index: 4; display: none;';
+		document.body.appendChild(spkmodCinemaOcclusionCanvas);
+	}
+
+	if (!spkmodCinemaOcclusionRenderer) {
+		try {
+			spkmodCinemaOcclusionRenderer = new THREE.WebGLRenderer({
+				canvas: spkmodCinemaOcclusionCanvas,
+				alpha: true,
+				antialias: true,
+				stencil: true,
+				depth: true,
+				powerPreference: 'high-performance'
+			});
+			spkmodCinemaOcclusionRenderer.setSize(window.innerWidth, window.innerHeight);
+			spkmodCinemaOcclusionRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+			spkmodCinemaOcclusionRenderer.autoClear = false;
+
+			const gl = spkmodCinemaOcclusionRenderer.getContext();
+			if (gl) {
+				const origDisable = gl.disable;
+				gl.disable = function(cap) {
+					if (this.__spkmodForceStencilTest && cap === this.STENCIL_TEST) return;
+					return origDisable.apply(this, arguments);
+				};
+				const origStencilFunc = gl.stencilFunc;
+				gl.stencilFunc = function(func, ref, mask) {
+					if (this.__spkmodForceStencilTest) {
+						return origStencilFunc.call(this, this.EQUAL, 1, 0xff);
+					}
+					return origStencilFunc.apply(this, arguments);
+				};
+				const origStencilFuncSeparate = gl.stencilFuncSeparate;
+				if (origStencilFuncSeparate) {
+					gl.stencilFuncSeparate = function(face, func, ref, mask) {
+						if (this.__spkmodForceStencilTest) {
+							return origStencilFuncSeparate.call(this, face, this.EQUAL, 1, 0xff);
+						}
+						return origStencilFuncSeparate.apply(this, arguments);
+					};
+				}
+				const origStencilOp = gl.stencilOp;
+				gl.stencilOp = function(fail, zfail, zpass) {
+					if (this.__spkmodForceStencilTest) {
+						return origStencilOp.call(this, this.KEEP, this.KEEP, this.KEEP);
+					}
+					return origStencilOp.apply(this, arguments);
+				};
+				const origStencilOpSeparate = gl.stencilOpSeparate;
+				if (origStencilOpSeparate) {
+					gl.stencilOpSeparate = function(face, fail, zfail, zpass) {
+						if (this.__spkmodForceStencilTest) {
+							return origStencilOpSeparate.call(this, face, this.KEEP, this.KEEP, this.KEEP);
+						}
+						return origStencilOpSeparate.apply(this, arguments);
+					};
+				}
+				const origStencilMask = gl.stencilMask;
+				gl.stencilMask = function(mask) {
+					if (this.__spkmodForceStencilTest) {
+						return origStencilMask.call(this, 0x00);
+					}
+					return origStencilMask.apply(this, arguments);
+				};
+				const origStencilMaskSeparate = gl.stencilMaskSeparate;
+				if (origStencilMaskSeparate) {
+					gl.stencilMaskSeparate = function(face, mask) {
+						if (this.__spkmodForceStencilTest) {
+							return origStencilMaskSeparate.call(this, face, 0x00);
+						}
+						return origStencilMaskSeparate.apply(this, arguments);
+					};
+				}
+			}
+		} catch (e) {
+			console.warn("[Cinema Occlusion] Could not initialize WebGL occlusion renderer:", e);
+		}
+	}
+
+	if (!spkmodCinemaOcclusionScene) {
+		spkmodCinemaOcclusionScene = new THREE.Scene();
+		spkmodCinemaOcclusionScene.autoUpdate = false;
+
+		const amb = new THREE.AmbientLight(0xffffff, 1.3);
+		spkmodCinemaOcclusionScene.add(amb);
+
+		const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+		dir.position.set(5, 14, 8);
+		spkmodCinemaOcclusionScene.add(dir);
+
+		const w = spkmodCinemaConfig.width || 12.8;
+		const h = spkmodCinemaConfig.height || 7.2;
+		const occluderGeo = new THREE.PlaneGeometry(w, h);
+		const occluderMat = new THREE.MeshBasicMaterial({
+			color: 0x000000,
+			colorWrite: false,
+			depthWrite: true,
+			depthTest: true,
+			side: THREE.DoubleSide
+		});
+		occluderMat.stencilWrite = true;
+		occluderMat.stencilRef = 1;
+		occluderMat.stencilFunc = THREE.AlwaysStencilFunc;
+		occluderMat.stencilZPass = THREE.ReplaceStencilOp;
+		occluderMat.stencilFail = THREE.KeepStencilOp;
+		occluderMat.stencilZFail = THREE.KeepStencilOp;
+
+		spkmodCinemaOccluderMesh = new THREE.Mesh(occluderGeo, occluderMat);
+		spkmodCinemaOcclusionScene.add(spkmodCinemaOccluderMesh);
+
+		spkmodCinemaOcclusionAvatarGroup = new THREE.Group();
+		spkmodCinemaOcclusionAvatarGroup.autoUpdate = false;
+		spkmodCinemaOcclusionAvatarGroup.updateMatrixWorld = function() {};
+		spkmodCinemaOcclusionScene.add(spkmodCinemaOcclusionAvatarGroup);
+	}
+
+	if (spkmodCinemaOccluderMesh) {
+		spkmodCinemaOccluderMesh.position.set(spkmodCinemaConfig.pos.x, spkmodCinemaConfig.pos.y, spkmodCinemaConfig.pos.z);
+		spkmodCinemaOccluderMesh.rotation.y = spkmodCinemaConfig.rotationY;
+	}
+}
+
+function spkmodRenderCinemaOcclusion() {
+	if (!window.spkmodCinemaConfig?.occlusion) {
+		if (spkmodCinemaOcclusionCanvas && spkmodCinemaOcclusionCanvas.style.display !== 'none') {
+			spkmodCinemaOcclusionCanvas.style.display = 'none';
+		}
+		return;
+	}
+	if (!spkmodCinemaOcclusionRenderer || !spkmodCinemaOcclusionScene || !spkmodCinemaOccluderMesh || !gameState?.camera) {
+		return;
+	}
+	if (!spkmodCinemaInZone || !spkmodCinemaContainer || spkmodCinemaContainer.style.display === 'none') {
+		if (spkmodCinemaOcclusionCanvas && spkmodCinemaOcclusionCanvas.style.display !== 'none') {
+			spkmodCinemaOcclusionCanvas.style.display = 'none';
+		}
+		return;
+	}
+
+	if (spkmodCinemaOcclusionCanvas.style.display !== '') {
+		spkmodCinemaOcclusionCanvas.style.display = '';
+	}
+
+	// Sync occluder mesh position and rotation to cinema screen object
+	spkmodCinemaOccluderMesh.position.set(spkmodCinemaConfig.pos.x, spkmodCinemaConfig.pos.y, spkmodCinemaConfig.pos.z);
+	spkmodCinemaOccluderMesh.rotation.y = spkmodCinemaConfig.rotationY;
+	spkmodCinemaOccluderMesh.updateMatrixWorld(true);
+
+	const camera = gameState.camera;
+	const THREE = window.THREE;
+	const camPos = new THREE.Vector3();
+	camera.getWorldPosition(camPos);
+
+	const cinemaPos = spkmodCinemaConfig.pos;
+	const screenPos = new THREE.Vector3(cinemaPos.x, cinemaPos.y, cinemaPos.z);
+	const distCamToScreen = camPos.distanceTo(screenPos);
+
+	const camDir = new THREE.Vector3();
+	camera.getWorldDirection(camDir);
+
+	const avatarGroup = spkmodCinemaOcclusionAvatarGroup;
+	avatarGroup.children.length = 0;
+
+	const wp = new THREE.Vector3();
+	const toAvatar = new THREE.Vector3();
+
+	function checkAndAdd(rootObj) {
+		if (!rootObj || rootObj.visible === false) return;
+		rootObj.getWorldPosition(wp);
+
+		// Must be within 40m of cinema
+		const dCinema = Math.hypot(wp.x - cinemaPos.x, wp.z - cinemaPos.z);
+		if (dCinema > 40) return;
+
+		// Must be in front of the camera
+		toAvatar.subVectors(wp, camPos);
+		if (camDir.dot(toAvatar) <= 0) return;
+
+		// Must be closer to camera than cinema screen (with 1.0m tolerance for model radius)
+		const dCam = camPos.distanceTo(wp);
+		if (dCam >= distCamToScreen + 1.0) return;
+
+		avatarGroup.children.push(rootObj);
+	}
+
+	// 1. Local Player
+	if (gameState.localAvatar?.root) {
+		checkAndAdd(gameState.localAvatar.root);
+	} else if (gameState.playerContainer) {
+		checkAndAdd(gameState.playerContainer);
+	}
+
+	// 2. Remote Players
+	if (gameState.remotePlayers?.remotePlayers) {
+		const rpList = (gameState.remotePlayers.remotePlayers instanceof Map)
+			? gameState.remotePlayers.remotePlayers.values()
+			: (typeof gameState.remotePlayers.remotePlayers.values === "function"
+				? gameState.remotePlayers.remotePlayers.values()
+				: (Array.isArray(gameState.remotePlayers.remotePlayers) ? gameState.remotePlayers.remotePlayers : []));
+		for (const rp of rpList) {
+			if (!rp) continue;
+			const model = rp.avatar?.root || rp.container;
+			if (model) checkAndAdd(model);
+		}
+	}
+
+	// 3. Remote Pets
+	if (gameState.remotePetRegistry?.pets) {
+		const petList = (gameState.remotePetRegistry.pets instanceof Map)
+			? gameState.remotePetRegistry.pets.values()
+			: (typeof gameState.remotePetRegistry.pets.values === "function" ? gameState.remotePetRegistry.pets.values() : []);
+		for (const pet of petList) {
+			if (!pet) continue;
+			const model = pet.root || pet.container;
+			if (model) checkAndAdd(model);
+		}
+	}
+
+	const gl = spkmodCinemaOcclusionRenderer.getContext();
+	spkmodCinemaOcclusionRenderer.clear(true, true, true);
+
+	if (avatarGroup.children.length === 0) {
+		return;
+	}
+
+	gl.enable(gl.STENCIL_TEST);
+	gl.enable(gl.DEPTH_TEST);
+	gl.depthFunc(gl.LEQUAL);
+
+	// PASS 1: Render screen occluder (writes depth and sets stencil = 1 on screen pixels)
+	gl.__spkmodForceStencilTest = false;
+	avatarGroup.visible = false;
+	spkmodCinemaOccluderMesh.visible = true;
+	spkmodCinemaOcclusionRenderer.render(spkmodCinemaOcclusionScene, camera);
+
+	// PASS 2: Render avatars (strictly where stencil == 1 and depth <= screen depth)
+	gl.__spkmodForceStencilTest = true;
+	avatarGroup.visible = true;
+	spkmodCinemaOccluderMesh.visible = false;
+	spkmodCinemaOcclusionRenderer.render(spkmodCinemaOcclusionScene, camera);
+	gl.__spkmodForceStencilTest = false;
+
+	avatarGroup.children.length = 0;
+}
+
+window.spkmodToggleCinemaOcclusion = function(force) {
+	const current = !!window.spkmodCinemaConfig?.occlusion;
+	const next = (typeof force === 'boolean') ? force : !current;
+	window.spkmodCinemaConfig.occlusion = next;
+	if (typeof spkmodCinemaConfig !== 'undefined') spkmodCinemaConfig.occlusion = next;
+	try {
+		localStorage.setItem("spkmod-cinema-occlusion", String(next));
+	} catch (_) {}
+	if (!next && spkmodCinemaOcclusionCanvas) {
+		spkmodCinemaOcclusionCanvas.style.display = 'none';
+	}
+	if (typeof spkmodSyncCinemaOcclusionUI === 'function') {
+		spkmodSyncCinemaOcclusionUI();
+	}
+	if (typeof chatLog === 'function') {
+		const txt = next ? "🎬 Cinema: Spiki occlusion enabled (avatars obscure screen)" : "🎬 Cinema: Spiki occlusion disabled";
+		chatLog(txt);
+	}
+	return next;
+};
+
+function spkmodSyncCinemaOcclusionUI() {
+	const isOcc = window.spkmodCinemaConfig?.occlusion !== false;
+	const modalBtn = document.getElementById("spkmod-cinema-modal-occlusion-btn");
+	if (modalBtn) {
+		modalBtn.style.background = isOcc ? 'linear-gradient(135deg, #ffd56b 0%, #e8b84b 100%)' : '#261c33';
+		modalBtn.style.color = isOcc ? '#120e1a' : '#f5e6b3';
+		modalBtn.style.borderColor = isOcc ? '#ffe28a' : 'rgba(232, 184, 75, 0.35)';
+		modalBtn.style.fontWeight = isOcc ? '800' : '600';
+	}
+	if (typeof lunPanelElements !== 'undefined' && lunPanelElements?.cinemaOcclusionInput) {
+		lunPanelElements.cinemaOcclusionInput.checked = isOcc;
+	}
 }
 
 function spkmodSyncCinemaPlayback(force = false) {
@@ -30592,6 +30913,9 @@ function spkmodUpdateCinemaPlaybackUI() {
 	if (typeof spkmodSyncCinemaVolumeUI === "function") {
 		spkmodSyncCinemaVolumeUI();
 	}
+	if (typeof spkmodSyncCinemaOcclusionUI === "function") {
+		spkmodSyncCinemaOcclusionUI();
+	}
 }
 window.spkmodUpdateCinemaPlaybackUI = spkmodUpdateCinemaPlaybackUI;
 
@@ -30632,6 +30956,7 @@ function spkmodBuildCinemaModal() {
 			<div style="display:flex;align-items:center;gap:5px;">
 				<button id="spkmod-cinema-modal-sync-btn" title="${getCinemaText("cinemaSyncSchedule")}" style="background:${spkmodCinemaManualTrackIndex === null ? 'linear-gradient(135deg, #e53935 0%, #c62828 100%)' : '#261c33'};color:${spkmodCinemaManualTrackIndex === null ? '#ffffff' : '#f5e6b3'};border:1.5px solid ${spkmodCinemaManualTrackIndex === null ? '#ff7b7b' : 'rgba(232, 184, 75, 0.35)'};border-radius:6px;cursor:pointer;padding:2px 8px;font-size:11px;font-weight:${spkmodCinemaManualTrackIndex === null ? '800' : '600'};box-shadow:${spkmodCinemaManualTrackIndex === null ? '0 0 10px rgba(229, 57, 53, 0.55)' : 'none'};transition:all 0.15s ease;">🔴 <span id="spkmod-cinema-sync-label" style="color:inherit;">${getCinemaText("cinemaSyncSchedule")}</span></button>
 				<button id="spkmod-cinema-modal-reload-btn" title="${getCinemaText("cinemaReloadPlaylist")}" style="background:#3e3052;color:#ffdf79;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;transition:all 0.15s ease;">🔄</button>
+				<button id="spkmod-cinema-modal-occlusion-btn" title="${getCinemaText("cinemaOcclusionToggle")}" style="background:${window.spkmodCinemaConfig?.occlusion !== false ? 'linear-gradient(135deg, #ffd56b 0%, #e8b84b 100%)' : '#261c33'};color:${window.spkmodCinemaConfig?.occlusion !== false ? '#120e1a' : '#f5e6b3'};border:1px solid ${window.spkmodCinemaConfig?.occlusion !== false ? '#ffe28a' : 'rgba(232, 184, 75, 0.35)'};border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;font-weight:${window.spkmodCinemaConfig?.occlusion !== false ? '800' : '600'};transition:all 0.15s ease;">👥</button>
 				<button id="spkmod-cinema-modal-close-btn" title="Close" style="background:transparent;border:none;color:#aaa;cursor:pointer;font-size:16px;line-height:1;padding:0 3px;">✕</button>
 			</div>
 		</div>
@@ -30748,6 +31073,13 @@ function spkmodBuildCinemaModal() {
 			spkmodUpdateCinemaPlaybackUI();
 		});
 	};
+
+	const occBtn = modal.querySelector("#spkmod-cinema-modal-occlusion-btn");
+	if (occBtn) {
+		occBtn.onclick = () => {
+			window.spkmodToggleCinemaOcclusion();
+		};
+	}
 
 	const mainThumb = modal.querySelector("#spkmod-cinema-modal-thumb");
 	if (mainThumb) {
@@ -31162,6 +31494,7 @@ function spkmodCinemaTick() {
 			spkmodCinemaInZone = false;
 			spkmodCinemaLeftZoneTimeMs = Date.now();
 			if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = 'none';
+			if (spkmodCinemaOcclusionCanvas) spkmodCinemaOcclusionCanvas.style.display = 'none';
 			if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = false;
 			spkmodSendYtCommand('pauseVideo');
 			spkmodSendYtCommand('mute');
@@ -31186,6 +31519,9 @@ function spkmodCinemaTick() {
 		} else {
 			if (spkmodCinemaContainer && spkmodCinemaContainer.style.display !== 'none') {
 				spkmodCinemaContainer.style.display = 'none';
+			}
+			if (spkmodCinemaOcclusionCanvas && spkmodCinemaOcclusionCanvas.style.display !== 'none') {
+				spkmodCinemaOcclusionCanvas.style.display = 'none';
 			}
 			if (spkmodCinemaFrameMesh && spkmodCinemaFrameMesh.visible) {
 				spkmodCinemaFrameMesh.visible = false;
@@ -31335,6 +31671,9 @@ function spkmodCinemaTick() {
 			gameState.camera.matrixWorldInverse.copy(gameState.camera.matrixWorld).invert();
 		}
 		spkmodCinemaRenderer.render(spkmodCinemaScene, gameState.camera);
+		if (typeof spkmodRenderCinemaOcclusion === 'function') {
+			spkmodRenderCinemaOcclusion();
+		}
 	}
 }
 
@@ -31646,6 +31985,10 @@ window.addEventListener('resize', () => {
 	if (spkmodCinemaRenderer) {
 		spkmodCinemaRenderer.setSize(window.innerWidth, window.innerHeight);
 	}
+	if (spkmodCinemaOcclusionRenderer) {
+		spkmodCinemaOcclusionRenderer.setSize(window.innerWidth, window.innerHeight);
+		spkmodCinemaOcclusionRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+	}
 });
 
 window.spkmodLoadMoviesPlaylist = spkmodLoadMoviesPlaylist;
@@ -31674,6 +32017,10 @@ window.spkmodSetCinema = function(x = 75.0, y = 4.2, z = 32.5, rotY = 1.6000) {
 	if (spkmodCinemaFrameMesh) {
 		spkmodCinemaFrameMesh.position.set(window.spkmodCinemaConfig.pos.x, window.spkmodCinemaConfig.pos.y, window.spkmodCinemaConfig.pos.z);
 		spkmodCinemaFrameMesh.rotation.y = window.spkmodCinemaConfig.rotationY;
+	}
+	if (spkmodCinemaOccluderMesh) {
+		spkmodCinemaOccluderMesh.position.set(window.spkmodCinemaConfig.pos.x, window.spkmodCinemaConfig.pos.y, window.spkmodCinemaConfig.pos.z);
+		spkmodCinemaOccluderMesh.rotation.y = window.spkmodCinemaConfig.rotationY;
 	}
 	if (typeof chatLog === "function") {
 		chatLog(`🎬 Cinema moved to (${window.spkmodCinemaConfig.pos.x}, ${window.spkmodCinemaConfig.pos.y}, ${window.spkmodCinemaConfig.pos.z})`);
@@ -31820,6 +32167,8 @@ function spkmodUpdateCinemaI18n() {
 		if (syncBtn) syncBtn.title = getCinemaText("cinemaSyncSchedule");
 		const reloadBtn = document.getElementById("spkmod-cinema-modal-reload-btn");
 		if (reloadBtn) reloadBtn.title = getCinemaText("cinemaReloadPlaylist");
+		const occBtn = document.getElementById("spkmod-cinema-modal-occlusion-btn");
+		if (occBtn) occBtn.title = getCinemaText("cinemaOcclusionToggle");
 
 		const tabMoviesLabel = document.getElementById("spkmod-cinema-tab-movies-label");
 		if (tabMoviesLabel) tabMoviesLabel.innerText = getCinemaText("cinemaTabMovies");
