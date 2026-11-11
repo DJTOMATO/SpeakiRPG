@@ -1,5 +1,5 @@
 beam,https://i.imgur.com/prgd47X.png
-jeremy,https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/emoji-assets/jeremy.gif
+jeremy,https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/emoji-assets/jeremy.gif
 cart,https://i.imgur.com/3xf6FUm.png
 cry,https://i.imgur.com/zIV9VfA.png
 cry2,https://i.imgur.com/3qFoBOO.png
