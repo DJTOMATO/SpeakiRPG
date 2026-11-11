@@ -75,6 +75,8 @@ var spkmodCinemaOcclusionCanvas = null;
 var spkmodCinemaOccluderMesh = null;
 var spkmodCinemaOcclusionAvatarGroup = null;
 var spkmodCinemaSilhouetteMat = null;
+var spkmodCinemaOcclusionAmbientLight = null;
+var spkmodCinemaOcclusionDirLight = null;
 var spkmodCinemaModeActive = false;
 var spkmodCinemaInZone = false;
 
@@ -830,6 +832,16 @@ function spkmodInitCinemaOcclusion() {
 		spkmodCinemaOcclusionScene = new THREE.Scene();
 	}
 
+	if (!spkmodCinemaOcclusionAmbientLight) {
+		spkmodCinemaOcclusionAmbientLight = new THREE.AmbientLight(0xffffff, 1.5);
+		spkmodCinemaOcclusionScene.add(spkmodCinemaOcclusionAmbientLight);
+	}
+	if (!spkmodCinemaOcclusionDirLight) {
+		spkmodCinemaOcclusionDirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+		spkmodCinemaOcclusionDirLight.position.set(0, 20, 20);
+		spkmodCinemaOcclusionScene.add(spkmodCinemaOcclusionDirLight);
+	}
+
 	if (!spkmodCinemaOccluderMesh) {
 		const occluderGeo = new THREE.PlaneGeometry(spkmodCinemaConfig.width, spkmodCinemaConfig.height);
 		const occluderMat = new THREE.MeshBasicMaterial({
@@ -865,6 +877,23 @@ function spkmodInitCinemaOcclusion() {
 	}
 }
 
+function spkmodGetAvatarModelRoot(entity) {
+	if (!entity) return null;
+	if (entity.root && entity.root.isObject3D) return entity.root;
+	if (entity.avatar?.root && entity.avatar.root.isObject3D) return entity.avatar.root;
+	if (entity.avatar && entity.avatar.isObject3D) return entity.avatar;
+	if (entity.children) {
+		for (const child of entity.children) {
+			const n = (child.name || "").toLowerCase();
+			if (n === "root" || n === "avatar" || n === "model") return child;
+			if (n.includes("label") || n.includes("shadow") || n.includes("ring") || n.includes("pad")) continue;
+			if (child.isSkinnedMesh) return child;
+			if (child.children && child.children.some(c => c.isSkinnedMesh)) return child;
+		}
+	}
+	return null;
+}
+
 function spkmodRenderCinemaOcclusion() {
 	if (!spkmodCinemaConfig.occlusion || !spkmodCinemaOcclusionRenderer || !spkmodCinemaOcclusionScene || !spkmodCinemaOccluderMesh) {
 		if (spkmodCinemaOcclusionCanvas && spkmodCinemaOcclusionCanvas.style.display !== 'none') {
@@ -887,40 +916,46 @@ function spkmodRenderCinemaOcclusion() {
 		spkmodCinemaOcclusionCanvas.style.display = '';
 	}
 
-	const avatarList = [];
+	const avatarRoots = [];
 	const sPos = spkmodCinemaConfig.pos;
 
+	// Local player: pick avatar model root only (exclude nametag & ground shadow)
 	if (gameState.playerContainer && gameState.playerContainer.visible !== false) {
 		const pos = gameState.playerContainer.position;
 		if (pos) {
 			const dx = pos.x - sPos.x;
 			const dz = pos.z - sPos.z;
 			if (dx * dx + dz * dz <= 900) {
-				avatarList.push(gameState.playerContainer);
+				const modelRoot = spkmodGetAvatarModelRoot(gameState.localAvatar) || spkmodGetAvatarModelRoot(gameState.playerContainer);
+				if (modelRoot && modelRoot.visible !== false) {
+					avatarRoots.push(modelRoot);
+				}
 			}
 		}
 	}
 
+	// Remote players: pick avatar model root only
 	if (gameState.remotePlayers?.remotePlayers) {
 		const rpMap = gameState.remotePlayers.remotePlayers;
 		const list = (rpMap instanceof Map) ? rpMap.values() : (Array.isArray(rpMap) ? rpMap : []);
 		for (const rp of list) {
 			if (!rp) continue;
 			if (typeof isSilencedPlayer === 'function' && isSilencedPlayer(rp)) continue;
-			const c = rp.container || rp.avatar;
-			if (c && c.visible !== false) {
-				const pos = c.position || (rp.info && rp.info.pos);
-				if (pos) {
-					const dx = pos.x - sPos.x;
-					const dz = pos.z - sPos.z;
-					if (dx * dx + dz * dz <= 900) {
-						avatarList.push(c);
+			const pos = rp.container?.position || (rp.info && rp.info.pos);
+			if (pos) {
+				const dx = pos.x - sPos.x;
+				const dz = pos.z - sPos.z;
+				if (dx * dx + dz * dz <= 900) {
+					const modelRoot = spkmodGetAvatarModelRoot(rp.avatar) || spkmodGetAvatarModelRoot(rp.container);
+					if (modelRoot && modelRoot.visible !== false) {
+						avatarRoots.push(modelRoot);
 					}
 				}
 			}
 		}
 	}
 
+	// Pass 1: Draw screen occluder to write depth & stencil (1)
 	spkmodCinemaOcclusionRenderer.clear(true, true, true);
 
 	spkmodCinemaOcclusionScene.overrideMaterial = null;
@@ -931,10 +966,54 @@ function spkmodRenderCinemaOcclusion() {
 
 	spkmodCinemaOcclusionRenderer.render(spkmodCinemaOcclusionScene, gameState.camera);
 
-	if (avatarList.length > 0) {
-		spkmodCinemaOcclusionScene.overrideMaterial = spkmodCinemaSilhouetteMat;
-		spkmodCinemaOcclusionScene.children = avatarList;
+	// Pass 2: Draw avatars in full natural color with textures & lighting
+	if (avatarRoots.length > 0) {
+		const modifiedMaterials = [];
+		for (const root of avatarRoots) {
+			root.traverse(child => {
+				if (!child.isMesh) return;
+				const name = (child.name || "").toLowerCase();
+				if (name.includes("shadow") || name.includes("pad") || name.includes("label") || name.includes("ring")) return;
+
+				const mats = Array.isArray(child.material) ? child.material : [child.material];
+				for (const m of mats) {
+					if (!m) continue;
+					modifiedMaterials.push({
+						mat: m,
+						stencilWrite: m.stencilWrite,
+						stencilFunc: m.stencilFunc,
+						stencilRef: m.stencilRef,
+						stencilMask: m.stencilMask
+					});
+					m.stencilWrite = true;
+					m.stencilFunc = THREE.EqualStencilFunc;
+					m.stencilRef = 1;
+					m.stencilMask = 0xFF;
+				}
+			});
+		}
+
+		spkmodCinemaOcclusionScene.overrideMaterial = null;
+		const sceneChildren = [];
+		if (spkmodCinemaOcclusionAmbientLight) sceneChildren.push(spkmodCinemaOcclusionAmbientLight);
+		if (spkmodCinemaOcclusionDirLight) {
+			sceneChildren.push(spkmodCinemaOcclusionDirLight);
+			if (gameState.camera) {
+				spkmodCinemaOcclusionDirLight.position.copy(gameState.camera.position).add(new THREE.Vector3(0, 5, 0));
+			}
+		}
+		for (const r of avatarRoots) sceneChildren.push(r);
+		spkmodCinemaOcclusionScene.children = sceneChildren;
+
 		spkmodCinemaOcclusionRenderer.render(spkmodCinemaOcclusionScene, gameState.camera);
+
+		// Restore original material stencil configurations
+		for (const item of modifiedMaterials) {
+			item.mat.stencilWrite = item.stencilWrite;
+			item.mat.stencilFunc = item.stencilFunc;
+			item.mat.stencilRef = item.stencilRef;
+			item.mat.stencilMask = item.stencilMask;
+		}
 	}
 
 	spkmodCinemaOcclusionScene.children = [spkmodCinemaOccluderMesh];
