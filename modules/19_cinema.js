@@ -1061,6 +1061,10 @@ window.spkmodGetCinemaCurrentTrackIndex = spkmodGetCinemaCurrentTrackIndex;
 
 function spkmodPlayCinemaTrackIndex(index, startSec = 0, isManual = true) {
 	try {
+		if (window.spkmodCinemaAnniversaryLocked && isManual) {
+			if (typeof chatLog === 'function') chatLog("🎬 Cinema is locked for the Anniversary broadcast!");
+			return;
+		}
 		const currentList = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
 			? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
 			: (spkmodCinemaLoadedPlaylist || []);
@@ -1207,13 +1211,13 @@ window.spkmodCinemaTogglePlayPause = function() {
 };
 
 window.spkmodCinemaPrev = function() {
-	if (!spkmodCinemaInZone) return;
+	if (!spkmodCinemaInZone || window.spkmodCinemaAnniversaryLocked) return;
 	const cur = spkmodGetCinemaCurrentTrackIndex();
 	spkmodPlayCinemaTrackIndex(cur - 1, 0, true);
 };
 
 window.spkmodCinemaNext = function() {
-	if (!spkmodCinemaInZone) return;
+	if (!spkmodCinemaInZone || window.spkmodCinemaAnniversaryLocked) return;
 	const cur = spkmodGetCinemaCurrentTrackIndex();
 	spkmodPlayCinemaTrackIndex(cur + 1, 0, true);
 };
@@ -1230,6 +1234,7 @@ window.spkmodCinemaToggleRepeat = function() {
 };
 
 window.spkmodCinemaSyncSchedule = function() {
+	if (window.spkmodCinemaAnniversaryLocked) return;
 	spkmodCinemaManualTrackIndex = null;
 	spkmodCinemaIsPaused = false;
 	spkmodSyncCinemaPlayback(true);
@@ -1392,6 +1397,10 @@ function spkmodRenderCinemaModalList() {
 			e.preventDefault();
 			e.stopPropagation();
 			hideCinemaThumbPreview();
+			if (window.spkmodCinemaAnniversaryLocked) {
+				if (typeof chatLog === 'function') chatLog("🎬 Cinema is locked for the Anniversary broadcast!");
+				return;
+			}
 			spkmodPlayCinemaTrackIndex(i);
 		};
 
@@ -1521,14 +1530,34 @@ function spkmodUpdateCinemaPlaybackUI() {
 		spkmodUpdateCinemaTimeDisplay();
 		const syncBtn = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-sync-btn");
 		if (syncBtn) {
-			const isSynced = (spkmodCinemaManualTrackIndex === null);
-			syncBtn.style.background = isSynced ? "linear-gradient(135deg, #e53935 0%, #c62828 100%)" : "#261c33";
-			syncBtn.style.color = isSynced ? "#ffffff" : "#f5e6b3";
-			syncBtn.style.borderColor = isSynced ? "#ff7b7b" : "rgba(232, 184, 75, 0.35)";
-			syncBtn.style.fontWeight = isSynced ? "800" : "600";
-			syncBtn.style.boxShadow = isSynced ? "0 0 10px rgba(229, 57, 53, 0.55)" : "none";
-			const syncSpan = syncBtn.querySelector("#spkmod-cinema-sync-label");
-			if (syncSpan) syncSpan.style.color = isSynced ? "#ffffff" : "#f5e6b3";
+			if (window.spkmodCinemaAnniversaryLocked) {
+				syncBtn.style.background = "#4a1212";
+				syncBtn.style.color = "#ff9e9e";
+				syncBtn.style.borderColor = "#ff4444";
+				syncBtn.style.fontWeight = "800";
+				syncBtn.style.boxShadow = "0 0 10px rgba(255, 68, 68, 0.4)";
+				syncBtn.style.cursor = "not-allowed";
+				syncBtn.title = "🔒 Locked for Anniversary Broadcast";
+				const syncSpan = syncBtn.querySelector("#spkmod-cinema-sync-label");
+				if (syncSpan) {
+					syncSpan.innerText = "🔒 Locked";
+					syncSpan.style.color = "#ff9e9e";
+				}
+			} else {
+				const isSynced = (spkmodCinemaManualTrackIndex === null);
+				syncBtn.style.background = isSynced ? "linear-gradient(135deg, #e53935 0%, #c62828 100%)" : "#261c33";
+				syncBtn.style.color = isSynced ? "#ffffff" : "#f5e6b3";
+				syncBtn.style.borderColor = isSynced ? "#ff7b7b" : "rgba(232, 184, 75, 0.35)";
+				syncBtn.style.fontWeight = isSynced ? "800" : "600";
+				syncBtn.style.boxShadow = isSynced ? "0 0 10px rgba(229, 57, 53, 0.55)" : "none";
+				syncBtn.style.cursor = "pointer";
+				syncBtn.title = getCinemaText("cinemaSyncSchedule");
+				const syncSpan = syncBtn.querySelector("#spkmod-cinema-sync-label");
+				if (syncSpan) {
+					syncSpan.innerText = getCinemaText("cinemaSyncSchedule");
+					syncSpan.style.color = isSynced ? "#ffffff" : "#f5e6b3";
+				}
+			}
 		}
 		const playBtn = spkmodCinemaModalEl.querySelector("#spkmod-cinema-ctrl-play");
 		const pauseBtn = spkmodCinemaModalEl.querySelector("#spkmod-cinema-ctrl-pause");
@@ -2232,7 +2261,9 @@ function spkmodCinemaTick() {
 		const curZone = (typeof gameState !== 'undefined' && gameState?.zoneId !== undefined) ? (gameState.zoneId % 10000) : 1;
 		const wasInSameMap = curZone === 1 && !spkmodIsInMinigame();
 		const wasBrieflyAway = wasInSameMap && spkmodCinemaLeftZoneTimeMs > 0 && (Date.now() - spkmodCinemaLeftZoneTimeMs < 60000);
-		if (spkmodCinemaCurrentVideo && spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src !== 'about:blank' && wasBrieflyAway) {
+		if (window.spkmodCinemaAnniversaryLocked) {
+			window.spkmodSetCinemaAnniversaryLock(true);
+		} else if (spkmodCinemaCurrentVideo && spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src !== 'about:blank' && wasBrieflyAway) {
 			spkmodSendYtCommand('playVideo');
 		} else {
 			spkmodSyncCinemaPlayback(true);
@@ -2268,7 +2299,16 @@ function spkmodCinemaTick() {
 			spkmodSendYtCommand('getCurrentTime');
 		}
 
-		if (spkmodCinemaManualTrackIndex === null) {
+		if (window.spkmodCinemaAnniversaryLocked) {
+			// In lockdown mode: if anniversary video ends or unloads, keep it looping
+			if (!spkmodCinemaCurrentVideo || !spkmodCinemaIframe || !spkmodCinemaIframe.src || spkmodCinemaIframe.src === 'about:blank') {
+				window.spkmodSetCinemaAnniversaryLock(true);
+			} else if (window.spkmodCinemaLastPlayerState === 0) {
+				spkmodSendYtCommand('seekTo', [0, true]);
+				spkmodSendYtCommand('playVideo');
+				spkmodCinemaCurrentVideoStartTimeMs = Date.now();
+			}
+		} else if (spkmodCinemaManualTrackIndex === null) {
 			// SYNC MODE: Auto-tune when schedule transitions to next track
 			if (!spkmodCinemaCurrentVideo || !spkmodCinemaIframe || !spkmodCinemaIframe.src || spkmodCinemaIframe.src === 'about:blank') {
 				spkmodSyncCinemaPlayback(true);
@@ -2840,6 +2880,522 @@ window.spkmodUpdateCinemaI18n = spkmodUpdateCinemaI18n;
 if (typeof spkmodI18nRenderers !== "undefined") {
 	spkmodI18nRenderers.push(spkmodUpdateCinemaI18n);
 }
+
+// ============================================================================
+// 100-DAY ANNIVERSARY CINEMA LOCKDOWN & FIREWORKS ENGINE
+// ============================================================================
+
+window.spkmodCinemaAnniversaryLocked = false;
+window.spkmodCinemaAnniversaryVideo = {
+	id: "nYhe1Rwd8oE",
+	title: "SpeakiRPG 100-Day Anniversary",
+	author: "SpeakiRPG",
+	duration: 0,
+	url: "https://www.youtube.com/watch?v=nYhe1Rwd8oE"
+};
+
+window.spkmodSetCinemaAnniversaryLock = function(locked, customVideoId) {
+	window.spkmodCinemaAnniversaryLocked = !!locked;
+	const videoId = customVideoId || window.spkmodCinemaAnniversaryVideo.id;
+
+	if (locked) {
+		spkmodCinemaConfig.enabled = true;
+		if (window.localStorage) {
+			try { localStorage.setItem("spkmod-cinema-enabled", "true"); } catch (_) {}
+		}
+		spkmodCinemaManualTrackIndex = null;
+		spkmodCinemaIsPaused = false;
+		spkmodCinemaCurrentVideo = videoId;
+		spkmodCinemaCurrentVideoStartTimeMs = Date.now();
+		window.spkmodCinemaCurrentVideoTimeSec = 0;
+		window.spkmodCurrentCinemaTitle = window.spkmodCinemaAnniversaryVideo.title;
+
+		if (spkmodCinemaInZone && spkmodCinemaIframe) {
+			const isMuted = !!window.spkmodCinemaConfig?.muted;
+			const ytUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&start=0&loop=1&playlist=${videoId}&origin=${encodeURIComponent(location.origin)}`;
+			spkmodCinemaYtReady = false;
+			spkmodCinemaIframe.src = ytUrl;
+			spkmodCinemaIframe.onload = () => {
+				try { spkmodCinemaIframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*'); } catch (_) {}
+			};
+		}
+	} else {
+		// Unlock and resume regular schedule
+		window.spkmodCinemaSyncSchedule();
+	}
+
+	if (typeof spkmodUpdateCinemaPlaybackUI === "function") spkmodUpdateCinemaPlaybackUI();
+	if (typeof spkmodRenderCinemaModalList === "function" && spkmodIsCinemaModalOpen()) spkmodRenderCinemaModalList();
+};
+
+// ------------- Procedural Web Audio Sound Synthesizer -------------
+var spkmodFwAudioCtx = null;
+function spkmodGetFwAudioContext() {
+	if (!spkmodFwAudioCtx || spkmodFwAudioCtx.state === 'closed') {
+		const AudioCtx = window.AudioContext || window.webkitAudioContext;
+		if (AudioCtx) {
+			spkmodFwAudioCtx = new AudioCtx();
+		}
+	}
+	if (spkmodFwAudioCtx && spkmodFwAudioCtx.state === 'suspended') {
+		spkmodFwAudioCtx.resume().catch(() => {});
+	}
+	return spkmodFwAudioCtx;
+}
+
+function spkmodGetFwVolumeScale(sourceX, sourceY, sourceZ) {
+	if (typeof isGameMuted === 'function' && isGameMuted()) return 0;
+	if (typeof lunIsMuted !== 'undefined' && lunIsMuted) return 0;
+	const cam = (typeof gameState !== 'undefined' && gameState?.camera) ? gameState.camera : null;
+	if (!cam) return 0.7;
+	const dx = (cam.position?.x ?? 0) - sourceX;
+	const dy = (cam.position?.y ?? 0) - sourceY;
+	const dz = (cam.position?.z ?? 0) - sourceZ;
+	const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+	const minD = 12, maxD = 120;
+	if (dist <= minD) return 0.85;
+	if (dist >= maxD) return 0.12;
+	return Math.max(0.12, 0.85 * (1 - (dist - minD) / (maxD - minD)));
+}
+
+function spkmodPlayFwLaunchSound(x, y, z, durationSec) {
+	const ctx = spkmodGetFwAudioContext();
+	if (!ctx) return;
+	const vol = spkmodGetFwVolumeScale(x, y, z);
+	if (vol <= 0.01) return;
+
+	const t = ctx.currentTime;
+	const dur = Math.min(2.5, Math.max(0.6, durationSec || 1.2));
+
+	const bufferSize = Math.floor(ctx.sampleRate * dur);
+	const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+	const data = buffer.getChannelData(0);
+	for (let i = 0; i < bufferSize; i++) {
+		data[i] = (Math.random() * 2 - 1);
+	}
+	const noise = ctx.createBufferSource();
+	noise.buffer = buffer;
+
+	const filter = ctx.createBiquadFilter();
+	filter.type = "bandpass";
+	filter.Q.value = 4.5;
+	filter.frequency.setValueAtTime(320, t);
+	filter.frequency.exponentialRampToValueAtTime(1350, t + dur);
+
+	const gain = ctx.createGain();
+	gain.gain.setValueAtTime(0.005, t);
+	gain.gain.linearRampToValueAtTime(vol * 0.22, t + 0.12);
+	gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+	noise.connect(filter);
+	filter.connect(gain);
+	gain.connect(ctx.destination);
+
+	noise.start(t);
+	noise.stop(t + dur);
+}
+
+function spkmodPlayFwBurstSound(x, y, z, isText = false) {
+	const ctx = spkmodGetFwAudioContext();
+	if (!ctx) return;
+	const vol = spkmodGetFwVolumeScale(x, y, z);
+	if (vol <= 0.01) return;
+
+	const t = ctx.currentTime;
+	const effectiveVol = isText ? vol * 1.25 : vol;
+
+	// 1. Deep resonant sub-bass boom
+	const osc = ctx.createOscillator();
+	osc.type = "sine";
+	const startFreq = isText ? 175 : 135;
+	const endFreq = isText ? 28 : 36;
+	const boomDur = isText ? 1.5 : 0.85;
+	osc.frequency.setValueAtTime(startFreq, t);
+	osc.frequency.exponentialRampToValueAtTime(endFreq, t + boomDur);
+
+	const oscGain = ctx.createGain();
+	oscGain.gain.setValueAtTime(effectiveVol * 0.75, t);
+	oscGain.gain.exponentialRampToValueAtTime(0.001, t + boomDur);
+
+	osc.connect(oscGain);
+	oscGain.connect(ctx.destination);
+	osc.start(t);
+	osc.stop(t + boomDur);
+
+	// 2. Punchy explosion noise thud
+	const noiseDur = isText ? 0.65 : 0.42;
+	const bufferSize = Math.floor(ctx.sampleRate * noiseDur);
+	const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+	const data = buffer.getChannelData(0);
+	for (let i = 0; i < bufferSize; i++) {
+		data[i] = (Math.random() * 2 - 1);
+	}
+	const noise = ctx.createBufferSource();
+	noise.buffer = buffer;
+
+	const filter = ctx.createBiquadFilter();
+	filter.type = "lowpass";
+	filter.frequency.setValueAtTime(isText ? 1300 : 850, t);
+	filter.frequency.exponentialRampToValueAtTime(110, t + noiseDur);
+
+	const noiseGain = ctx.createGain();
+	noiseGain.gain.setValueAtTime(effectiveVol * 0.55, t);
+	noiseGain.gain.exponentialRampToValueAtTime(0.001, t + noiseDur);
+
+	noise.connect(filter);
+	filter.connect(noiseGain);
+	noiseGain.connect(ctx.destination);
+
+	noise.start(t);
+	noise.stop(t + noiseDur);
+
+	// 3. Shimmer fanfare chords for "100" text burst!
+	if (isText) {
+		const chord = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+		chord.forEach((freq, idx) => {
+			const tone = ctx.createOscillator();
+			tone.type = "triangle";
+			tone.frequency.setValueAtTime(freq, t + 0.05);
+
+			const toneGain = ctx.createGain();
+			toneGain.gain.setValueAtTime(0.001, t);
+			toneGain.gain.linearRampToValueAtTime(vol * 0.16, t + 0.1 + idx * 0.04);
+			toneGain.gain.exponentialRampToValueAtTime(0.001, t + 1.8 + idx * 0.12);
+
+			tone.connect(toneGain);
+			toneGain.connect(ctx.destination);
+			tone.start(t + 0.05);
+			tone.stop(t + 2.2);
+		});
+	}
+}
+
+function spkmodPlayFwCrackleSound(x, y, z) {
+	const ctx = spkmodGetFwAudioContext();
+	if (!ctx) return;
+	const vol = spkmodGetFwVolumeScale(x, y, z);
+	if (vol <= 0.01) return;
+
+	const t = ctx.currentTime;
+	const count = 7;
+	for (let i = 0; i < count; i++) {
+		const delay = Math.random() * 0.6;
+		const pop = ctx.createOscillator();
+		pop.type = "triangle";
+		pop.frequency.setValueAtTime(1700 + Math.random() * 1400, t + delay);
+
+		const gain = ctx.createGain();
+		gain.gain.setValueAtTime(vol * (0.04 + Math.random() * 0.06), t + delay);
+		gain.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.05);
+
+		pop.connect(gain);
+		gain.connect(ctx.destination);
+		pop.start(t + delay);
+		pop.stop(t + delay + 0.06);
+	}
+}
+
+// ------------- Firework Visual Choreography -------------
+var SPKMOD_FW_SHOW = [ 
+	[0, "normal", 0, 14, "yellow"],
+	[2.5, "normal", -25, 11, "red"],
+	[2.5, "normal", 25, 11, "blue"],
+	[2.5, "normal", 0, 11, "white"],
+	[6, "normal", 0, 9, "yellow"],
+	[8.5, "normal", -40, 8, "rainbow"],
+	[8.7, "normal", -20, 9, "rainbow"],
+	[8.9, "normal", 0, 10, "rainbow"],
+	[9.0, "normal", 20, 9, "rainbow"],
+	[9.2, "normal", 40, 8, "rainbow"],
+	[11, "text", 0, 9, "white"],
+	[14, "normal", 40, 13, "blue"],
+	[14.3, "normal", 10, 16, "red"],
+	[14.6, "normal", -30, 13, "pink"],
+	[14.9, "normal", -10, 17, "green"],
+	[15.0, "normal", 40, 13, "orange"],
+	[15.3, "normal", 10, 15, "blue"],
+	[15.6, "normal", -30, 12, "yellow"]
+];
+
+var SPKMOD_FW_COLORS = {
+	white: [255, 255, 255], yellow: [255, 214, 10], red: [255, 60, 50], green: [70, 255, 110],
+	blue: [70, 130, 255], pink: [255, 90, 200], orange: [255, 150, 30], cyan: [60, 235, 255]
+};
+
+const fireworkSpawnOffset = {
+	x: 16, 
+	y: 0, 
+	z: 1
+};
+
+const SPKMOD_FW_ADJ = {
+	burstSparkCount: 150,
+	textBurstSparkCount: 500, 
+	riserShotSize: 1.6,
+	riserShotSizeTail: 0.8,
+	normalParticleSize: 0.8, 
+	textParticleSize: 0.5
+};
+
+const SPKMOD_FW_TIMES = {
+	fwClimbSpeed: 10,
+	textPause: 1.5,
+	normalPause: 0.1,
+	textBurst: 1.3,
+	textHold: 15,
+	textFadeDelayMax: 1,
+	textFade: 4,
+	normalLife: 5
+};
+
+var spkmodFw = null;
+var spkmodFwSprites = {};
+var spkmodFwText = null;
+
+function spkmodFwSprite(colorName) {
+	if (spkmodFwSprites[colorName]) return spkmodFwSprites[colorName];
+	const color = (SPKMOD_FW_COLORS[colorName] || SPKMOD_FW_COLORS.white).join(",");
+	const canvas = document.createElement("canvas");
+	const size = 24;
+	const halfsize = size / 2;
+	canvas.width = canvas.height = size;
+	const context = canvas.getContext("2d");
+	const gradient = context.createRadialGradient(halfsize, halfsize, 0, halfsize, halfsize, halfsize);
+	gradient.addColorStop(0, "rgba(255,255,255,1)");
+	gradient.addColorStop(0.12, "rgba(" + color + ",0.95)");
+	gradient.addColorStop(0.3, "rgba(" + color + ",0.5)");
+	gradient.addColorStop(0.6, "rgba(" + color + ",0.14)"); 
+	gradient.addColorStop(1, "rgba(" + color + ",0)");
+	context.fillStyle = gradient;
+	context.fillRect(0, 0, size, size);
+	return (spkmodFwSprites[colorName] = canvas);
+}
+
+function spkmodFwTextPoints() {
+	if (spkmodFwText) return spkmodFwText;
+	const realWorldTextScale = 15;
+	const thicknessFont = "900";
+	const heightText = "150px";
+	const font = thicknessFont + " " + heightText + " Arial, sans-serif";
+	const cv = document.createElement("canvas");
+	const ctx = cv.getContext("2d");
+	const width = 360;
+	const height = 240; 
+	cv.width = width;
+	cv.height = height; 
+	ctx.font = font; 
+	ctx.textAlign = "center"; 
+	ctx.textBaseline = "middle";
+	ctx.fillStyle = "#fff"; 
+	ctx.strokeStyle = "#fff"; 
+	ctx.lineWidth = 10;   
+	ctx.lineJoin = "round";
+	ctx.strokeText("100", width / 2, height / 2);
+	const imageDataPoint = ctx.getImageData(0, 0, width, height).data;
+	function spkmodFwCheckPixel(x, y) {
+		if (x < 0 || y < 0 || x >= width || y >= height) return false;
+		const pixel = Math.floor(y) * width + Math.floor(x);
+		const alpha = imageDataPoint[pixel * 4 + 3];                   
+		return alpha > 128;
+	}
+	let minX = width, maxX = 0, area = 0;
+	for (let y = 0; y < height; y += 2) {
+		for (let x = 0; x < width; x += 2) {
+			if (spkmodFwCheckPixel(x, y)) {
+				area++; 
+				minX = Math.min(minX, x);
+				maxX = Math.max(maxX, x);
+			}
+		}
+	}
+	area *= 4;
+	const particleInterval = Math.max(2, Math.sqrt(area / SPKMOD_FW_ADJ.textBurstSparkCount)); 
+	const scaleFactorRealWorld = realWorldTextScale / (maxX - minX);
+	const textMiddle = (minX + maxX) / 2;
+	const pts = [];
+	for (let y = 0, row = 0; y < height; y += particleInterval, row++) {  
+		for (let x = (row % 2) * particleInterval / 2; x < width; x += particleInterval) {  
+			const fwPosX = x + (Math.random() - 0.5) * particleInterval * 0.5;
+			const fwPosY = y + (Math.random() - 0.5) * particleInterval * 0.5;
+			if (spkmodFwCheckPixel(fwPosX, fwPosY)) {
+				pts.push({ 
+					u: (fwPosX - textMiddle) * scaleFactorRealWorld,
+					v: (height / 2 - fwPosY) * scaleFactorRealWorld
+				});
+			}
+		}
+	}
+	spkmodFwText = pts;
+	return spkmodFwText;
+}
+
+function spkmodFwStop() {
+	if (!spkmodFw) return;
+	cancelAnimationFrame(spkmodFw.raf);
+	if (spkmodFw.canvas && spkmodFw.canvas.parentNode) {
+		spkmodFw.canvas.remove();
+	}
+	spkmodFw = null;
+}
+window.spkmodStopCinemaFireworks = spkmodFwStop;
+
+window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
+	if (spkmodFw) { spkmodFwStop(); return; }
+	const THREE = window.THREE;
+	const cam = typeof gameState !== "undefined" && gameState ? gameState.camera : null;
+	const zid = (typeof gameState !== "undefined" && gameState?.zoneId !== undefined) ? (gameState.zoneId % 10000) : 1;
+	if (zid !== 1) {
+		if (typeof chatLog === 'function') chatLog("🎆 Fireworks show can only be viewed in Zone 1 (Monatium)!");
+		return;
+	}
+
+	var fwStartPos = Object.assign({}, spkmodCinemaConfig.pos);
+	fwStartPos = {
+		x: fwStartPos.x + fireworkSpawnOffset.x,
+		y: fwStartPos.y + fireworkSpawnOffset.y,
+		z: fwStartPos.z + fireworkSpawnOffset.z
+	};
+	if (!THREE || !cam || !fwStartPos) return;
+
+	const canvas = document.createElement("canvas"); 
+	canvas.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 5;"; 
+	document.body.appendChild(canvas);
+	const ctx = canvas.getContext("2d");
+	const names = Object.keys(SPKMOD_FW_COLORS);
+	const v = new THREE.Vector3();
+	let t0 = performance.now();
+
+	const buildShots = () => SPKMOD_FW_SHOW.map(r => {
+		const h = r[3];
+		const angle = r[2];
+		const angleInRadians = angle * Math.PI / 180;
+		const off = h * Math.tan(angleInRadians);
+		return {
+			start: r[0], 
+			text: r[1] === "text", 
+			pts: null,  
+			color: r[4],
+			x: fwStartPos.x, 
+			y: h, 
+			z: fwStartPos.z + off, 
+			rise: (h / Math.cos(angleInRadians)) / SPKMOD_FW_TIMES.fwClimbSpeed,
+			soundLaunched: false,
+			soundBursted: false
+		};
+	});
+
+	let shots = buildShots();
+
+	const glow = (x, y, z, size, alpha, sprite, focal, W, H) => {
+		if (alpha <= 0.003) return;
+		v.set(x, y, z).applyMatrix4(cam.matrixWorldInverse); 
+		const depth = -v.z;
+		if (depth < 0.5) return;
+		v.set(x, y, z).project(cam);
+		const px = Math.max(3, Math.min(900, size * focal / depth));
+		ctx.globalAlpha = Math.min(1, alpha);
+		ctx.drawImage(sprite, (v.x * 0.5 + 0.5) * W - px / 2, (-v.y * 0.5 + 0.5) * H - px / 2, px, px);
+	};
+
+	const frame = now => {
+		const t = (now - t0) / 1000;
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+		const W = canvas.width, H = canvas.height;
+		ctx.globalCompositeOperation = "lighter";
+		cam.updateWorldMatrix(true, false);
+		cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
+		const focal = (H / 2) / Math.tan((cam.fov || 50) * Math.PI / 360);
+		let alive = false;
+
+		for (const s of shots) {
+			const a = t - s.start;
+			if (a < 0) { alive = true; continue; }
+			
+			// Procedural audio: Launch sound
+			if (a >= 0 && !s.soundLaunched) {
+				s.soundLaunched = true;
+				spkmodPlayFwLaunchSound(s.x, s.y, s.z, s.rise);
+			}
+
+			const T = SPKMOD_FW_TIMES;
+			const pause = s.text ? T.textPause : T.normalPause;
+			const b = a - s.rise - pause;
+			const shotLength = s.text ? T.textBurst + T.textHold + T.textFadeDelayMax + T.textFade : T.normalLife; 
+			if (b > shotLength) continue;
+			alive = true;
+			
+			// Procedural audio: Burst sound & crackles
+			if (b >= 0 && !s.soundBursted) {
+				s.soundBursted = true;
+				spkmodPlayFwBurstSound(s.x, s.y, s.z, s.text);
+				if (!s.text && (s.color === "rainbow" || Math.random() < 0.45)) {
+					spkmodPlayFwCrackleSound(s.x, s.y, s.z);
+				}
+			}
+
+			if (a < s.rise + 0.25) {
+				const fade = a < s.rise ? 1 : 1 - (a - s.rise) / 0.25;
+				for (let i = 0; i < 10; i++) {
+					const p = Math.max(0, Math.min(1, (a - i * 0.018) / s.rise));
+					glow((fwStartPos.x + (s.x - fwStartPos.x) * p), s.y * p, fwStartPos.z + (s.z - fwStartPos.z) * p,
+						i ? SPKMOD_FW_ADJ.riserShotSizeTail * (1 - i / 14) : SPKMOD_FW_ADJ.riserShotSize, (i ? 0.55 * (1 - i / 10) : 1) * fade, spkmodFwSprite("orange"), focal, W, H);
+				}
+				continue;
+			}
+			if (b < 0) continue;
+
+			if (s.text) {
+				if (!s.pts) {
+					s.pts = spkmodFwTextPoints().map(p => ({
+						u: p.u, v: p.v, d: Math.random() - 0.5, tw: Math.random() * 6.28, fd: Math.random(),
+						c: Math.random() < 0.5 ? "white" : "yellow"
+					}));
+				}
+				const e = 1 - Math.pow(1 - Math.min(1, b / 1.3), 3);
+				const k = e * (b > 1.3 ? 1 + 0.012 * (b - 1.3) : 1);
+				for (const p of s.pts) {
+					const al = b > 9.3 + p.fd ? 1 - (b - 9.3 - p.fd) / 2.5 : 1;
+					glow(s.x, s.y + p.v * k, s.z + p.u * k,
+						SPKMOD_FW_ADJ.textParticleSize, al * (0.8 + 0.2 * Math.sin(now * 0.012 + p.tw)), spkmodFwSprite(p.c), focal, W, H);
+				}
+			} else {
+				if (!s.pts) {
+					s.pts = [];
+					for (let i = 0; i < SPKMOD_FW_ADJ.burstSparkCount; i++) {
+						const zz = Math.random() * 2 - 1, th = Math.random() * 6.28, r = Math.sqrt(1 - zz * zz), sp = 6 + Math.random() * 8;
+						s.pts.push({
+							vx: r * Math.cos(th) * sp, vy: zz * sp, vz: r * Math.sin(th) * sp, tw: Math.random() * 6.28, life: 0.6 + Math.random() * 0.4,
+							c: s.color === "rainbow" ? names[(Math.random() * names.length) | 0] : (Math.random() < 0.2 ? "white" : s.color)
+						});
+					}
+				}
+				const f = (1 - Math.exp(-1.7 * b)) / 1.7;
+				if (b < 0.25) glow(s.x, s.y, s.z, 3, 1 - b / 0.25, spkmodFwSprite("white"), focal, W, H);
+				for (const p of s.pts) {
+					const L = 3.2 * p.life, x = b / L;
+					if (x > 1) continue;
+					const al = (x < 0.25 ? 1 : Math.pow(1 - (x - 0.25) / 0.75, 1.6)) * Math.min(1, b / 0.08) * (0.75 + 0.25 * Math.sin(now * 0.015 + p.tw));
+					glow(s.x + p.vx * f, s.y + (p.vy + 1.4) * f - 1.4 * b, s.z + p.vz * f, SPKMOD_FW_ADJ.normalParticleSize, al, spkmodFwSprite(p.c), focal, W, H);
+				}
+			}
+		}
+
+		if (!alive) {
+			if (loopMode && spkmodFw) {
+				t0 = performance.now();
+				shots = buildShots();
+				spkmodFw.raf = requestAnimationFrame(frame);
+				return;
+			}
+			spkmodFwStop();
+			return;
+		}
+		spkmodFw.raf = requestAnimationFrame(frame);
+	};
+
+	spkmodFw = { canvas: canvas, raf: requestAnimationFrame(frame) };
+};
 
 // Start cinema loop immediately
 spkmodStartCinemaLoop();

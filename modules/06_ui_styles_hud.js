@@ -98,7 +98,7 @@ function updateDynamicStyles() {
 	const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
 	if (playerName) {
 		const n = playerName.toLowerCase();
-		isVip = n === "glas" || n === "sp1cky" || n === "gmdt";
+		isVip = n === "glas" || n === "sp1cky" || n === "gmdt" || n === "peiyu" || n === "obagi";
 	}
 
 	const urlBg10 = "https://i.imgur.com/SUqVcO5.png";
@@ -197,7 +197,7 @@ function updateHudBgDropdown() {
 	const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
 	if (playerName) {
 		const n = playerName.toLowerCase();
-		isVip = n === "glas" || n === "sp1cky" || n === "gmdt";
+		isVip = n === "glas" || n === "sp1cky" || n === "gmdt" || n === "peiyu" || n === "obagi";
 	}
 	
 	const options = [

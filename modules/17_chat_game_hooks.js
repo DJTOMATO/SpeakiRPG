@@ -1,3 +1,146 @@
+// ============================================================================
+// 100-DAY ANNIVERSARY CHAT COMMANDS & VIP AUTHORIZATION
+// ============================================================================
+
+const SPKMOD_ANNIVERSARY_I18N = {
+	en: "📢 [Anniversary] A special show will begin in {0} minutes in channel 1 throne room!",
+	es: "📢 [Aniversario] ¡Un espectáculo especial comenzará en {0} minutos en la sala del trono del canal 1!",
+	"es-419": "📢 [Aniversario] ¡Un espectáculo especial comenzará en {0} minutos en la sala del trono del canal 1!",
+	ja: "📢 [記念イベント] 特別なショーがチャンネル1の玉座の間で{0}分後に始まります！",
+	ko: "📢 [기념일] 1채널 알현실에서 {0}분 후에 특별 쇼가 시작됩니다!",
+	zh: "📢 [周年庆] 特别节目将在1频道的王座之厅于{0}分钟后开始！",
+	"zh-CN": "📢 [周年庆] 特别节目将在1频道的王座之厅于{0}分钟后开始！",
+	"zh-TW": "📢 [週年慶] 特別節目將在1頻道的王座之廳於{0}分鐘後開始！",
+	pt: "📢 [Aniversário] Um show especial começará em {0} minutos na sala do trono do canal 1!",
+	"pt-BR": "📢 [Aniversário] Um show especial começará em {0} minutos na sala do trono do canal 1!",
+	fr: "📢 [Anniversaire] Un spectacle spécial commencera dans {0} minutes dans la salle du trône du canal 1 !",
+	de: "📢 [Jubiläum] Eine Sondershow beginnt in {0} Minuten im Thronsaal von Kanal 1!",
+	ru: "📢 [Юбилей] Специальное шоу начнется через {0} минут в тронном зале канала 1!"
+};
+
+function spkmodIsVipUser(playerName) {
+	if (!playerName) return false;
+	const n = String(playerName).toLowerCase().trim();
+	return n === "glas" || n === "sp1cky" || n === "gmdt" || n === "peiyu" || n === "obagi";
+}
+window.spkmodIsVipUser = spkmodIsVipUser;
+
+function spkmodMatchesTarget(targetName) {
+	if (!targetName || targetName === "all" || targetName === "*") return true;
+	const myName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
+	return myName.toLowerCase().trim() === targetName.toLowerCase().trim();
+}
+
+function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
+	let clean = rawMsg.trim();
+	if (clean.startsWith("!") || clean.startsWith("/")) clean = clean.substring(1);
+	clean = clean.replace(/^:av/, "ani").replace(/^:ani/, "ani").replace(/:$/, "");
+
+	const parts = clean.split(/\s+/);
+	let mainCmd = (parts[0] || "").toLowerCase();
+	let subCmd = (parts[1] || "").toLowerCase();
+	let extraArgs = parts.slice(2);
+
+	if (mainCmd === "ani") {
+		mainCmd = subCmd;
+		subCmd = (extraArgs[0] || "").toLowerCase();
+		extraArgs = extraArgs.slice(1);
+	} else if (mainCmd.startsWith("ani")) {
+		mainCmd = mainCmd.substring(3);
+	}
+
+	// 1. Pre-show announcement (e.g. !ani pre 10, !ani pre [player], !ani1 10)
+	if (mainCmd === "pre" || mainCmd === "alert" || mainCmd === "1") {
+		let minutes = 10;
+		let target = null;
+		if (/^\d+$/.test(subCmd)) {
+			minutes = parseInt(subCmd, 10) || 10;
+			target = extraArgs[0] || null;
+		} else if (subCmd) {
+			target = subCmd;
+		}
+
+		if (!spkmodMatchesTarget(target)) return;
+
+		const lang = (typeof spkmodLang !== "undefined" && spkmodLang) || "en";
+		const template = SPKMOD_ANNIVERSARY_I18N[lang] || SPKMOD_ANNIVERSARY_I18N.en;
+		const alertText = template.replace("{0}", minutes);
+
+		appendColoredChatLine(-1337, "Anniversary", alertText, "#ffd700");
+		if (typeof playPingSound === "function") playPingSound();
+		return;
+	}
+
+	// 2. Movie / Cinema Lockdown (e.g. !ani movie, !ani lock, !ani73)
+	if (mainCmd === "movie" || mainCmd === "cinema" || mainCmd === "lock" || mainCmd === "video" || mainCmd === "73") {
+		if (subCmd === "resume" || subCmd === "unlock" || subCmd === "off" || subCmd === "stop") {
+			const target = extraArgs[0] || null;
+			if (!spkmodMatchesTarget(target)) return;
+			if (typeof window.spkmodSetCinemaAnniversaryLock === "function") {
+				window.spkmodSetCinemaAnniversaryLock(false);
+			}
+			appendColoredChatLine(-1337, "Anniversary", "🎬 [Anniversary] Theater broadcast resumed.", "#70e28f");
+			return;
+		}
+
+		const target = subCmd || null;
+		if (!spkmodMatchesTarget(target)) return;
+
+		if (typeof window.spkmodSetCinemaAnniversaryLock === "function") {
+			window.spkmodSetCinemaAnniversaryLock(true);
+		}
+		appendColoredChatLine(-1337, "Anniversary", "🎬 [Anniversary] Special broadcast started!", "#ffc94a");
+		return;
+	}
+
+	// 3. Resume / Unlock (e.g. !ani resume, !ani unlock)
+	if (mainCmd === "resume" || mainCmd === "unlock" || mainCmd === "off") {
+		const target = subCmd || null;
+		if (!spkmodMatchesTarget(target)) return;
+
+		if (typeof window.spkmodSetCinemaAnniversaryLock === "function") {
+			window.spkmodSetCinemaAnniversaryLock(false);
+		}
+		appendColoredChatLine(-1337, "Anniversary", "🎬 [Anniversary] Theater broadcast resumed.", "#70e28f");
+		return;
+	}
+
+	// 4. Fireworks show (e.g. !ani fire, !ani fireworks, !ani80)
+	if (mainCmd === "fire" || mainCmd === "firework" || mainCmd === "fireworks" || mainCmd === "fw" || mainCmd === "80") {
+		if (subCmd === "stop" || subCmd === "off") {
+			const target = extraArgs[0] || null;
+			if (!spkmodMatchesTarget(target)) return;
+
+			if (typeof window.spkmodStopCinemaFireworks === "function") {
+				window.spkmodStopCinemaFireworks();
+			}
+			appendColoredChatLine(-1337, "Anniversary", "🎆 [Anniversary] Fireworks show stopped.", "#ff8888");
+			return;
+		}
+
+		const target = subCmd || null;
+		if (!spkmodMatchesTarget(target)) return;
+
+		if (typeof window.spkmodLaunchCinemaFireworks === "function") {
+			window.spkmodLaunchCinemaFireworks(true);
+		}
+		appendColoredChatLine(-1337, "Anniversary", "🎆 [Anniversary] Fireworks show started!", "#ff70d9");
+		return;
+	}
+
+	// 5. Stop Fireworks shortcut (e.g. !ani stopfire)
+	if (mainCmd === "stopfire" || mainCmd === "stopfw") {
+		const target = subCmd || null;
+		if (!spkmodMatchesTarget(target)) return;
+
+		if (typeof window.spkmodStopCinemaFireworks === "function") {
+			window.spkmodStopCinemaFireworks();
+		}
+		appendColoredChatLine(-1337, "Anniversary", "🎆 [Anniversary] Fireworks show stopped.", "#ff8888");
+		return;
+	}
+}
+
 function hookGameStateOnce() {
 	if (typeof gameState === "undefined" || !gameState) return false;
 	if (gameState.__speakiGameStateHooked) return true;
@@ -227,6 +370,18 @@ function hookGameStateOnce() {
 	if (typeof gameState.trySendChat === "function" && !gameState.__speakiTrySendChatHooked) {
 		const origTrySendChat = gameState.trySendChat.bind(gameState);
 		gameState.trySendChat = (msg) => {
+			const trimmedMsg = (msg || "").trim();
+			const isAniTrigger = trimmedMsg.startsWith("!ani") || trimmedMsg.startsWith("/ani") || trimmedMsg.startsWith(":av") || trimmedMsg.startsWith(":ani");
+			if (isAniTrigger) {
+				const myName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
+				if (!spkmodIsVipUser(myName)) {
+					chatLog("❌ You do not have permission to use anniversary commands.");
+					return;
+				}
+				// VIP: send through to server so all players receive it
+				return origTrySendChat(msg);
+			}
+
 			if (msg && (msg.startsWith("!") || msg.startsWith("/"))) {
 				const cmd = msg.substring(1).split(" ");
 				const cmdName = (cmd[0] || "").toLowerCase();
@@ -573,6 +728,16 @@ function hookGameStateOnce() {
 		gameState.chatBox.append = (id, name, msg) => {
 			const scrollEl = updateChatScrollTracking();
 			const wasAtBottom = !lunChatUserScrolledUp && (!scrollEl || (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight <= 45));
+
+			// Intercept Anniversary event commands
+			const rawMsg = (msg || "").trim();
+			const isAniCommand = rawMsg.startsWith("!ani") || rawMsg.startsWith("/ani") || rawMsg.startsWith(":av") || rawMsg.startsWith(":ani");
+			if (isAniCommand) {
+				const isSenderVip = spkmodIsVipUser(name);
+				if (!isSenderVip) return;
+				spkmodHandleAnniversaryCommand(rawMsg, name);
+				return;
+			}
 
 			let filteredName = filterName(name);
 			const filteredMsg = filterName(msg);

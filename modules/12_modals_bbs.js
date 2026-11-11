@@ -293,7 +293,7 @@ function getMyBbsInfo() {
 		? Math.max(1, parseInt(window.gameState.myStat.level, 10) || 1)
 		: 1;
 	const n = username.toLowerCase();
-	const isStaff = n === "glas" || n === "sp1cky" || n === "spk41i" || n === "gmdt" || n === "peiyu" || playerId === "17086812" || playerId === "17125820";
+	const isStaff = n === "glas" || n === "sp1cky" || n === "spk41i" || n === "gmdt" || n === "peiyu" || n === "obagi" || playerId === "17086812" || playerId === "17125820";
 	return { username, playerId, level, isStaff };
 }
 

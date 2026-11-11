@@ -630,7 +630,7 @@ function hookAvatarLabel(entity, explicitContainer) {
 		const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
 		if (playerName) {
 			const n = playerName.toLowerCase();
-			isVip = n === "glas" || n === "sp1cky" || n === "gmdt" || n === "peiyu";
+			isVip = n === "glas" || n === "sp1cky" || n === "gmdt" || n === "peiyu" || n === "obagi";
 			if (isVip) {
 				lunPanelElements.renameLevelInput.style.display = "";
 			}
