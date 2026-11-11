@@ -20,7 +20,7 @@
 
 ---
 
-**Speaki RPG Desktop** is a custom desktop client, mobile wrapper, and quality-of-life suite (**SpeakiMod+**) for the browser MMORPG **Speaki RPG**. It brings the game out of your browser tab with hardware-accelerated rendering, Discord Rich Presence, real-time chat translation, a built-in Jukebox, mining texture packs, a full video creator studio, and dozens of social and gameplay enhancements!
+**Speaki RPG Desktop** is a custom desktop client, mobile wrapper, and quality-of-life suite (**SpeakiMod+**) for the browser MMORPG **Speaki RPG**. It brings the game out of your browser tab with hardware-accelerated rendering, Discord Rich Presence, real-time chat translation, a built-in Jukebox, an in-game 3D cinema theater, mining texture packs, a full video creator studio, and dozens of social and gameplay enhancements!
 
 > **🔒 Anti-Scam Disclaimer:** This client and mod do **not** accept monetization or donations. The game itself does not accept donations or generate revenue. Anyone asking you for money is an impersonator!
 
@@ -30,6 +30,7 @@
   - [🖥️ Core Desktop, HUD & Quests](#️-core-desktop-hud--quests)
   - [💬 Social, Chat, Translation & Emojis](#-social-chat-translation--emojis)
   - [📻 Monatium Radio Station (Jukebox)](#-monatium-radio-station-jukebox)
+  - [🍿 Monatium Cinema (In-Game 3D Theater)](#-monatium-cinema-in-game-3d-movie-theater)
   - [⛏️ Mining Resource Packs & 🎨 Custom CSS Themes](#️-mining-resource-packs--custom-css-themes)
   - [🎬 Creator Studio: Local Edits & Local Effects](#-creator-studio-local-edits--local-effects)
   - [💃 Movement, Emotes & Camera Tricks](#-movement-emotes--camera-tricks)
@@ -132,6 +133,25 @@
 * **Mini-Player & Artwork Preview:** Double right-click the Jukebox header to collapse it into a sleek floating **Mini-Player** with expandable album cover art.
 * **Smart Native BGM Ducking:** Automatically mutes/lowers the game's native background music while the Jukebox is playing and restores your previous BGM volume when paused.
 * **Full Playback Controls:** Supports Shuffle, Repeat, seek bar, volume slider, and corner drag-to-resize.
+
+---
+
+### 🍿 Monatium Cinema (In-Game 3D Movie Theater)
+
+[⬆ Back to Top](#table-of-contents)
+
+<p align="center">
+  <img width="85%" alt="Monatium Cinema - In-Game 3D Theater" src="assets/screenshots/cinema.png" />
+</p>
+
+* **🍿 How to Watch:** Enable **Monatium Cinema** in the Mod Settings menu (`⚙️`), then head to **Channel 1** and sit in the throne room / theater seats in Zone 1 to turn it on!
+* **🎬 3D In-World Cinema Screen (Zone 1 Festival Plaza):** A fully rendered in-world screen located at the central amphitheater in Monatium. Sit together in the theater seats to watch community films, official animations, and music broadcasts directly inside the game!
+* **🌐 Universal Live Sync (Watch Together):** Synchronizes the broadcast timeline based on universal UTC time so every player in the theater watches the exact same video moment simultaneously in real-time.
+* **📺 Dual-Channel Playlist & Previews:** Seamlessly switch between the **Movie** channel (`movies.txt` curated community movies, trailers, and documentaries) and the **Bolpop** channel (community music videos & MADs), complete with hover thumbnail previews.
+* **🔊 Smart Seat Detection & Spatial Audio:**
+  * Playback intelligently activates when sitting in the theater seats and automatically pauses, mutes, or unloads when leaving the seating area to save performance and network bandwidth.
+  * Distance-based spatial volume attenuation, dedicated HUD volume slider, 1-click mute toggle, and automatic game BGM ducking.
+* **🖥️ Dedicated Cinema Mode & Mobile Controls:** Dedicated fullscreen theater mode (`🎬 Monatium Cinema`, exit with <kbd>Esc</kbd>) with floating controls and full touch support on mobile.
 
 ---
 
