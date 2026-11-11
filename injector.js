@@ -35,6 +35,8 @@ window.injectSpeakiMod = () => {
 	window.__speakiModInjected = true;
 	setTimeout(async () => {
 		try {
+			// Local development: uncomment the line below to test local changes (run `python -m http.server 8000`)
+			// const modCode = await (await fetch("http://localhost:8000/SpeakiMod.js?t=" + Date.now())).text();
 			const modCode = await (await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/SpeakiMod.js?t=" + Date.now())).text();
 
 			const blob = URL.createObjectURL(

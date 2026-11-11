@@ -122,5 +122,5 @@ def update_movies_with_live(movies_path):
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    target = os.path.join(base_dir, "movies.txt")
+    target = os.path.join(base_dir, "assets/movies.txt")
     update_movies_with_live(target)
