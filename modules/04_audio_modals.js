@@ -2069,8 +2069,13 @@ function suppressGameBgm(mute) {
 				}
 			} catch (_) {}
 		}
-		if (currentVol === null || currentVol <= 0) currentVol = getUserActualBgmVolume() ?? 70; // Native game default is 70
-		if (currentVol <= 0) currentVol = 70;
+		if (currentVol === null) {
+			currentVol = getUserActualBgmVolume();
+		}
+		if (currentVol === null || !Number.isFinite(currentVol) || currentVol < 0) {
+			currentVol = 70; // Native game default is 70
+		}
+		currentVol = Math.max(0, Math.min(100, Math.round(currentVol)));
 
         setUserActualBgmVolume(currentVol);
         state.isBgmSuppressed = true;
@@ -2103,7 +2108,7 @@ function suppressGameBgm(mute) {
 
         nodes.forEach(node => {
             if (node.gain?.gain) {
-                if (node.__savedGain === undefined || node.__savedGain === 0) {
+                if (node.__savedGain === undefined) {
                     node.__savedGain = node.gain.gain.value > 0 ? node.gain.gain.value : (currentVol / 100);
                 }
                 node.gain.gain.value = 0;
@@ -2123,10 +2128,10 @@ function suppressGameBgm(mute) {
         } catch (_) {}
 
         let restoreVol = getUserActualBgmVolume();
-        if (restoreVol === null || !Number.isFinite(restoreVol) || restoreVol <= 0) {
+        if (restoreVol === null || !Number.isFinite(restoreVol) || restoreVol < 0) {
             restoreVol = 70;
         }
-        restoreVol = Math.max(0, Math.min(100, restoreVol));
+        restoreVol = Math.max(0, Math.min(100, Math.round(restoreVol)));
 
         state.isSuppressingBgmInternal = true;
         try {
@@ -2153,23 +2158,31 @@ function suppressGameBgm(mute) {
 
         nodes.forEach(node => {
             if (node.gain?.gain) {
-                node.gain.gain.value = (node.__savedGain !== undefined && node.__savedGain > 0)
-                    ? node.__savedGain
-                    : (restoreVol / 100);
+                if (restoreVol === 0) {
+                    node.gain.gain.value = 0;
+                } else if (node.__savedGain !== undefined && node.__savedGain > 0) {
+                    node.gain.gain.value = node.__savedGain;
+                } else {
+                    node.gain.gain.value = restoreVol / 100;
+                }
+                delete node.__savedGain;
             }
-            if (node.isPlaying === false && typeof node.play === "function") {
+            if (restoreVol > 0 && node.isPlaying === false && typeof node.play === "function") {
                 try { node.play(); } catch (_) {}
             }
         });
 
         document.querySelectorAll("audio").forEach(el => {
             if (!el.id?.startsWith("spkmod-") && !el.closest("#spkmod-")) {
-                if (el.__savedVolume !== undefined) {
+                if (restoreVol === 0) {
+                    el.volume = 0;
+                } else if (el.__savedVolume !== undefined) {
                     el.volume = el.__savedVolume;
                 } else {
                     el.volume = restoreVol / 100;
                 }
-                if (el.paused && el.loop) {
+                delete el.__savedVolume;
+                if (restoreVol > 0 && el.paused && el.loop) {
                     try { el.play(); } catch (_) {}
                 }
             }
