@@ -1138,14 +1138,7 @@ window.WorldZones = WorldZones;
 					WorldZones = data.zones;
 					window.WorldZones = WorldZones;
 				}
-				if (data.zones && Array.isArray(data.zones)) {
-					WorldZones = data.zones;
-					window.WorldZones = WorldZones;
-				}
-				if (data.zones && Array.isArray(data.zones)) {
-					WorldZones = data.zones;
-					window.WorldZones = WorldZones;
-				}
+
 				if (typeof window !== "undefined" && window.localStorage) {
 					try {
 						localStorage.setItem("spkmod-constants-cache", JSON.stringify(data));
