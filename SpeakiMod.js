@@ -1123,7 +1123,7 @@ window.WorldZones = WorldZones;
 
 (async function() {
 	try {
-		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/constants.json");
+		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/constants.json");
 		if (res.ok) {
 			const data = await res.json();
 			if (data) {
@@ -4175,7 +4175,7 @@ var lunBgOpacity = (window.localStorage && localStorage.getItem("spkmod-bg-opaci
 var lunAccentColor = (window.localStorage && localStorage.getItem("spkmod-accent-color")) || "#ffd54a";
 var lunHudBackground = (window.localStorage && localStorage.getItem("spkmod-hud-bg")) || "none";
 
-const SPKMOD_REPO_FONTS_BASE = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/fonts/";
+const SPKMOD_REPO_FONTS_BASE = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/fonts/";
 const SPKMOD_EMOJI_FONT_FALLBACK = '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
 
 // ============================================================================
@@ -4186,7 +4186,7 @@ const SPKMOD_EMOJI_FONT_FALLBACK = '"Apple Color Emoji", "Segoe UI Emoji", "Sego
 let SPKMOD_OST_TRACKS = [];
 let SPKMOD_BOLPOP_TRACKS = [];
 
-const SPKMOD_RADIO_URL = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/radio.json";
+const SPKMOD_RADIO_URL = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/radio.json";
 
 function applyRadioTrackList(data) {
     if (!data || typeof data !== "object") return;
@@ -10952,7 +10952,7 @@ function spkmodGetFallbackResourcePacks() {
 }
 
 async function spkmodFetchResourcePacksXml() {
-	const url = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/resourcespacks.xml?t=" + Date.now();
+	const url = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/resourcespacks.xml?t=" + Date.now();
 	try {
 		const res = await fetch(url, { cache: "no-store" });
 		if (res.ok) {
@@ -11648,19 +11648,19 @@ function loadEmojiCatalogFile(url, targetObj) {
 
 // Custom Emojis (Fetched from GitHub)
 var lunCustomEmojis = {};
-loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/emojis.txt", lunCustomEmojis);
+loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/emojis.txt", lunCustomEmojis);
 
 var lunTrickcalEmojis = {};
-loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis2.txt", lunTrickcalEmojis);
+loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/emojis2.txt", lunTrickcalEmojis);
 
 var lunTrickcal2Emojis = {};
-loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis3.txt", lunTrickcal2Emojis);
+loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/emojis3.txt", lunTrickcal2Emojis);
 
 var lunTrickcal3Emojis = {};
-loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis4.txt", lunTrickcal3Emojis);
+loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/emojis4.txt", lunTrickcal3Emojis);
 
 var lunTrickcal4Emojis = {};
-loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/emojis5.txt", lunTrickcal4Emojis);
+loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/emojis5.txt", lunTrickcal4Emojis);
 
 function renderSpkmodInlineEmojis(text, imgStyle) {
     if (!text || typeof text !== "string") return "";
@@ -13464,7 +13464,7 @@ function fetchInfoOnce() {
     window.lunInfoLoading = true;
     renderInfoUI();
     const ts = Date.now(); // Cache busting
-    fetch('https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/info.html?t=' + ts)
+    fetch('https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/info.html?t=' + ts)
         .then(r => r.text())
         .then(html => {
             window.lunInfoData = html;
@@ -16382,11 +16382,11 @@ window.spkmodResetAvatarColors = function() {
 const SPKMOD_PUMPKIN_CART_ORIG_TEX = "https://speakirpg.overture.io.kr/models/mount_pumpkin_cart_halloween/HW_Map_Body.png";
 
 const SPKMOD_PUMPKIN_CART_SKINS = {
-	uifi: { id: "uifi", label: ":SPK_88:", file: "test.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/test.png" },
-	1: { id: "1", label: "1️⃣", file: "test2.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/test2.png" },
-	2: { id: "2", label: "2️⃣", file: "test3.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/test3.png" },
-	3: { id: "3", label: "3️⃣", file: "test4.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/test4.png" },
-	4: { id: "4", label: "4️⃣ ", file: "dancing.webp", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/dancing.webp" }
+	uifi: { id: "uifi", label: ":SPK_88:", file: "test.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/test.png" },
+	1: { id: "1", label: "1️⃣", file: "test2.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/test2.png" },
+	2: { id: "2", label: "2️⃣", file: "test3.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/test3.png" },
+	3: { id: "3", label: "3️⃣", file: "test4.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/test4.png" },
+	4: { id: "4", label: "4️⃣ ", file: "dancing.webp", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/dancing.webp" }
 };
 
 window.spkmodActivePumpkinSkin = null;
@@ -27447,7 +27447,7 @@ async function checkAndShowNewsPopup(force = false) {
 	if (typeof window !== "undefined") window.speakiNewsChecked = true;
 
 	try {
-		const res = await fetch(`https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/news.html?_t=${Date.now()}`, {
+		const res = await fetch(`https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/news.html?_t=${Date.now()}`, {
 			cache: "no-store"
 		});
 		if (!res.ok) {
@@ -29233,7 +29233,7 @@ async function spkmodLoadMoviesPlaylist() {
 
 	// Load movies.txt directly from GitHub (never fetch relative URL on game server)
 	try {
-		const url = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/movies.txt?t=" + Date.now();
+		const url = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/movies.txt?t=" + Date.now();
 		const res = await fetch(url, { cache: "no-store" });
 		if (res.ok) {
 			const text = await res.text();
@@ -29294,7 +29294,7 @@ async function spkmodLoadSongsPlaylist() {
 
 	// 2. Fetch directly from GitHub (never fetch relative radio.json on game server)
 	try {
-		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/radio.json?t=" + Date.now(), { cache: "no-store" });
+		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/radio.json?t=" + Date.now(), { cache: "no-store" });
 		if (res.ok) {
 			const data = await res.json();
 			const list = parseBolpopData(data);
