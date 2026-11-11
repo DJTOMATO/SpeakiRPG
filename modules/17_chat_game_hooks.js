@@ -31,6 +31,98 @@ function spkmodMatchesTarget(targetName) {
 	return myName.toLowerCase().trim() === targetName.toLowerCase().trim();
 }
 
+function spkmodSetNightMode(enabled = true) {
+	const shouldEnable = !!enabled;
+	let applied = false;
+
+	// 1. Native game engine settings update (updates shaders, lighting, sky)
+	if (typeof window.updateGameSettings === "function") {
+		try {
+			window.updateGameSettings({ nightModeEnabled: shouldEnable });
+			applied = true;
+		} catch (err) {
+			console.warn("[SpeakiMod] Failed to call updateGameSettings for nightMode:", err);
+		}
+	}
+
+	// 2. Sync DOM settings checkbox if present
+	const rows = document.querySelectorAll(".sr-panel__row");
+	for (const row of rows) {
+		const checkbox = row.querySelector("input[type='checkbox']");
+		const span = row.querySelector("span");
+		if (checkbox && span) {
+			const txt = (span.innerText || "").toLowerCase();
+			if (
+				txt.includes("night") ||
+				txt.includes("darker") ||
+				txt.includes("밤") ||
+				txt.includes("야간") ||
+				txt.includes("夜") ||
+				txt.includes("noche") ||
+				txt.includes("noite")
+			) {
+				if (checkbox.checked !== shouldEnable) {
+					checkbox.checked = shouldEnable;
+					try {
+						checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+					} catch (_) {
+						checkbox.click();
+					}
+				}
+				applied = true;
+				break;
+			}
+		}
+	}
+
+	window._spkmodNightModeState = shouldEnable;
+	return applied;
+}
+window.spkmodSetNightMode = spkmodSetNightMode;
+
+function spkmodToggleNightMode() {
+	let isCurrentlyNight = false;
+	if (typeof window.getGameSettings === "function") {
+		try {
+			const s = window.getGameSettings();
+			if (s && typeof s.nightModeEnabled === "boolean") {
+				isCurrentlyNight = s.nightModeEnabled;
+			}
+		} catch (_) {}
+	} else if (typeof window._spkmodNightModeState === "boolean") {
+		isCurrentlyNight = window._spkmodNightModeState;
+	} else {
+		const rows = document.querySelectorAll(".sr-panel__row");
+		for (const row of rows) {
+			const checkbox = row.querySelector("input[type='checkbox']");
+			const span = row.querySelector("span");
+			if (checkbox && span) {
+				const txt = (span.innerText || "").toLowerCase();
+				if (
+					txt.includes("night") ||
+					txt.includes("darker") ||
+					txt.includes("밤") ||
+					txt.includes("야간") ||
+					txt.includes("夜") ||
+					txt.includes("noche") ||
+					txt.includes("noite")
+				) {
+					isCurrentlyNight = !!checkbox.checked;
+					break;
+				}
+			}
+		}
+	}
+
+	const nextState = !isCurrentlyNight;
+	spkmodSetNightMode(nextState);
+	if (typeof chatLog === "function") {
+		chatLog(nextState ? "🌙 Native Night Mode: ON" : "☀️ Native Night Mode: OFF");
+	}
+	return nextState;
+}
+window.spkmodToggleNightMode = spkmodToggleNightMode;
+
 function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 	let clean = rawMsg.trim();
 	if (clean.startsWith("!") || clean.startsWith("/")) clean = clean.substring(1);
@@ -89,6 +181,7 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 		if (typeof window.spkmodSetCinemaAnniversaryLock === "function") {
 			window.spkmodSetCinemaAnniversaryLock(true);
 		}
+		spkmodSetNightMode(true);
 		appendColoredChatLine(-1337, "Anniversary", "🎬 [Anniversary] Special broadcast started!", "#ffc94a");
 		return;
 	}
@@ -124,6 +217,7 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 		if (typeof window.spkmodLaunchCinemaFireworks === "function") {
 			window.spkmodLaunchCinemaFireworks(true);
 		}
+		spkmodSetNightMode(true);
 		appendColoredChatLine(-1337, "Anniversary", "🎆 [Anniversary] Fireworks show started!", "#ff70d9");
 		return;
 	}
@@ -677,6 +771,21 @@ function hookGameStateOnce() {
 					case "cleardye":
 						if (typeof window.spkmodResetAvatarColors === "function") {
 							window.spkmodResetAvatarColors();
+						}
+						break;
+					case "night":
+					case "nightmode":
+						{
+							const arg = (cmd[1] || "").toLowerCase().trim();
+							if (arg === "on" || arg === "1" || arg === "true") {
+								spkmodSetNightMode(true);
+								chatLog("🌙 Native Night Mode: ON");
+							} else if (arg === "off" || arg === "0" || arg === "false") {
+								spkmodSetNightMode(false);
+								chatLog("☀️ Native Night Mode: OFF");
+							} else {
+								spkmodToggleNightMode();
+							}
 						}
 						break;
 					default:

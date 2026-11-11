@@ -326,7 +326,8 @@ var SPKMOD_CINEMA_DEFAULT_CONFIG = {
 	pos: { x: 75.0, y: 4.2, z: 32.5 },
 	rotationY: 1.6000,
 	width: 12.8,
-	height: 7.2
+	height: 7.2,
+	occlusion: true
 };
 
 window.spkmodCinemaConfig = Object.assign({}, SPKMOD_CINEMA_DEFAULT_CONFIG);
@@ -342,6 +343,8 @@ if (typeof window !== "undefined" && window.localStorage) {
 		if (mutedStr !== null) window.spkmodCinemaConfig.muted = mutedStr === "true";
 		const vol = localStorage.getItem("spkmod-cinema-volume");
 		if (vol !== null) window.spkmodCinemaConfig.volume = parseInt(vol, 10) || 80;
+		const occ = localStorage.getItem("spkmod-cinema-occlusion");
+		if (occ !== null) window.spkmodCinemaConfig.occlusion = occ === "true";
 		const posStr = localStorage.getItem("spkmod-cinema-pos");
 		if (posStr) {
 			const parsed = JSON.parse(posStr);

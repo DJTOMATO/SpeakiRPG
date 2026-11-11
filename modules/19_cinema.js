@@ -9,7 +9,8 @@ var SPKMOD_CINEMA_DEFAULT_CONFIG = window.SPKMOD_CINEMA_DEFAULT_CONFIG || {
 	pos: { x: 75.0, y: 4.2, z: 32.5 },
 	rotationY: 1.6000,
 	width: 12.8,
-	height: 7.2
+	height: 7.2,
+	occlusion: true
 };
 
 var spkmodCinemaConfig = window.spkmodCinemaConfig || Object.assign({}, SPKMOD_CINEMA_DEFAULT_CONFIG);
@@ -26,6 +27,8 @@ if (window.localStorage) {
 		if (mutedStr !== null) spkmodCinemaConfig.muted = mutedStr === "true";
 		const vol = localStorage.getItem("spkmod-cinema-volume");
 		if (vol !== null) spkmodCinemaConfig.volume = parseInt(vol, 10) || 80;
+		const occ = localStorage.getItem("spkmod-cinema-occlusion");
+		if (occ !== null) spkmodCinemaConfig.occlusion = occ === "true";
 		const posStr = localStorage.getItem("spkmod-cinema-pos");
 		if (posStr) {
 			const parsed = JSON.parse(posStr);
@@ -66,8 +69,22 @@ var spkmodCinemaFrameMesh = null;
 var spkmodCinemaContainer = null;
 var spkmodCinemaIframe = null;
 var spkmodCinemaRenderLoopId = null;
+var spkmodCinemaOcclusionRenderer = null;
+var spkmodCinemaOcclusionScene = null;
+var spkmodCinemaOcclusionCanvas = null;
+var spkmodCinemaOccluderMesh = null;
+var spkmodCinemaOcclusionAvatarGroup = null;
+var spkmodCinemaSilhouetteMat = null;
 var spkmodCinemaModeActive = false;
 var spkmodCinemaInZone = false;
+
+function spkmodGetExactCinemaZone() {
+	if (typeof gameState === 'undefined' || !gameState) return null;
+	if (typeof gameState.zoneId === 'number' && !isNaN(gameState.zoneId)) {
+		return (gameState.zoneId % 10000);
+	}
+	return null;
+}
 var spkmodCinemaLastVolume = -1;
 var spkmodCinemaLastSyncCheckMs = 0;
 var spkmodCinemaLastTimeUpdateMs = 0;
@@ -778,6 +795,191 @@ function spkmodCreateCinemaPhysicalFrame() {
 	spkmodCinemaFrameMesh = group;
 }
 
+function spkmodInitCinemaOcclusion() {
+	if (typeof window === 'undefined' || !window.THREE) return;
+	const THREE = window.THREE;
+
+	if (!spkmodCinemaOcclusionCanvas) {
+		spkmodCinemaOcclusionCanvas = document.createElement('canvas');
+		spkmodCinemaOcclusionCanvas.id = 'spkmod-cinema-occlusion-canvas';
+		spkmodCinemaOcclusionCanvas.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 4; display: none;';
+		document.body.appendChild(spkmodCinemaOcclusionCanvas);
+	}
+
+	if (!spkmodCinemaOcclusionRenderer) {
+		try {
+			spkmodCinemaOcclusionRenderer = new THREE.WebGLRenderer({
+				canvas: spkmodCinemaOcclusionCanvas,
+				alpha: true,
+				antialias: false,
+				stencil: true,
+				depth: true,
+				powerPreference: 'low-power'
+			});
+			spkmodCinemaOcclusionRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+			spkmodCinemaOcclusionRenderer.setSize(window.innerWidth, window.innerHeight);
+			spkmodCinemaOcclusionRenderer.setClearColor(0x000000, 0);
+			spkmodCinemaOcclusionRenderer.autoClear = false;
+		} catch (err) {
+			console.warn("[SpeakiMod+] WebGL Occlusion Renderer init failed:", err);
+			return;
+		}
+	}
+
+	if (!spkmodCinemaOcclusionScene) {
+		spkmodCinemaOcclusionScene = new THREE.Scene();
+	}
+
+	if (!spkmodCinemaOccluderMesh) {
+		const occluderGeo = new THREE.PlaneGeometry(spkmodCinemaConfig.width, spkmodCinemaConfig.height);
+		const occluderMat = new THREE.MeshBasicMaterial({
+			color: 0x000000,
+			colorWrite: false,
+			depthWrite: true,
+			depthTest: true,
+			stencilWrite: true,
+			stencilRef: 1,
+			stencilFunc: THREE.AlwaysStencilFunc,
+			stencilZPass: THREE.ReplaceStencilOp
+		});
+		spkmodCinemaOccluderMesh = new THREE.Mesh(occluderGeo, occluderMat);
+		spkmodCinemaOccluderMesh.position.set(spkmodCinemaConfig.pos.x, spkmodCinemaConfig.pos.y, spkmodCinemaConfig.pos.z);
+		spkmodCinemaOccluderMesh.rotation.y = spkmodCinemaConfig.rotationY;
+		spkmodCinemaOcclusionScene.add(spkmodCinemaOccluderMesh);
+	}
+
+	if (!spkmodCinemaSilhouetteMat) {
+		spkmodCinemaSilhouetteMat = new THREE.MeshBasicMaterial({
+			color: 0x14101e,
+			skinning: true,
+			side: THREE.DoubleSide,
+			transparent: true,
+			opacity: 0.96,
+			depthTest: true,
+			depthWrite: false,
+			stencilWrite: true,
+			stencilRef: 1,
+			stencilFunc: THREE.EqualStencilFunc,
+			stencilZPass: THREE.KeepStencilOp
+		});
+	}
+}
+
+function spkmodRenderCinemaOcclusion() {
+	if (!spkmodCinemaConfig.occlusion || !spkmodCinemaOcclusionRenderer || !spkmodCinemaOcclusionScene || !spkmodCinemaOccluderMesh) {
+		if (spkmodCinemaOcclusionCanvas && spkmodCinemaOcclusionCanvas.style.display !== 'none') {
+			spkmodCinemaOcclusionCanvas.style.display = 'none';
+		}
+		return;
+	}
+
+	const exactZone = spkmodGetExactCinemaZone();
+	if (exactZone !== 1 || (typeof spkmodIsInMinigame === "function" && spkmodIsInMinigame())) {
+		if (spkmodCinemaOcclusionCanvas && spkmodCinemaOcclusionCanvas.style.display !== 'none') {
+			spkmodCinemaOcclusionCanvas.style.display = 'none';
+		}
+		return;
+	}
+
+	if (typeof gameState === 'undefined' || !gameState?.camera) return;
+
+	if (spkmodCinemaOcclusionCanvas.style.display !== '') {
+		spkmodCinemaOcclusionCanvas.style.display = '';
+	}
+
+	const avatarList = [];
+	const sPos = spkmodCinemaConfig.pos;
+
+	if (gameState.playerContainer && gameState.playerContainer.visible !== false) {
+		const pos = gameState.playerContainer.position;
+		if (pos) {
+			const dx = pos.x - sPos.x;
+			const dz = pos.z - sPos.z;
+			if (dx * dx + dz * dz <= 900) {
+				avatarList.push(gameState.playerContainer);
+			}
+		}
+	}
+
+	if (gameState.remotePlayers?.remotePlayers) {
+		const rpMap = gameState.remotePlayers.remotePlayers;
+		const list = (rpMap instanceof Map) ? rpMap.values() : (Array.isArray(rpMap) ? rpMap : []);
+		for (const rp of list) {
+			if (!rp) continue;
+			if (typeof isSilencedPlayer === 'function' && isSilencedPlayer(rp)) continue;
+			const c = rp.container || rp.avatar;
+			if (c && c.visible !== false) {
+				const pos = c.position || (rp.info && rp.info.pos);
+				if (pos) {
+					const dx = pos.x - sPos.x;
+					const dz = pos.z - sPos.z;
+					if (dx * dx + dz * dz <= 900) {
+						avatarList.push(c);
+					}
+				}
+			}
+		}
+	}
+
+	spkmodCinemaOcclusionRenderer.clear(true, true, true);
+
+	spkmodCinemaOcclusionScene.overrideMaterial = null;
+	spkmodCinemaOcclusionScene.children = [spkmodCinemaOccluderMesh];
+	spkmodCinemaOccluderMesh.position.set(spkmodCinemaConfig.pos.x, spkmodCinemaConfig.pos.y, spkmodCinemaConfig.pos.z);
+	spkmodCinemaOccluderMesh.rotation.y = spkmodCinemaConfig.rotationY;
+	spkmodCinemaOccluderMesh.updateMatrixWorld(true);
+
+	spkmodCinemaOcclusionRenderer.render(spkmodCinemaOcclusionScene, gameState.camera);
+
+	if (avatarList.length > 0) {
+		spkmodCinemaOcclusionScene.overrideMaterial = spkmodCinemaSilhouetteMat;
+		spkmodCinemaOcclusionScene.children = avatarList;
+		spkmodCinemaOcclusionRenderer.render(spkmodCinemaOcclusionScene, gameState.camera);
+	}
+
+	spkmodCinemaOcclusionScene.children = [spkmodCinemaOccluderMesh];
+	spkmodCinemaOcclusionScene.overrideMaterial = null;
+}
+
+function spkmodToggleCinemaOcclusion(force) {
+	if (force !== undefined) {
+		spkmodCinemaConfig.occlusion = !!force;
+	} else {
+		spkmodCinemaConfig.occlusion = !spkmodCinemaConfig.occlusion;
+	}
+	if (window.localStorage) {
+		try {
+			localStorage.setItem("spkmod-cinema-occlusion", spkmodCinemaConfig.occlusion ? "true" : "false");
+		} catch (_) {}
+	}
+	if (!spkmodCinemaConfig.occlusion && spkmodCinemaOcclusionCanvas) {
+		spkmodCinemaOcclusionCanvas.style.display = 'none';
+	}
+	spkmodSyncCinemaOcclusionUI();
+	if (typeof chatLog === 'function') {
+		const stateText = spkmodCinemaConfig.occlusion ? "ON" : "OFF";
+		chatLog(`🎬 Spiki Occlusion: ${stateText}`);
+	}
+	return spkmodCinemaConfig.occlusion;
+}
+window.spkmodToggleCinemaOcclusion = spkmodToggleCinemaOcclusion;
+
+function spkmodSyncCinemaOcclusionUI() {
+	const occBtn = document.getElementById("spkmod-cinema-modal-occlusion-btn");
+	if (occBtn) {
+		const active = !!spkmodCinemaConfig.occlusion;
+		occBtn.style.background = active ? '#4a3b68' : '#261c33';
+		occBtn.style.color = active ? '#ffdf79' : '#887c9e';
+		occBtn.style.border = '1px solid ' + (active ? '#e8b84b' : '#7c6894');
+		occBtn.title = getCinemaText("cinemaOcclusionToggle");
+	}
+	const chk = document.getElementById("spkmod-cinema-occlusion-checkbox");
+	if (chk) {
+		chk.checked = !!spkmodCinemaConfig.occlusion;
+	}
+}
+window.spkmodSyncCinemaOcclusionUI = spkmodSyncCinemaOcclusionUI;
+
 function spkmodInitCinema() {
 	if (!spkmodCinemaConfig.enabled) return;
 	if (typeof gameState === 'undefined' || !gameState?.camera || !window.THREE || !gameState?.scene) return;
@@ -821,6 +1023,9 @@ function spkmodInitCinema() {
 	spkmodCinemaScreenObject.rotation.y = spkmodCinemaConfig.rotationY;
 
 	spkmodCreateCinemaPhysicalFrame();
+	if (spkmodCinemaConfig.occlusion !== false) {
+		spkmodInitCinemaOcclusion();
+	}
 }
 
 function spkmodSyncCinemaPlayback(force = false) {
@@ -888,8 +1093,8 @@ function spkmodIsInMinigame() {
 	if (typeof gameState !== 'undefined') {
 		if (gameState?.selfMinigameRing) return true;
 		if (gameState?.minigame || gameState?.inMinigame) return true;
-		const zid = (gameState?.zoneId !== undefined) ? (gameState.zoneId % 10000) : 1;
-		if (zid >= 900 && zid <= 999) return true;
+		const zid = (gameState?.zoneId !== undefined && typeof gameState.zoneId === 'number' && !isNaN(gameState.zoneId)) ? (gameState.zoneId % 10000) : null;
+		if (zid !== null && zid >= 900 && zid <= 999) return true;
 	}
 	if (typeof window !== 'undefined' && window.lunActiveMinigamePanel) return true;
 	if (typeof document !== 'undefined') {
@@ -904,7 +1109,7 @@ window.spkmodIsInMinigame = spkmodIsInMinigame;
 function spkmodIsPlayerInCinemaSeats(playerPos) {
 	if (!playerPos) return false;
 	if (spkmodIsInMinigame()) return false;
-	const curZone = (typeof gameState !== 'undefined' && gameState?.zoneId !== undefined) ? (gameState.zoneId % 10000) : 1;
+	const curZone = spkmodGetExactCinemaZone();
 	if (curZone !== 1) return false;
 
 	// Seats bounding box with ~0.35m cushion around amphitheater seat coordinates:
@@ -1620,6 +1825,9 @@ function spkmodUpdateCinemaPlaybackUI() {
 	if (typeof spkmodSyncCinemaVolumeUI === "function") {
 		spkmodSyncCinemaVolumeUI();
 	}
+	if (typeof spkmodSyncCinemaOcclusionUI === "function") {
+		spkmodSyncCinemaOcclusionUI();
+	}
 }
 window.spkmodUpdateCinemaPlaybackUI = spkmodUpdateCinemaPlaybackUI;
 
@@ -1659,6 +1867,7 @@ function spkmodBuildCinemaModal() {
 			</div>
 			<div style="display:flex;align-items:center;gap:5px;">
 				<button id="spkmod-cinema-modal-sync-btn" title="${getCinemaText("cinemaSyncSchedule")}" style="background:${spkmodCinemaManualTrackIndex === null ? 'linear-gradient(135deg, #e53935 0%, #c62828 100%)' : '#261c33'};color:${spkmodCinemaManualTrackIndex === null ? '#ffffff' : '#f5e6b3'};border:1.5px solid ${spkmodCinemaManualTrackIndex === null ? '#ff7b7b' : 'rgba(232, 184, 75, 0.35)'};border-radius:6px;cursor:pointer;padding:2px 8px;font-size:11px;font-weight:${spkmodCinemaManualTrackIndex === null ? '800' : '600'};box-shadow:${spkmodCinemaManualTrackIndex === null ? '0 0 10px rgba(229, 57, 53, 0.55)' : 'none'};transition:all 0.15s ease;">🔴 <span id="spkmod-cinema-sync-label" style="color:inherit;">${getCinemaText("cinemaSyncSchedule")}</span></button>
+				<button id="spkmod-cinema-modal-occlusion-btn" title="${getCinemaText("cinemaOcclusionToggle")}" style="background:${spkmodCinemaConfig.occlusion ? '#4a3b68' : '#261c33'};color:${spkmodCinemaConfig.occlusion ? '#ffdf79' : '#887c9e'};border:1px solid ${spkmodCinemaConfig.occlusion ? '#e8b84b' : '#7c6894'};border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;transition:all 0.15s ease;">👥</button>
 				<button id="spkmod-cinema-modal-reload-btn" title="${getCinemaText("cinemaReloadPlaylist")}" style="background:#3e3052;color:#ffdf79;border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;transition:all 0.15s ease;">🔄</button>
 				<button id="spkmod-cinema-modal-close-btn" title="Close" style="background:transparent;border:none;color:#aaa;cursor:pointer;font-size:16px;line-height:1;padding:0 3px;">✕</button>
 			</div>
@@ -1762,6 +1971,8 @@ function spkmodBuildCinemaModal() {
 	modal.querySelector("#spkmod-cinema-ctrl-next").onclick = () => window.spkmodCinemaNext();
 	modal.querySelector("#spkmod-cinema-ctrl-repeat").onclick = () => window.spkmodCinemaToggleRepeat();
 	modal.querySelector("#spkmod-cinema-modal-sync-btn").onclick = () => window.spkmodCinemaSyncSchedule();
+	const occBtn = modal.querySelector("#spkmod-cinema-modal-occlusion-btn");
+	if (occBtn) occBtn.onclick = () => window.spkmodToggleCinemaOcclusion();
 	modal.querySelector("#spkmod-cinema-modal-mute-btn").onclick = () => window.spkmodToggleCinemaMute();
 
 	const volSlider = modal.querySelector("#spkmod-cinema-modal-vol-slider");
@@ -2132,6 +2343,23 @@ window.spkmodUpdateCinemaFloatingPill = spkmodUpdateCinemaFloatingPill;
 function spkmodUpdateCinemaSpatialAudio() {
 	if (!spkmodCinemaConfig.enabled || !spkmodCinemaIframe) return;
 
+	const curZone = spkmodGetExactCinemaZone();
+	if (curZone !== 1 || (typeof spkmodIsInMinigame === "function" && spkmodIsInMinigame())) {
+		if (spkmodCinemaLastVolume !== 0) {
+			spkmodCinemaLastVolume = 0;
+			spkmodSendYtCommand('setVolume', [0]);
+			spkmodSendYtCommand('mute');
+		}
+		spkmodCinemaTopBarDismissed = false;
+		spkmodUpdateCinemaTopBar(false);
+		if (typeof window.spkmodUpdateCinemaFloatingPill === 'function') {
+			window.spkmodUpdateCinemaFloatingPill(false);
+		} else if (typeof spkmodUpdateCinemaFloatingPill === 'function') {
+			spkmodUpdateCinemaFloatingPill(false);
+		}
+		return;
+	}
+
 	const playerPos = (typeof gameState !== 'undefined' && gameState?.playerContainer?.position)
 		? gameState.playerContainer.position
 		: null;
@@ -2176,6 +2404,59 @@ function spkmodUpdateCinemaSpatialAudio() {
 }
 
 function spkmodCinemaTick() {
+	const curZone = spkmodGetExactCinemaZone();
+	if (curZone !== 1 || (typeof spkmodIsInMinigame === "function" && spkmodIsInMinigame())) {
+		if (typeof spkmodFwStop === 'function' && typeof spkmodFw !== 'undefined' && spkmodFw) {
+			spkmodFwStop();
+		}
+		if (spkmodCinemaContainer && spkmodCinemaContainer.style.display !== 'none') {
+			spkmodCinemaContainer.style.display = 'none';
+		}
+		if (spkmodCinemaOcclusionCanvas && spkmodCinemaOcclusionCanvas.style.display !== 'none') {
+			spkmodCinemaOcclusionCanvas.style.display = 'none';
+		}
+		if (spkmodCinemaFrameMesh && spkmodCinemaFrameMesh.visible) {
+			spkmodCinemaFrameMesh.visible = false;
+		}
+		spkmodCinemaTopBarDismissed = false;
+		spkmodUpdateCinemaTopBar(false);
+		if (typeof window.spkmodUpdateCinemaFloatingPill === 'function') {
+			window.spkmodUpdateCinemaFloatingPill(false);
+		} else if (typeof spkmodUpdateCinemaFloatingPill === 'function') {
+			spkmodUpdateCinemaFloatingPill(false);
+		}
+		if (spkmodCinemaInZone) {
+			spkmodCinemaInZone = false;
+			spkmodCinemaLeftZoneTimeMs = Date.now();
+			spkmodSendYtCommand('pauseVideo');
+			spkmodSendYtCommand('mute');
+			spkmodSendYtCommand('setVolume', [0]);
+			spkmodCinemaLastVolume = 0;
+			if (typeof window.spkmodSuppressGameBgm === 'function') {
+				window.spkmodSuppressGameBgm(false, "cinema");
+			}
+			if (spkmodCinemaModeActive && typeof window.spkmodToggleCinemaMode === 'function') {
+				window.spkmodToggleCinemaMode(false);
+			}
+			if (spkmodCinemaModalEl && !spkmodCinemaModalEl.classList.contains('hidden')) {
+				spkmodCinemaModalWasOpenBeforeLeaving = true;
+				spkmodCinemaModalEl.classList.add('hidden');
+				spkmodCinemaModalOpen = false;
+			}
+		}
+		if (spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src !== 'about:blank') {
+			try {
+				spkmodSendYtCommand('pauseVideo');
+				spkmodSendYtCommand('stopVideo');
+				spkmodSendYtCommand('mute');
+			} catch (_) {}
+			spkmodCinemaIframe.src = 'about:blank';
+			spkmodCinemaYtReady = false;
+			window.spkmodCinemaLastPlayerState = -1;
+		}
+		return;
+	}
+
 	const playerPos = (typeof gameState !== 'undefined' && gameState?.playerContainer?.position)
 		? gameState.playerContainer.position
 		: null;
@@ -2186,6 +2467,9 @@ function spkmodCinemaTick() {
 	if (!shouldBeActive) {
 		spkmodCinemaTopBarDismissed = false;
 		spkmodUpdateCinemaTopBar(false);
+		if (spkmodCinemaOcclusionCanvas && spkmodCinemaOcclusionCanvas.style.display !== 'none') {
+			spkmodCinemaOcclusionCanvas.style.display = 'none';
+		}
 		if (spkmodCinemaInZone) {
 			spkmodCinemaInZone = false;
 			spkmodCinemaLeftZoneTimeMs = Date.now();
@@ -2221,7 +2505,7 @@ function spkmodCinemaTick() {
 		}
 
 		// When outside cinema seats (in minigame, other map, or walked away):
-		const curZone = (typeof gameState !== 'undefined' && gameState?.zoneId !== undefined) ? (gameState.zoneId % 10000) : 1;
+		const curZone = spkmodGetExactCinemaZone();
 		const isOutsideZone1OrMinigame = curZone !== 1 || spkmodIsInMinigame();
 		const isLongAway = spkmodCinemaLeftZoneTimeMs > 0 && (Date.now() - spkmodCinemaLeftZoneTimeMs >= 60000);
 
@@ -2256,9 +2540,12 @@ function spkmodCinemaTick() {
 		spkmodCinemaInZone = true;
 		if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = '';
 		if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = true;
+		if (spkmodCinemaOcclusionCanvas && spkmodCinemaConfig.occlusion) {
+			spkmodCinemaOcclusionCanvas.style.display = '';
+		}
 
 		// 1. Resume existing track without restarting or re-seeking if briefly stepped away (< 60s) in Zone 1
-		const curZone = (typeof gameState !== 'undefined' && gameState?.zoneId !== undefined) ? (gameState.zoneId % 10000) : 1;
+		const curZone = spkmodGetExactCinemaZone();
 		const wasInSameMap = curZone === 1 && !spkmodIsInMinigame();
 		const wasBrieflyAway = wasInSameMap && spkmodCinemaLeftZoneTimeMs > 0 && (Date.now() - spkmodCinemaLeftZoneTimeMs < 60000);
 		if (window.spkmodCinemaAnniversaryLocked) {
@@ -2363,6 +2650,11 @@ function spkmodCinemaTick() {
 			gameState.camera.matrixWorldInverse.copy(gameState.camera.matrixWorld).invert();
 		}
 		spkmodCinemaRenderer.render(spkmodCinemaScene, gameState.camera);
+		if (spkmodCinemaConfig.occlusion && typeof spkmodRenderCinemaOcclusion === 'function') {
+			spkmodRenderCinemaOcclusion();
+		} else if (spkmodCinemaOcclusionCanvas && spkmodCinemaOcclusionCanvas.style.display !== 'none') {
+			spkmodCinemaOcclusionCanvas.style.display = 'none';
+		}
 	}
 }
 
@@ -2674,6 +2966,9 @@ window.addEventListener('resize', () => {
 	if (spkmodCinemaRenderer) {
 		spkmodCinemaRenderer.setSize(window.innerWidth, window.innerHeight);
 	}
+	if (spkmodCinemaOcclusionRenderer) {
+		spkmodCinemaOcclusionRenderer.setSize(window.innerWidth, window.innerHeight);
+	}
 });
 
 window.spkmodLoadMoviesPlaylist = spkmodLoadMoviesPlaylist;
@@ -2702,6 +2997,10 @@ window.spkmodSetCinema = function(x = 75.0, y = 4.2, z = 32.5, rotY = 1.6000) {
 	if (spkmodCinemaFrameMesh) {
 		spkmodCinemaFrameMesh.position.set(window.spkmodCinemaConfig.pos.x, window.spkmodCinemaConfig.pos.y, window.spkmodCinemaConfig.pos.z);
 		spkmodCinemaFrameMesh.rotation.y = window.spkmodCinemaConfig.rotationY;
+	}
+	if (spkmodCinemaOccluderMesh) {
+		spkmodCinemaOccluderMesh.position.set(window.spkmodCinemaConfig.pos.x, window.spkmodCinemaConfig.pos.y, window.spkmodCinemaConfig.pos.z);
+		spkmodCinemaOccluderMesh.rotation.y = window.spkmodCinemaConfig.rotationY;
 	}
 	if (typeof chatLog === "function") {
 		chatLog(`🎬 Cinema moved to (${window.spkmodCinemaConfig.pos.x}, ${window.spkmodCinemaConfig.pos.y}, ${window.spkmodCinemaConfig.pos.z})`);
@@ -2770,6 +3069,9 @@ function spkmodUpdateCinemaI18n() {
 		if (lunPanelElements.cinemaReloadBtn) {
 			lunPanelElements.cinemaReloadBtn.innerText = "🔄 " + getCinemaText("cinemaReloadPlaylist");
 			lunPanelElements.cinemaReloadBtn.title = getCinemaText("cinemaReloadPlaylist");
+		}
+		if (lunPanelElements.cinemaOcclusionLabel) {
+			lunPanelElements.cinemaOcclusionLabel.innerText = "👥 " + (getCinemaText("cinemaOcclusionToggle") || "Spiki Occlusion (Avatars block screen)");
 		}
 	}
 
@@ -2848,6 +3150,8 @@ function spkmodUpdateCinemaI18n() {
 		if (syncBtn) syncBtn.title = getCinemaText("cinemaSyncSchedule");
 		const reloadBtn = document.getElementById("spkmod-cinema-modal-reload-btn");
 		if (reloadBtn) reloadBtn.title = getCinemaText("cinemaReloadPlaylist");
+		const occBtn = document.getElementById("spkmod-cinema-modal-occlusion-btn");
+		if (occBtn) occBtn.title = getCinemaText("cinemaOcclusionToggle");
 
 		const tabMoviesLabel = document.getElementById("spkmod-cinema-tab-movies-label");
 		if (tabMoviesLabel) tabMoviesLabel.innerText = getCinemaText("cinemaTabMovies");
@@ -2900,6 +3204,9 @@ window.spkmodSetCinemaAnniversaryLock = function(locked, customVideoId) {
 
 	if (locked) {
 		spkmodCinemaConfig.enabled = true;
+		if (typeof window.spkmodSetNightMode === "function") {
+			window.spkmodSetNightMode(true);
+		}
 		if (window.localStorage) {
 			try { localStorage.setItem("spkmod-cinema-enabled", "true"); } catch (_) {}
 		}
@@ -2930,22 +3237,36 @@ window.spkmodSetCinemaAnniversaryLock = function(locked, customVideoId) {
 
 // ------------- Procedural Web Audio Sound Synthesizer -------------
 var spkmodFwAudioCtx = null;
+var spkmodFwMasterGain = null;
 function spkmodGetFwAudioContext() {
 	if (!spkmodFwAudioCtx || spkmodFwAudioCtx.state === 'closed') {
 		const AudioCtx = window.AudioContext || window.webkitAudioContext;
 		if (AudioCtx) {
 			spkmodFwAudioCtx = new AudioCtx();
+			spkmodFwMasterGain = null;
 		}
 	}
 	if (spkmodFwAudioCtx && spkmodFwAudioCtx.state === 'suspended') {
 		spkmodFwAudioCtx.resume().catch(() => {});
 	}
+	if (spkmodFwAudioCtx && !spkmodFwMasterGain) {
+		try {
+			spkmodFwMasterGain = spkmodFwAudioCtx.createGain();
+			spkmodFwMasterGain.gain.setValueAtTime(1, spkmodFwAudioCtx.currentTime);
+			spkmodFwMasterGain.connect(spkmodFwAudioCtx.destination);
+		} catch (_) {}
+	}
 	return spkmodFwAudioCtx;
 }
 
 function spkmodGetFwVolumeScale(sourceX, sourceY, sourceZ) {
+	// If player is outside Zone 1 (Monatium) or in minigame, silence completely!
+	const curZone = spkmodGetExactCinemaZone();
+	if (curZone !== 1) return 0;
+	if (typeof spkmodIsInMinigame === "function" && spkmodIsInMinigame()) return 0;
 	if (typeof isGameMuted === 'function' && isGameMuted()) return 0;
 	if (typeof lunIsMuted !== 'undefined' && lunIsMuted) return 0;
+
 	const cam = (typeof gameState !== 'undefined' && gameState?.camera) ? gameState.camera : null;
 	if (!cam) return 0.7;
 	const dx = (cam.position?.x ?? 0) - sourceX;
@@ -2989,7 +3310,7 @@ function spkmodPlayFwLaunchSound(x, y, z, durationSec) {
 
 	noise.connect(filter);
 	filter.connect(gain);
-	gain.connect(ctx.destination);
+	gain.connect(spkmodFwMasterGain || ctx.destination);
 
 	noise.start(t);
 	noise.stop(t + dur);
@@ -3018,7 +3339,7 @@ function spkmodPlayFwBurstSound(x, y, z, isText = false) {
 	oscGain.gain.exponentialRampToValueAtTime(0.001, t + boomDur);
 
 	osc.connect(oscGain);
-	oscGain.connect(ctx.destination);
+	oscGain.connect(spkmodFwMasterGain || ctx.destination);
 	osc.start(t);
 	osc.stop(t + boomDur);
 
@@ -3044,7 +3365,7 @@ function spkmodPlayFwBurstSound(x, y, z, isText = false) {
 
 	noise.connect(filter);
 	filter.connect(noiseGain);
-	noiseGain.connect(ctx.destination);
+	noiseGain.connect(spkmodFwMasterGain || ctx.destination);
 
 	noise.start(t);
 	noise.stop(t + noiseDur);
@@ -3063,7 +3384,7 @@ function spkmodPlayFwBurstSound(x, y, z, isText = false) {
 			toneGain.gain.exponentialRampToValueAtTime(0.001, t + 1.8 + idx * 0.12);
 
 			tone.connect(toneGain);
-			toneGain.connect(ctx.destination);
+			toneGain.connect(spkmodFwMasterGain || ctx.destination);
 			tone.start(t + 0.05);
 			tone.stop(t + 2.2);
 		});
@@ -3089,32 +3410,42 @@ function spkmodPlayFwCrackleSound(x, y, z) {
 		gain.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.05);
 
 		pop.connect(gain);
-		gain.connect(ctx.destination);
+		gain.connect(spkmodFwMasterGain || ctx.destination);
 		pop.start(t + delay);
 		pop.stop(t + delay + 0.06);
 	}
 }
 
-// ------------- Firework Visual Choreography -------------
+// ------------- Firework Visual Choreography (fireworkshownew.txt) -------------
+// [0] = Time start, [1] = "normal" | "text", [2] angle, [3] Height, [4] Color, [5] offset to side (z), [6] optional offset x
 var SPKMOD_FW_SHOW = [ 
-	[0, "normal", 0, 14, "yellow"],
-	[2.5, "normal", -25, 11, "red"],
-	[2.5, "normal", 25, 11, "blue"],
-	[2.5, "normal", 0, 11, "white"],
-	[6, "normal", 0, 9, "yellow"],
-	[8.5, "normal", -40, 8, "rainbow"],
-	[8.7, "normal", -20, 9, "rainbow"],
-	[8.9, "normal", 0, 10, "rainbow"],
-	[9.0, "normal", 20, 9, "rainbow"],
-	[9.2, "normal", 40, 8, "rainbow"],
-	[11, "text", 0, 9, "white"],
-	[14, "normal", 40, 13, "blue"],
-	[14.3, "normal", 10, 16, "red"],
-	[14.6, "normal", -30, 13, "pink"],
-	[14.9, "normal", -10, 17, "green"],
-	[15.0, "normal", 40, 13, "orange"],
-	[15.3, "normal", 10, 15, "blue"],
-	[15.6, "normal", -30, 12, "yellow"]
+	[0, "normal", 0, 12, "yellow", 0],
+	[0, "normal", 0, 12, "yellow", 5],
+	[0, "normal", 0, 12, "yellow", -5],
+	[0, "normal", 0, 12, "yellow", 10],
+	[0, "normal", 0, 12, "yellow", -10],
+	[0, "normal", 0, 10, "yellow", 0, -10],
+	[0, "normal", 0, 10, "yellow", 5, -20],
+	[0, "normal", 0, 10, "yellow", -5, -20],
+	[0, "normal", 0, 10, "yellow", 10, -30],
+	[0, "normal", 0, 10, "yellow", -10, -30],
+	[2.5, "normal", -25, 11, "red", 0],
+	[2.5, "normal", 25, 11, "blue", 0],
+	[2.5, "normal", 0, 11, "white", 0],
+	[6, "normal", 0, 9, "yellow", 0],
+	[8.5, "normal", -40, 8, "rainbow", 0],
+	[8.7, "normal", -20, 9, "rainbow", 0],
+	[8.9, "normal", 0, 10, "rainbow", 0],
+	[9.0, "normal", 20, 9, "rainbow", 0],
+	[9.2, "normal", 40, 8, "rainbow", 0],
+	[11, "text", 0, 9, "white", 0],
+	[14, "normal", 40, 13, "blue", 0],
+	[14.3, "normal", 10, 16, "red", 0, -5],
+	[14.6, "normal", -30, 13, "pink", 0],
+	[14.9, "normal", -10, 17, "green", -5],
+	[15.0, "normal", 40, 13, "orange", 0],
+	[15.3, "normal", 10, 15, "blue", 0],
+	[15.6, "normal", -30, 12, "yellow", -5]
 ];
 
 var SPKMOD_FW_COLORS = {
@@ -3130,7 +3461,7 @@ const fireworkSpawnOffset = {
 
 const SPKMOD_FW_ADJ = {
 	burstSparkCount: 150,
-	textBurstSparkCount: 500, 
+	textBurstSparkCount: 400, 
 	riserShotSize: 1.6,
 	riserShotSizeTail: 0.8,
 	normalParticleSize: 0.8, 
@@ -3138,7 +3469,7 @@ const SPKMOD_FW_ADJ = {
 };
 
 const SPKMOD_FW_TIMES = {
-	fwClimbSpeed: 10,
+	fwClimbSpeed: 8,
 	textPause: 1.5,
 	normalPause: 0.1,
 	textBurst: 1.3,
@@ -3230,21 +3561,33 @@ function spkmodFwTextPoints() {
 }
 
 function spkmodFwStop() {
-	if (!spkmodFw) return;
-	cancelAnimationFrame(spkmodFw.raf);
-	if (spkmodFw.canvas && spkmodFw.canvas.parentNode) {
-		spkmodFw.canvas.remove();
+	if (spkmodFw) {
+		cancelAnimationFrame(spkmodFw.raf);
+		if (spkmodFw.canvas && spkmodFw.canvas.parentNode) {
+			spkmodFw.canvas.remove();
+		}
+		spkmodFw = null;
 	}
-	spkmodFw = null;
+	// Immediately silence and disconnect all active or decaying firework sounds
+	if (spkmodFwMasterGain && spkmodFwAudioCtx) {
+		try {
+			spkmodFwMasterGain.gain.setValueAtTime(0, spkmodFwAudioCtx.currentTime);
+			spkmodFwMasterGain.disconnect();
+		} catch (_) {}
+		spkmodFwMasterGain = null;
+	}
 }
 window.spkmodStopCinemaFireworks = spkmodFwStop;
 
 window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 	if (spkmodFw) { spkmodFwStop(); return; }
+	if (typeof window.spkmodSetNightMode === "function") {
+		window.spkmodSetNightMode(true);
+	}
 	const THREE = window.THREE;
 	const cam = typeof gameState !== "undefined" && gameState ? gameState.camera : null;
-	const zid = (typeof gameState !== "undefined" && gameState?.zoneId !== undefined) ? (gameState.zoneId % 10000) : 1;
-	if (zid !== 1) {
+	const zid = spkmodGetExactCinemaZone();
+	if (zid !== 1 || (typeof spkmodIsInMinigame === "function" && spkmodIsInMinigame())) {
 		if (typeof chatLog === 'function') chatLog("🎆 Fireworks show can only be viewed in Zone 1 (Monatium)!");
 		return;
 	}
@@ -3275,9 +3618,10 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 			text: r[1] === "text", 
 			pts: null,  
 			color: r[4],
-			x: fwStartPos.x, 
+			x: fwStartPos.x + (r[6] != null ? r[6] : 0),
 			y: h, 
-			z: fwStartPos.z + off, 
+			z: fwStartPos.z + (r[5] != null ? r[5] : 0), 
+			offset: off,
 			rise: (h / Math.cos(angleInRadians)) / SPKMOD_FW_TIMES.fwClimbSpeed,
 			soundLaunched: false,
 			soundBursted: false
@@ -3298,6 +3642,13 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 	};
 
 	const frame = now => {
+		// Stop immediately and cut audio if player changes map or enters minigame
+		const curZone = spkmodGetExactCinemaZone();
+		if (curZone !== 1 || (typeof spkmodIsInMinigame === "function" && spkmodIsInMinigame())) {
+			spkmodFwStop();
+			return;
+		}
+
 		const t = (now - t0) / 1000;
 		canvas.width = window.innerWidth;
 		canvas.height = window.innerHeight;
@@ -3311,11 +3662,14 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 		for (const s of shots) {
 			const a = t - s.start;
 			if (a < 0) { alive = true; continue; }
+
+			const endPos = s.z + s.offset;
+			const startPos = s.z;
 			
 			// Procedural audio: Launch sound
 			if (a >= 0 && !s.soundLaunched) {
 				s.soundLaunched = true;
-				spkmodPlayFwLaunchSound(s.x, s.y, s.z, s.rise);
+				spkmodPlayFwLaunchSound(s.x, 0, startPos, s.rise);
 			}
 
 			const T = SPKMOD_FW_TIMES;
@@ -3328,17 +3682,17 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 			// Procedural audio: Burst sound & crackles
 			if (b >= 0 && !s.soundBursted) {
 				s.soundBursted = true;
-				spkmodPlayFwBurstSound(s.x, s.y, s.z, s.text);
+				spkmodPlayFwBurstSound(s.x, s.y, endPos, s.text);
 				if (!s.text && (s.color === "rainbow" || Math.random() < 0.45)) {
-					spkmodPlayFwCrackleSound(s.x, s.y, s.z);
+					spkmodPlayFwCrackleSound(s.x, s.y, endPos);
 				}
 			}
 
 			if (a < s.rise + 0.25) {
 				const fade = a < s.rise ? 1 : 1 - (a - s.rise) / 0.25;
-				for (let i = 0; i < 10; i++) {
+				for (let i = 0; i < 5; i++) {
 					const p = Math.max(0, Math.min(1, (a - i * 0.018) / s.rise));
-					glow((fwStartPos.x + (s.x - fwStartPos.x) * p), s.y * p, fwStartPos.z + (s.z - fwStartPos.z) * p,
+					glow((fwStartPos.x + (s.x - fwStartPos.x) * p), s.y * p, startPos + (endPos - startPos) * p,
 						i ? SPKMOD_FW_ADJ.riserShotSizeTail * (1 - i / 14) : SPKMOD_FW_ADJ.riserShotSize, (i ? 0.55 * (1 - i / 10) : 1) * fade, spkmodFwSprite("orange"), focal, W, H);
 				}
 				continue;
@@ -3356,7 +3710,7 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 				const k = e * (b > 1.3 ? 1 + 0.012 * (b - 1.3) : 1);
 				for (const p of s.pts) {
 					const al = b > 9.3 + p.fd ? 1 - (b - 9.3 - p.fd) / 2.5 : 1;
-					glow(s.x, s.y + p.v * k, s.z + p.u * k,
+					glow(s.x, s.y + p.v * k, endPos + p.u * k,
 						SPKMOD_FW_ADJ.textParticleSize, al * (0.8 + 0.2 * Math.sin(now * 0.012 + p.tw)), spkmodFwSprite(p.c), focal, W, H);
 				}
 			} else {
@@ -3376,7 +3730,7 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 					const L = 3.2 * p.life, x = b / L;
 					if (x > 1) continue;
 					const al = (x < 0.25 ? 1 : Math.pow(1 - (x - 0.25) / 0.75, 1.6)) * Math.min(1, b / 0.08) * (0.75 + 0.25 * Math.sin(now * 0.015 + p.tw));
-					glow(s.x + p.vx * f, s.y + (p.vy + 1.4) * f - 1.4 * b, s.z + p.vz * f, SPKMOD_FW_ADJ.normalParticleSize, al, spkmodFwSprite(p.c), focal, W, H);
+					glow(s.x + p.vx * f, s.y + (p.vy + 1.4) * f - 1.4 * b, endPos + p.vz * f, SPKMOD_FW_ADJ.normalParticleSize, al, spkmodFwSprite(p.c), focal, W, H);
 				}
 			}
 		}

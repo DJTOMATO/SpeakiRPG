@@ -2635,6 +2635,8 @@ document.body.appendChild(
 									}
 									const cont = document.getElementById("spkmod-cinema-container");
 									if (cont) cont.style.display = "none";
+									const occ = document.getElementById("spkmod-cinema-occlusion-canvas");
+									if (occ) occ.style.display = "none";
 									if (window.spkmodCinemaFrameMesh) window.spkmodCinemaFrameMesh.visible = false;
 									if (typeof window.spkmodUpdateCinemaFloatingPill === "function") {
 										window.spkmodUpdateCinemaFloatingPill(false);
@@ -2642,6 +2644,26 @@ document.body.appendChild(
 								} else {
 									if (typeof window.spkmodInitCinema === "function") window.spkmodInitCinema();
 								}
+							}
+						}
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.cinemaOcclusionLabel = buildElement("span", {
+						style: "color: #ddd; font-size: 11px; flex: 1;",
+						innerText: "👥 " + (t("cinemaOcclusionToggle") || "Spiki Occlusion (Avatars block screen)"),
+						title: "Avatars standing in front of screen will naturally obscure the movie"
+					}),
+					lunPanelElements.cinemaOcclusionInput = buildElement("input", {
+						type: "checkbox",
+						checked: (window.spkmodCinemaConfig ? window.spkmodCinemaConfig.occlusion !== false : true),
+						title: "Toggle avatar occlusion in front of cinema screen",
+						onchange: e => {
+							if (typeof window.spkmodToggleCinemaOcclusion === "function") {
+								window.spkmodToggleCinemaOcclusion(e.target.checked);
+							} else if (window.spkmodCinemaConfig) {
+								window.spkmodCinemaConfig.occlusion = e.target.checked;
+								localStorage.setItem("spkmod-cinema-occlusion", e.target.checked ? "true" : "false");
 							}
 						}
 					})

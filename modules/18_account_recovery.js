@@ -816,17 +816,21 @@ window.addEventListener("keydown", e => {
 	if ((e.key === "n" || e.key === "N") && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
 		const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
 		if (tag !== "input" && tag !== "textarea" && !document.activeElement.isContentEditable) {
-			const rows = document.querySelectorAll(".sr-panel__row");
-			for (const row of rows) {
-				const checkbox = row.querySelector("input[type='checkbox']");
-				const span = row.querySelector("span");
-				if (checkbox && span) {
-					const txt = span.innerText.toLowerCase();
-					if (txt.includes("night") || txt.includes("darker") || txt.includes("밤") || txt.includes("야간") || txt.includes("夜") || txt.includes("noche") || txt.includes("noite")) {
-						e.preventDefault();
-						checkbox.click();
-						if (typeof chatLog === "function") chatLog("Toggled Native Night Mode");
-						break;
+			e.preventDefault();
+			if (typeof window.spkmodToggleNightMode === "function") {
+				window.spkmodToggleNightMode();
+			} else {
+				const rows = document.querySelectorAll(".sr-panel__row");
+				for (const row of rows) {
+					const checkbox = row.querySelector("input[type='checkbox']");
+					const span = row.querySelector("span");
+					if (checkbox && span) {
+						const txt = span.innerText.toLowerCase();
+						if (txt.includes("night") || txt.includes("darker") || txt.includes("밤") || txt.includes("야간") || txt.includes("夜") || txt.includes("noche") || txt.includes("noite")) {
+							checkbox.click();
+							if (typeof chatLog === "function") chatLog("Toggled Native Night Mode");
+							break;
+						}
 					}
 				}
 			}
