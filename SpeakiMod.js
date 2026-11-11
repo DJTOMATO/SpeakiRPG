@@ -26478,6 +26478,7 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 	}
 }
 
+
 function hookGameStateOnce() {
 	if (typeof gameState === "undefined" || !gameState) return false;
 	if (gameState.__speakiGameStateHooked) return true;

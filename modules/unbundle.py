@@ -1,13 +1,13 @@
 """
 SpeakiMod Unbundler & Synchronization Tool
 ===========================================
-Splits `SpeakiMod.js` back into individual module files in `tools/modules/`.
+Splits `SpeakiMod.js` back into individual module files in `modules/`.
 Useful when changes are made directly to `SpeakiMod.js` (e.g. from upstream
 PRs, quick online edits, or external contributions) so they are kept in sync
-with `tools/modules/` and won't be overwritten on the next `python tools/bundle.py`.
+with `modules/` and won't be overwritten on the next `python modules/bundle.py`.
 
 Usage:
-    python tools/unbundle.py [--dry-run] [--check] [path/to/SpeakiMod.js]
+    python modules/unbundle.py [--dry-run] [--check] [path/to/SpeakiMod.js]
 """
 
 import os
@@ -17,7 +17,7 @@ import subprocess
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-MODULES_DIR = os.path.join(SCRIPT_DIR, "modules") if os.path.isdir(os.path.join(SCRIPT_DIR, "modules")) else SCRIPT_DIR
+MODULES_DIR = os.path.join(REPO_ROOT, "modules") if os.path.isdir(os.path.join(REPO_ROOT, "modules")) else SCRIPT_DIR
 DEFAULT_BUNDLE = os.path.join(REPO_ROOT, "SpeakiMod.js")
 
 # Ordered module list and anchor signatures used to find starting boundaries
@@ -26,8 +26,8 @@ MODULE_SPECS = [
         "name": "01_core.js",
         "anchors": [
             "// Suppress report-only CSP warnings in console for custom emoji assets",
-            "window.speakiMod = true;",
-            "let authToken = null;"
+            "if (window.speakiMod)",
+            "const isElectronEnv = typeof window.electronAPI"
         ]
     },
     {
@@ -42,8 +42,8 @@ MODULE_SPECS = [
         "name": "03_i18n_core.js",
         "anchors": [
             "function buildElement(tag, characteristics, inner, callback) {",
-            "function findNametagSprite(entity) {",
-            "const lunBadWords = ["
+            "function hookSpritePrototypeOnce(sprite) {",
+            "function findNametagSprite(container) {"
         ]
     },
     {
@@ -66,16 +66,16 @@ MODULE_SPECS = [
         "name": "06_ui_styles_hud.js",
         "anchors": [
             "function updateDynamicStyles() {",
-            'case "sepia": filterRule =',
-            "const styleTag = document.getElementById(\"spkmod-dynamic-styles\")"
+            "function updateHudBgDropdown() {",
+            'const spkmodBorderWidth = "1.5px";'
         ]
     },
     {
         "name": "07_ui_emoji_avatar.js",
         "anchors": [
             "// --- EMOJI PICKER ---",
-            "function toggleFavoriteEmoji(id) {",
-            "function renderSpkmodInlineEmojis(text, imgStyle) {"
+            "let lunEmojiPickerPanel = null;",
+            "const LUN_EMOJIS = ["
         ]
     },
     {
@@ -83,14 +83,14 @@ MODULE_SPECS = [
         "anchors": [
             "// FLOATING ACTION BUTTONS (Right-Click to Summon / Clean / LocalStorage Saved)",
             "window.spkmodActiveFloatingButtons = new Map();",
-            "function spkmodSpawnFloatingButton("
+            "function spkmodGetButtonId(btn) {"
         ]
     },
     {
         "name": "09_emotes_effects.js",
         "anchors": [
             "const lunJumpAnimMs = 500;",
-            "function setJumpActive(val) {",
+            "const lunFaintAnimMs = 1200;",
             "function triggerHearts() {"
         ]
     },
@@ -98,7 +98,7 @@ MODULE_SPECS = [
         "name": "10_cooking_prop_anims.js",
         "anchors": [
             "// ============================================================================\n// PUMPKIN CART TEXTURE REPLACEMENT SKINS",
-            "const SPKMOD_PUMPKIN_CART_ORIG_TEX = \"https://speakirpg.overture.io.kr/models/mount_pumpkin_cart_halloween/HW_Map_Body.png\";",
+            'const SPKMOD_PUMPKIN_CART_ORIG_TEX = "https://speakirpg.overture.io.kr',
             "const SPKMOD_PUMPKIN_CART_SKINS = {"
         ]
     },
@@ -114,8 +114,8 @@ MODULE_SPECS = [
         "name": "12_modals_bbs.js",
         "anchors": [
             "// --- SPEAKI BBS (COMMUNITY BULLETIN BOARD) ---",
-            "function escapeBbsHtml(text) {",
-            "function getBbsServerUrl() {"
+            "var bbsModalElements = {",
+            "function escapeBbsHtml(text) {"
         ]
     },
     {
@@ -146,8 +146,8 @@ MODULE_SPECS = [
         "name": "16_exp_tracker_gameloop.js",
         "anchors": [
             "// --- MOD PLAYERS TELEMETRY & HOURLY PING ---",
-            "window.spkmodSendTelemetryPing = function() {",
-            "var windowSec = lunExpIntervalMinutes * 60;"
+            "var lunModPlayersCounts = {",
+            "window.spkmodSendTelemetryPing = function() {"
         ]
     },
     {
@@ -161,20 +161,35 @@ MODULE_SPECS = [
     {
         "name": "18_account_recovery.js",
         "anchors": [
-            "const SPKMOD_ACCOUNTS_KEY = \"spkmod-saved-accounts\";",
-            "function getStoredAccounts() {",
-            "function showAccountManagerModal() {"
+            'const SPKMOD_ACCOUNTS_KEY = "spkmod-saved-accounts";',
+            'const SPKMOD_DISMISS_KEY = "spkmod-dismiss-ql-prompt";',
+            "function getSavedAccounts() {"
         ]
     },
     {
         "name": "19_cinema.js",
         "anchors": [
             "// ============================================================================\n// IN-GAME 3D MOVIE THEATER & CINEMA PLAYER (CSS3DRENDERER + YOUTUBE)",
-            "var SPKMOD_CINEMA_DEFAULT_CONFIG = window.SPKMOD_CINEMA_DEFAULT_CONFIG || {",
-            "function spkmodInitCinema() {"
+            "var SPKMOD_CINEMA_DEFAULT_CONFIG = window.SPKMOD_CINEMA_DEFAULT_CONFIG",
+            "var spkmodCinemaConfig = window.spkmodCinemaConfig"
         ]
     }
 ]
+
+
+def find_anchor(text, anchor):
+    """Finds anchor with line-ending awareness (CRLF vs LF)."""
+    pos = text.find(anchor)
+    if pos != -1:
+        return pos
+    if "\n" in anchor:
+        anchor_crlf = anchor.replace("\r\n", "\n").replace("\n", "\r\n")
+        pos = text.find(anchor_crlf)
+        if pos != -1:
+            return pos
+        anchor_lf = anchor.replace("\r\n", "\n")
+        return text.find(anchor_lf)
+    return -1
 
 
 def unbundle(bundle_path=DEFAULT_BUNDLE, dry_run=False, check_only=False):
@@ -200,7 +215,7 @@ def unbundle(bundle_path=DEFAULT_BUNDLE, dry_run=False, check_only=False):
         pos = -1
         matched_anchor = None
         for anchor in spec["anchors"]:
-            pos = bundle_text.find(anchor)
+            pos = find_anchor(bundle_text, anchor)
             if pos != -1:
                 matched_anchor = anchor
                 break
@@ -250,7 +265,7 @@ def unbundle(bundle_path=DEFAULT_BUNDLE, dry_run=False, check_only=False):
         extracted[name] = chunk
 
     # Compare extracted modules with existing modules on disk
-    print("\nComparing extracted modules with tools/modules/:")
+    print(f"\nComparing extracted modules with {os.path.relpath(MODULES_DIR, REPO_ROOT)}/:")
     modified_count = 0
     total_modules = len(extracted)
 
@@ -297,7 +312,7 @@ def unbundle(bundle_path=DEFAULT_BUNDLE, dry_run=False, check_only=False):
         return True
 
     # Write updated modules to disk
-    print(f"\nWriting {modified_count} updated module(s) to tools/modules/...")
+    print(f"\nWriting {modified_count} updated module(s) to {os.path.relpath(MODULES_DIR, REPO_ROOT)}/...")
     for name, new_content in extracted.items():
         target_path = os.path.join(MODULES_DIR, name)
         with open(target_path, "w", encoding="utf-8", newline="") as f:
@@ -307,8 +322,11 @@ def unbundle(bundle_path=DEFAULT_BUNDLE, dry_run=False, check_only=False):
 
     # Re-verify by bundling in memory to guarantee lossless consistency
     bundle_script = os.path.join(SCRIPT_DIR, "bundle.py")
+    if not os.path.exists(bundle_script):
+        bundle_script = os.path.join(MODULES_DIR, "bundle.py")
+
     if os.path.exists(bundle_script):
-        print("\nRe-verifying consistency with tools/bundle.py...")
+        print("\nRe-verifying consistency with modules/bundle.py...")
         res = subprocess.run([sys.executable, bundle_script], capture_output=True, text=True)
         if res.returncode == 0:
             print("[+] bundle.py completed successfully with PASS.")
@@ -327,4 +345,3 @@ if __name__ == "__main__":
 
     success = unbundle(target_bundle, dry_run=dry_run, check_only=check_only)
     sys.exit(0 if success else 1)
-
