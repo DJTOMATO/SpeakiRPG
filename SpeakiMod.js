@@ -101,6 +101,23 @@ window.gameState = window.gameState || undefined;
 var lunCurrentPing = "--";
 var lunCurrentFps = "--";
 
+const spkmodQuestResponseJsonCache = new WeakMap();
+
+function spkmodReadQuestResponseJson(response) {
+    if (!response || typeof response.clone !== "function") {
+        return Promise.resolve(null);
+    }
+
+    let promise = spkmodQuestResponseJsonCache.get(response);
+
+    if (!promise) {
+        promise = response.clone().json();
+        spkmodQuestResponseJsonCache.set(response, promise);
+    }
+
+    return promise;
+}
+
 if (!window.__speakiFetchHooked) {
 	window.__speakiFetchHooked = true;
 	const origFetch = window.fetch;
@@ -134,28 +151,24 @@ if (!window.__speakiFetchHooked) {
 				}
 			}
 			if (url && url.includes("/api/quests")) {
-				const clone = res.clone();
-				clone.json().then(data => {
-					if (Array.isArray(data)) {
-						window.__spkmodCachedQuests = window.__spkmodCachedQuests || {};
-						for (const q of data) {
-							if (q && q.questId) {
-								window.__spkmodCachedQuests[q.questId] = q;
-								if (q.isClaimed) {
-									const removed = clearClaimedQuestPin(q);
-									if (removed && typeof renderQuestChecklist === "function") {
-										renderQuestChecklist();
-									}
-								}
-								else if (typeof lunPinnedQuestId !== "undefined" && lunPinnedQuestId && String(lunPinnedQuestId) === String(q.questId)) {
-									if (typeof updatePinnedQuestDisplay === "function") {
-										updatePinnedQuestDisplay(q);
-									}
-								}
-							}
-						}
-					}
-				}).catch(() => {});
+    			spkmodReadQuestResponseJson(res).then(data => {
+        			if (!Array.isArray(data)) return;
+        			window.__spkmodMergeCompletedQuests?.(data);
+        			for (const q of data) {
+            			if (!q?.questId) continue;
+            			const cachedQuest = spkmodCacheQuestRecord(q);
+            			if (q.isClaimed) {
+                			const removed = clearClaimedQuestPin(cachedQuest);
+                			if (removed && typeof renderQuestChecklist === "function") {
+                    			renderQuestChecklist();
+                			}
+            			} else if (typeof lunPinnedQuestId !== "undefined" && lunPinnedQuestId && String(lunPinnedQuestId) === String(q.questId)) {
+                			if (typeof updatePinnedQuestDisplay === "function") {
+                    			updatePinnedQuestDisplay(cachedQuest);
+                			}
+            			}
+        			}
+    			}).catch(() => {});
 			}
 		} catch (_) {}
 		return res;
@@ -1120,6 +1133,7 @@ var spkmodConstants = (function() {
 
 var Portals = spkmodConstants.portals || DEFAULT_PORTALS;
 window.Portals = Portals;
+const spkmodPortalPathCache = new Map();
 window.spkmodRaids = spkmodConstants.raids || DEFAULT_RAIDS;
 var WorldZones = spkmodConstants.zones || DEFAULT_WORLD_ZONES;
 window.WorldZones = WorldZones;
@@ -1133,6 +1147,7 @@ window.WorldZones = WorldZones;
 				if (data.portals) {
 					Portals = data.portals;
 					window.Portals = Portals;
+					spkmodPortalPathCache.clear();
 				}
 				if (data.raids) {
 					window.spkmodRaids = data.raids;
@@ -1141,7 +1156,6 @@ window.WorldZones = WorldZones;
 					WorldZones = data.zones;
 					window.WorldZones = WorldZones;
 				}
-
 				if (typeof window !== "undefined" && window.localStorage) {
 					try {
 						localStorage.setItem("spkmod-constants-cache", JSON.stringify(data));
@@ -1162,32 +1176,75 @@ try {
 	}
 } catch(e) {}
 
-const origFetch = window.fetch;
-window.fetch = async function(...args) {
-	const response = await origFetch.apply(this, args);
-	const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
-	if (url && url.includes('/api/quests')) {
-		const clone = response.clone();
-		clone.json().then(data => {
-			if (Array.isArray(data)) {
-				data.forEach(q => { if (q.isCompleted) window.lunCompletedQuests.add(q.code); });
-				localStorage.setItem('lunCompletedQuests', JSON.stringify([...window.lunCompletedQuests]));
-			}
-		}).catch(e => {});
-	}
-	return response;
+window.__spkmodMergeCompletedQuests = function(data) {
+    if (!Array.isArray(data)) return false;
+
+    const completed = window.lunCompletedQuests;
+    let changed = false;
+
+    for (const quest of data) {
+        if (!quest?.isCompleted || quest.code == null) continue;
+
+        if (!completed.has(quest.code)) {
+            completed.add(quest.code);
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        try {
+            localStorage.setItem("lunCompletedQuests", JSON.stringify([...completed]));
+        } catch (_) {}
+    }
+
+    return changed;
 };
+
+function spkmodCacheQuestRecord(quest, fallbackPeriod) {
+    if (!quest?.questId) return null;
+
+    const cache = window.__spkmodCachedQuests || (window.__spkmodCachedQuests = {});
+    const id = String(quest.questId);
+    const existing = cache[id];
+
+    if (!existing) {
+        if (!quest.period && fallbackPeriod) {
+            quest.period = fallbackPeriod;
+        }
+
+        cache[id] = quest;
+
+        return quest;
+    }
+
+    if (existing === quest) {
+        if (!existing.period && fallbackPeriod) {
+            existing.period = fallbackPeriod;
+        }
+
+        return existing;
+    }
+
+    for (const [key, value] of Object.entries(quest)) {
+        if (value === undefined || existing[key] === value) continue;
+
+        existing[key] = value;
+    }
+
+    if (!existing.period && fallbackPeriod) {
+        existing.period = fallbackPeriod;
+    }
+
+    return existing;
+}
 
 const origXhrOpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url) {
 	this.addEventListener('load', function() {
 		if (url && typeof url === 'string' && url.includes('/api/quests')) {
 			try {
-				let data = JSON.parse(this.responseText);
-				if (Array.isArray(data)) {
-					data.forEach(q => { if (q.isCompleted) window.lunCompletedQuests.add(q.code); });
-					localStorage.setItem('lunCompletedQuests', JSON.stringify([...window.lunCompletedQuests]));
-				}
+				const data = JSON.parse(this.responseText);
+				window.__spkmodMergeCompletedQuests(data);
 			} catch(e) {}
 		}
 	});
@@ -1205,6 +1262,69 @@ const Waypoints = {
 	]
 };
 
+function getSpkmodPortalPath(startZone, endZone) {
+    if (startZone === endZone) return [];
+
+    const key = `${startZone}>${endZone}`;
+
+    if (spkmodPortalPathCache.has(key)) {
+        return spkmodPortalPathCache.get(key);
+    }
+
+    const queue = [startZone];
+    const visited = new Set([startZone]);
+    const parents = new Map();
+
+    let head = 0;
+    let found = false;
+
+    while (head < queue.length) {
+        const current = queue[head++];
+
+        if (current === endZone) {
+            found = true;
+            break;
+        }
+
+        const neighbors = Portals[current];
+
+        if (!neighbors) continue;
+
+        for (const rawNextZone of Object.keys(neighbors)) {
+            const nextZone = parseInt(rawNextZone, 10);
+
+            if (!Number.isFinite(nextZone) || visited.has(nextZone)) continue;
+
+            visited.add(nextZone);
+            parents.set(nextZone, current);
+            queue.push(nextZone);
+        }
+    }
+
+    if (!found) {
+        spkmodPortalPathCache.set(key, null);
+        return null;
+    }
+
+    const path = [];
+    let current = endZone;
+
+    while (current !== startZone) {
+        if (!parents.has(current)) {
+            spkmodPortalPathCache.set(key, null);
+            return null;
+        }
+
+        path.push(current);
+        current = parents.get(current);
+    }
+
+    path.reverse();
+
+    spkmodPortalPathCache.set(key, path);
+
+    return path;
+}
 
 
 function buildElement(tag, characteristics, inner, callback) {
@@ -1223,60 +1343,6 @@ function buildElement(tag, characteristics, inner, callback) {
 	}
 	if (callback) callback(elem);
 	return elem;
-}
-
-var __spkmodSpriteProtoHooked = false;
-function hookSpritePrototypeOnce(sprite) {
-	if (__spkmodSpriteProtoHooked || !sprite) return;
-	const proto = Object.getPrototypeOf(sprite);
-	if (!proto) return;
-	__spkmodSpriteProtoHooked = true;
-
-	Object.defineProperty(proto, "visible", {
-		get() {
-			if (typeof lunNametagMode !== "undefined" && lunNametagMode === 3 && this.position && this.position.y > 0.5) {
-				return false;
-			}
-			return this._spkmodVisible !== undefined ? this._spkmodVisible : true;
-		},
-		set(v) {
-			this._spkmodVisible = v;
-		},
-		configurable: true
-	});
-}
-
-function findNametagSprite(container) {
-	if (!container) return null;
-	const cached = container.__spkmodNametagSprite;
-	if (cached && cached.isSprite && cached.parent) {
-		let p = cached.parent;
-		while (p && p !== container) {
-			p = p.parent;
-		}
-		if (p === container) {
-			hookSpritePrototypeOnce(cached);
-			return cached;
-		}
-	}
-
-	let sprite = null;
-	if (typeof container.traverse === "function") {
-		container.traverse(obj => {
-			if (obj && obj.isSprite) {
-				hookSpritePrototypeOnce(obj);
-				if (!sprite && obj.position && obj.position.y > 0.5) {
-					sprite = obj;
-				}
-			}
-		});
-	}
-	if (sprite) {
-		container.__spkmodNametagSprite = sprite;
-	} else {
-		delete container.__spkmodNametagSprite;
-	}
-	return sprite;
 }
 
 
@@ -1430,8 +1496,12 @@ function getEffectiveSourceLang(text) {
 
 var lunBadWordRegex = null;
 function rebuildBadWordRegex() {
-	var allWords = Object.values(lunBadWords).flat().filter(Boolean);
-	if (!allWords.length) {
+    for (const lang of Object.keys(lunBadWords)) {
+        lunBadWords[lang] = [...new Set(lunBadWords[lang].filter(Boolean))];
+    }
+
+    var allWords = Object.values(lunBadWords).flat().filter(Boolean);
+    if (!allWords.length) {
 		lunBadWordRegex = null;
 		return;
 	}
@@ -1833,9 +1903,12 @@ const lunTPS = 20;
 
 var lunExpTrackerStartExp = 0;
 var lunExpTrackerSpeed = 0;
-var lunExpTrackerInitialized = false; 
+var lunExpTrackerInitialized = false;
 var lunExpTrackerSamples = [];
 var lunExpTrackerLastSampleTick = 0;
+var lunExpTrackerLastCalculationTime = 0;
+var lunExpTrackerDisplayL1 = null;
+var lunExpTrackerDisplayL2 = null;
 
 var lunChannelTrackerWindow = 60 * lunTPS; // [SpeakiMod+] Reduced from 25s to 60s
 var lunChannelTrackerNextTicks = 0;
@@ -1864,6 +1937,164 @@ if (window.localStorage) {
 }
 window.lunNametagMode = lunNametagMode;
 const NAMETAG_MODES = ["showAllNametags", "keepPartyNametags", "keepFriendsNametags", "hideAllNametags"];
+
+function getPartyNametagNames() {
+    return new Set(Array.from(gameState?.partyMemberNamesBySlot?.values?.() ?? [])
+			.map(name => String(name ?? "").trim().toLowerCase()).filter(Boolean));
+}
+
+// Find and cache the nametag sprite.
+function getPlayerNametagSprite(player) {
+    const root = player?.avatar?.root;
+
+    if (!root) return null;
+
+    const cached = player.__spkmodNametagSprite;
+
+    // Reuse the cached sprite if it still belongs to the current avatar.
+    if (cached && cached.parent === root) return cached;
+
+    // In the current game source, the nametag is a direct child of avatar.root.
+    const sprite = root.children?.find(obj => obj?.isSprite && obj.position && obj.position.y > 0.5) ?? null;
+
+    if (sprite) {
+        player.__spkmodNametagSprite = sprite;
+    } else {
+        delete player.__spkmodNametagSprite;
+    }
+
+    return sprite;
+}
+
+// Apply visibility to one player's nametag.
+function applyPlayerNametagVisibility(player, partyNames = null) {
+    if (!player?.avatar?.root) return;
+
+    const pName = String(player.info?.name ?? "").trim().toLowerCase();
+    const origName = String(player.info?.__spkmodOrigName ?? "").trim().toLowerCase();
+
+    let shouldBeVisible = true;
+
+    if (lunNametagMode === 3) {
+        shouldBeVisible = false;
+    } else if (lunNametagMode === 1) {
+        const names = partyNames ?? getPartyNametagNames();
+		shouldBeVisible = names.has(pName) || (Boolean(origName) && names.has(origName));
+    } else if (lunNametagMode === 2) {
+        shouldBeVisible = lunFriendNicknames.has(pName) || (Boolean(origName) && lunFriendNicknames.has(origName));
+    }
+
+    const sprite = getPlayerNametagSprite(player);
+
+    if (sprite && sprite.visible !== shouldBeVisible) sprite.visible = shouldBeVisible;
+}
+
+// Refresh all nametags only when necessary.
+function refreshAllNametags() {
+    const players = gameState?.remotePlayers?.remotePlayers;
+
+    if (!players) return;
+
+    const partyNames = lunNametagMode === 1 ? getPartyNametagNames() : null;
+
+    players.forEach(player => {
+        applyPlayerNametagVisibility(player, partyNames);
+    });
+}
+
+function hookAvatarLabel(entity, explicitContainer) {
+	if (!entity || !entity.avatar) return;
+	const avatar = entity.avatar;
+	if (typeof avatar.setLabel !== 'function' || avatar.__spkmodLabelPatched) return;
+
+	const resolveContainer = () => explicitContainer || entity.container || entity.root || avatar.root || (typeof entity.traverse === 'function' ? entity : null);
+
+	const origSetLabel = avatar.setLabel;
+	avatar.setLabel = function(text, ...args) {
+		if (typeof text === 'string' && text.length > 0 && (!lunHidePlayerLevels || text.startsWith("LV"))) {
+			avatar.__spkmodLastRawLabel = text;
+		}
+		if (lunHidePlayerLevels && typeof text === 'string' && text.startsWith("LV")) {
+			const spaceIdx = text.indexOf(" ");
+			if (spaceIdx !== -1) {
+				text = text.substring(spaceIdx + 1); // remove "LVxxx "
+			}
+		}
+
+		try {
+			const targetContainer = resolveContainer();
+			if (targetContainer && typeof targetContainer.traverse === 'function') {
+				targetContainer.traverse(obj => {
+					// Position check ensures we only hit the floating nametag sprite above the player
+					if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+						obj.material.map.dispose();
+
+						if (obj.material.map.image && typeof obj.material.map.image.getContext === 'function') {
+							const ctx = obj.material.map.image.getContext('2d');
+							ctx.clearRect(0, 0, obj.material.map.image.width, obj.material.map.image.height);
+						}
+					}
+				});
+			}
+		} catch(e) {}
+
+		return origSetLabel.call(this, text, ...args);
+	};
+	avatar.__spkmodLabelPatched = true;
+
+	// Force redraw with current text if level-hiding or a custom font is active
+	if (lunHidePlayerLevels || (typeof lunFontPreset !== "undefined" && lunFontPreset !== "default")) {
+		if (entity.info && entity.info.name) {
+			const lvl = entity.info.__spkmodOrigLevel || entity.info.level || 1;
+			avatar.setLabel("LV" + lvl + " " + entity.info.name);
+		} else if (entity === gameState.playerContainer || entity.isLocalPlayer) {
+			const lvl = (gameState.myStat && gameState.myStat.level) ? gameState.myStat.level : 1;
+			const name = (gameState.myPlayerName || (gameState.myStat && gameState.myStat.name)) || "";
+			if (name) avatar.setLabel("LV" + lvl + " " + name);
+		}
+	}
+}
+
+function hookNametagAvatarReplacement(player) {
+    if (!player || player.__spkmodAvatarNametagHooked) return;
+
+    const descriptor = Object.getOwnPropertyDescriptor(player, "avatar");
+
+    if (descriptor && descriptor.configurable === false) return;
+
+    let currentAvatar = player.avatar;
+
+    try {
+        Object.defineProperty(player, "avatar", {
+            configurable: true,
+            enumerable: descriptor?.enumerable ?? true,
+
+            get() {
+                return currentAvatar;
+            },
+
+            set(nextAvatar) {
+                currentAvatar = nextAvatar;
+
+                // Previous nametag belongs to the old avatar.
+                delete player.__spkmodNametagSprite;
+
+                if (!nextAvatar) return;
+				
+				// Hook the new avatar's setLabel method.
+				hookAvatarLabel(player);
+				
+				// Apply current nametag visibility.
+				applyPlayerNametagVisibility(player);
+            }
+        });
+
+        player.__spkmodAvatarNametagHooked = true;
+
+    } catch (err) {
+        console.warn("[SpeakiMod+] Failed to hook avatar replacement:", err);
+    }
+}
 
 var lunFriendNicknames = new Set();
 if (window.localStorage) {
@@ -1894,15 +2125,22 @@ function replaceFriendNicknames(data) {
         if (f.friendshipId != null) nextIds.set(String(f.friendshipId), nick);
     }
 
+	// Check whether the friend nickname set actually changed.
+    // This MUST be before lunFriendNicknames.clear().
+    const namesChanged = nextNames.size !== lunFriendNicknames.size || [...nextNames].some(name => !lunFriendNicknames.has(name));
+
     lunFriendNicknames.clear();
 
     for (const nick of nextNames) lunFriendNicknames.add(nick);
 
     lunFriendshipNicknamesById = nextIds;
-
-    try {
-        localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
-    } catch (_) {}
+	
+	if (namesChanged) {
+		try {
+			localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
+		} catch (_) {}
+		if (lunNametagMode === 2) refreshAllNametags();
+	}
 }
 
 var lunFriendChatHighlightEnabled = (window.localStorage && localStorage.getItem("spkmod-friend-highlight-enabled")) === "true";
@@ -1943,8 +2181,6 @@ function fetchFriendsList(force = false) {
 	const targetUrl = endpoint + "/api/friend/list";
 	const headers = {};
 	if (token) headers["authorization"] = `Bearer ${token}`;
-	
-	const applyFriendData = replaceFriendNicknames;
 
 	(async () => {
 		try {
@@ -1980,11 +2216,7 @@ function fetchFriendsList(force = false) {
 					} catch (_) {}
 				}
 			}
-
-			if (res && res.ok) {
-				const data = await res.json();
-				applyFriendData(data);
-			}
+			
 		} catch (err) {
 			console.warn("[SpeakiMod+] Failed to fetch friend list:", err);
 		} finally {
@@ -1999,7 +2231,24 @@ function fetchFriendsList(force = false) {
 	})();
 }
 
-const lunKnownBotNames = ["GniloeAlo3", "Gniloe41o3", "Gniloe41oe", "GniloeA1oe", "GniloeA1o3", "GniloeA103", "toufufuton", "uhu", "clay79", "key7catace", "6air9dog5", "53lake", "1sealace", "2wave0bay1", "19owlfern", "red17wave", "nekomaru2", "king9SPK5", "ash6mist7", "takutaku8", "스핔이3984", "SPKtree21", "SPKleaf37", "3clayowl5", "3bayhero9", "99duckdog", "cow6SPK2", "fire8SPK7", "Takutaku3", "Takutaku4", "kutakuta", "0birdice2", "wind2SPK8", "SPKbay23", "3sky8king", "star2bat04", "map3kite4", "FrznTeardrop", "sun9SPK0", "5SPKsnow2", "SPKclay15", "frogfox40", "5air7moon", "SPKair00", "SPKblue88", "moss4ant36", "9gem4wind", "SPKjade05", "SPKfin06", "SPKdeer69", "OO0OOOOO72", "llIlIIll62", "lIllIIIl39", "IIlIIIlI45", "00OO0OO099", "sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", "OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", "OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63", "SPKecho98", "OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", "llIIllll38", "takutaku6", "kutakuta2", "takutaku7", "GniloeAlo3", "Gniloe4103", "Gniloe41o3", "GniloeAl03", "Gniloe41oe", "GniloeA1o3", "Gniloe41o3", "GniloeAlo3", "GniloeAl03", "Gniloe41oe"];
+const lunKnownBotNames = ["GniloeAlo3", "Gniloe41o3", "Gniloe41oe", "GniloeA1oe", "GniloeA1o3", "GniloeA103", "toufufuton", "uhu", "clay79", 
+	"key7catace", "6air9dog5", "53lake", "1sealace", "2wave0bay1", "19owlfern", "red17wave", "nekomaru2", "king9SPK5", "ash6mist7", "takutaku8", 
+	"스핔이3984", "SPKtree21", "SPKleaf37", "3clayowl5", "3bayhero9", "99duckdog", "cow6SPK2", "fire8SPK7", "Takutaku3", "Takutaku4", "kutakuta", 
+	"0birdice2", "wind2SPK8", "SPKbay23", "3sky8king", "star2bat04", "map3kite4", "FrznTeardrop", "sun9SPK0", "5SPKsnow2", "SPKclay15", "frogfox40", 
+	"5air7moon", "SPKair00", "SPKblue88", "moss4ant36", "9gem4wind", "SPKjade05", "SPKfin06", "SPKdeer69", "OO0OOOOO72", "llIlIIll62", "lIllIIIl39", 
+	"IIlIIIlI45", "00OO0OO099", "sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", 
+	"OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", 
+	"CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", 
+	"LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", 
+	"SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", 
+	"IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", 
+	"IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", 
+	"OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63", "SPKecho98", "OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", 
+	"llIIllll38", "takutaku6", "kutakuta2", "takutaku7", "GniloeAlo3", "Gniloe4103", "Gniloe41o3", "GniloeAl03", "Gniloe41oe", "GniloeA1o3", "Gniloe41o3", 
+	"GniloeAlo3", "GniloeAl03", "Gniloe41oe"];
+
+const lunKnownBotNameSet = new Set(lunKnownBotNames.map(name => name.trim().toLocaleLowerCase()).filter(Boolean));
+const lunKnownBotPrefixSet = new Set(lunKnownBotNames.map(name => name.toLowerCase().replace(/[^a-z]/g, "").slice(0, 5)).filter(prefix => prefix.length >= 4));
 
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
@@ -2056,7 +2305,7 @@ function isKnownBotName(name, level, accountId) {
 	let isBot = false;
 	const parsedLevel = typeof level === "number" ? level : parseInt(level);
 	
-	if (lunKnownBotNames.some(botName => botName.trim().toLocaleLowerCase() === lowerName)) {
+	if (lunKnownBotNameSet.has(lowerName)) {
 		isBot = true;
 	} else if (!isNaN(parsedLevel)) {
 		if (parsedLevel === 1 && lunAutoBannedLevel1s.has(lowerName)) {
@@ -2089,10 +2338,13 @@ function isKnownBotName(name, level, accountId) {
 	// Dynamic Strict Net with Loose Name Matching
 	if (accountIdNum > 0 && accountIdNum >= lunActiveBotWaveMinId && parsedLevel === 1) {
 		const letters = lowerName.replace(/[^a-z]/g, '');
-		const isLooseMatch = lunKnownBotNames.some(b => {
-			const p = b.toLowerCase().replace(/[^a-z]/g, '').substring(0, 5);
-			return p.length >= 4 && letters.includes(p);
-		});
+		let isLooseMatch = false;
+		for (const prefix of lunKnownBotPrefixSet) {
+			if (letters.includes(prefix)) {
+				isLooseMatch = true;
+				break;
+			}
+		}
 		if (isLooseMatch) {
 			return true;
 		}
@@ -2104,112 +2356,293 @@ function isKnownBotName(name, level, accountId) {
 var lunSpkAuthToken = "";
 var cachedBlockedNames = new Set();
 var cachedBlockIds = new Map();
-async function spkmodFetchBlocklist() {
-    if (!lunSpkAuthToken) {
-        setTimeout(spkmodFetchBlocklist, 1000); // Retry until we steal the token
-        return;
+
+let legacyBlockedNamesCache = null;
+let spkmodBlockNameCounts = new Map();
+let spkmodBlockOrphanNames = new Set();
+let spkmodBlocklistSnapshotSignature = null;
+let spkmodBlocklistInFlight = null;
+let spkmodBlocklistInFlightToken = "";
+let spkmodBlocklistRequestVersion = 0;
+let spkmodBlocklistFetchTimer = null;
+
+function getLegacyBlockedNamesCache() {
+    if (legacyBlockedNamesCache instanceof Set) {
+        return legacyBlockedNamesCache;
     }
+
+    const names = new Set();
+
     try {
-        const apiUrl = (typeof window.lunActiveApiEndpoint !== 'undefined' ? window.lunActiveApiEndpoint : "https://sr1.overture.io.kr") + "/api/block";
-        const res = await window.fetch(apiUrl, {
-            method: "GET",
-            cache: "no-store",
-            headers: {
-                "Authorization": lunSpkAuthToken
-            }
-        });
-        if (res.ok) {
-            const data = await res.json();
-            if (data && data.blocks) {
-                cachedBlockedNames.clear();
-                cachedBlockIds.clear();
-                data.blocks.forEach(b => {
-                    if (b.nickname) {
-                        let n = b.nickname.trim().toLocaleLowerCase();
-                        cachedBlockedNames.add(n);
-                        if (b.blockId) cachedBlockIds.set(String(b.blockId), n);
-                    }
-                });
-                if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
+        const stored = JSON.parse(localStorage.getItem("sr1_blocked_players") || "[]");
+
+        if (Array.isArray(stored)) {
+            for (const name of stored) {
+                if (typeof name !== "string") continue;
+
+                const clean = name.trim().toLocaleLowerCase();
+
+                if (clean) names.add(clean);
             }
         }
-    } catch (e) {
-        console.warn("[SpeakiMod+] Failed to fetch native blocklist:", e);
+    } catch (_) {}
+
+    legacyBlockedNamesCache = names;
+
+    return legacyBlockedNamesCache;
+}
+
+function normalizeBlockedNickname(name) {
+    if (typeof name !== "string") return "";
+
+    return name.trim().toLocaleLowerCase();
+}
+
+function spkmodAdjustBlockedNameCount(name, delta) {
+    const next = (spkmodBlockNameCounts.get(name) || 0) + delta;
+
+    if (next <= 0) {
+        spkmodBlockNameCounts.delete(name);
+        cachedBlockedNames.delete(name);
+    } else {
+        spkmodBlockNameCounts.set(name, next);
+        cachedBlockedNames.add(name);
     }
 }
+
+function spkmodApplyBlocklistSnapshot(blocks) {
+    const nextIds = new Map();
+    const nextOrphans = new Set();
+
+    for (const block of blocks) {
+        const nickname = normalizeBlockedNickname(block?.nickname);
+
+        if (!nickname) continue;
+
+        if (block.blockId == null) {
+            nextOrphans.add(nickname);
+        } else {
+            nextIds.set(String(block.blockId), nickname);
+        }
+    }
+
+    const nextCounts = new Map();
+
+    for (const nickname of nextIds.values()) {
+        nextCounts.set(nickname, (nextCounts.get(nickname) || 0) + 1);
+    }
+
+    for (const nickname of nextOrphans) {
+        nextCounts.set(nickname, (nextCounts.get(nickname) || 0) + 1);
+    }
+
+    const signature = JSON.stringify({
+        ids: [...nextIds.entries()].sort((a, b) => a[0].localeCompare(b[0])),
+        orphans: [...nextOrphans].sort()
+    });
+
+    if (signature === spkmodBlocklistSnapshotSignature) {
+        return false;
+    }
+
+    cachedBlockIds.clear();
+    cachedBlockedNames.clear();
+
+    for (const [id, nickname] of nextIds) {
+        cachedBlockIds.set(id, nickname);
+    }
+
+    for (const nickname of nextCounts.keys()) {
+        cachedBlockedNames.add(nickname);
+    }
+
+    spkmodBlockNameCounts = nextCounts;
+    spkmodBlockOrphanNames = nextOrphans;
+    spkmodBlocklistSnapshotSignature = signature;
+
+    updateKnownBotVisibility();
+
+    return true;
+}
+
+function spkmodApplyBlocklistEntry(entry) {
+    const nickname = normalizeBlockedNickname(entry?.nickname);
+
+    if (!nickname) return false;
+
+    if (entry.blockId == null) {
+        if (spkmodBlockOrphanNames.has(nickname)) return false;
+
+        spkmodBlockOrphanNames.add(nickname);
+        spkmodAdjustBlockedNameCount(nickname, 1);
+    } else {
+        const id = String(entry.blockId);
+        const oldName = cachedBlockIds.get(id);
+
+        if (oldName === nickname) return false;
+
+        if (oldName) {
+            spkmodAdjustBlockedNameCount(oldName, -1);
+        }
+
+        cachedBlockIds.set(id, nickname);
+        spkmodAdjustBlockedNameCount(nickname, 1);
+    }
+
+    spkmodBlocklistSnapshotSignature = null;
+    updateKnownBotVisibility();
+
+    return true;
+}
+
+function spkmodApplyBlocklistPayload(data) {
+    if (Array.isArray(data?.blocks)) {
+        return spkmodApplyBlocklistSnapshot(data.blocks);
+    }
+
+    if (typeof data?.nickname === "string") {
+        return spkmodApplyBlocklistEntry(data);
+    }
+
+    return false;
+}
+
+function spkmodDeleteBlocklistEntry(blockId) {
+    const id = String(blockId);
+    const nickname = cachedBlockIds.get(id);
+
+    if (!nickname) {
+        scheduleSpkmodBlocklistFetch();
+        return;
+    }
+
+    cachedBlockIds.delete(id);
+    spkmodAdjustBlockedNameCount(nickname, -1);
+
+    spkmodBlocklistSnapshotSignature = null;
+    updateKnownBotVisibility();
+}
+
+function scheduleSpkmodBlocklistFetch(delay = 100) {
+    if (spkmodBlocklistFetchTimer !== null) return;
+
+    spkmodBlocklistFetchTimer = setTimeout(() => {
+        spkmodBlocklistFetchTimer = null;
+        spkmodFetchBlocklist();
+    }, delay);
+}
+
+async function spkmodFetchBlocklist() {
+    const token = lunSpkAuthToken;
+
+    if (!token) {
+        scheduleSpkmodBlocklistFetch(1000);
+        return;
+    }
+
+    if (spkmodBlocklistInFlight && spkmodBlocklistInFlightToken === token) {
+        return spkmodBlocklistInFlight;
+    }
+
+    const version = ++spkmodBlocklistRequestVersion;
+
+    const request = (async () => {
+        try {
+            const apiUrl = (typeof window.lunActiveApiEndpoint !== "undefined" ? window.lunActiveApiEndpoint : "https://sr1.overture.io.kr") + "/api/block";
+
+            const res = await lunBlocklistFetchOrig.call(window, apiUrl, {
+                method: "GET",
+                cache: "no-store",
+                headers: {
+                    Authorization: token
+                }
+            });
+
+            if (!res.ok) return;
+
+            const data = await res.json();
+
+            if (version !== spkmodBlocklistRequestVersion || token !== lunSpkAuthToken) {
+                return;
+            }
+
+            spkmodApplyBlocklistPayload(data);
+        } catch (e) {
+            console.warn("[SpeakiMod+] Failed to fetch native blocklist:", e);
+        }
+    })();
+
+    spkmodBlocklistInFlight = request;
+    spkmodBlocklistInFlightToken = token;
+
+    try {
+        return await request;
+    } finally {
+        if (spkmodBlocklistInFlight === request) {
+            spkmodBlocklistInFlight = null;
+            spkmodBlocklistInFlightToken = "";
+        }
+    }
+}
+
 // Run it once on load
 // Intercept window.fetch
 const lunBlocklistFetchOrig = window.fetch;
+
 window.fetch = async function(...args) {
     try {
         let auth = "";
         if (args[1] && args[1].headers && args[1].headers.Authorization) auth = args[1].headers.Authorization;
         else if (args[1] && args[1].headers && typeof args[1].headers.get === 'function') auth = args[1].headers.get('Authorization') || "";
         else if (args[0] && args[0].headers && typeof args[0].headers.get === 'function') auth = args[0].headers.get('Authorization') || "";
-        
-        if (auth && auth.startsWith("Bearer ") && lunSpkAuthToken !== auth) {
-            lunSpkAuthToken = auth;
-            setTimeout(spkmodFetchBlocklist, 100);
-        }
+		
+		if (auth && auth.startsWith("Bearer ") && lunSpkAuthToken !== auth) {
+			lunSpkAuthToken = auth;
+			spkmodBlocklistRequestVersion++;
+			scheduleSpkmodBlocklistFetch(100);
+		}
     } catch(e) {}
-    const response = await lunBlocklistFetchOrig.apply(this, args);
-    try {
-        const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
-        let method = 'GET';
-        if (args[1] && args[1].method) method = args[1].method;
-        else if (args[0] && args[0].method) method = args[0].method;
-        method = method.toUpperCase();
 
-        if (url.includes('/api/block')) {
-            response.clone().json().then(data => {
-                if (data && data.blocks) {
-                    cachedBlockedNames.clear();
-                    cachedBlockIds.clear();
-                    data.blocks.forEach(b => {
-                        if (b.nickname) {
-                            let n = b.nickname.trim().toLocaleLowerCase();
-                            cachedBlockedNames.add(n);
-                            if (b.blockId) cachedBlockIds.set(String(b.blockId), n);
-                        }
-                    });
-                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
-                } else if (data && data.nickname) {
-                    let n = data.nickname.trim().toLocaleLowerCase();
-                    cachedBlockedNames.add(n);
-                    if (data.blockId) cachedBlockIds.set(String(data.blockId), n);
-                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
-                }
-            }).catch(() => {});
-        }
-		if (url.includes('/api/friend/list')) {
-			response.clone().json().then(replaceFriendNicknames).catch(() => {});
-		}
-		const friendDeleteMatch = url.match(/\/api\/friend\/([^/?#]+)\/?$/);
-		if (method === "DELETE" && response.ok && friendDeleteMatch) {
-			const friendshipId = decodeURIComponent(friendDeleteMatch[1]);
-			const deletedNickname = lunFriendshipNicknamesById.get(friendshipId);
-			if (deletedNickname) {
-				lunFriendNicknames.delete(deletedNickname);
-				lunFriendshipNicknamesById.delete(friendshipId);
-				try {
-					localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
-				} catch (_) {}
+    const response = await lunBlocklistFetchOrig.apply(this, args);
+
+    try {
+		if (response.ok) {
+			const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+			let method = 'GET';
+			if (args[1] && args[1].method) method = args[1].method;
+			else if (args[0] && args[0].method) method = args[0].method;
+			method = method.toUpperCase();
+			const blockDeleteMatch = url.match(/\/api\/block\/([^/?#]+)\/?(?:[?#]|$)/);
+			const friendDeleteMatch = url.match(/\/api\/friend\/([^/?#]+)\/?$/);
+			
+			if (method === "DELETE" && blockDeleteMatch) {
+				const blockId = decodeURIComponent(blockDeleteMatch[1]);
+				spkmodDeleteBlocklistEntry(blockId);
 			}
-			fetchFriendsList(true);
-		}
-        if (url.includes('/api/block') && method === 'DELETE') {
-            try {
-                let parts = url.split('/');
-                let bId = parts[parts.length - 1];
-                if (bId && cachedBlockIds.has(bId)) {
-                    cachedBlockedNames.delete(cachedBlockIds.get(bId));
-                    cachedBlockIds.delete(bId);
-                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
-                }
-            } catch(e) {}
-            setTimeout(spkmodFetchBlocklist, 1500);
-        }
+			else if (url.includes("/api/block") && !blockDeleteMatch) {
+				response.clone().json().then(spkmodApplyBlocklistPayload).catch(() => {});
+			}
+		    else if (url.includes('/api/friend/list')) {
+			    try {
+				    const data = await response.clone().json();
+				    replaceFriendNicknames(data);
+			    } catch (_) {}
+		    }
+		    else if (method === "DELETE" && friendDeleteMatch) {
+			    const friendshipId = decodeURIComponent(friendDeleteMatch[1]);
+			    const deletedNickname = lunFriendshipNicknamesById.get(friendshipId);
+			    if (deletedNickname) {
+				    lunFriendNicknames.delete(deletedNickname);
+				    lunFriendshipNicknamesById.delete(friendshipId);
+				    try {
+					    localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
+				    } catch (_) {}
+				    if (lunNametagMode === 2) refreshAllNametags();
+			    }
+		    }
+	    }
     } catch (e) {}
+
     return response;
 };
 
@@ -2217,118 +2650,161 @@ window.fetch = async function(...args) {
 const origOpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url) {
     this._spkUrl = url;
-    this._spkMethod = method;
+	this._spkMethod = String(method || 'GET').toUpperCase();
     return origOpen.apply(this, arguments);
 };
 const origSetReqHeader = XMLHttpRequest.prototype.setRequestHeader;
 XMLHttpRequest.prototype.setRequestHeader = function(header, value) {
-    if (header.toLowerCase() === 'authorization' && value && value.startsWith('Bearer ') && lunSpkAuthToken !== value) {
-        lunSpkAuthToken = value;
-        setTimeout(spkmodFetchBlocklist, 100);
+    if (header.toLowerCase() === "authorization" && value && value.startsWith("Bearer ") && lunSpkAuthToken !== value) {
+		lunSpkAuthToken = value;
+        spkmodBlocklistRequestVersion++;
+        scheduleSpkmodBlocklistFetch(100);
     }
     return origSetReqHeader.apply(this, arguments);
 };
 const origSend = XMLHttpRequest.prototype.send;
 XMLHttpRequest.prototype.send = function() {
     this.addEventListener('load', function() {
-        if (this._spkUrl && typeof this._spkUrl === 'string' && this._spkUrl.includes('/api/block')) {
-            try {
-                const data = JSON.parse(this.responseText);
-                if (data && data.blocks) {
-                    cachedBlockedNames.clear();
-                    cachedBlockIds.clear();
-                    data.blocks.forEach(b => {
-                        if (b.nickname) {
-                            let n = b.nickname.trim().toLocaleLowerCase();
-                            cachedBlockedNames.add(n);
-                            if (b.blockId) cachedBlockIds.set(String(b.blockId), n);
-                        }
-                    });
-                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
-                } else if (data && data.nickname) {
-                    let n = data.nickname.trim().toLocaleLowerCase();
-                    cachedBlockedNames.add(n);
-                    if (data.blockId) cachedBlockIds.set(String(data.blockId), n);
-                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
-                }
-            } catch(e) {}
-            if (this._spkMethod && typeof this._spkMethod === 'string' && this._spkMethod.toUpperCase() === 'DELETE') {
-                try {
-                    let parts = this._spkUrl.split('/');
-                    let bId = parts[parts.length - 1];
-                    if (bId && cachedBlockIds.has(bId)) {
-                        cachedBlockedNames.delete(cachedBlockIds.get(bId));
-                        cachedBlockIds.delete(bId);
-                        if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
-                    }
-                } catch(e) {}
-                setTimeout(spkmodFetchBlocklist, 1500);
-            }
+        if (this.status >= 200 && this.status < 300 && this._spkUrl && typeof this._spkUrl === 'string' && this._spkUrl.includes('/api/block')) {
+			try {
+				const blockDeleteMatch = this._spkUrl.match(/\/api\/block\/([^/?#]+)\/?(?:[?#]|$)/);
+				if (this._spkMethod === "DELETE" && blockDeleteMatch) {
+					const blockId = decodeURIComponent(blockDeleteMatch[1]);
+					spkmodDeleteBlocklistEntry(blockId);
+				}
+				else if (!blockDeleteMatch) {
+					const data = JSON.parse(this.responseText);
+					spkmodApplyBlocklistPayload(data);
+				}
+            } catch (_) {}
         }
     });
     return origSend.apply(this, arguments);
 };
 
-
-
 function isBlockedUser(name) {
     if (typeof name !== "string") return false;
+
     const clean = name.trim().toLocaleLowerCase();
+
     if (!clean) return false;
-    if (cachedBlockedNames.has(clean)) return true;
-    try {
-        const stored = JSON.parse(localStorage.getItem("sr1_blocked_players") || "[]");
-        if (Array.isArray(stored) && stored.some(n => typeof n === "string" && n.trim().toLocaleLowerCase() === clean)) {
-            cachedBlockedNames.add(clean);
-            return true;
-        }
-    } catch (_) {}
-    return false;
+
+    return cachedBlockedNames.has(clean) || getLegacyBlockedNamesCache().has(clean);
 }
 
+window.addEventListener("storage", e => {
+    if (e.key !== "sr1_blocked_players") return;
+
+    legacyBlockedNamesCache = null;
+    updateKnownBotVisibility();
+});
+
+let spkmodVisibilityFlushQueued = false;
+
 function updateKnownBotVisibility() {
-	if (!gameState?.remotePlayers?.remotePlayers) return;
-	gameState.remotePlayers.remotePlayers.forEach(player => {
-		if (player?.container) {
-			const accId = player.info?.userId || player.info?.id || player.info?.playerId;
-			const isBot = lunHideKnownBotsEnabled && isKnownBotName(player.info?.name, player.info?.level, accId);
-			const isBlocked = isBlockedUser(player.info?.name);
-			const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(player.info?.name);
-			const hideBySolitude = lunHideAllOtherPlayers && !isWhitelisted;
-			player.container.visible = !(hideBySolitude || isBot || isBlocked);
-		}
-	});
-	if (lunHideAllOtherPlayers) {
-		if (gameState?.remotePetRegistry?.pets) {
-			for (const pet of gameState.remotePetRegistry.pets.values()) {
-				const ownerName = pet?.info?.ownerName || pet?.ownerName || pet?.info?.name;
-				const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(ownerName);
-				if (pet?.root) pet.root.visible = isWhitelisted;
-				else if (pet?.container) pet.container.visible = isWhitelisted;
-			}
-		}
-		if (gameState?.remoteDroneCoreRegistry?.droneCores) {
-			for (const drone of gameState.remoteDroneCoreRegistry.droneCores.values()) {
-				const ownerName = drone?.info?.ownerName || drone?.ownerName || drone?.info?.name;
-				const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(ownerName);
-				if (drone?.root) drone.root.visible = isWhitelisted;
-				else if (drone?.container) drone.container.visible = isWhitelisted;
-			}
-		}
-	} else {
-		if (gameState?.remotePetRegistry?.pets) {
-			for (const pet of gameState.remotePetRegistry.pets.values()) {
-				if (pet?.root && !pet.root.visible) pet.root.visible = true;
-				else if (pet?.container && !pet.container.visible) pet.container.visible = true;
-			}
-		}
-		if (gameState?.remoteDroneCoreRegistry?.droneCores) {
-			for (const drone of gameState.remoteDroneCoreRegistry.droneCores.values()) {
-				if (drone?.root && !drone.root.visible) drone.root.visible = true;
-				else if (drone?.container && !drone.container.visible) drone.container.visible = true;
-			}
-		}
-	}
+    if (spkmodVisibilityFlushQueued) return;
+
+    spkmodVisibilityFlushQueued = true;
+
+    const flush = () => {
+        spkmodVisibilityFlushQueued = false;
+        spkmodApplyKnownBotVisibility();
+    };
+
+    if (typeof queueMicrotask === "function") {
+        queueMicrotask(flush);
+    } else {
+        Promise.resolve().then(flush);
+    }
+}
+
+function spkmodApplyKnownBotVisibility() {
+    const remoteMap = gameState?.remotePlayers?.remotePlayers;
+
+    if (!(remoteMap instanceof Map)) return;
+
+    for (const player of remoteMap.values()) {
+        const container = player?.container;
+
+        if (!container) continue;
+
+        const name = player.info?.name;
+        const accId = player.info?.userId || player.info?.id || player.info?.playerId;
+
+        const isBot = lunHideKnownBotsEnabled && isKnownBotName(name, player.info?.level, accId);
+        const isBlocked = isBlockedUser(name);
+        const isWhitelisted = isSolitudeWhitelisted(name);
+        const hideBySolitude = lunHideAllOtherPlayers && !isWhitelisted;
+        const visible = !(hideBySolitude || isBot || isBlocked);
+
+        if (container.visible !== visible) {
+            container.visible = visible;
+        }
+    }
+
+    const applyCompanionVisibility = companionMap => {
+        if (!(companionMap instanceof Map)) return;
+
+        for (const [ownerId, companion] of companionMap) {
+            const owner = remoteMap.get(ownerId) ?? remoteMap.get(Number(ownerId));
+            const root = companion?.parts?.root;
+
+            if (!root) continue;
+
+            if (!owner?.info) {
+                if (root.visible !== false) root.visible = false;
+                continue;
+            }
+
+            const ownerName = owner.info.name;
+            const ownerAccountId = owner.info.userId || owner.info.id || owner.info.playerId;
+            const ownerIsBot = lunHideKnownBotsEnabled && isKnownBotName(ownerName, owner.info.level, ownerAccountId);
+            const ownerIsBlocked = isBlockedUser(ownerName);
+            const ownerIsWhitelisted = isSolitudeWhitelisted(ownerName);
+            const hideOwnerBySolitude = lunHideAllOtherPlayers && !ownerIsWhitelisted;
+            const visible = !(hideOwnerBySolitude || ownerIsBot || ownerIsBlocked);
+
+            if (root.visible !== visible) {
+                root.visible = visible;
+            }
+        }
+    };
+
+    applyCompanionVisibility(gameState.remotePetRegistry?.pets);
+    applyCompanionVisibility(gameState.remoteDroneCoreRegistry?.drones);
+}
+
+function spkmodHookVisibilityMap(map) {
+    if (!(map instanceof Map) || map.__spkmodVisibilityHooked) return;
+
+    map.__spkmodVisibilityHooked = true;
+
+    const originalSet = map.set.bind(map);
+    const originalDelete = map.delete.bind(map);
+    const originalClear = map.clear.bind(map);
+
+    map.set = function(key, value) {
+        const result = originalSet(key, value);
+        updateKnownBotVisibility();
+        return result;
+    };
+
+    map.delete = function(key) {
+        const result = originalDelete(key);
+
+        if (result) updateKnownBotVisibility();
+
+        return result;
+    };
+
+    map.clear = function() {
+        const hadItems = this.size > 0;
+        const result = originalClear();
+
+        if (hadItems) updateKnownBotVisibility();
+
+        return result;
+    };
 }
 
 function isKnownBotContainer(container) {
@@ -2497,7 +2973,6 @@ function isSilencedPlayer(player) {
     const lower = name.trim().toLocaleLowerCase();
     if (!lower) return false;
     if (isBlockedUser(name)) return true;
-    if (Array.isArray(lunKnownBotNames) && lunKnownBotNames.some(b => typeof b === "string" && b.trim().toLocaleLowerCase() === lower)) return true;
     const accId = player.info?.userId || player.info?.id || player.info?.playerId;
     const level = player.info?.level || player.level;
     if (typeof isKnownBotName === "function" && isKnownBotName(name, level, accId)) return true;
@@ -2506,9 +2981,8 @@ function isSilencedPlayer(player) {
 
 function hookBlockedUserVoice() {
     if (typeof gameState === "undefined" || !gameState) return;
-    if (gameState.__speakiBlockedUserVoiceHooked) return;
 
-    if (typeof gameState.handleEmote === "function") {
+    if (!gameState.__spkmodHandleEmoteHooked && typeof gameState.handleEmote === "function") {
         const originalHandleEmote = gameState.handleEmote;
 
         gameState.handleEmote = function(e) {
@@ -2517,10 +2991,12 @@ function hookBlockedUserVoice() {
             }
 
             let remotePlayer = resolveRemotePlayerById(e.playerId);
+
             if (!remotePlayer && gameState?.remotePlayers) {
                 const list = gameState.remotePlayers.remotePlayers instanceof Map
                     ? gameState.remotePlayers.remotePlayers.values()
                     : (typeof gameState.remotePlayers.values === "function" ? gameState.remotePlayers.values() : []);
+
                 for (const p of list) {
                     if (p?.info?.playerId == e.playerId) {
                         remotePlayer = p;
@@ -2529,15 +3005,15 @@ function hookBlockedUserVoice() {
                 }
             }
 
-            if (isSilencedPlayer(remotePlayer)) {
-                return; // Suppress emote completely: no animations, no voice lines, no sound!
-            }
+            if (isSilencedPlayer(remotePlayer)) return;
 
             return originalHandleEmote.call(this, e);
         };
+
+        gameState.__spkmodHandleEmoteHooked = true;
     }
 
-    if (typeof gameState.remoteSoundDistance === "function") {
+    if (!gameState.__spkmodRemoteSoundDistanceHooked && typeof gameState.remoteSoundDistance === "function") {
         const originalSoundDist = gameState.remoteSoundDistance;
 
         gameState.remoteSoundDistance = function(pos) {
@@ -2547,19 +3023,30 @@ function hookBlockedUserVoice() {
                     : (typeof gameState.remotePlayers.values === "function" ? gameState.remotePlayers.values() : []);
 
                 for (const p of list) {
+                    const cPos = p?.container?.position;
+
+                    if (!cPos) continue;
+
+                    const dx = cPos.x - pos.x;
+                    const dz = cPos.z - pos.z;
+
+                    if (!Number.isFinite(dx) || !Number.isFinite(dz) || dx * dx + dz * dz >= 0.01) {
+                        continue;
+                    }
+
                     if (isSilencedPlayer(p)) {
-                        const cPos = p?.container?.position;
-                        if (cPos === pos || (cPos && Math.hypot(cPos.x - pos.x, cPos.z - pos.z) < 0.1)) {
-                            return 999999; // Distance >= 25 mutes audio to 0 volume
-                        }
+                        return 999999;
                     }
                 }
             }
+
             return originalSoundDist.apply(this, arguments);
         };
+
+        gameState.__spkmodRemoteSoundDistanceHooked = true;
     }
 
-    gameState.__speakiBlockedUserVoiceHooked = true;
+    gameState.__speakiBlockedUserVoiceHooked = !!gameState.__spkmodHandleEmoteHooked && !!gameState.__spkmodRemoteSoundDistanceHooked;
 }
 
 var lunChatTimestampsEnabled = (window.localStorage && localStorage.getItem("spkmod-chat-timestamps")) === "true";
@@ -3025,11 +3512,16 @@ const LUN_EXP_INTERVAL_OPTIONS = [1, 5, 10, 15, 30, 60];
 var lunExpIntervalMinutes = parseInt((window.localStorage && localStorage.getItem("spkmod-exp-interval-minutes")) || "1", 10);
 if (!LUN_EXP_INTERVAL_OPTIONS.includes(lunExpIntervalMinutes)) lunExpIntervalMinutes = 1;
 function resetExpTracker() {
-	lunExpTrackerInitialized = false;
-	lunExpTrackerSamples = [];
-	lunExpTrackerLastSampleTick = 0;
-	window.lunExpTrackerIgnoredExp = 0;
-	window.lunExpTrackerLastRawExp = undefined;
+    lunExpTrackerInitialized = false;
+    lunExpTrackerSamples = [];
+    lunExpTrackerLastSampleTick = 0;
+    lunExpTrackerLastCalculationTime = 0;
+    lunExpTrackerDisplayL1 = null;
+    lunExpTrackerDisplayL2 = null;
+    window.lunExpTrackerIgnoredExp = 0;
+    window.lunExpTrackerLastRawExp = undefined;
+    window.lunExpTrackerLastMaxExp = undefined;
+    window.lunExpTrackerLevelCarry = 0;
 }
 function setExpRatePerHour(enabled) {
 	lunExpRatePerHour = !!enabled;
@@ -3047,23 +3539,25 @@ function setExpIntervalMinutes(minutes) {
 
 var lunFpsPingEnabled = (window.localStorage && localStorage.getItem("spkmod-fps-ping")) === "true";
 function setFpsPingEnabled(enabled) {
-	lunFpsPingEnabled = !!enabled;
-	if (window.localStorage) localStorage.setItem("spkmod-fps-ping", lunFpsPingEnabled ? "true" : "false");
-	if (lunHudElements.fpsPingTracker) {
-		lunHudElements.fpsPingTracker.style.display = lunFpsPingEnabled ? "" : "none";
-	}
-	if (lunFpsPingEnabled && typeof performActivePing === 'function') {
-		performActivePing();
-	}
+    lunFpsPingEnabled = !!enabled;
+    if (window.localStorage) localStorage.setItem("spkmod-fps-ping", lunFpsPingEnabled ? "true" : "false");
+    if (lunHudElements.fpsPingTracker) {
+        lunHudElements.fpsPingTracker.style.display = lunFpsPingEnabled ? "" : "none";
+    }
+    if (lunFpsPingEnabled && typeof performActivePing === "function") {
+        performActivePing();
+    }
+    ensureFpsLoop();
 }
 
 var lunResetTimerEnabled = (window.localStorage && localStorage.getItem("spkmod-reset-timer")) !== "false";
 function setResetTimerEnabled(enabled) {
-	lunResetTimerEnabled = !!enabled;
-	if (window.localStorage) localStorage.setItem("spkmod-reset-timer", lunResetTimerEnabled ? "true" : "false");
-	if (lunHudElements.resetTimerTracker) {
-		lunHudElements.resetTimerTracker.style.display = lunResetTimerEnabled ? "" : "none";
-	}
+    lunResetTimerEnabled = !!enabled;
+    if (window.localStorage) localStorage.setItem("spkmod-reset-timer", lunResetTimerEnabled ? "true" : "false");
+    if (lunHudElements.resetTimerTracker) {
+        lunHudElements.resetTimerTracker.style.display = lunResetTimerEnabled ? "" : "none";
+    }
+    syncSpkmodResetTimerInterval();
 }
 
 var lunMinigameTrackerEnabled = (window.localStorage && localStorage.getItem("spkmod-pumpkin-tracker")) === "true";
@@ -3083,71 +3577,110 @@ function setMinigameTrackerEnabled(enabled) {
 }
 
 let ACTIVE_MINIGAME_ID = null;
+let lunMinigameStatusInFlight = null;
+let lunMinigameStatusInFlightToken = "";
 
 function fetchMinigameStatus() {
-	const token = getAuthToken();
-	if (!token) return;
+    const token = getAuthToken();
 
-	let keysToTry = ["pumpkin", "sweep", "nuruling"];
-	if (typeof gameState !== "undefined" && gameState && gameState.minigameEntryDialogs) {
-		const dynamicKeys = gameState.minigameEntryDialogs.map(d => d.def && d.def.gameKey).filter(Boolean);
-		if (dynamicKeys.length > 0) keysToTry = dynamicKeys;
-	}
+    if (!token) return Promise.resolve(null);
 
-	if (!ACTIVE_MINIGAME_ID) {
-		let lastResp = null;
-		
-		const checkNext = (index) => {
-			if (index >= keysToTry.length) {
-				if (lastResp) {
-					lunMinigameStatus = lastResp;
-					updateMinigameUI();
-				}
-				return;
-			}
-			const key = keysToTry[index];
-			fetch(`https://sr1.overture.io.kr/api/minigame/${key}/status`, {
-				"method": "GET",
-				"headers": { "authorization": `Bearer ${token}` },
-				"mode": "cors"
-			})
-			.then(res => res.json())
-			.then(resp => {
-				if (resp && resp.isActive) {
-					ACTIVE_MINIGAME_ID = key;
-					lunMinigameStatus = resp;
-					updateMinigameUI();
-				} else {
-					if (resp) lastResp = resp;
-					checkNext(index + 1);
-				}
-			})
-			.catch(err => {
-				checkNext(index + 1);
-			});
-		};
-		checkNext(0);
-		return;
-	}
+    if (lunMinigameStatusInFlight && lunMinigameStatusInFlightToken === token) {
+        return lunMinigameStatusInFlight;
+    }
 
-	fetch(`https://sr1.overture.io.kr/api/minigame/${ACTIVE_MINIGAME_ID}/status`, {
-		"method": "GET",
-		"headers": {
-			"authorization": `Bearer ${token}`
-		},
-		"mode": "cors"
-	})
-		.then(res => res.json())
-		.then(resp => {
-			if (resp && !resp.isActive) {
-				ACTIVE_MINIGAME_ID = null; // reset so it searches again on next tick
-			}
-			lunMinigameStatus = resp;
-			updateMinigameUI();
-		})
-		.catch(err => {
-			console.error("[SpeakiMod] Failed to fetch minigame status:", err);
-		});
+    const request = (async () => {
+        const isCurrentRequest = () => token === getAuthToken();
+
+        let keysToTry = ["pumpkin", "sweep", "nuruling"];
+
+        if (typeof gameState !== "undefined" && gameState?.minigameEntryDialogs) {
+            const dynamicKeys = gameState.minigameEntryDialogs.map(d => d.def?.gameKey).filter(Boolean);
+
+            if (dynamicKeys.length > 0) {
+                keysToTry = dynamicKeys;
+            }
+        }
+
+        if (!ACTIVE_MINIGAME_ID) {
+            let lastResp = null;
+
+            for (const key of keysToTry) {
+                if (!isCurrentRequest()) return null;
+
+                try {
+                    const res = await fetch(`https://sr1.overture.io.kr/api/minigame/${key}/status`, {
+                        method: "GET",
+                        headers: {
+                            authorization: `Bearer ${token}`
+                        },
+                        mode: "cors"
+                    });
+
+                    const resp = await res.json();
+
+                    if (!isCurrentRequest()) return null;
+
+                    if (resp && resp.isActive) {
+                        ACTIVE_MINIGAME_ID = key;
+                        lunMinigameStatus = resp;
+                        updateMinigameUI();
+                        return resp;
+                    }
+
+                    if (resp) lastResp = resp;
+                } catch (_) {}
+            }
+
+            if (isCurrentRequest() && lastResp) {
+                lunMinigameStatus = lastResp;
+                updateMinigameUI();
+            }
+
+            return lastResp;
+        }
+
+        try {
+            const res = await fetch(`https://sr1.overture.io.kr/api/minigame/${ACTIVE_MINIGAME_ID}/status`, {
+                method: "GET",
+                headers: {
+                    authorization: `Bearer ${token}`
+                },
+                mode: "cors"
+            });
+
+            const resp = await res.json();
+
+            if (!isCurrentRequest()) return null;
+
+            if (resp && !resp.isActive) {
+                ACTIVE_MINIGAME_ID = null;
+            }
+
+            lunMinigameStatus = resp;
+            updateMinigameUI();
+
+            return resp;
+        } catch (err) {
+            console.error("[SpeakiMod] Failed to fetch minigame status:", err);
+            return null;
+        }
+    })();
+
+    lunMinigameStatusInFlight = request;
+    lunMinigameStatusInFlightToken = token;
+
+    try {
+        return request.finally(() => {
+            if (lunMinigameStatusInFlight === request) {
+                lunMinigameStatusInFlight = null;
+                lunMinigameStatusInFlightToken = "";
+            }
+        });
+    } catch (err) {
+        console.error("[SpeakiMod] Minigame status request failed:", err);
+        return Promise.resolve(null);
+    }
 }
 
 function updateMinigameUI() {
@@ -4858,7 +5391,7 @@ function suppressGameBgm(mute) {
             if (slider) {
                 slider.value = '0';
                 slider.dispatchEvent(new Event('input', { bubbles: true }));
-                slider.dispatchEvent(new Event('change', { bubbles: true }));
+				slider.dispatchEvent(new Event('change', { bubbles: true }));
             }
             if (typeof window.updateGameSettings === "function") {
                 try { window.updateGameSettings({ bgmVolume: 0 }); } catch (_) {}
@@ -6168,6 +6701,7 @@ var lunChromaFloorShape = (window.localStorage && localStorage.getItem("spkmod-c
 var lunChromaFloorScale = parseFloat((window.localStorage && localStorage.getItem("spkmod-chroma-floor-scale")) || "1.0") || 1.0;
 var lunHideAllOtherPlayers = (window.localStorage && localStorage.getItem("spkmod-hide-all-players") === "true") || false;
 var lunSolitudeWhitelist = (window.localStorage && localStorage.getItem("spkmod-solitude-whitelist")) || "";
+let lunSolitudeWhitelistSet = new Set(lunSolitudeWhitelist.split(",").map(name => name.trim().toLocaleLowerCase()).filter(Boolean));
 var lunLockedFacialExpression = (window.localStorage && localStorage.getItem("spkmod-locked-facial-expression")) || "none";
 var lunAllPlayersFacialExpression = "none";
 var lunTargetFacialExpressions = new Map();
@@ -6400,25 +6934,38 @@ function applyChromaFloorPad(shape, scale, silent = false) {
 				return new THREE.PlaneGeometry(2.5 * s, 2.5 * s);
 		}
 	}
+	
+	const geometryKey = `${lunChromaFloorShape}:${lunChromaFloorScale}`;
 
 	if (!mesh) {
-		const mat = new THREE.MeshBasicMaterial({
-			color: hex,
-			side: THREE.DoubleSide,
-			depthWrite: true
-		});
-		mesh = new THREE.Mesh(buildGeometry(lunChromaFloorShape, lunChromaFloorScale), mat);
-		mesh.name = "spkmod_chroma_floor_pad";
-		mesh.rotation.x = -Math.PI / 2;
-		mesh.position.set(0, 0.02, 0);
-		playerContainer.add(mesh);
+    	const mat = new THREE.MeshBasicMaterial({
+        	color: hex,
+        	side: THREE.DoubleSide,
+        	depthWrite: true
+    	});
+
+    	mesh = new THREE.Mesh(buildGeometry(lunChromaFloorShape, lunChromaFloorScale), mat);
+    	mesh.name = "spkmod_chroma_floor_pad";
+    	mesh.rotation.x = -Math.PI / 2;
+    	mesh.position.set(0, 0.02, 0);
+    	mesh.userData.spkmodGeometryKey = geometryKey;
+
+    	playerContainer.add(mesh);
 	} else {
-		mesh.visible = true;
-		if (mesh.geometry) mesh.geometry.dispose();
-		mesh.geometry = buildGeometry(lunChromaFloorShape, lunChromaFloorScale);
-		if (mesh.material && typeof mesh.material.color?.setHex === "function") {
-			mesh.material.color.setHex(hex);
-		}
+    	mesh.visible = true;
+
+    	if (!mesh.geometry || mesh.userData.spkmodGeometryKey !== geometryKey) {
+        	const oldGeometry = mesh.geometry;
+
+        	mesh.geometry = buildGeometry(lunChromaFloorShape, lunChromaFloorScale);
+        	mesh.userData.spkmodGeometryKey = geometryKey;
+
+        	if (oldGeometry) oldGeometry.dispose();
+    	}
+
+    	if (mesh.material && typeof mesh.material.color?.setHex === "function") {
+        	mesh.material.color.setHex(hex);
+    	}
 	}
 }
 
@@ -6446,47 +6993,109 @@ function setHideAllOtherPlayers(enabled) {
 }
 
 function getSolitudeWhitelistNames() {
-	if (!lunSolitudeWhitelist || typeof lunSolitudeWhitelist !== "string") return [];
-	return lunSolitudeWhitelist
-		.split(",")
-		.map(name => name.trim().toLocaleLowerCase())
-		.filter(Boolean);
+    return [...lunSolitudeWhitelistSet];
 }
 
 function isSolitudeWhitelisted(name) {
-	if (!name || typeof name !== "string") return false;
-	const clean = name.trim().toLocaleLowerCase();
-	if (!clean) return false;
-	const list = getSolitudeWhitelistNames();
-	return list.includes(clean);
+    if (!name || typeof name !== "string") return false;
+
+    const clean = name.trim().toLocaleLowerCase();
+
+    if (!clean) return false;
+
+    return lunSolitudeWhitelistSet.has(clean);
 }
 
 function setSolitudeWhitelist(namesStr) {
-	lunSolitudeWhitelist = typeof namesStr === "string" ? namesStr : "";
-	if (window.localStorage) {
-		localStorage.setItem("spkmod-solitude-whitelist", lunSolitudeWhitelist);
-	}
-	if (typeof updateKnownBotVisibility === "function") {
-		updateKnownBotVisibility();
-	}
+    lunSolitudeWhitelist = typeof namesStr === "string" ? namesStr : "";
+    lunSolitudeWhitelistSet = new Set(lunSolitudeWhitelist.split(",").map(name => name.trim().toLocaleLowerCase()).filter(Boolean));
+
+    if (window.localStorage) {
+        localStorage.setItem("spkmod-solitude-whitelist", lunSolitudeWhitelist);
+    }
+
+	if (typeof updateKnownBotVisibility === "function") updateKnownBotVisibility();
+}
+
+const spkmodFaceExpressionState = new WeakMap();
+const spkmodFaceExpressionHooked = new WeakSet();
+const spkmodFaceExpressionCacheSafe = new WeakSet();
+
+function hookSpkmodFaceExpression(fe) {
+    if (!fe || typeof fe !== "object") return false;
+
+    if (spkmodFaceExpressionHooked.has(fe)) {
+        return spkmodFaceExpressionCacheSafe.has(fe);
+    }
+
+    spkmodFaceExpressionHooked.add(fe);
+
+    const originalSet = fe.setOverrideExpression;
+    const originalEnd = fe.endOverride;
+
+    let setWrapped = false;
+    let endWrapped = false;
+
+    if (typeof originalSet === "function") {
+        const wrappedSet = function(expr, ...args) {
+            const result = originalSet.call(this, expr, ...args);
+            spkmodFaceExpressionState.set(this, expr);
+            return result;
+        };
+
+        try {
+            fe.setOverrideExpression = wrappedSet;
+            setWrapped = fe.setOverrideExpression === wrappedSet;
+        } catch (_) {}
+    }
+
+    if (typeof originalEnd === "function") {
+        const wrappedEnd = function(...args) {
+            const result = originalEnd.apply(this, args);
+            spkmodFaceExpressionState.set(this, null);
+            return result;
+        };
+
+        try {
+            fe.endOverride = wrappedEnd;
+            endWrapped = fe.endOverride === wrappedEnd;
+        } catch (_) {}
+    }
+
+    if (setWrapped && endWrapped) {
+        spkmodFaceExpressionCacheSafe.add(fe);
+    }
+
+    return spkmodFaceExpressionCacheSafe.has(fe);
 }
 
 function setAvatarFacialExpression(avatar, exprKey) {
-	const fe = avatar?.faceExpression;
-	if (!fe) return false;
-	if (!exprKey || exprKey === "none") {
-		if (typeof fe.endOverride === "function") {
-			fe.endOverride();
-		}
-	} else {
-		if (typeof fe.beginOverride === "function") {
-			fe.beginOverride();
-		}
-		if (typeof fe.setOverrideExpression === "function") {
-			fe.setOverrideExpression(exprKey);
-		}
-	}
-	return true;
+    const fe = avatar?.faceExpression;
+
+    if (!fe) return false;
+
+    const desired = !exprKey || exprKey === "none" ? null : exprKey;
+    const cacheSafe = hookSpkmodFaceExpression(fe);
+
+    if (cacheSafe && spkmodFaceExpressionState.has(fe) && spkmodFaceExpressionState.get(fe) === desired) {
+        return true;
+    }
+
+    if (desired === null) {
+        if (typeof fe.endOverride === "function") {
+            fe.endOverride();
+        }
+    } else {
+        if (typeof fe.beginOverride === "function") {
+            fe.beginOverride();
+        }
+
+        if (typeof fe.setOverrideExpression === "function") {
+            fe.setOverrideExpression(desired);
+        }
+    }
+
+    return true;
 }
 
 function getRemotePlayerTargetExpression(player) {
@@ -6606,22 +7215,20 @@ function maintainLockedFacialExpression() {
 	}
 }
 
-
-
-
 function toggleStatsModal() {
-	if (!lunHudElements.statsModal) return;
-	const isClosed = lunHudElements.statsModal.classList.contains("hidden");
-	if (isClosed) {
-		positionModalNicely(lunHudElements.statsModal);
-		lunHudElements.statsModal.classList.remove("hidden");
-		if (!lunMinigameStatus) {
-			fetchMinigameStatus();
-		}
-		updateStatsModalLive();
-	} else {
-		lunHudElements.statsModal.classList.add("hidden");
-	}
+    if (!lunHudElements.statsModal) return;
+    const isClosed = lunHudElements.statsModal.classList.contains("hidden");
+    if (isClosed) {
+        positionModalNicely(lunHudElements.statsModal);
+        lunHudElements.statsModal.classList.remove("hidden");
+        ensureFpsLoop();
+        if (!lunMinigameStatus) {
+            fetchMinigameStatus();
+        }
+        updateStatsModalLive();
+    } else {
+        lunHudElements.statsModal.classList.add("hidden");
+    }
 }
 
 function resetSessionStats() {
@@ -8490,6 +9097,7 @@ document.body.appendChild(
 						if (lunNametagMode === 2) {
 							fetchFriendsList(true);
 						}
+						refreshAllNametags();
 						if (lunPanelElements.nametagsBtn) {
 							setText(lunPanelElements.nametagsBtn, t(NAMETAG_MODES[lunNametagMode] + "Btn"));
 						}
@@ -14107,7 +14715,6 @@ document.addEventListener("contextmenu", (e) => {
 }, true);
 
 
-
 const lunJumpAnimMs = 500;
 
 const lunFaintAnimMs = 1200;
@@ -14505,32 +15112,40 @@ function findBotsRadar(auto = false) {
 	if (!gameState.remotePlayers || !gameState.remotePlayers.remotePlayers) return;
 	const players = Array.from(gameState.remotePlayers.remotePlayers.values());
 	
-	const level1s = players.filter(p => p.info?.level === 1 && p.container && (typeof lunKnownBotNames === "undefined" || !lunKnownBotNames.includes(p.info?.name)));
+	const level1s = players.filter(p => p.info?.level === 1 && p.container?.position && !lunKnownBotNameSet.has((p.info?.name || "").trim().toLocaleLowerCase()));
 	
-	const suspiciousBots = [];
+	const nearbyCounts = new Uint32Array(level1s.length);
 	
-	for (const p of level1s) {
-		let nearbyLv1s = 0;
-		for (const other of level1s) {
-			if (p === other) continue;
-			const dist = Math.hypot(
-				p.container.position.x - other.container.position.x,
-				p.container.position.z - other.container.position.z
-			);
-			if (dist < 5.0) nearbyLv1s++;
-		}
-		
-		// Only flag them if they are in a massive swarm (AT LEAST 4 other level 1 players within 5 meters)
-		// This prevents false positives when 2 or 3 real new players happen to spawn at the same time.
-		if (nearbyLv1s >= 4) {
-			const id = parseInt(p.info?.playerId) || 0;
-			suspiciousBots.push({
-				name: p.info?.name,
-				id: id,
-				clusterSize: nearbyLv1s
-			});
-		}
-	}
+	for (let i = 0; i < level1s.length; i++) {
+        const p = level1s[i];
+        const px = p.container.position.x;
+        const pz = p.container.position.z;
+
+        for (let j = i + 1; j < level1s.length; j++) {
+            const other = level1s[j];
+            const dx = px - other.container.position.x;
+            const dz = pz - other.container.position.z;
+
+            if (dx * dx + dz * dz < 25) {
+                nearbyCounts[i]++;
+                nearbyCounts[j]++;
+            }
+        }
+    }
+
+    const suspiciousBots = [];
+
+    for (let i = 0; i < level1s.length; i++) {
+        if (nearbyCounts[i] >= 4) {
+            const p = level1s[i];
+
+            suspiciousBots.push({
+                name: p.info?.name,
+                id: parseInt(p.info?.playerId) || 0,
+                clusterSize: nearbyCounts[i]
+            });
+        }
+    }
 	
 	if (!suspiciousBots.length) {
 		if (!auto && typeof gameState !== "undefined" && gameState && (gameState.myPlayerName === "Glas" || gameState.myStat?.name === "Glas")) {
@@ -15265,15 +15880,21 @@ function hijackAndRename(player, newName, newLevel) {
 		// Fix WebGL Texture Remnant Bug: 
 		// If the new name is shorter, shrinking the canvas leaves old pixels in the GPU buffer.
 		// We must explicitly dispose the old map to force three.js to reallocate a fresh one.
-		player.container.traverse(obj => {
-			if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
-				obj.material.map.dispose();
-			}
-		});
+		if (!player.avatar.__spkmodLabelPatched) {
+			player.container.traverse(obj => {
+				if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+					obj.material.map.dispose();
+				}
+			});
+		}
 		
 		// The game natively splits and formats "LV<level> <name>"
 		player.avatar.setLabel("LV" + lvl + " " + newName);
 	}
+
+	// Refresh nametag visibility after renaming.
+    if (player.__spkmodNametagManaged) applyPlayerNametagVisibility(player);
+	updateKnownBotVisibility();
 	
 	return true;
 }
@@ -15354,7 +15975,7 @@ window.spkmodResetNames = function() {
 				if (entity.avatar && typeof entity.avatar.setLabel === 'function') {
 					let lvl = (entity.info && entity.info.level) ? entity.info.level : 1;
 					
-					if (entity.container) {
+					if (entity.container && !entity.avatar.__spkmodLabelPatched) {
 						entity.container.traverse(obj => {
 							if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
 								obj.material.map.dispose();
@@ -15365,12 +15986,14 @@ window.spkmodResetNames = function() {
 					entity.avatar.setLabel("LV" + lvl + " " + origName);
 					count++;
 				}
+				if (entity.__spkmodNametagManaged) applyPlayerNametagVisibility(entity);
 			}
 		}
 	}
 	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) processMap(gameState.remotePlayers.remotePlayers);
 	if (gameState.remotePetRegistry) processMap(gameState.remotePetRegistry);
 	if (gameState.remoteDroneCoreRegistry) processMap(gameState.remoteDroneCoreRegistry);
+	updateKnownBotVisibility();
 	console.log(`[SpeakiMod+] Reset ${count} names to their original values`);
 };
 
@@ -24196,16 +24819,13 @@ async function fetchAllQuests() {
 					mode: "cors"
 				});
 				if (res.ok) {
-					const data = await res.json();
+					const data = await spkmodReadQuestResponseJson(res);
 					if (Array.isArray(data)) {
-						window.__spkmodCachedQuests = window.__spkmodCachedQuests || {};
 						for (const q of data) {
-							if (q && q.questId) {
-								q.period = q.period || p;
-								window.__spkmodCachedQuests[q.questId] = q;
-								if (lunPinnedQuestId && String(lunPinnedQuestId) === String(q.questId)) {
-									updatePinnedQuestDisplay(q);
-								}
+							if (!q?.questId) continue;
+							const cachedQuest = spkmodCacheQuestRecord(q, p);
+							if (lunPinnedQuestId && String(lunPinnedQuestId) === String(q.questId)) {
+								updatePinnedQuestDisplay(cachedQuest);
 							}
 						}
 					}
@@ -24223,18 +24843,52 @@ async function fetchAllQuests() {
 
 // --- SpeakiMod Quest Checklist System ---
 
+let spkmodChecklistPinnedIdsCache = null;
+let spkmodChecklistPinnedIdSetCache = null;
+let spkmodChecklistPinnedSerialized = null;
+
+function ensureSpkmodChecklistPinCache() {
+    if (spkmodChecklistPinnedIdsCache !== null) return;
+
+    try {
+        const raw = localStorage.getItem("spkmod-checklist-pins");
+        const parsed = raw ? JSON.parse(raw) : [];
+
+        spkmodChecklistPinnedIdsCache = Array.isArray(parsed) ? parsed : [];
+        spkmodChecklistPinnedSerialized = JSON.stringify(spkmodChecklistPinnedIdsCache);
+    } catch (_) {
+        spkmodChecklistPinnedIdsCache = [];
+        spkmodChecklistPinnedSerialized = "[]";
+    }
+
+    spkmodChecklistPinnedIdSetCache = new Set(spkmodChecklistPinnedIdsCache.map(String));
+}
+
 function getChecklistPinnedIds() {
-	try {
-		const raw = localStorage.getItem("spkmod-checklist-pins");
-		if (raw) return JSON.parse(raw);
-	} catch (_) {}
-	return [];
+    ensureSpkmodChecklistPinCache();
+
+    return spkmodChecklistPinnedIdsCache;
 }
 
 function setChecklistPinnedIds(ids) {
-	try {
-		localStorage.setItem("spkmod-checklist-pins", JSON.stringify(ids));
-	} catch (_) {}
+    ensureSpkmodChecklistPinCache();
+
+    const next = Array.isArray(ids) ? [...ids] : [];
+    const serialized = JSON.stringify(next);
+
+    if (serialized === spkmodChecklistPinnedSerialized) {
+        return false;
+    }
+
+    spkmodChecklistPinnedIdsCache = next;
+    spkmodChecklistPinnedIdSetCache = new Set(next.map(String));
+
+    try {
+        localStorage.setItem("spkmod-checklist-pins", serialized);
+        spkmodChecklistPinnedSerialized = serialized;
+    } catch (_) {}
+
+    return true;
 }
 
 function clearClaimedQuestPin(quest) {
@@ -24263,50 +24917,113 @@ function clearClaimedQuestPin(quest) {
 }
 
 function isChecklistPinned(questId) {
-	if (!questId) return false;
-	const pins = getChecklistPinnedIds();
-	return pins.some(id => String(id) === String(questId));
+    if (!questId) return false;
+
+    ensureSpkmodChecklistPinCache();
+
+    return spkmodChecklistPinnedIdSetCache.has(String(questId));
 }
 
 function toggleChecklistPin(questId) {
-	if (!questId) return false;
-	const pins = getChecklistPinnedIds();
-	const idx = pins.findIndex(id => String(id) === String(questId));
-	let nowPinned = false;
-	if (idx >= 0) {
-		pins.splice(idx, 1);
-		nowPinned = false;
-	} else {
-		pins.push(questId);
-		nowPinned = true;
-	}
-	setChecklistPinnedIds(pins);
-	return nowPinned;
+    if (!questId) return false;
+
+    const pins = getChecklistPinnedIds();
+    const id = String(questId);
+    const idx = pins.findIndex(value => String(value) === id);
+
+    let nowPinned = false;
+
+    if (idx >= 0) {
+        pins.splice(idx, 1);
+    } else {
+        pins.push(questId);
+        nowPinned = true;
+    }
+
+    setChecklistPinnedIds(pins);
+
+    return nowPinned;
 }
 
+let spkmodDismissedQuestsCache = null;
+let spkmodDismissedQuestsSerialized = null;
+
 function getDismissedQuests() {
-	try {
-		const raw = localStorage.getItem("spkmod-dismissed-quests");
-		if (raw) return JSON.parse(raw);
-	} catch (_) {}
-	return {};
+    if (spkmodDismissedQuestsCache !== null) {
+        return spkmodDismissedQuestsCache;
+    }
+
+    try {
+        const raw = localStorage.getItem("spkmod-dismissed-quests");
+        const parsed = raw ? JSON.parse(raw) : {};
+
+        spkmodDismissedQuestsCache = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+        spkmodDismissedQuestsSerialized = JSON.stringify(spkmodDismissedQuestsCache);
+    } catch (_) {
+        spkmodDismissedQuestsCache = {};
+        spkmodDismissedQuestsSerialized = "{}";
+    }
+
+    return spkmodDismissedQuestsCache;
+}
+
+function saveDismissedQuests() {
+    if (spkmodDismissedQuestsCache === null) return false;
+
+    const serialized = JSON.stringify(spkmodDismissedQuestsCache);
+
+    if (serialized === spkmodDismissedQuestsSerialized) {
+        return false;
+    }
+
+    try {
+        localStorage.setItem("spkmod-dismissed-quests", serialized);
+        spkmodDismissedQuestsSerialized = serialized;
+        return true;
+    } catch (_) {
+        return false;
+    }
 }
 
 function dismissQuest(questId, period) {
-	try {
-		const dismissed = getDismissedQuests();
-		dismissed[String(questId)] = { ts: Date.now(), period: period || "daily" };
-		localStorage.setItem("spkmod-dismissed-quests", JSON.stringify(dismissed));
-	} catch (_) {}
+    if (!questId) return;
+
+    const dismissed = getDismissedQuests();
+
+    dismissed[String(questId)] = {
+        ts: Date.now(),
+        period: period || "daily"
+    };
+
+    saveDismissedQuests();
 }
 
 function undismissQuest(questId) {
-	try {
-		const dismissed = getDismissedQuests();
-		delete dismissed[String(questId)];
-		localStorage.setItem("spkmod-dismissed-quests", JSON.stringify(dismissed));
-	} catch (_) {}
+    if (!questId) return;
+
+    const dismissed = getDismissedQuests();
+    const id = String(questId);
+
+    if (!Object.prototype.hasOwnProperty.call(dismissed, id)) {
+        return;
+    }
+
+    delete dismissed[id];
+    saveDismissedQuests();
 }
+
+window.addEventListener("storage", e => {
+    if (e.key === "spkmod-checklist-pins") {
+        spkmodChecklistPinnedIdsCache = null;
+        spkmodChecklistPinnedIdSetCache = null;
+        spkmodChecklistPinnedSerialized = null;
+    }
+
+    if (e.key === "spkmod-dismissed-quests") {
+        spkmodDismissedQuestsCache = null;
+        spkmodDismissedQuestsSerialized = null;
+    }
+});
 
 function isQuestDismissed(questId, period) {
 	if (!questId) return false;
@@ -25593,39 +26310,60 @@ function resetWalkToPortal() {
 
 window.beyBladeAngle = window.beyBladeAngle || 0;
 window.__beyBladeLastTime = window.__beyBladeLastTime || performance.now();
+window.__beyBladeLoopRunning = false;
 
-if (!window.__beyBladeLoopRunning) {
-	window.__beyBladeLoopRunning = true;
+let spkmodBeyBladeRafId = 0;
 
-	function beyBladeRenderLoop(currentTime) {
-		if ((window.BeyBladeActive || window.ReverseBeyBladeActive) && gameState && gameState.playerContainer) {
-			const delta = (currentTime - window.__beyBladeLastTime) / 1000;
-			const clampedDelta = Math.min(delta, 0.1);
-			const speedMultiplier = window.BeyBladeSpeed || 1;
-			const baseSpeed = 3.0;
-			const direction = window.ReverseBeyBladeActive ? -1 : 1;
+function isSpkmodBeyBladeActive() {
+    return !!(window.BeyBladeActive || window.ReverseBeyBladeActive || window.MoonwalkActive);
+}
 
-			window.beyBladeAngle += direction * baseSpeed * speedMultiplier * clampedDelta;
-			gameState.playerContainer.rotation.y = window.beyBladeAngle;
+function ensureBeyBladeRenderLoop() {
+    if (window.__beyBladeLoopRunning || !isSpkmodBeyBladeActive()) return;
+    if (!gameState?.playerContainer) return;
 
-			if (Math.random() < 0.2) {
-				gameState.moveSendAccumulator = 1;
-			}
-		} else if (window.MoonwalkActive && gameState && gameState.playerContainer) {
-			if (window.moonwalkLockedYaw === undefined || window.moonwalkLockedYaw === null) {
-				window.moonwalkLockedYaw = gameState.playerContainer.rotation.y;
-			}
-			gameState.playerContainer.rotation.y = window.moonwalkLockedYaw;
-			if (Math.random() < 0.25) {
-				gameState.moveSendAccumulator = 1;
-			}
-		}
+    window.__beyBladeLoopRunning = true;
+    window.__beyBladeLastTime = performance.now();
 
-		window.__beyBladeLastTime = currentTime;
-		requestAnimationFrame(beyBladeRenderLoop);
-	}
+    spkmodBeyBladeRafId = requestAnimationFrame(beyBladeRenderLoop);
+}
 
-	requestAnimationFrame(beyBladeRenderLoop);
+function beyBladeRenderLoop(currentTime) {
+    spkmodBeyBladeRafId = 0;
+
+    if (!isSpkmodBeyBladeActive() || !gameState?.playerContainer) {
+        window.__beyBladeLoopRunning = false;
+        return;
+    }
+
+    if (window.BeyBladeActive || window.ReverseBeyBladeActive) {
+        const delta = (currentTime - window.__beyBladeLastTime) / 1000;
+        const clampedDelta = Math.min(delta, 0.1);
+        const speedMultiplier = window.BeyBladeSpeed || 1;
+        const baseSpeed = 3.0;
+        const direction = window.ReverseBeyBladeActive ? -1 : 1;
+
+        window.beyBladeAngle += direction * baseSpeed * speedMultiplier * clampedDelta;
+        gameState.playerContainer.rotation.y = window.beyBladeAngle;
+
+        if (Math.random() < 0.2) {
+            gameState.moveSendAccumulator = 1;
+        }
+    } else if (window.MoonwalkActive) {
+        if (window.moonwalkLockedYaw === undefined || window.moonwalkLockedYaw === null) {
+            window.moonwalkLockedYaw = gameState.playerContainer.rotation.y;
+        }
+
+        gameState.playerContainer.rotation.y = window.moonwalkLockedYaw;
+
+        if (Math.random() < 0.25) {
+            gameState.moveSendAccumulator = 1;
+        }
+    }
+
+    window.__beyBladeLastTime = currentTime;
+
+    spkmodBeyBladeRafId = requestAnimationFrame(beyBladeRenderLoop);
 }
 
 
@@ -25726,14 +26464,6 @@ function tick() {
 		if (typeof hookGameStateOnce === "function") {
 			hookGameStateOnce();
 		}
-	}
-
-	if (typeof __spkmodSpriteProtoHooked !== "undefined" && !__spkmodSpriteProtoHooked && gameState?.playerContainer?.traverse) {
-		gameState.playerContainer.traverse(obj => {
-			if (obj && obj.isSprite && typeof hookSpritePrototypeOnce === "function") {
-				hookSpritePrototypeOnce(obj);
-			}
-		});
 	}
 
 	const currentNick = (typeof gameState !== "undefined" && gameState && (gameState.myPlayerName || gameState.myStat?.name)) || "";
@@ -25879,98 +26609,109 @@ function tick() {
         window.lunActiveMinigamePanel = null;
     }
 
-	var windowSec = lunExpIntervalMinutes * 60;
-	var windowTicks = windowSec * lunTPS;
+    var windowSec = lunExpIntervalMinutes * 60;
 
-	var sampleIntervalTicks = lunTPS;
-	
-	var expTrackerL1 = t(lunExpRatePerHour ? "zeroExpPerHour" : "zeroExp");
-	var expTrackerL2 = t("nextLevelNA");
+    var expTrackerL1 = lunExpTrackerDisplayL1 ?? t(lunExpRatePerHour ? "zeroExpPerHour" : "zeroExp");
+    var expTrackerL2 = lunExpTrackerDisplayL2 ?? t("nextLevelNA");
 
-	const now = Date.now();
-	if (window.lunExpTrackerLastRawExp === undefined) {
-		window.lunExpTrackerLastRawExp = playerExp;
-		window.lunExpTrackerLastMaxExp = gameState.myStat.maxExp;
-	}
+    const now = Date.now();
 
-	let trueGainedThisFrame = playerExp - window.lunExpTrackerLastRawExp;
-	if (trueGainedThisFrame < 0) {
-		// Leveled up!
-		trueGainedThisFrame = (window.lunExpTrackerLastMaxExp - window.lunExpTrackerLastRawExp) + playerExp;
-	}
-	
-	if (trueGainedThisFrame > 20000) {
-		window.lunExpTrackerIgnoredExp = (window.lunExpTrackerIgnoredExp || 0) + trueGainedThisFrame;
-	}
+    if (window.lunExpTrackerLastRawExp === undefined) {
+        window.lunExpTrackerLastRawExp = playerExp;
+        window.lunExpTrackerLastMaxExp = gameState.myStat.maxExp;
+		window.lunExpTrackerLevelCarry = 0;
+    }
 
-	window.lunExpTrackerLastRawExp = playerExp;
-	window.lunExpTrackerLastMaxExp = gameState.myStat.maxExp;
+	const previousRawExp = window.lunExpTrackerLastRawExp;
+    const previousMaxExp = Number(window.lunExpTrackerLastMaxExp) || 0;
+    let trueGainedThisFrame = playerExp - previousRawExp;
 
-	const currentEffectiveExp = playerExp - (window.lunExpTrackerIgnoredExp || 0);
-	
-	if (!lunExpTrackerInitialized) {
-		lunExpTrackerSamples = [{ time: now, exp: currentEffectiveExp }];
-		lunExpTrackerStartExp = playerExp;
-		lunExpTrackerLastSampleTick = now;
-		lunExpTrackerInitialized = true;
-	} else {
-		const lastSampleExp = lunExpTrackerSamples[lunExpTrackerSamples.length - 1].exp;
-		if (lastSampleExp > currentEffectiveExp) {
-			resetExpTracker();
-			lunExpTrackerSamples = [{ time: now, exp: playerExp }];
-			lunExpTrackerStartExp = playerExp;
-			lunExpTrackerLastSampleTick = now;
-			lunExpTrackerInitialized = true;
-		} else {
-			if (now - lunExpTrackerLastSampleTick >= 1000) {
-				lunExpTrackerSamples.push({ time: now, exp: currentEffectiveExp });
-				lunExpTrackerLastSampleTick = now;
-			}
-		}
-	}
+    if (trueGainedThisFrame < 0) {
+        trueGainedThisFrame = (previousMaxExp - previousRawExp) + playerExp;
+        window.lunExpTrackerLevelCarry += previousMaxExp;
+    }
 
-	const windowMs = windowSec * 1000;
-	const cutoffTime = now - windowMs;
-	while (lunExpTrackerSamples.length > 1 && lunExpTrackerSamples[1].time <= cutoffTime) {
-		lunExpTrackerSamples.shift();
-	}
-	const oldestSample = lunExpTrackerSamples[0];
-	const elapsedSec = oldestSample ? Math.max(1, (now - oldestSample.time) / 1000) : 1;
-	const expGained = oldestSample ? Math.max(0, currentEffectiveExp - oldestSample.exp) : 0;
-	
-	const divisor = windowSec;
-	lunExpTrackerSpeed = divisor > 0 ? expGained / divisor : 0;
-	
-	const timerDisplay = (windowSec / 60) + "m avg";
+    if (trueGainedThisFrame > 20000) {
+        window.lunExpTrackerIgnoredExp = (window.lunExpTrackerIgnoredExp || 0) + trueGainedThisFrame;
+    }
 
-	if (lunExpTrackerSpeed > 0) {
-		let displayRate = Math.round(lunExpRatePerHour ? lunExpTrackerSpeed * 3600 : lunExpTrackerSpeed * 60);
-		if (displayRate >= 1000000) displayRate = (displayRate / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-		else if (displayRate >= 1000) displayRate = (displayRate / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
-		else displayRate = displayRate.toLocaleString();
-		
-		expTrackerL1 = t(lunExpRatePerHour ? "expPerHour" : "expPerMinute", displayRate, "");
+    window.lunExpTrackerLastRawExp = playerExp;
+    window.lunExpTrackerLastMaxExp = gameState.myStat.maxExp;
 
-		var minutesRemaining = (gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60;
-		if (minutesRemaining > 60) {
-			var hoursRemaining = (minutesRemaining / 60).toFixed(1);
-			expTrackerL2 = t("nextLevelHours", hoursRemaining);
-		} else {
-			expTrackerL2 = t("nextLevel", minutesRemaining.toFixed(0));
-		}
-	}
+    const currentEffectiveExp = window.lunExpTrackerLevelCarry + playerExp - (window.lunExpTrackerIgnoredExp || 0);
+
+    if (!lunExpTrackerInitialized) {
+        lunExpTrackerSamples = [{ time: now, exp: currentEffectiveExp }];
+        lunExpTrackerStartExp = currentEffectiveExp;
+        lunExpTrackerLastSampleTick = now;
+        lunExpTrackerInitialized = true;
+    } else {
+        const lastSampleExp = lunExpTrackerSamples[lunExpTrackerSamples.length - 1].exp;
+
+        if (lastSampleExp > currentEffectiveExp) {
+            lunExpTrackerSamples = [{ time: now, exp: currentEffectiveExp }];
+            lunExpTrackerStartExp = currentEffectiveExp;
+            lunExpTrackerLastSampleTick = now;
+            lunExpTrackerLastCalculationTime = 0;
+            lunExpTrackerDisplayL1 = null;
+            lunExpTrackerDisplayL2 = null;
+        } else if (now - lunExpTrackerLastSampleTick >= 1000) {
+            lunExpTrackerSamples.push({ time: now, exp: currentEffectiveExp });
+            lunExpTrackerLastSampleTick = now;
+        }
+    }
+
+    if (now - lunExpTrackerLastCalculationTime >= 1000) {
+        lunExpTrackerLastCalculationTime = now;
+
+        const windowMs = windowSec * 1000;
+        const cutoffTime = now - windowMs;
+
+        while (lunExpTrackerSamples.length > 1 && lunExpTrackerSamples[1].time <= cutoffTime) {
+            lunExpTrackerSamples.shift();
+        }
+
+        const oldestSample = lunExpTrackerSamples[0];
+        const expGained = oldestSample ? Math.max(0, currentEffectiveExp - oldestSample.exp) : 0;
+
+        lunExpTrackerSpeed = windowSec > 0 ? expGained / windowSec : 0;
+
+        let nextL1 = t(lunExpRatePerHour ? "zeroExpPerHour" : "zeroExp");
+        let nextL2 = t("nextLevelNA");
+
+        if (lunExpTrackerSpeed > 0) {
+            let displayRate = Math.round(lunExpRatePerHour ? lunExpTrackerSpeed * 3600 : lunExpTrackerSpeed * 60);
+
+            if (displayRate >= 1000000) {
+                displayRate = (displayRate / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+            } else if (displayRate >= 1000) {
+                displayRate = (displayRate / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+            } else {
+                displayRate = displayRate.toLocaleString();
+            }
+
+            nextL1 = t(lunExpRatePerHour ? "expPerHour" : "expPerMinute", displayRate, "");
+
+            const minutesRemaining = (gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60;
+
+            if (minutesRemaining > 60) {
+                const hoursRemaining = (minutesRemaining / 60).toFixed(1);
+                nextL2 = t("nextLevelHours", hoursRemaining);
+            } else {
+                nextL2 = t("nextLevel", minutesRemaining.toFixed(0));
+            }
+        }
+
+        lunExpTrackerDisplayL1 = nextL1;
+        lunExpTrackerDisplayL2 = nextL2;
+    }
+
+    expTrackerL1 = lunExpTrackerDisplayL1 ?? expTrackerL1;
+    expTrackerL2 = lunExpTrackerDisplayL2 ?? expTrackerL2;
 
 	if (gameState.isDead && lunWalkToPortal != -1) {
 		resetWalkToPortal();
 		chatLog(t("diedMsg"));
-	}
-
-	if (window.MoonwalkActive && gameState && gameState.playerContainer) {
-		if (window.moonwalkLockedYaw === undefined || window.moonwalkLockedYaw === null) {
-			window.moonwalkLockedYaw = gameState.playerContainer.rotation.y;
-		}
-		gameState.playerContainer.rotation.y = window.moonwalkLockedYaw;
-		gameState.moveSendAccumulator = 1;
 	}
 
 	if (window.TurntableActive && gameState && gameState.cameraController && !lunCameraLocked) {
@@ -26003,17 +26744,21 @@ function tick() {
 		gameState.playerContainer.rotation.y = currentBaseYaw + offset;
 		gameState.moveSendAccumulator = 1;
 	}
+	
+	if (isSpkmodBeyBladeActive()) {
+    	ensureBeyBladeRenderLoop();
+	}
 
 	if ((window.BeyBladeActive || window.ReverseBeyBladeActive) && gameState.playerContainer) {
-		if (!window.beyBladeNextJumpTick) {
-			window.beyBladeNextJumpTick = lunTickCount + 50;
-		}
-		if (lunTickCount >= window.beyBladeNextJumpTick) {
-			const nextInterval = Math.floor(Math.random() * (100 - 25 + 1)) + 25;
-			window.beyBladeNextJumpTick = lunTickCount + nextInterval;
-		}
+    	if (!window.beyBladeNextJumpTick) {
+        	window.beyBladeNextJumpTick = lunTickCount + 50;
+    	}
+    	if (lunTickCount >= window.beyBladeNextJumpTick) {
+        		const nextInterval = Math.floor(Math.random() * (100 - 25 + 1)) + 25;
+        		window.beyBladeNextJumpTick = lunTickCount + nextInterval;
+    	}
 	} else {
-		window.beyBladeNextJumpTick = 0;
+    	window.beyBladeNextJumpTick = 0;
 	}
 	lunAutoTravelTarget = null;
 	lunTickCount++;
@@ -26147,14 +26892,14 @@ function tick() {
 				console.warn(`[SpeakiMod+] Pinned quest query returned HTTP ${x.status}`);
 				return;
 			}
-			const resp = await x.json();
+			const resp = await spkmodReadQuestResponseJson(x);
 			if (!Array.isArray(resp)) return;
 			const q = resp.find(t => String(t.questId) === String(lunPinnedQuestId));
 			if (!q || q.isClaimed) {
 				unpinQuest();
 				return;
 			}
-			updatePinnedQuestDisplay(q);
+			updatePinnedQuestDisplay(spkmodCacheQuestRecord(q, period));
 		}).catch(err => {
 			lunPinnedQuestNextQueryTick = lunTickCount + (lunPinnedQuestInterval * 2);
 		});
@@ -26202,60 +26947,6 @@ window.spkmodForceNametagRedraw = function() {
 	}
 };
 
-function hookAvatarLabel(entity, explicitContainer) {
-	if (!entity || !entity.avatar) return;
-	const avatar = entity.avatar;
-	if (typeof avatar.setLabel !== 'function' || avatar.__spkmodLabelPatched) return;
-
-	const resolveContainer = () => explicitContainer || entity.container || entity.root || avatar.root || (typeof entity.traverse === 'function' ? entity : null);
-
-	const origSetLabel = avatar.setLabel;
-	avatar.setLabel = function(text, ...args) {
-		if (typeof text === 'string' && text.length > 0 && (!lunHidePlayerLevels || text.startsWith("LV"))) {
-			avatar.__spkmodLastRawLabel = text;
-		}
-		if (lunHidePlayerLevels && typeof text === 'string' && text.startsWith("LV")) {
-			const spaceIdx = text.indexOf(" ");
-			if (spaceIdx !== -1) {
-				text = text.substring(spaceIdx + 1); // remove "LVxxx "
-			}
-		}
-
-		try {
-			const targetContainer = resolveContainer();
-			if (targetContainer && typeof targetContainer.traverse === 'function') {
-				targetContainer.traverse(obj => {
-					// Position check ensures we only hit the floating nametag sprite above the player
-					if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
-						obj.material.map.dispose();
-
-						if (obj.material.map.image && typeof obj.material.map.image.getContext === 'function') {
-							const ctx = obj.material.map.image.getContext('2d');
-							ctx.clearRect(0, 0, obj.material.map.image.width, obj.material.map.image.height);
-						}
-					}
-				});
-			}
-		} catch(e) {}
-
-		return origSetLabel.call(this, text, ...args);
-	};
-	avatar.__spkmodLabelPatched = true;
-
-	// Force redraw with current text if level-hiding or a custom font is active
-	if (lunHidePlayerLevels || (typeof lunFontPreset !== "undefined" && lunFontPreset !== "default")) {
-		if (entity.info && entity.info.name) {
-			const lvl = entity.info.__spkmodOrigLevel || entity.info.level || 1;
-			avatar.setLabel("LV" + lvl + " " + entity.info.name);
-		} else if (entity === gameState.playerContainer || entity.isLocalPlayer) {
-			const lvl = (gameState.myStat && gameState.myStat.level) ? gameState.myStat.level : 1;
-			const name = (gameState.myPlayerName || (gameState.myStat && gameState.myStat.name)) || "";
-			if (name) avatar.setLabel("LV" + lvl + " " + name);
-		}
-	}
-}
-
-
 	if (lunPanelElements.renameLevelInput && lunPanelElements.renameLevelInput.style.display === "none") {
 		let isVip = false;
 		const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
@@ -26279,47 +26970,7 @@ function hookAvatarLabel(entity, explicitContainer) {
 		hookAvatarLabel({ avatar: gameState.localAvatar, container: gameState.playerContainer, isLocalPlayer: true }, gameState.playerContainer);
 	}
 
-	let partyNames = null;
-	if (gameState?.remotePlayers?.remotePlayers) {
-		gameState.remotePlayers.remotePlayers.forEach(t => {
-			if (t.avatar) hookAvatarLabel(t);
-			if (!t.container) return;
-
-			delete t.container.__spkmodNametagSprite;
-
-			let shouldBeVisible = true;
-			if (lunNametagMode === 0) {
-				shouldBeVisible = true;
-			} else if (lunNametagMode === 3) {
-				shouldBeVisible = false;
-			} else if (lunNametagMode === 1) {
-				if (partyNames === null) {
-					partyNames = new Set(Array.from(gameState?.partyMemberNamesBySlot?.values?.() ?? []).map(name => String(name ?? "").trim().toLowerCase()).filter(Boolean));
-				}
-				const pName = (t.info?.name || "").trim().toLowerCase();
-				const origName = (t.info?.__spkmodOrigName || "").trim().toLowerCase();
-				shouldBeVisible = partyNames.has(pName) || (Boolean(origName) && partyNames.has(origName));
-			} else if (lunNametagMode === 2) {
-				const pName = (t.info?.name || "").trim().toLowerCase();
-				const origName = (t.info?.__spkmodOrigName || "").trim().toLowerCase();
-				shouldBeVisible = lunFriendNicknames.has(pName) || (Boolean(origName) && lunFriendNicknames.has(origName));
-			}
-
-			if (typeof t.container.traverse === "function") {
-				t.container.traverse(obj => {
-					if (obj && obj.isSprite) {
-						if (typeof hookSpritePrototypeOnce === "function") hookSpritePrototypeOnce(obj);
-						if (obj.position && obj.position.y > 0.5) {
-							obj.visible = shouldBeVisible;
-						}
-					}
-				});
-			}
-		});
-	}
-	updateKnownBotVisibility();
 	hookKnownBotHeartEmotes();
-	hookKnownBotPlayerEmotesForAll();
 	if (typeof hookBlockedUserVoice === "function") hookBlockedUserVoice();
 	if (((typeof lunChromaKeyColor !== "undefined" && lunChromaKeyColor !== "none") || (typeof lunChromaFloorShape !== "undefined" && lunChromaFloorShape !== "off")) && typeof maintainChromaKeyColor === "function") {
 		if (lunTickCount % 20 === 0) {
@@ -26347,39 +26998,7 @@ function hookAvatarLabel(entity, explicitContainer) {
 		const startZone = (zoneId - 0) % 10000;
 		const endZone = (lunWalkToPortal - 0) % 10000;
 		
-		let path = null;
-		if (startZone === endZone) {
-			path = [];
-		} else {
-			let queue = [startZone];
-			let visited = new Set();
-			visited.add(startZone);
-			let parentMap = {};
-			
-			while (queue.length > 0) {
-				let curr = queue.shift();
-				if (curr === endZone) {
-					path = [];
-					let trace = endZone;
-					while (trace !== startZone) {
-						path.unshift(trace);
-						trace = parentMap[trace];
-					}
-					break;
-				}
-				let neighbors = Portals[curr];
-				if (neighbors) {
-					for (let n in neighbors) {
-						let nz = parseInt(n);
-						if (!visited.has(nz)) {
-							visited.add(nz);
-							parentMap[nz] = curr;
-							queue.push(nz);
-						}
-					}
-				}
-			}
-		}
+		const path = getSpkmodPortalPath(startZone, endZone);
 
 		if (path === null) {
 			chatLog(t("noPathMsg", startZone, -1, endZone, -1));
@@ -26713,11 +27332,16 @@ function hookGameStateOnce() {
 	gameState.__speakiGameStateHooked = true;
 	window.__gameStateHooked = true;
 	if (window.spkmodDebug) spkmodDebug.log("Initializing in-game GameState hooks...");
-
-	if (typeof spkmodEnsureCartWatcher === "function") {
-		spkmodEnsureCartWatcher();
-	}
-
+	// Party nametag visibility hook
+    if (typeof gameState.handlePartyInfo === "function" && !gameState.__spkmodPartyInfoHooked) {
+        gameState.__spkmodPartyInfoHooked = true;
+        const originalHandlePartyInfo = gameState.handlePartyInfo.bind(gameState);
+		gameState.handlePartyInfo = function(e) {
+			const result = originalHandlePartyInfo(e);
+			if (lunNametagMode === 1) refreshAllNametags();
+            return result;
+        };
+    }
 	if (typeof gameState.handleQuestProgress === "function" && !gameState.__speakiQuestProgressHooked) {
 		gameState.__speakiQuestProgressHooked = true;
 		const origHandleQuestProgress = gameState.handleQuestProgress.bind(gameState);
@@ -27550,32 +28174,115 @@ function forceTranslateMessage(name, msg, assignedColor) {
 		});
 	});
 }
+
 function hookRemotePlayersOnce() {
-	if (typeof gameState === 'undefined' || !gameState?.remotePlayers?.remotePlayers) return;
-	if (gameState.remotePlayers.remotePlayers.__speakiHooked) return;
-	gameState.remotePlayers.remotePlayers.__speakiHooked = true;
+    if (typeof gameState === "undefined" || !gameState?.remotePlayers?.remotePlayers) return;
 
-	const hkRemotePlayersSet = gameState.remotePlayers.remotePlayers.set.bind(gameState.remotePlayers.remotePlayers);
-	gameState.remotePlayers.remotePlayers.set = function (key, value) {
-		if (value && value.info && typeof value.info.name === "string") {
-			value.info.name = filterName(value.info.name);
-		}
-		hookKnownBotPlayerEmotes(value);
-		if (typeof window.spkmodSanitizeRemotePlayers === "function") {
-			window.spkmodSanitizeRemotePlayers();
-		}
-		return hkRemotePlayersSet(key, value);
-	};
+    const remoteStore = gameState.remotePlayers;
+    const remoteMap = remoteStore.remotePlayers;
 
-	gameState.remotePlayers.remotePlayers.forEach(v => {
-		if (v && v.info && typeof v.info.name === "string") {
-			v.info.name = filterName(v.info.name);
-		}
-	});
-	hookKnownBotHeartEmotes();
-	hookKnownBotPlayerEmotesForAll();
-	if (typeof window.hookRemotePlayerRebuildIsolation === "function") window.hookRemotePlayerRebuildIsolation();
-	if (typeof window.spkmodSanitizeRemotePlayers === "function") window.spkmodSanitizeRemotePlayers();
+    if (!(remoteMap instanceof Map)) return;
+
+    if (!remoteMap.__speakiHooked) {
+        remoteMap.__speakiHooked = true;
+
+        const originalSet = remoteMap.set.bind(remoteMap);
+        const originalDelete = remoteMap.delete.bind(remoteMap);
+        const originalClear = remoteMap.clear.bind(remoteMap);
+
+        remoteMap.set = function(key, value) {
+            if (value?.info && typeof value.info.name === "string") {
+                value.info.name = filterName(value.info.name);
+            }
+
+            hookKnownBotPlayerEmotes(value);
+
+            if (typeof window.spkmodSanitizeRemotePlayers === "function") {
+                window.spkmodSanitizeRemotePlayers();
+            }
+
+            const result = originalSet(key, value);
+
+            if (value) {
+                value.__spkmodNametagManaged = true;
+                hookNametagAvatarReplacement(value);
+
+                if (value.avatar) hookAvatarLabel(value);
+
+                applyPlayerNametagVisibility(value);
+            }
+
+            updateKnownBotVisibility();
+
+            return result;
+        };
+
+        remoteMap.delete = function(key) {
+            const result = originalDelete(key);
+
+            if (result) updateKnownBotVisibility();
+
+            return result;
+        };
+
+        remoteMap.clear = function() {
+            const hadItems = this.size > 0;
+            const result = originalClear();
+
+            if (hadItems) updateKnownBotVisibility();
+
+            return result;
+        };
+
+        remoteMap.forEach(v => {
+            if (v?.info && typeof v.info.name === "string") {
+                v.info.name = filterName(v.info.name);
+            }
+
+            if (!v) return;
+
+            v.__spkmodNametagManaged = true;
+            hookNametagAvatarReplacement(v);
+
+            if (v.avatar) hookAvatarLabel(v);
+        });
+
+        refreshAllNametags();
+        hookKnownBotHeartEmotes();
+        hookKnownBotPlayerEmotesForAll();
+
+        if (typeof window.hookRemotePlayerRebuildIsolation === "function") {
+            window.hookRemotePlayerRebuildIsolation();
+        }
+
+        if (typeof window.spkmodSanitizeRemotePlayers === "function") {
+            window.spkmodSanitizeRemotePlayers();
+        }
+    }
+
+    if (!remoteStore.__spkmodApplyStatVisibilityHooked && typeof remoteStore.applyStat === "function") {
+        const originalApplyStat = remoteStore.applyStat;
+
+        remoteStore.applyStat = function(playerId, ...args) {
+            const player = remoteMap.get(playerId);
+            const oldName = player?.info?.name;
+            const oldLevel = player?.info?.level;
+            const result = originalApplyStat.call(this, playerId, ...args);
+
+            if (player && (player.info?.name !== oldName || player.info?.level !== oldLevel)) {
+                updateKnownBotVisibility();
+            }
+
+            return result;
+        };
+
+        remoteStore.__spkmodApplyStatVisibilityHooked = true;
+    }
+
+    spkmodHookVisibilityMap(gameState.remotePetRegistry?.pets);
+    spkmodHookVisibilityMap(gameState.remoteDroneCoreRegistry?.drones);
+
+    updateKnownBotVisibility();
 }
 hookRemotePlayersOnce();
 
@@ -27687,7 +28394,19 @@ function spkmodResetFpsBaseline() {
 	spkmodFpsState.drawn = false;
 }
 
-document.addEventListener("visibilitychange", spkmodResetFpsBaseline);
+document.addEventListener("visibilitychange", () => {
+    spkmodResetFpsBaseline();
+    if (document.hidden) {
+        if (spkmodFpsRafId) {
+            cancelAnimationFrame(spkmodFpsRafId);
+        }
+        spkmodFpsRafId = 0;
+        spkmodFpsLoopRunning = false;
+        spkmodFpsState.enabled = false;
+    } else {
+        ensureFpsLoop();
+    }
+});
 // We no longer need to rely on a specific class named "sr-game-canvas"
 const spkmodGameGl = new WeakSet();
 
@@ -27750,60 +28469,96 @@ function spkmodIsGameGl(gl) {
 	}
 })();
 
-function fpsLoop() {
-	const now = performance.now();
+let spkmodFpsLoopRunning = false;
+let spkmodFpsRafId = 0;
+let spkmodResetTimerInterval = null;
 
-	const fpsWanted = lunFpsPingEnabled || !!(lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden"));
-	if (fpsWanted !== spkmodFpsState.enabled) {
-		spkmodFpsState.enabled = fpsWanted;
-		spkmodResetFpsBaseline();
-	}
-
-	if (spkmodFpsState.drawn) {
-		spkmodFpsState.frames++;
-		spkmodFpsState.drawn = false;
-	}
-
-	if (now - lunLastFrameTime >= 1000) {
-		if (spkmodFpsState.enabled) {
-			lunCurrentFps = Math.round((spkmodFpsState.frames - lunFpsLastRenderedFrames) * 1000 / (now - lunLastFrameTime));
-		}
-		lunFpsLastRenderedFrames = spkmodFpsState.frames;
-
-		if (lunFpsPingEnabled && lunHudElements.fpsPingTracker) {
-			setText(lunHudElements.fpsPingTracker, t("fpsPingText", lunCurrentFps, lunCurrentPing));
-		}
-
-		if (lunResetTimerEnabled && lunHudElements.resetTimerTracker) {
-			const nowUtc = new Date();
-			const kstOffset = 9 * 60 * 60 * 1000;
-			const kstNow = new Date(nowUtc.getTime() + kstOffset);
-			const kstNextMidnight = new Date(kstNow);
-			kstNextMidnight.setUTCHours(24, 0, 0, 0); // Next midnight in KST
-			const diffMs = kstNextMidnight.getTime() - kstNow.getTime();
-			const diffTotalSeconds = Math.floor(diffMs / 1000);
-			const hours = Math.floor(diffTotalSeconds / 3600);
-			const minutes = Math.floor((diffTotalSeconds % 3600) / 60);
-			const seconds = diffTotalSeconds % 60;
-			setText(lunHudElements.resetTimerTracker, t("resetTimerText",
-				String(hours).padStart(2, '0'),
-				String(minutes).padStart(2, '0'),
-				String(seconds).padStart(2, '0')
-			));
-		}
-
-		if (typeof updateStatsModalLive === 'function' && lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden")) {
-			updateStatsModalLive();
-		}
-
-		performActivePing();
-
-		lunLastFrameTime = now;
-	}
-
-	requestAnimationFrame(fpsLoop);
+function isSpkmodFpsWanted() {
+    return !document.hidden && (lunFpsPingEnabled ||
+		!!(lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden")));
 }
-requestAnimationFrame(fpsLoop);
+
+function updateSpkmodResetTimer() {
+    if (!lunResetTimerEnabled || !lunHudElements.resetTimerTracker) return;
+
+    const nowUtc = new Date();
+    const kstOffset = 9 * 60 * 60 * 1000;
+    const kstNow = new Date(nowUtc.getTime() + kstOffset);
+    const kstNextMidnight = new Date(kstNow);
+
+    kstNextMidnight.setUTCHours(24, 0, 0, 0);
+
+    const diffMs = kstNextMidnight.getTime() - kstNow.getTime();
+    const diffTotalSeconds = Math.floor(diffMs / 1000);
+    const hours = Math.floor(diffTotalSeconds / 3600);
+    const minutes = Math.floor((diffTotalSeconds % 3600) / 60);
+    const seconds = diffTotalSeconds % 60;
+
+    setText(lunHudElements.resetTimerTracker, t("resetTimerText", String(hours).padStart(2, "0"), String(minutes).padStart(2, "0"), String(seconds).padStart(2, "0")));
+}
+
+function syncSpkmodResetTimerInterval() {
+    if (lunResetTimerEnabled && lunHudElements.resetTimerTracker && !spkmodResetTimerInterval) {
+        updateSpkmodResetTimer();
+        spkmodResetTimerInterval = setInterval(updateSpkmodResetTimer, 1000);
+    } else if ((!lunResetTimerEnabled || !lunHudElements.resetTimerTracker) && spkmodResetTimerInterval) {
+        clearInterval(spkmodResetTimerInterval);
+        spkmodResetTimerInterval = null;
+    }
+}
+
+function ensureFpsLoop() {
+    if (spkmodFpsLoopRunning || !isSpkmodFpsWanted()) return;
+
+    spkmodFpsLoopRunning = true;
+    spkmodFpsState.enabled = true;
+
+    spkmodResetFpsBaseline();
+
+    spkmodFpsRafId = requestAnimationFrame(fpsLoop);
+}
+
+function fpsLoop() {
+    spkmodFpsRafId = 0;
+
+    if (!isSpkmodFpsWanted()) {
+        spkmodFpsLoopRunning = false;
+        spkmodFpsState.enabled = false;
+
+        spkmodResetFpsBaseline();
+
+        return;
+    }
+
+    const now = performance.now();
+
+    if (spkmodFpsState.drawn) {
+        spkmodFpsState.frames++;
+        spkmodFpsState.drawn = false;
+    }
+
+    if (now - lunLastFrameTime >= 1000) {
+        lunCurrentFps = Math.round((spkmodFpsState.frames - lunFpsLastRenderedFrames) * 1000 / (now - lunLastFrameTime));
+        lunFpsLastRenderedFrames = spkmodFpsState.frames;
+
+        if (lunFpsPingEnabled && lunHudElements.fpsPingTracker) {
+            setText(lunHudElements.fpsPingTracker, t("fpsPingText", lunCurrentFps, lunCurrentPing));
+        }
+
+        if (typeof updateStatsModalLive === "function" && lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden")) {
+            updateStatsModalLive();
+        }
+
+        performActivePing();
+
+        lunLastFrameTime = now;
+    }
+
+    spkmodFpsRafId = requestAnimationFrame(fpsLoop);
+}
+
+syncSpkmodResetTimerInterval();
+ensureFpsLoop();
 
 setTimeout(() => {
 	fetchPatchNotesOnce();
