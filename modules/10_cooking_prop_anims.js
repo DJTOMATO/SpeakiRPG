@@ -250,6 +250,24 @@ function spkmodApplyPumpkinCartTextureToScene(enable, targetImage) {
 	const scene = gameState.scene;
 	if (!scene || typeof scene.traverse !== "function") return;
 
+	if (gameState.mountVisuals && !gameState.mountVisuals.__spkmodHooked) {
+		const origSetMount = gameState.mountVisuals.setMount;
+		gameState.mountVisuals.setMount = function (...args) {
+			const res = origSetMount.apply(this, args);
+			if (window.spkmodActivePumpkinSkin) {
+				setTimeout(() => {
+					if (window.spkmodActivePumpkinSkin) {
+						spkmodGetCartSkinImage(window.spkmodActivePumpkinSkin, img => {
+							spkmodApplyPumpkinCartTextureToScene(true, img);
+						});
+					}
+				}, 150);
+			}
+			return res;
+		};
+		gameState.mountVisuals.__spkmodHooked = true;
+	}
+
 	const applyToMat = (mat, childName) => {
 		if (!mat) return;
 		const mats = Array.isArray(mat) ? mat : [mat];
@@ -270,6 +288,10 @@ function spkmodApplyPumpkinCartTextureToScene(enable, targetImage) {
 				if (m.__spkmodOrigCartMap === undefined && m.map) {
 					m.__spkmodOrigCartMap = m.map;
 				}
+				if (m.__spkmodOrigCartTransparent === undefined) {
+					m.__spkmodOrigCartTransparent = m.transparent;
+					m.__spkmodOrigCartAlphaTest = m.alphaTest;
+				}
 				if (enable) {
 					if (targetImage) {
 						if (m.map) {
@@ -277,6 +299,9 @@ function spkmodApplyPumpkinCartTextureToScene(enable, targetImage) {
 							m.map.needsUpdate = true;
 						}
 					}
+					m.transparent = true;
+					m.alphaTest = 0.5;
+					m.depthWrite = true;
 					m.needsUpdate = true;
 				} else {
 					const origImg = m.__spkmodOrigCartImage || _spkmodOriginalCartImage;
@@ -286,6 +311,10 @@ function spkmodApplyPumpkinCartTextureToScene(enable, targetImage) {
 					} else if (m.__spkmodOrigCartMap) {
 						m.map = m.__spkmodOrigCartMap;
 						if (m.map) m.map.needsUpdate = true;
+					}
+					if (m.__spkmodOrigCartTransparent !== undefined) {
+						m.transparent = m.__spkmodOrigCartTransparent;
+						m.alphaTest = m.__spkmodOrigCartAlphaTest;
 					}
 					m.needsUpdate = true;
 				}
