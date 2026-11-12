@@ -4851,3 +4851,4 @@ buildResourcePackModal();
 if (lunResourcePackEnabled && Object.keys(lunMiningCustomTextures).length > 0) {
 	setTimeout(spkmodApplyMiningResourcePack, 500);
 }
+
