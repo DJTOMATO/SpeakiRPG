@@ -32619,37 +32619,152 @@ function spkmodPlayFwCrackleSound(x, y, z) {
 	}
 }
 
-// ------------- Firework Visual Choreography (fireworkshownew.txt) -------------
-// [0] = Time start, [1] = "normal" | "text", [2] angle, [3] Height, [4] Color, [5] offset to side (z), [6] optional offset x
+// ------------- Firework Visual Choreography (fireworknew3.txt) -------------
+// [0] = Time start, [1] = "normal" | "text" | "fountain" | "textGMDT" | "heart", [2] angle, [3] Height, [4] Color, [5] offset to side (z), [6] optional offset x, [7] optional duration, [8] optional particles, [9] optional burstSize
 var SPKMOD_FW_SHOW = [ 
-	[0, "normal", 0, 12, "yellow", 0],
-	[0, "normal", 0, 12, "yellow", 5],
-	[0, "normal", 0, 12, "yellow", -5],
-	[0, "normal", 0, 12, "yellow", 10],
-	[0, "normal", 0, 12, "yellow", -10],
-	[0, "normal", 0, 10, "yellow", 0, -10],
-	[0, "normal", 0, 10, "yellow", 5, -20],
-	[0, "normal", 0, 10, "yellow", -5, -20],
-	[0, "normal", 0, 10, "yellow", 10, -30],
-	[0, "normal", 0, 10, "yellow", -10, -30],
-	[2.5, "normal", -25, 11, "red", 0],
-	[2.5, "normal", 25, 11, "blue", 0],
-	[2.5, "normal", 0, 11, "white", 0],
-	[6, "normal", 0, 9, "yellow", 0],
-	[8.5, "normal", -40, 8, "rainbow", 0],
-	[8.7, "normal", -20, 9, "rainbow", 0],
-	[8.9, "normal", 0, 10, "rainbow", 0],
-	[9.0, "normal", 20, 9, "rainbow", 0],
-	[9.2, "normal", 40, 8, "rainbow", 0],
-	[11, "text", 0, 9, "white", 0],
-	[14, "normal", 40, 13, "blue", 0],
-	[14.3, "normal", 10, 16, "red", 0, -5],
-	[14.6, "normal", -30, 13, "pink", 0],
-	[14.9, "normal", -10, 17, "green", -5],
-	[15.0, "normal", 40, 13, "orange", 0],
-	[15.3, "normal", 10, 15, "blue", 0],
-	[15.6, "normal", -30, 12, "yellow", -5]
+	[4.0, "normal", 0, 8.5, "yellow", 0, 0, 0, 200, 7],
+	[6.5, "normal", -25, 11, "red", 0, 0, 0, 100, 6],
+	[6.6, "normal", 25, 11, "green", 0, 0, 0, 100, 6],
+	[6.7, "normal", 0, 11, "cyan", 0, 0, 0, 130, 6],
+	
+	[11, "normal", 0, 8, "yellow", 0, 0, 0, 100, 5],
+	[11, "normal", 0, 8, "yellow", -5, 0, 0, 100, 5],
+	[11, "normal", 0, 8, "yellow", -10, 0, 0, 100, 5],
+	[11, "normal", 0, 8, "yellow", 5, 0, 0, 100, 5],
+	[11, "normal", 0, 8, "yellow", 10, 0, 0, 100, 5],
+	
+	[11.5, "normal", 0, 12, "blue", 0, 0, 0, 100, 8],
+	[11.25, "normal", -35, 10, "blue", 0, 0, 0, 100, 9],
+	[12, "normal", -15, 11, "blue", 0, -5, 0, 100, 8],
+	[12.25, "normal", 35, 10, "blue", 0, 0, 0, 100, 9],
+	[12.4, "normal", 15, 11, "blue", 0, 5, 0, 100, 8],
+	
+	[14.5, "normal", 40, 9, "orange", -10, 0, 0, 100, 7],
+	[15, "normal", -40, 8, "red", 10, 0, 0, 100, 7],
+	[15.5, "normal", 30, 9, "red", -10, 0, 0, 130, 8],
+	[15.5, "normal", -30, 10, "orange", 10, 0, 0, 130, 8],
+	[15.8, "normal", 20, 8, "orange", -10, 0, 0, 130, 6],
+	[15.8, "normal", -20, 10, "red", 10, 0, 0, 130, 6],
+	[16, "normal", 40, 9, "orange", -10, 0, 0, 130, 6],
+	[16, "normal", -40, 12, "red", 10, 0, 0, 130, 6],
+	
+	[18.5, "normal", -40, 8, "rainbow", 0, 0, 0, 100, 6],
+	[18.7, "normal", -20, 9, "rainbow", 0, 0, 0, 100, 6],
+	[19.0, "normal", 20, 9, "rainbow", 0, 0, 0, 100, 6],
+	[19.2, "normal", 40, 8, "rainbow", 0, 0, 0, 100, 6],
+
+	[19.5, "normal", 0, 10, "green", 0, 0, 0, 100, 3],
+	[19.65, "normal", 0, 10, "red", 0, 0, 0, 150, 6],
+	[19.8, "normal", 0, 10, "cyan", 0, 0, 0, 200, 9],
+	[19.95, "normal", 0, 10, "blue", 0, 0, 0, 250, 12],
+	
+	[23, "normal", 0, 6, "yellow", -12, 0, 0, 60, 6],
+	[23, "normal", 0, 6, "yellow", 12, 0, 0, 60, 6],
+	[23.2, "normal", 0, 7, "yellow", -10, 0, 0, 60, 6],
+	[23.2, "normal", 0, 7, "yellow", 10, 0, 0, 60, 6],
+	[23.4, "normal", 0, 8, "yellow", -8, 0, 0, 60, 6],
+	[23.4, "normal", 0, 8, "yellow", 8, 0, 0, 60, 6],
+	[23.6, "normal", 0, 9, "yellow", -5, 0, 0, 60, 6],
+	[23.6, "normal", 0, 9, "yellow", 5, 0, 0, 60, 6],
+	[23.8, "normal", 0, 10, "yellow", -2, 0, 0, 60, 6],
+	[23.8, "normal", 0, 10, "yellow", 2, 0, 0, 60, 6],
+	[24, "normal", 0, 11, "yellow", 0, 0, 0, 60, 6],
+	[24.1, "normal", 0, 12, "yellow", 0, 0, 0, 60, 6],
+	
+	[24.5, "normal", 0, 10, "yellow", -12, 0, 0, 60, 6],
+	[24.5, "normal", 0, 10, "yellow", 12, 0, 0, 60, 6],
+	[24.7, "normal", 0, 11, "yellow", -10, 0, 0, 60, 6],
+	[24.7, "normal", 0, 11, "yellow", 10, 0, 0, 60, 6],
+	[24.9, "normal", 0, 12, "yellow", -8, 0, 0, 60, 6],
+	[24.9, "normal", 0, 12, "yellow", 8, 0, 0, 60, 6],
+	[25.1, "normal", 0, 13, "yellow", -5, 0, 0, 60, 6],
+	[25.1, "normal", 0, 13, "yellow", 5, 0, 0, 60, 6],
+	[25.3, "normal", 0, 14, "yellow", -2, 0, 0, 60, 6],
+	[25.3, "normal", 0, 14, "yellow", 2, 0, 0, 60, 6],
+	[25.5, "normal", 0, 15, "yellow", 0, 0, 0, 60, 6],
+	[25.4, "normal", 40, 9, "rainbow", -10, 0, 0, 130, 6],
+	[25.4, "normal", -40, 9, "rainbow", 10, 0, 0, 130, 6],
+	[25.4, "normal", -45, 9, "rainbow", 10, 0, 0, 200, 8],
+	
+	[31.8, "normal", 40, 9, "blue", 0, 0, 0, 100],
+	[31.8, "normal", 10, 13, "red", 0, -5, 0, 150],
+	[32.0, "normal", -40, 10, "white", 0, 5],
+	[32.3, "normal", -30, 11, "pink", 0],
+	[32.5, "normal", -10, 15, "green", 0],
+	[32.1, "normal", 40, 13, "orange", 0],
+	[32.3, "normal", 10, 16, "blue", 0],
+	[32.7, "normal", -30, 11, "yellow", 0],
+	
+	[33, "fountain", 0, 1.6, "yellow", 1.9, -8.4, 10, 30],
+	[33, "fountain", 0, 1.6, "yellow", 9.7, -7, 10, 30],
+	[33, "fountain", 0, 2.0, "yellow", 8.75, -2.6, 10, 30],
+	[33, "fountain", 0, 2.45, "yellow", 7.23, -1.82, 10, 30],
+	[33, "fountain", 0, 1.6, "yellow", -1.9, -8.4, 10, 30],
+	[33, "fountain", 0, 1.6, "yellow", -9.7, -7, 10, 30],
+	[33, "fountain", 0, 2.0, "yellow", -8.75, -2.6, 10, 30],
+	[33, "fountain", 0, 2.45, "yellow", -7.23, -1.82, 10, 30],
+	
+	[30, "text", 0, 9, "", 0],
+	[31.3, "normal", 0, 9, "white", 0, 0, 0, 50, 7],
+	[33.5, "normal", -40, 11, "red", 0, 0, 0, 100],
+	[33.5, "normal", 10, 16, "yellow", 0, -5, 0, 150],
+	[34, "normal", 15, 14, "blue", 0, 5],
+	[34.5, "normal", -30, 8, "cyan", 0],
+	[35, "normal", -10, 12, "green", -5],
+	[35, "normal", 15, 10, "pink", -5],
+	[35.5, "normal", 40, 7, "orange", 0],
+	[36, "normal", 10, 11, "blue", 0],
+	[36.5, "normal", -30, 12, "blue", -5],
+	[37, "normal", 35, 11, "white", 0, 0, 0, 100],
+	[37.3, "normal", 30, 11, "cyan", 0, 0, 0, 100],
+	[37, "normal", -40, 9, "green", 0, 0, 0, 100],
+	[37.5, "normal", 10, 16, "blue", 0, -5, 0, 150],
+	[38, "normal", 15, 15, "red", 0, 5],
+	[38.5, "normal", -30, 11, "pink", 0],
+	[39, "normal", -24, 12, "green", 0],
+	[39.5, "normal", 40, 13, "blue", 0],
+	[40, "normal", 25, 11, "red", 0],
+	[40.5, "normal", 30, 7, "yellow", 0],
+	
+	[45.3, "normal", 0, 9, "white", 0, 0, 0, 50, 4],
+	[44, "textGMDT", 0, 9, "", 0],
+	[44, "heart", 0, 9, "", 0],
+	
+	[57, "normal", 0, 7, "rainbow", 0, -7, 0, 500, 20],
+	[57, "normal", 0, 7, "rainbow", 0, -7, 0, 300, 10]
 ];
+
+var sparklerPositions = [
+	[-1.9, -8.4, 1.6],
+	[-9.7, -7,   1.6],
+	[-8.75, -2.6, 2.0],
+	[-7.23, -1.82, 2.45],
+	[1.9, -8.4, 1.6],
+	[9.7, -7,   1.6],
+	[8.75, -2.6, 2.0],
+	[7.23, -1.82, 2.45]
+];
+
+// Add sparkler waves automatically at the start of the show (0.0s - 3.0s)
+const _fwAa = 0.8;
+const _fwBb = _fwAa / 4; 
+for (let group = 0; group < 4; group++) {
+	for (let i = 0; i < sparklerPositions.length; i++) {
+		const time = group * _fwAa + (i % 4) * _fwBb;
+		const pos = sparklerPositions[i];
+		SPKMOD_FW_SHOW.push([
+			time,
+			"fountain",
+			0,
+			pos[2],
+			"yellow",
+			pos[0],
+			pos[1],
+			0.2,
+			80
+		]);
+	}
+}
 
 var SPKMOD_FW_COLORS = {
 	white: [255, 255, 255], yellow: [255, 214, 10], red: [255, 60, 50], green: [70, 255, 110],
@@ -32676,15 +32791,72 @@ const SPKMOD_FW_TIMES = {
 	textPause: 1.5,
 	normalPause: 0.1,
 	textBurst: 1.3,
-	textHold: 15,
+	textHold: 9.3,
 	textFadeDelayMax: 1,
-	textFade: 4,
+	textFade: 2.5,
 	normalLife: 5
+};
+
+var SPKMOD_FW_FOUNTAIN = {
+	rate: 100,
+	coneDeg: 25,
+	speedMin: 5,
+	speedMax: 15,
+	gravity: 25,
+	life: 0.8,
+	size: 0.7
+};
+
+var SPKMOD_FW_SHAPES = {
+	text: {
+		worldWidth: 10, particles: 200, colors: ["white", "yellow"], canvasScale: 2,
+		draw: (ctx, w, h) => { 
+			const thicknessFont = "900";
+			const heightText = "200px";
+			ctx.font = thicknessFont + " " + heightText + " Arial, sans-serif";
+			ctx.textAlign = "center"; 
+			ctx.textBaseline = "middle";
+			ctx.fillStyle = "#fff"; 
+			ctx.strokeStyle = "#fff"; 
+			ctx.lineWidth = 10;   
+			ctx.lineJoin = "round";
+			ctx.strokeText("100", w / 2, h / 2);
+		}
+	},
+	textGMDT: {
+		worldWidth: 15, particles: 400, colors: ["white", "yellow"], canvasScale: 3,
+		draw: (ctx, w, h) => { 
+			const thicknessFont = "900";
+			const heightText = "200px";
+			ctx.font = thicknessFont + " " + heightText + " Arial, sans-serif";
+			ctx.textAlign = "center"; 
+			ctx.textBaseline = "middle";
+			ctx.fillStyle = "#fff"; 
+			ctx.strokeStyle = "#fff"; 
+			ctx.lineWidth = 10;   
+			ctx.lineJoin = "round";
+			ctx.strokeText("GMDT", w / 2, h / 2);
+		}
+	},
+	heart: {
+		worldWidth: 15, particles: 300, colors: ["red", "pink"], canvasScale: 1,
+		draw: (ctx, w, h) => {
+			ctx.lineWidth = 15;
+			ctx.strokeStyle = "#fff";
+			ctx.fillStyle = "#fff";
+			const cx = w / 2, cy = h / 2;
+			ctx.beginPath();
+			ctx.moveTo(cx, cy + 72);
+			ctx.bezierCurveTo(cx - 140, cy - 10, cx - 70, cy - 110, cx, cy - 40);
+			ctx.bezierCurveTo(cx + 70, cy - 110, cx + 140, cy - 10, cx, cy + 72);
+			ctx.stroke();
+		}
+	}
 };
 
 var spkmodFw = null;
 var spkmodFwSprites = {};
-var spkmodFwText = null;
+var spkmodFwShapeCache = {};
 
 function spkmodFwSprite(colorName) {
 	if (spkmodFwSprites[colorName]) return spkmodFwSprites[colorName];
@@ -32705,26 +32877,20 @@ function spkmodFwSprite(colorName) {
 	return (spkmodFwSprites[colorName] = canvas);
 }
 
-function spkmodFwTextPoints() {
-	if (spkmodFwText) return spkmodFwText;
-	const realWorldTextScale = 15;
-	const thicknessFont = "900";
-	const heightText = "150px";
-	const font = thicknessFont + " " + heightText + " Arial, sans-serif";
+function spkmodFwShapePoints(name) {
+	if (spkmodFwShapeCache[name]) return spkmodFwShapeCache[name];
+	const shape = SPKMOD_FW_SHAPES[name];
+	if (!shape) return [];
+	const realWorldTextScale = shape.worldWidth;
+
 	const cv = document.createElement("canvas");
 	const ctx = cv.getContext("2d");
-	const width = 360;
+	const width = 360 * shape.canvasScale;
 	const height = 240; 
 	cv.width = width;
 	cv.height = height; 
-	ctx.font = font; 
-	ctx.textAlign = "center"; 
-	ctx.textBaseline = "middle";
-	ctx.fillStyle = "#fff"; 
-	ctx.strokeStyle = "#fff"; 
-	ctx.lineWidth = 10;   
-	ctx.lineJoin = "round";
-	ctx.strokeText("100", width / 2, height / 2);
+	shape.draw(ctx, width, height);                       
+	
 	const imageDataPoint = ctx.getImageData(0, 0, width, height).data;
 	function spkmodFwCheckPixel(x, y) {
 		if (x < 0 || y < 0 || x >= width || y >= height) return false;
@@ -32742,11 +32908,13 @@ function spkmodFwTextPoints() {
 			}
 		}
 	}
-	area *= 4;
-	const particleInterval = Math.max(2, Math.sqrt(area / SPKMOD_FW_ADJ.textBurstSparkCount)); 
+	if (maxX <= minX) return (spkmodFwShapeCache[name] = []);
+	area *= 4; 
+	const particleInterval = Math.max(2, Math.sqrt(area / shape.particles)); 
 	const scaleFactorRealWorld = realWorldTextScale / (maxX - minX);
 	const textMiddle = (minX + maxX) / 2;
 	const pts = [];
+	
 	for (let y = 0, row = 0; y < height; y += particleInterval, row++) {  
 		for (let x = (row % 2) * particleInterval / 2; x < width; x += particleInterval) {  
 			const fwPosX = x + (Math.random() - 0.5) * particleInterval * 0.5;
@@ -32759,8 +32927,11 @@ function spkmodFwTextPoints() {
 			}
 		}
 	}
-	spkmodFwText = pts;
-	return spkmodFwText;
+	return (spkmodFwShapeCache[name] = pts);
+}
+
+function spkmodFwTextPoints() {
+	return spkmodFwShapePoints("text");
 }
 
 function spkmodFwStop() {
@@ -32784,6 +32955,7 @@ window.spkmodStopCinemaFireworks = spkmodFwStop;
 
 window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 	if (spkmodFw) { spkmodFwStop(); return; }
+	spkmodGetFwAudioContext();
 	if (typeof window.spkmodSetNightMode === "function") {
 		window.spkmodSetNightMode(true);
 	}
@@ -32826,8 +32998,13 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 			z: fwStartPos.z + (r[5] != null ? r[5] : 0), 
 			offset: off,
 			rise: (h / Math.cos(angleInRadians)) / SPKMOD_FW_TIMES.fwClimbSpeed,
+			type: r[1],
+			isShape: !!SPKMOD_FW_SHAPES[r[1]],
+			duration: (r[7] != null ? r[7] : 5),
+			particles: (r[8] != null ? r[8] : 100),
+			burstSize: (r[9] != null ? r[9] : 6),
 			soundLaunched: false,
-			soundBursted: false
+			sparks: null
 		};
 	});
 
@@ -32866,31 +33043,60 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 			const a = t - s.start;
 			if (a < 0) { alive = true; continue; }
 
+			// Ground sparklers / fountains
+			if (s.type === "fountain") {
+				const F = SPKMOD_FW_FOUNTAIN;
+				const dur = s.duration;
+				if (a > dur + F.life) continue;
+				alive = true;
+				if (!s.soundBursted) {
+					s.soundBursted = true;
+					spkmodPlayFwCrackleSound(s.x, s.y, s.z);
+				}
+				if (!s.sparks) {
+					s.sparks = [];
+					const n = Math.floor(s.particles * dur);
+					for (let i = 0; i < n; i++) {
+						const tilt = Math.random() * F.coneDeg * Math.PI / 180;
+						const around = Math.random() * Math.PI * 2;
+						const speed = F.speedMin + Math.random() * (F.speedMax - F.speedMin);
+						s.sparks.push({
+							t0: (i + Math.random()) / s.particles,
+							vx: Math.sin(tilt) * Math.cos(around) * speed,
+							vy: Math.cos(tilt) * speed,
+							vz: Math.sin(tilt) * Math.sin(around) * speed,
+							life: F.life * (0.7 + Math.random() * 0.3)
+						});
+					}
+				}
+
+				const sprite = spkmodFwSprite(s.color);
+				for (const p of s.sparks) {
+					const age = a - p.t0;
+					if (age < 0 || age > p.life) continue;
+					const y = s.y + p.vy * age - 0.5 * F.gravity * age * age;
+					glow(s.x + p.vx * age, y, s.z + p.vz * age, F.size, 1 - age / p.life, sprite, focal, W, H);
+				}
+				continue;
+			}
+
 			const endPos = s.z + s.offset;
 			const startPos = s.z;
 			
-			// Procedural audio: Launch sound
-			if (a >= 0 && !s.soundLaunched) {
+			// Rising sound effect
+			if (!s.soundLaunched) {
 				s.soundLaunched = true;
 				spkmodPlayFwLaunchSound(s.x, 0, startPos, s.rise);
 			}
 
 			const T = SPKMOD_FW_TIMES;
-			const pause = s.text ? T.textPause : T.normalPause;
+			const pause = s.isShape ? T.textPause : T.normalPause;
 			const b = a - s.rise - pause;
-			const shotLength = s.text ? T.textBurst + T.textHold + T.textFadeDelayMax + T.textFade : T.normalLife; 
+			const shotLength = s.isShape ? T.textBurst + T.textHold + T.textFadeDelayMax + T.textFade : T.normalLife; 
 			if (b > shotLength) continue;
 			alive = true;
-			
-			// Procedural audio: Burst sound & crackles
-			if (b >= 0 && !s.soundBursted) {
-				s.soundBursted = true;
-				spkmodPlayFwBurstSound(s.x, s.y, endPos, s.text);
-				if (!s.text && (s.color === "rainbow" || Math.random() < 0.45)) {
-					spkmodPlayFwCrackleSound(s.x, s.y, endPos);
-				}
-			}
 
+			// Rocket trail climb
 			if (a < s.rise + 0.25) {
 				const fade = a < s.rise ? 1 : 1 - (a - s.rise) / 0.25;
 				for (let i = 0; i < 5; i++) {
@@ -32902,11 +33108,14 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 			}
 			if (b < 0) continue;
 
-			if (s.text) {
+			// Shape burst ("100", "GMDT", "heart", etc.)
+			if (s.isShape) {
 				if (!s.pts) {
-					s.pts = spkmodFwTextPoints().map(p => ({
-						u: p.u, v: p.v, d: Math.random() - 0.5, tw: Math.random() * 6.28, fd: Math.random(),
-						c: Math.random() < 0.5 ? "white" : "yellow"
+					spkmodPlayFwBurstSound(s.x, s.y, endPos, true);
+					const colors = SPKMOD_FW_SHAPES[s.type]?.colors || ["white", "yellow"];
+					s.pts = spkmodFwShapePoints(s.type).map(p => ({
+						u: p.u, v: p.v, tw: Math.random() * 6.28, fd: Math.random(),
+						c: colors[(Math.random() * colors.length) | 0]
 					}));
 				}
 				const e = 1 - Math.pow(1 - Math.min(1, b / 1.3), 3);
@@ -32914,13 +33123,18 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 				for (const p of s.pts) {
 					const al = b > 9.3 + p.fd ? 1 - (b - 9.3 - p.fd) / 2.5 : 1;
 					glow(s.x, s.y + p.v * k, endPos + p.u * k,
-						SPKMOD_FW_ADJ.textParticleSize, al * (0.8 + 0.2 * Math.sin(now * 0.012 + p.tw)), spkmodFwSprite(p.c), focal, W, H);
+						SPKMOD_FW_ADJ.normalParticleSize, al * (0.8 + 0.2 * Math.sin(now * 0.012 + p.tw)), spkmodFwSprite(p.c), focal, W, H);
 				}
 			} else {
+				// Normal burst
 				if (!s.pts) {
+					spkmodPlayFwBurstSound(s.x, s.y, endPos, false);
+					if (s.color === "rainbow" || Math.random() < 0.45) {
+						spkmodPlayFwCrackleSound(s.x, s.y, endPos);
+					}
 					s.pts = [];
-					for (let i = 0; i < SPKMOD_FW_ADJ.burstSparkCount; i++) {
-						const zz = Math.random() * 2 - 1, th = Math.random() * 6.28, r = Math.sqrt(1 - zz * zz), sp = 6 + Math.random() * 8;
+					for (let i = 0; i < s.particles; i++) {
+						const zz = Math.random() * 2 - 1, th = Math.random() * 6.28, r = Math.sqrt(1 - zz * zz), sp = s.burstSize;
 						s.pts.push({
 							vx: r * Math.cos(th) * sp, vy: zz * sp, vz: r * Math.sin(th) * sp, tw: Math.random() * 6.28, life: 0.6 + Math.random() * 0.4,
 							c: s.color === "rainbow" ? names[(Math.random() * names.length) | 0] : (Math.random() < 0.2 ? "white" : s.color)
@@ -32928,7 +33142,7 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 					}
 				}
 				const f = (1 - Math.exp(-1.7 * b)) / 1.7;
-				if (b < 0.25) glow(s.x, s.y, s.z, 3, 1 - b / 0.25, spkmodFwSprite("white"), focal, W, H);
+				if (b < 0.25) glow(s.x, s.y, endPos, 3, 1 - b / 0.25, spkmodFwSprite("white"), focal, W, H);
 				for (const p of s.pts) {
 					const L = 3.2 * p.life, x = b / L;
 					if (x > 1) continue;
