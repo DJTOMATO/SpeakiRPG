@@ -5,6 +5,10 @@ function hookGameStateOnce() {
 	window.__gameStateHooked = true;
 	if (window.spkmodDebug) spkmodDebug.log("Initializing in-game GameState hooks...");
 
+	if (typeof spkmodEnsureCartWatcher === "function") {
+		spkmodEnsureCartWatcher();
+	}
+
 	if (typeof gameState.handleQuestProgress === "function" && !gameState.__speakiQuestProgressHooked) {
 		gameState.__speakiQuestProgressHooked = true;
 		const origHandleQuestProgress = gameState.handleQuestProgress.bind(gameState);

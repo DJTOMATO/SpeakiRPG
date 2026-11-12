@@ -258,88 +258,228 @@ function spkmodGetOriginalCartImage(callback) {
 	img.src = SPKMOD_PUMPKIN_CART_ORIG_TEX;
 }
 
-function spkmodApplyPumpkinCartTextureToScene(enable, targetImage) {
-	if (typeof gameState === "undefined" || !gameState) return;
-	const scene = gameState.scene;
-	if (!scene || typeof scene.traverse !== "function") return;
+let _spkmodCartWatcherTimer = null;
 
-	if (gameState.mountVisuals && !gameState.mountVisuals.__spkmodHooked) {
-		const origSetMount = gameState.mountVisuals.setMount;
-		gameState.mountVisuals.setMount = function (...args) {
-			const res = origSetMount.apply(this, args);
-			if (window.spkmodActivePumpkinSkin) {
-				setTimeout(() => {
-					if (window.spkmodActivePumpkinSkin) {
-						spkmodGetCartSkinImage(window.spkmodActivePumpkinSkin, img => {
-							spkmodApplyPumpkinCartTextureToScene(true, img);
-						});
+function spkmodApplySkinToCartGroup(cg, enable, targetImage, skinKey) {
+	if (!cg || typeof cg.traverse !== "function") return;
+	cg.__spkmodAppliedSkin = enable ? skinKey : null;
+
+	cg.traverse(child => {
+		if (child && child.isMesh && child.material) {
+			const mats = Array.isArray(child.material) ? child.material : [child.material];
+			for (const m of mats) {
+				if (!m) continue;
+				if (m.map) {
+					// Body texture mesh
+					if (m.__spkmodOrigCartImage === undefined && m.map.image) {
+						m.__spkmodOrigCartImage = m.map.image;
 					}
-				}, 150);
-			}
-			return res;
-		};
-		gameState.mountVisuals.__spkmodHooked = true;
-	}
+					if (m.__spkmodOrigCartMap === undefined) {
+						m.__spkmodOrigCartMap = m.map;
+					}
+					if (m.__spkmodOrigCartTransparent === undefined) {
+						m.__spkmodOrigCartTransparent = m.transparent;
+						m.__spkmodOrigCartAlphaTest = m.alphaTest;
+					}
+					m.__spkmodIsCartMat = true;
+					child.__spkmodIsCartMesh = true;
 
-	const applyToMat = (mat, childName) => {
-		if (!mat) return;
-		const mats = Array.isArray(mat) ? mat : [mat];
-		for (const m of mats) {
-			if (!m) continue;
-			const cName = (childName || "").toLowerCase();
-			const mName = (m.name || "").toLowerCase();
-			const imgSrc = (m.map && m.map.image && typeof m.map.image.src === "string") ? m.map.image.src : "";
-			const isCartMap = (m.map && m.map.image && (
-				imgSrc.includes("HW_Map_Body") || imgSrc.includes("test") || imgSrc.includes("dancing") || imgSrc.includes("yuki") || imgSrc.includes("mount_pumpkin_cart") ||
-				mName.includes("hw_map_body") || mName.includes("pumpkin")
-			)) || cName.includes("pumpkin") || cName.includes("hw_map");
-
-			if (isCartMap || (m.__spkmodOrigCartImage !== undefined) || (m.__spkmodOrigCartMap !== undefined)) {
-				if (m.__spkmodOrigCartImage === undefined && m.map && m.map.image) {
-					m.__spkmodOrigCartImage = m.map.image;
-				}
-				if (m.__spkmodOrigCartMap === undefined && m.map) {
-					m.__spkmodOrigCartMap = m.map;
-				}
-				if (m.__spkmodOrigCartTransparent === undefined) {
-					m.__spkmodOrigCartTransparent = m.transparent;
-					m.__spkmodOrigCartAlphaTest = m.alphaTest;
-				}
-				if (enable) {
-					if (targetImage) {
-						if (m.map) {
+					if (enable) {
+						if (targetImage) {
 							m.map.image = targetImage;
 							m.map.needsUpdate = true;
 						}
+						m.transparent = true;
+						m.alphaTest = 0.5;
+						m.depthWrite = true;
+						m.needsUpdate = true;
+					} else {
+						const origImg = m.__spkmodOrigCartImage || _spkmodOriginalCartImage;
+						if (origImg) {
+							m.map.image = origImg;
+							m.map.needsUpdate = true;
+						} else if (m.__spkmodOrigCartMap) {
+							m.map = m.__spkmodOrigCartMap;
+							if (m.map) m.map.needsUpdate = true;
+						}
+						if (m.__spkmodOrigCartTransparent !== undefined) {
+							m.transparent = m.__spkmodOrigCartTransparent;
+							m.alphaTest = m.__spkmodOrigCartAlphaTest;
+						}
+						m.needsUpdate = true;
 					}
-					m.transparent = true;
-					m.alphaTest = 0.5;
-					m.depthWrite = true;
-					m.needsUpdate = true;
 				} else {
-					const origImg = m.__spkmodOrigCartImage || _spkmodOriginalCartImage;
-					if (origImg && m.map) {
-						m.map.image = origImg;
-						m.map.needsUpdate = true;
-					} else if (m.__spkmodOrigCartMap) {
-						m.map = m.__spkmodOrigCartMap;
-						if (m.map) m.map.needsUpdate = true;
+					// Non-map meshes in cart (e.g. face cutouts: eyes, nose, mouth, sparkle)
+					const isFaceCutout = m.emissive || (child.geometry && child.geometry.type === "ShapeGeometry");
+					if (isFaceCutout) {
+						if (child.__spkmodOrigVisible === undefined) {
+							child.__spkmodOrigVisible = child.visible;
+						}
+						child.visible = !enable ? child.__spkmodOrigVisible : false;
 					}
-					if (m.__spkmodOrigCartTransparent !== undefined) {
-						m.transparent = m.__spkmodOrigCartTransparent;
-						m.alphaTest = m.__spkmodOrigCartAlphaTest;
-					}
-					m.needsUpdate = true;
 				}
 			}
 		}
-	};
-
-	scene.traverse(child => {
-		if (child.isMesh && child.material) {
-			applyToMat(child.material, child.name);
-		}
 	});
+}
+
+function spkmodApplyPumpkinCartTextureToScene(enable, targetImage, forcedSkinKey) {
+	const skinKey = forcedSkinKey || window.spkmodActivePumpkinSkin || "custom";
+
+	if (typeof gameState !== "undefined" && gameState) {
+		// 1. Hook mountVisuals if available
+		if (gameState.mountVisuals && !gameState.mountVisuals.__spkmodHooked) {
+			gameState.mountVisuals.__spkmodHooked = true;
+			if (typeof gameState.mountVisuals.setMount === "function") {
+				const origSetMount = gameState.mountVisuals.setMount;
+				gameState.mountVisuals.setMount = function (...args) {
+					const res = origSetMount.apply(this, args);
+					setTimeout(spkmodCheckAndReapplyActiveCartSkin, 50);
+					setTimeout(spkmodCheckAndReapplyActiveCartSkin, 200);
+					setTimeout(spkmodCheckAndReapplyActiveCartSkin, 500);
+					return res;
+				};
+			}
+			if (typeof gameState.mountVisuals.attachCartIfNeeded === "function") {
+				const origAttach = gameState.mountVisuals.attachCartIfNeeded;
+				gameState.mountVisuals.attachCartIfNeeded = function (...args) {
+					origAttach.apply(this, args);
+					setTimeout(spkmodCheckAndReapplyActiveCartSkin, 50);
+					setTimeout(spkmodCheckAndReapplyActiveCartSkin, 200);
+					setTimeout(spkmodCheckAndReapplyActiveCartSkin, 500);
+				};
+			}
+		}
+
+		// 2. Apply directly to all active cart groups in mountVisuals
+		if (gameState.mountVisuals && gameState.mountVisuals.entries) {
+			for (const entry of gameState.mountVisuals.entries.values()) {
+				if (entry && entry.cartGroup) {
+					spkmodApplySkinToCartGroup(entry.cartGroup, enable, targetImage, skinKey);
+				}
+			}
+		}
+
+		// 3. Apply to playerContainer groups
+		if (gameState.playerContainer && Array.isArray(gameState.playerContainer.children)) {
+			for (const ch of gameState.playerContainer.children) {
+				if (ch && ch.isGroup) {
+					spkmodApplySkinToCartGroup(ch, enable, targetImage, skinKey);
+				}
+			}
+		}
+
+		// 4. Fallback: traverse whole scene
+		if (gameState.scene && typeof gameState.scene.traverse === "function") {
+			gameState.scene.traverse(child => {
+				if (child && child.isMesh && child.material) {
+					const cName = (child.name || "").toLowerCase();
+					const mats = Array.isArray(child.material) ? child.material : [child.material];
+					for (const m of mats) {
+						if (!m) continue;
+						const mName = (m.name || "").toLowerCase();
+						const isCart = m.__spkmodIsCartMat || child.__spkmodIsCartMesh ||
+							cName.includes("cart") || cName.includes("pumpkin") || cName.includes("hw_map") ||
+							mName.includes("cart") || mName.includes("pumpkin") || mName.includes("hw_map") ||
+							(m.map && m.map.image && (
+								m.map.image === targetImage ||
+								m.map.image === _spkmodOriginalCartImage ||
+								m.map.image === _spkmodCartAnimCanvas ||
+								(typeof m.map.image.src === "string" && (
+									m.map.image.src.includes("HW_Map_Body") ||
+									m.map.image.src.includes("test") ||
+									m.map.image.src.includes("dancing") ||
+									m.map.image.src.includes("yuki") ||
+									m.map.image.src.includes("mount_pumpkin_cart")
+								))
+							));
+						if (isCart && m.map) {
+							if (m.__spkmodOrigCartImage === undefined && m.map.image) m.__spkmodOrigCartImage = m.map.image;
+							if (m.__spkmodOrigCartMap === undefined) m.__spkmodOrigCartMap = m.map;
+							if (m.__spkmodOrigCartTransparent === undefined) {
+								m.__spkmodOrigCartTransparent = m.transparent;
+								m.__spkmodOrigCartAlphaTest = m.alphaTest;
+							}
+							m.__spkmodIsCartMat = true;
+							child.__spkmodIsCartMesh = true;
+							if (enable) {
+								if (targetImage) {
+									m.map.image = targetImage;
+									m.map.needsUpdate = true;
+								}
+								m.transparent = true;
+								m.alphaTest = 0.5;
+								m.depthWrite = true;
+								m.needsUpdate = true;
+							} else {
+								const origImg = m.__spkmodOrigCartImage || _spkmodOriginalCartImage;
+								if (origImg) {
+									m.map.image = origImg;
+									m.map.needsUpdate = true;
+								} else if (m.__spkmodOrigCartMap) {
+									m.map = m.__spkmodOrigCartMap;
+									if (m.map) m.map.needsUpdate = true;
+								}
+								if (m.__spkmodOrigCartTransparent !== undefined) {
+									m.transparent = m.__spkmodOrigCartTransparent;
+									m.alphaTest = m.__spkmodOrigCartAlphaTest;
+								}
+								m.needsUpdate = true;
+							}
+						}
+					}
+				}
+			});
+		}
+	}
+}
+
+function spkmodCheckAndReapplyActiveCartSkin() {
+	if (!window.spkmodActivePumpkinSkin) return;
+	const skinKey = window.spkmodActivePumpkinSkin;
+	const skin = SPKMOD_PUMPKIN_CART_SKINS[skinKey];
+	if (!skin) return;
+
+	let needsReapply = false;
+	if (typeof gameState !== "undefined" && gameState) {
+		if (gameState.mountVisuals && gameState.mountVisuals.entries) {
+			for (const entry of gameState.mountVisuals.entries.values()) {
+				if (entry && entry.cartGroup && entry.cartGroup.__spkmodAppliedSkin !== skinKey) {
+					needsReapply = true;
+					break;
+				}
+			}
+		}
+		if (!needsReapply && gameState.playerContainer && Array.isArray(gameState.playerContainer.children)) {
+			for (const ch of gameState.playerContainer.children) {
+				if (ch && ch.isGroup && ch.__spkmodAppliedSkin !== skinKey) {
+					needsReapply = true;
+					break;
+				}
+			}
+		}
+	}
+
+	if (needsReapply) {
+		if (spkmodIsAnimatedUrl(skin.url)) {
+			if (_spkmodCartAnimCanvas) {
+				spkmodApplyPumpkinCartTextureToScene(true, _spkmodCartAnimCanvas, skinKey);
+			}
+		} else {
+			spkmodGetCartSkinImage(skinKey, img => {
+				if (window.spkmodActivePumpkinSkin === skinKey) {
+					spkmodApplyPumpkinCartTextureToScene(true, img, skinKey);
+				}
+			});
+		}
+	}
+}
+
+function spkmodEnsureCartWatcher() {
+	if (_spkmodCartWatcherTimer) return;
+	_spkmodCartWatcherTimer = setInterval(() => {
+		spkmodCheckAndReapplyActiveCartSkin();
+	}, 150);
 }
 
 function spkmodUpdatePumpkinCartButtonStyles() {
@@ -363,8 +503,22 @@ window.spkmodUpdatePumpkinCartButtonStyles = spkmodUpdatePumpkinCartButtonStyles
 
 window.spkmodSelectPumpkinCartSkin = function (skinKey) {
 	spkmodEnsurePumpkinCartHooks();
+	spkmodEnsureCartWatcher();
 
-	if (skinKey === null || skinKey === undefined || window.spkmodActivePumpkinSkin === skinKey) {
+	// Check if the current skin is already active AND applied to the current cart
+	let currentCartHasSkin = false;
+	if (typeof gameState !== "undefined" && gameState) {
+		if (gameState.mountVisuals && gameState.mountVisuals.entries) {
+			for (const entry of gameState.mountVisuals.entries.values()) {
+				if (entry && entry.cartGroup && entry.cartGroup.__spkmodAppliedSkin === skinKey) {
+					currentCartHasSkin = true;
+					break;
+				}
+			}
+		}
+	}
+
+	if (skinKey === null || skinKey === undefined || (window.spkmodActivePumpkinSkin === skinKey && currentCartHasSkin)) {
 		window.spkmodActivePumpkinSkin = null;
 		window.spkmodPumpkinCartTexReplaced = false;
 		spkmodStopCartAnimation();
@@ -388,6 +542,20 @@ window.spkmodSelectPumpkinCartSkin = function (skinKey) {
 	window.spkmodActivePumpkinSkin = skinKey;
 	window.spkmodPumpkinCartTexReplaced = true;
 
+	// Reset __spkmodAppliedSkin tags so all current carts re-apply the skin
+	if (typeof gameState !== "undefined" && gameState) {
+		if (gameState.mountVisuals && gameState.mountVisuals.entries) {
+			for (const entry of gameState.mountVisuals.entries.values()) {
+				if (entry && entry.cartGroup) entry.cartGroup.__spkmodAppliedSkin = null;
+			}
+		}
+		if (gameState.playerContainer && Array.isArray(gameState.playerContainer.children)) {
+			for (const ch of gameState.playerContainer.children) {
+				if (ch && ch.isGroup) ch.__spkmodAppliedSkin = null;
+			}
+		}
+	}
+
 	if (spkmodIsAnimatedUrl(skin.url)) {
 		spkmodDecodeAnimatedImage(skin.url).then(frames => {
 			if (window.spkmodActivePumpkinSkin === skinKey) {
@@ -397,7 +565,7 @@ window.spkmodSelectPumpkinCartSkin = function (skinKey) {
 			console.warn("[SpeakiMod] Animated texture decode error, falling back to static:", err);
 			spkmodGetCartSkinImage(skinKey, img => {
 				if (window.spkmodActivePumpkinSkin === skinKey) {
-					spkmodApplyPumpkinCartTextureToScene(true, img);
+					spkmodApplyPumpkinCartTextureToScene(true, img, skinKey);
 				}
 			});
 		});
@@ -405,7 +573,7 @@ window.spkmodSelectPumpkinCartSkin = function (skinKey) {
 		spkmodStopCartAnimation();
 		spkmodGetCartSkinImage(skinKey, img => {
 			if (window.spkmodActivePumpkinSkin === skinKey) {
-				spkmodApplyPumpkinCartTextureToScene(true, img);
+				spkmodApplyPumpkinCartTextureToScene(true, img, skinKey);
 			}
 		});
 	}
@@ -1222,6 +1390,7 @@ window.spkmodToggleStepTrail = function(enabled, type) {
 	if (typeof updateLocalEditsUI === 'function') updateLocalEditsUI();
 };
 
+
 window.spkmodSetTrailType = function(type) {
 	window.spkmodStepTrail.type = type;
 	if (window.localStorage) {
@@ -1295,4 +1464,7 @@ window.spkmodToggleBurstSpam = function(forceState) {
 
 	if (typeof updateLocalEditsUI === 'function') updateLocalEditsUI();
 };
+
+spkmodEnsureCartWatcher();
+
 
