@@ -1668,6 +1668,7 @@ document.body.appendChild(
 						if (lunNametagMode === 2) {
 							fetchFriendsList(true);
 						}
+						refreshAllNametags();
 						if (lunPanelElements.nametagsBtn) {
 							setText(lunPanelElements.nametagsBtn, t(NAMETAG_MODES[lunNametagMode] + "Btn"));
 						}

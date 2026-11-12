@@ -297,6 +297,7 @@ var lunChromaFloorShape = (window.localStorage && localStorage.getItem("spkmod-c
 var lunChromaFloorScale = parseFloat((window.localStorage && localStorage.getItem("spkmod-chroma-floor-scale")) || "1.0") || 1.0;
 var lunHideAllOtherPlayers = (window.localStorage && localStorage.getItem("spkmod-hide-all-players") === "true") || false;
 var lunSolitudeWhitelist = (window.localStorage && localStorage.getItem("spkmod-solitude-whitelist")) || "";
+let lunSolitudeWhitelistSet = new Set(lunSolitudeWhitelist.split(",").map(name => name.trim().toLocaleLowerCase()).filter(Boolean));
 var lunLockedFacialExpression = (window.localStorage && localStorage.getItem("spkmod-locked-facial-expression")) || "none";
 var lunAllPlayersFacialExpression = "none";
 var lunTargetFacialExpressions = new Map();
@@ -529,25 +530,38 @@ function applyChromaFloorPad(shape, scale, silent = false) {
 				return new THREE.PlaneGeometry(2.5 * s, 2.5 * s);
 		}
 	}
+	
+	const geometryKey = `${lunChromaFloorShape}:${lunChromaFloorScale}`;
 
 	if (!mesh) {
-		const mat = new THREE.MeshBasicMaterial({
-			color: hex,
-			side: THREE.DoubleSide,
-			depthWrite: true
-		});
-		mesh = new THREE.Mesh(buildGeometry(lunChromaFloorShape, lunChromaFloorScale), mat);
-		mesh.name = "spkmod_chroma_floor_pad";
-		mesh.rotation.x = -Math.PI / 2;
-		mesh.position.set(0, 0.02, 0);
-		playerContainer.add(mesh);
+    	const mat = new THREE.MeshBasicMaterial({
+        	color: hex,
+        	side: THREE.DoubleSide,
+        	depthWrite: true
+    	});
+
+    	mesh = new THREE.Mesh(buildGeometry(lunChromaFloorShape, lunChromaFloorScale), mat);
+    	mesh.name = "spkmod_chroma_floor_pad";
+    	mesh.rotation.x = -Math.PI / 2;
+    	mesh.position.set(0, 0.02, 0);
+    	mesh.userData.spkmodGeometryKey = geometryKey;
+
+    	playerContainer.add(mesh);
 	} else {
-		mesh.visible = true;
-		if (mesh.geometry) mesh.geometry.dispose();
-		mesh.geometry = buildGeometry(lunChromaFloorShape, lunChromaFloorScale);
-		if (mesh.material && typeof mesh.material.color?.setHex === "function") {
-			mesh.material.color.setHex(hex);
-		}
+    	mesh.visible = true;
+
+    	if (!mesh.geometry || mesh.userData.spkmodGeometryKey !== geometryKey) {
+        	const oldGeometry = mesh.geometry;
+
+        	mesh.geometry = buildGeometry(lunChromaFloorShape, lunChromaFloorScale);
+        	mesh.userData.spkmodGeometryKey = geometryKey;
+
+        	if (oldGeometry) oldGeometry.dispose();
+    	}
+
+    	if (mesh.material && typeof mesh.material.color?.setHex === "function") {
+        	mesh.material.color.setHex(hex);
+    	}
 	}
 }
 
@@ -575,47 +589,109 @@ function setHideAllOtherPlayers(enabled) {
 }
 
 function getSolitudeWhitelistNames() {
-	if (!lunSolitudeWhitelist || typeof lunSolitudeWhitelist !== "string") return [];
-	return lunSolitudeWhitelist
-		.split(",")
-		.map(name => name.trim().toLocaleLowerCase())
-		.filter(Boolean);
+    return [...lunSolitudeWhitelistSet];
 }
 
 function isSolitudeWhitelisted(name) {
-	if (!name || typeof name !== "string") return false;
-	const clean = name.trim().toLocaleLowerCase();
-	if (!clean) return false;
-	const list = getSolitudeWhitelistNames();
-	return list.includes(clean);
+    if (!name || typeof name !== "string") return false;
+
+    const clean = name.trim().toLocaleLowerCase();
+
+    if (!clean) return false;
+
+    return lunSolitudeWhitelistSet.has(clean);
 }
 
 function setSolitudeWhitelist(namesStr) {
-	lunSolitudeWhitelist = typeof namesStr === "string" ? namesStr : "";
-	if (window.localStorage) {
-		localStorage.setItem("spkmod-solitude-whitelist", lunSolitudeWhitelist);
-	}
-	if (typeof updateKnownBotVisibility === "function") {
-		updateKnownBotVisibility();
-	}
+    lunSolitudeWhitelist = typeof namesStr === "string" ? namesStr : "";
+    lunSolitudeWhitelistSet = new Set(lunSolitudeWhitelist.split(",").map(name => name.trim().toLocaleLowerCase()).filter(Boolean));
+
+    if (window.localStorage) {
+        localStorage.setItem("spkmod-solitude-whitelist", lunSolitudeWhitelist);
+    }
+
+	if (typeof updateKnownBotVisibility === "function") updateKnownBotVisibility();
+}
+
+const spkmodFaceExpressionState = new WeakMap();
+const spkmodFaceExpressionHooked = new WeakSet();
+const spkmodFaceExpressionCacheSafe = new WeakSet();
+
+function hookSpkmodFaceExpression(fe) {
+    if (!fe || typeof fe !== "object") return false;
+
+    if (spkmodFaceExpressionHooked.has(fe)) {
+        return spkmodFaceExpressionCacheSafe.has(fe);
+    }
+
+    spkmodFaceExpressionHooked.add(fe);
+
+    const originalSet = fe.setOverrideExpression;
+    const originalEnd = fe.endOverride;
+
+    let setWrapped = false;
+    let endWrapped = false;
+
+    if (typeof originalSet === "function") {
+        const wrappedSet = function(expr, ...args) {
+            const result = originalSet.call(this, expr, ...args);
+            spkmodFaceExpressionState.set(this, expr);
+            return result;
+        };
+
+        try {
+            fe.setOverrideExpression = wrappedSet;
+            setWrapped = fe.setOverrideExpression === wrappedSet;
+        } catch (_) {}
+    }
+
+    if (typeof originalEnd === "function") {
+        const wrappedEnd = function(...args) {
+            const result = originalEnd.apply(this, args);
+            spkmodFaceExpressionState.set(this, null);
+            return result;
+        };
+
+        try {
+            fe.endOverride = wrappedEnd;
+            endWrapped = fe.endOverride === wrappedEnd;
+        } catch (_) {}
+    }
+
+    if (setWrapped && endWrapped) {
+        spkmodFaceExpressionCacheSafe.add(fe);
+    }
+
+    return spkmodFaceExpressionCacheSafe.has(fe);
 }
 
 function setAvatarFacialExpression(avatar, exprKey) {
-	const fe = avatar?.faceExpression;
-	if (!fe) return false;
-	if (!exprKey || exprKey === "none") {
-		if (typeof fe.endOverride === "function") {
-			fe.endOverride();
-		}
-	} else {
-		if (typeof fe.beginOverride === "function") {
-			fe.beginOverride();
-		}
-		if (typeof fe.setOverrideExpression === "function") {
-			fe.setOverrideExpression(exprKey);
-		}
-	}
-	return true;
+    const fe = avatar?.faceExpression;
+
+    if (!fe) return false;
+
+    const desired = !exprKey || exprKey === "none" ? null : exprKey;
+    const cacheSafe = hookSpkmodFaceExpression(fe);
+
+    if (cacheSafe && spkmodFaceExpressionState.has(fe) && spkmodFaceExpressionState.get(fe) === desired) {
+        return true;
+    }
+
+    if (desired === null) {
+        if (typeof fe.endOverride === "function") {
+            fe.endOverride();
+        }
+    } else {
+        if (typeof fe.beginOverride === "function") {
+            fe.beginOverride();
+        }
+
+        if (typeof fe.setOverrideExpression === "function") {
+            fe.setOverrideExpression(desired);
+        }
+    }
+
+    return true;
 }
 
 function getRemotePlayerTargetExpression(player) {
@@ -735,22 +811,20 @@ function maintainLockedFacialExpression() {
 	}
 }
 
-
-
-
 function toggleStatsModal() {
-	if (!lunHudElements.statsModal) return;
-	const isClosed = lunHudElements.statsModal.classList.contains("hidden");
-	if (isClosed) {
-		positionModalNicely(lunHudElements.statsModal);
-		lunHudElements.statsModal.classList.remove("hidden");
-		if (!lunMinigameStatus) {
-			fetchMinigameStatus();
-		}
-		updateStatsModalLive();
-	} else {
-		lunHudElements.statsModal.classList.add("hidden");
-	}
+    if (!lunHudElements.statsModal) return;
+    const isClosed = lunHudElements.statsModal.classList.contains("hidden");
+    if (isClosed) {
+        positionModalNicely(lunHudElements.statsModal);
+        lunHudElements.statsModal.classList.remove("hidden");
+        ensureFpsLoop();
+        if (!lunMinigameStatus) {
+            fetchMinigameStatus();
+        }
+        updateStatsModalLive();
+    } else {
+        lunHudElements.statsModal.classList.add("hidden");
+    }
 }
 
 function resetSessionStats() {

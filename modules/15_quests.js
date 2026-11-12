@@ -284,16 +284,13 @@ async function fetchAllQuests() {
 					mode: "cors"
 				});
 				if (res.ok) {
-					const data = await res.json();
+					const data = await spkmodReadQuestResponseJson(res);
 					if (Array.isArray(data)) {
-						window.__spkmodCachedQuests = window.__spkmodCachedQuests || {};
 						for (const q of data) {
-							if (q && q.questId) {
-								q.period = q.period || p;
-								window.__spkmodCachedQuests[q.questId] = q;
-								if (lunPinnedQuestId && String(lunPinnedQuestId) === String(q.questId)) {
-									updatePinnedQuestDisplay(q);
-								}
+							if (!q?.questId) continue;
+							const cachedQuest = spkmodCacheQuestRecord(q, p);
+							if (lunPinnedQuestId && String(lunPinnedQuestId) === String(q.questId)) {
+								updatePinnedQuestDisplay(cachedQuest);
 							}
 						}
 					}
@@ -311,18 +308,52 @@ async function fetchAllQuests() {
 
 // --- SpeakiMod Quest Checklist System ---
 
+let spkmodChecklistPinnedIdsCache = null;
+let spkmodChecklistPinnedIdSetCache = null;
+let spkmodChecklistPinnedSerialized = null;
+
+function ensureSpkmodChecklistPinCache() {
+    if (spkmodChecklistPinnedIdsCache !== null) return;
+
+    try {
+        const raw = localStorage.getItem("spkmod-checklist-pins");
+        const parsed = raw ? JSON.parse(raw) : [];
+
+        spkmodChecklistPinnedIdsCache = Array.isArray(parsed) ? parsed : [];
+        spkmodChecklistPinnedSerialized = JSON.stringify(spkmodChecklistPinnedIdsCache);
+    } catch (_) {
+        spkmodChecklistPinnedIdsCache = [];
+        spkmodChecklistPinnedSerialized = "[]";
+    }
+
+    spkmodChecklistPinnedIdSetCache = new Set(spkmodChecklistPinnedIdsCache.map(String));
+}
+
 function getChecklistPinnedIds() {
-	try {
-		const raw = localStorage.getItem("spkmod-checklist-pins");
-		if (raw) return JSON.parse(raw);
-	} catch (_) {}
-	return [];
+    ensureSpkmodChecklistPinCache();
+
+    return spkmodChecklistPinnedIdsCache;
 }
 
 function setChecklistPinnedIds(ids) {
-	try {
-		localStorage.setItem("spkmod-checklist-pins", JSON.stringify(ids));
-	} catch (_) {}
+    ensureSpkmodChecklistPinCache();
+
+    const next = Array.isArray(ids) ? [...ids] : [];
+    const serialized = JSON.stringify(next);
+
+    if (serialized === spkmodChecklistPinnedSerialized) {
+        return false;
+    }
+
+    spkmodChecklistPinnedIdsCache = next;
+    spkmodChecklistPinnedIdSetCache = new Set(next.map(String));
+
+    try {
+        localStorage.setItem("spkmod-checklist-pins", serialized);
+        spkmodChecklistPinnedSerialized = serialized;
+    } catch (_) {}
+
+    return true;
 }
 
 function clearClaimedQuestPin(quest) {
@@ -351,50 +382,113 @@ function clearClaimedQuestPin(quest) {
 }
 
 function isChecklistPinned(questId) {
-	if (!questId) return false;
-	const pins = getChecklistPinnedIds();
-	return pins.some(id => String(id) === String(questId));
+    if (!questId) return false;
+
+    ensureSpkmodChecklistPinCache();
+
+    return spkmodChecklistPinnedIdSetCache.has(String(questId));
 }
 
 function toggleChecklistPin(questId) {
-	if (!questId) return false;
-	const pins = getChecklistPinnedIds();
-	const idx = pins.findIndex(id => String(id) === String(questId));
-	let nowPinned = false;
-	if (idx >= 0) {
-		pins.splice(idx, 1);
-		nowPinned = false;
-	} else {
-		pins.push(questId);
-		nowPinned = true;
-	}
-	setChecklistPinnedIds(pins);
-	return nowPinned;
+    if (!questId) return false;
+
+    const pins = getChecklistPinnedIds();
+    const id = String(questId);
+    const idx = pins.findIndex(value => String(value) === id);
+
+    let nowPinned = false;
+
+    if (idx >= 0) {
+        pins.splice(idx, 1);
+    } else {
+        pins.push(questId);
+        nowPinned = true;
+    }
+
+    setChecklistPinnedIds(pins);
+
+    return nowPinned;
 }
 
+let spkmodDismissedQuestsCache = null;
+let spkmodDismissedQuestsSerialized = null;
+
 function getDismissedQuests() {
-	try {
-		const raw = localStorage.getItem("spkmod-dismissed-quests");
-		if (raw) return JSON.parse(raw);
-	} catch (_) {}
-	return {};
+    if (spkmodDismissedQuestsCache !== null) {
+        return spkmodDismissedQuestsCache;
+    }
+
+    try {
+        const raw = localStorage.getItem("spkmod-dismissed-quests");
+        const parsed = raw ? JSON.parse(raw) : {};
+
+        spkmodDismissedQuestsCache = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+        spkmodDismissedQuestsSerialized = JSON.stringify(spkmodDismissedQuestsCache);
+    } catch (_) {
+        spkmodDismissedQuestsCache = {};
+        spkmodDismissedQuestsSerialized = "{}";
+    }
+
+    return spkmodDismissedQuestsCache;
+}
+
+function saveDismissedQuests() {
+    if (spkmodDismissedQuestsCache === null) return false;
+
+    const serialized = JSON.stringify(spkmodDismissedQuestsCache);
+
+    if (serialized === spkmodDismissedQuestsSerialized) {
+        return false;
+    }
+
+    try {
+        localStorage.setItem("spkmod-dismissed-quests", serialized);
+        spkmodDismissedQuestsSerialized = serialized;
+        return true;
+    } catch (_) {
+        return false;
+    }
 }
 
 function dismissQuest(questId, period) {
-	try {
-		const dismissed = getDismissedQuests();
-		dismissed[String(questId)] = { ts: Date.now(), period: period || "daily" };
-		localStorage.setItem("spkmod-dismissed-quests", JSON.stringify(dismissed));
-	} catch (_) {}
+    if (!questId) return;
+
+    const dismissed = getDismissedQuests();
+
+    dismissed[String(questId)] = {
+        ts: Date.now(),
+        period: period || "daily"
+    };
+
+    saveDismissedQuests();
 }
 
 function undismissQuest(questId) {
-	try {
-		const dismissed = getDismissedQuests();
-		delete dismissed[String(questId)];
-		localStorage.setItem("spkmod-dismissed-quests", JSON.stringify(dismissed));
-	} catch (_) {}
+    if (!questId) return;
+
+    const dismissed = getDismissedQuests();
+    const id = String(questId);
+
+    if (!Object.prototype.hasOwnProperty.call(dismissed, id)) {
+        return;
+    }
+
+    delete dismissed[id];
+    saveDismissedQuests();
 }
+
+window.addEventListener("storage", e => {
+    if (e.key === "spkmod-checklist-pins") {
+        spkmodChecklistPinnedIdsCache = null;
+        spkmodChecklistPinnedIdSetCache = null;
+        spkmodChecklistPinnedSerialized = null;
+    }
+
+    if (e.key === "spkmod-dismissed-quests") {
+        spkmodDismissedQuestsCache = null;
+        spkmodDismissedQuestsSerialized = null;
+    }
+});
 
 function isQuestDismissed(questId, period) {
 	if (!questId) return false;
@@ -1681,37 +1775,58 @@ function resetWalkToPortal() {
 
 window.beyBladeAngle = window.beyBladeAngle || 0;
 window.__beyBladeLastTime = window.__beyBladeLastTime || performance.now();
+window.__beyBladeLoopRunning = false;
 
-if (!window.__beyBladeLoopRunning) {
-	window.__beyBladeLoopRunning = true;
+let spkmodBeyBladeRafId = 0;
 
-	function beyBladeRenderLoop(currentTime) {
-		if ((window.BeyBladeActive || window.ReverseBeyBladeActive) && gameState && gameState.playerContainer) {
-			const delta = (currentTime - window.__beyBladeLastTime) / 1000;
-			const clampedDelta = Math.min(delta, 0.1);
-			const speedMultiplier = window.BeyBladeSpeed || 1;
-			const baseSpeed = 3.0;
-			const direction = window.ReverseBeyBladeActive ? -1 : 1;
+function isSpkmodBeyBladeActive() {
+    return !!(window.BeyBladeActive || window.ReverseBeyBladeActive || window.MoonwalkActive);
+}
 
-			window.beyBladeAngle += direction * baseSpeed * speedMultiplier * clampedDelta;
-			gameState.playerContainer.rotation.y = window.beyBladeAngle;
+function ensureBeyBladeRenderLoop() {
+    if (window.__beyBladeLoopRunning || !isSpkmodBeyBladeActive()) return;
+    if (!gameState?.playerContainer) return;
 
-			if (Math.random() < 0.2) {
-				gameState.moveSendAccumulator = 1;
-			}
-		} else if (window.MoonwalkActive && gameState && gameState.playerContainer) {
-			if (window.moonwalkLockedYaw === undefined || window.moonwalkLockedYaw === null) {
-				window.moonwalkLockedYaw = gameState.playerContainer.rotation.y;
-			}
-			gameState.playerContainer.rotation.y = window.moonwalkLockedYaw;
-			if (Math.random() < 0.25) {
-				gameState.moveSendAccumulator = 1;
-			}
-		}
+    window.__beyBladeLoopRunning = true;
+    window.__beyBladeLastTime = performance.now();
 
-		window.__beyBladeLastTime = currentTime;
-		requestAnimationFrame(beyBladeRenderLoop);
-	}
+    spkmodBeyBladeRafId = requestAnimationFrame(beyBladeRenderLoop);
+}
 
-	requestAnimationFrame(beyBladeRenderLoop);
+function beyBladeRenderLoop(currentTime) {
+    spkmodBeyBladeRafId = 0;
+
+    if (!isSpkmodBeyBladeActive() || !gameState?.playerContainer) {
+        window.__beyBladeLoopRunning = false;
+        return;
+    }
+
+    if (window.BeyBladeActive || window.ReverseBeyBladeActive) {
+        const delta = (currentTime - window.__beyBladeLastTime) / 1000;
+        const clampedDelta = Math.min(delta, 0.1);
+        const speedMultiplier = window.BeyBladeSpeed || 1;
+        const baseSpeed = 3.0;
+        const direction = window.ReverseBeyBladeActive ? -1 : 1;
+
+        window.beyBladeAngle += direction * baseSpeed * speedMultiplier * clampedDelta;
+        gameState.playerContainer.rotation.y = window.beyBladeAngle;
+
+        if (Math.random() < 0.2) {
+            gameState.moveSendAccumulator = 1;
+        }
+    } else if (window.MoonwalkActive) {
+        if (window.moonwalkLockedYaw === undefined || window.moonwalkLockedYaw === null) {
+            window.moonwalkLockedYaw = gameState.playerContainer.rotation.y;
+        }
+
+        gameState.playerContainer.rotation.y = window.moonwalkLockedYaw;
+
+        if (Math.random() < 0.25) {
+            gameState.moveSendAccumulator = 1;
+        }
+    }
+
+    window.__beyBladeLastTime = currentTime;
+
+    spkmodBeyBladeRafId = requestAnimationFrame(beyBladeRenderLoop);
 }

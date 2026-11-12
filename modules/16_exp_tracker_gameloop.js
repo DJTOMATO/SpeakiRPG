@@ -97,14 +97,6 @@ function tick() {
 		}
 	}
 
-	if (typeof __spkmodSpriteProtoHooked !== "undefined" && !__spkmodSpriteProtoHooked && gameState?.playerContainer?.traverse) {
-		gameState.playerContainer.traverse(obj => {
-			if (obj && obj.isSprite && typeof hookSpritePrototypeOnce === "function") {
-				hookSpritePrototypeOnce(obj);
-			}
-		});
-	}
-
 	const currentNick = (typeof gameState !== "undefined" && gameState && (gameState.myPlayerName || gameState.myStat?.name)) || "";
 	if (!currentNick || !gameState || !gameState.myStat) return;
 
@@ -248,98 +240,109 @@ function tick() {
         window.lunActiveMinigamePanel = null;
     }
 
-	var windowSec = lunExpIntervalMinutes * 60;
-	var windowTicks = windowSec * lunTPS;
+    var windowSec = lunExpIntervalMinutes * 60;
 
-	var sampleIntervalTicks = lunTPS;
-	
-	var expTrackerL1 = t(lunExpRatePerHour ? "zeroExpPerHour" : "zeroExp");
-	var expTrackerL2 = t("nextLevelNA");
+    var expTrackerL1 = lunExpTrackerDisplayL1 ?? t(lunExpRatePerHour ? "zeroExpPerHour" : "zeroExp");
+    var expTrackerL2 = lunExpTrackerDisplayL2 ?? t("nextLevelNA");
 
-	const now = Date.now();
-	if (window.lunExpTrackerLastRawExp === undefined) {
-		window.lunExpTrackerLastRawExp = playerExp;
-		window.lunExpTrackerLastMaxExp = gameState.myStat.maxExp;
-	}
+    const now = Date.now();
 
-	let trueGainedThisFrame = playerExp - window.lunExpTrackerLastRawExp;
-	if (trueGainedThisFrame < 0) {
-		// Leveled up!
-		trueGainedThisFrame = (window.lunExpTrackerLastMaxExp - window.lunExpTrackerLastRawExp) + playerExp;
-	}
-	
-	if (trueGainedThisFrame > 20000) {
-		window.lunExpTrackerIgnoredExp = (window.lunExpTrackerIgnoredExp || 0) + trueGainedThisFrame;
-	}
+    if (window.lunExpTrackerLastRawExp === undefined) {
+        window.lunExpTrackerLastRawExp = playerExp;
+        window.lunExpTrackerLastMaxExp = gameState.myStat.maxExp;
+		window.lunExpTrackerLevelCarry = 0;
+    }
 
-	window.lunExpTrackerLastRawExp = playerExp;
-	window.lunExpTrackerLastMaxExp = gameState.myStat.maxExp;
+	const previousRawExp = window.lunExpTrackerLastRawExp;
+    const previousMaxExp = Number(window.lunExpTrackerLastMaxExp) || 0;
+    let trueGainedThisFrame = playerExp - previousRawExp;
 
-	const currentEffectiveExp = playerExp - (window.lunExpTrackerIgnoredExp || 0);
-	
-	if (!lunExpTrackerInitialized) {
-		lunExpTrackerSamples = [{ time: now, exp: currentEffectiveExp }];
-		lunExpTrackerStartExp = playerExp;
-		lunExpTrackerLastSampleTick = now;
-		lunExpTrackerInitialized = true;
-	} else {
-		const lastSampleExp = lunExpTrackerSamples[lunExpTrackerSamples.length - 1].exp;
-		if (lastSampleExp > currentEffectiveExp) {
-			resetExpTracker();
-			lunExpTrackerSamples = [{ time: now, exp: playerExp }];
-			lunExpTrackerStartExp = playerExp;
-			lunExpTrackerLastSampleTick = now;
-			lunExpTrackerInitialized = true;
-		} else {
-			if (now - lunExpTrackerLastSampleTick >= 1000) {
-				lunExpTrackerSamples.push({ time: now, exp: currentEffectiveExp });
-				lunExpTrackerLastSampleTick = now;
-			}
-		}
-	}
+    if (trueGainedThisFrame < 0) {
+        trueGainedThisFrame = (previousMaxExp - previousRawExp) + playerExp;
+        window.lunExpTrackerLevelCarry += previousMaxExp;
+    }
 
-	const windowMs = windowSec * 1000;
-	const cutoffTime = now - windowMs;
-	while (lunExpTrackerSamples.length > 1 && lunExpTrackerSamples[1].time <= cutoffTime) {
-		lunExpTrackerSamples.shift();
-	}
-	const oldestSample = lunExpTrackerSamples[0];
-	const elapsedSec = oldestSample ? Math.max(1, (now - oldestSample.time) / 1000) : 1;
-	const expGained = oldestSample ? Math.max(0, currentEffectiveExp - oldestSample.exp) : 0;
-	
-	const divisor = windowSec;
-	lunExpTrackerSpeed = divisor > 0 ? expGained / divisor : 0;
-	
-	const timerDisplay = (windowSec / 60) + "m avg";
+    if (trueGainedThisFrame > 20000) {
+        window.lunExpTrackerIgnoredExp = (window.lunExpTrackerIgnoredExp || 0) + trueGainedThisFrame;
+    }
 
-	if (lunExpTrackerSpeed > 0) {
-		let displayRate = Math.round(lunExpRatePerHour ? lunExpTrackerSpeed * 3600 : lunExpTrackerSpeed * 60);
-		if (displayRate >= 1000000) displayRate = (displayRate / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-		else if (displayRate >= 1000) displayRate = (displayRate / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
-		else displayRate = displayRate.toLocaleString();
-		
-		expTrackerL1 = t(lunExpRatePerHour ? "expPerHour" : "expPerMinute", displayRate, "");
+    window.lunExpTrackerLastRawExp = playerExp;
+    window.lunExpTrackerLastMaxExp = gameState.myStat.maxExp;
 
-		var minutesRemaining = (gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60;
-		if (minutesRemaining > 60) {
-			var hoursRemaining = (minutesRemaining / 60).toFixed(1);
-			expTrackerL2 = t("nextLevelHours", hoursRemaining);
-		} else {
-			expTrackerL2 = t("nextLevel", minutesRemaining.toFixed(0));
-		}
-	}
+    const currentEffectiveExp = window.lunExpTrackerLevelCarry + playerExp - (window.lunExpTrackerIgnoredExp || 0);
+
+    if (!lunExpTrackerInitialized) {
+        lunExpTrackerSamples = [{ time: now, exp: currentEffectiveExp }];
+        lunExpTrackerStartExp = currentEffectiveExp;
+        lunExpTrackerLastSampleTick = now;
+        lunExpTrackerInitialized = true;
+    } else {
+        const lastSampleExp = lunExpTrackerSamples[lunExpTrackerSamples.length - 1].exp;
+
+        if (lastSampleExp > currentEffectiveExp) {
+            lunExpTrackerSamples = [{ time: now, exp: currentEffectiveExp }];
+            lunExpTrackerStartExp = currentEffectiveExp;
+            lunExpTrackerLastSampleTick = now;
+            lunExpTrackerLastCalculationTime = 0;
+            lunExpTrackerDisplayL1 = null;
+            lunExpTrackerDisplayL2 = null;
+        } else if (now - lunExpTrackerLastSampleTick >= 1000) {
+            lunExpTrackerSamples.push({ time: now, exp: currentEffectiveExp });
+            lunExpTrackerLastSampleTick = now;
+        }
+    }
+
+    if (now - lunExpTrackerLastCalculationTime >= 1000) {
+        lunExpTrackerLastCalculationTime = now;
+
+        const windowMs = windowSec * 1000;
+        const cutoffTime = now - windowMs;
+
+        while (lunExpTrackerSamples.length > 1 && lunExpTrackerSamples[1].time <= cutoffTime) {
+            lunExpTrackerSamples.shift();
+        }
+
+        const oldestSample = lunExpTrackerSamples[0];
+        const expGained = oldestSample ? Math.max(0, currentEffectiveExp - oldestSample.exp) : 0;
+
+        lunExpTrackerSpeed = windowSec > 0 ? expGained / windowSec : 0;
+
+        let nextL1 = t(lunExpRatePerHour ? "zeroExpPerHour" : "zeroExp");
+        let nextL2 = t("nextLevelNA");
+
+        if (lunExpTrackerSpeed > 0) {
+            let displayRate = Math.round(lunExpRatePerHour ? lunExpTrackerSpeed * 3600 : lunExpTrackerSpeed * 60);
+
+            if (displayRate >= 1000000) {
+                displayRate = (displayRate / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+            } else if (displayRate >= 1000) {
+                displayRate = (displayRate / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+            } else {
+                displayRate = displayRate.toLocaleString();
+            }
+
+            nextL1 = t(lunExpRatePerHour ? "expPerHour" : "expPerMinute", displayRate, "");
+
+            const minutesRemaining = (gameState.myStat.maxExp - playerExp) / lunExpTrackerSpeed / 60;
+
+            if (minutesRemaining > 60) {
+                const hoursRemaining = (minutesRemaining / 60).toFixed(1);
+                nextL2 = t("nextLevelHours", hoursRemaining);
+            } else {
+                nextL2 = t("nextLevel", minutesRemaining.toFixed(0));
+            }
+        }
+
+        lunExpTrackerDisplayL1 = nextL1;
+        lunExpTrackerDisplayL2 = nextL2;
+    }
+
+    expTrackerL1 = lunExpTrackerDisplayL1 ?? expTrackerL1;
+    expTrackerL2 = lunExpTrackerDisplayL2 ?? expTrackerL2;
 
 	if (gameState.isDead && lunWalkToPortal != -1) {
 		resetWalkToPortal();
 		chatLog(t("diedMsg"));
-	}
-
-	if (window.MoonwalkActive && gameState && gameState.playerContainer) {
-		if (window.moonwalkLockedYaw === undefined || window.moonwalkLockedYaw === null) {
-			window.moonwalkLockedYaw = gameState.playerContainer.rotation.y;
-		}
-		gameState.playerContainer.rotation.y = window.moonwalkLockedYaw;
-		gameState.moveSendAccumulator = 1;
 	}
 
 	if (window.TurntableActive && gameState && gameState.cameraController && !lunCameraLocked) {
@@ -372,17 +375,21 @@ function tick() {
 		gameState.playerContainer.rotation.y = currentBaseYaw + offset;
 		gameState.moveSendAccumulator = 1;
 	}
+	
+	if (isSpkmodBeyBladeActive()) {
+    	ensureBeyBladeRenderLoop();
+	}
 
 	if ((window.BeyBladeActive || window.ReverseBeyBladeActive) && gameState.playerContainer) {
-		if (!window.beyBladeNextJumpTick) {
-			window.beyBladeNextJumpTick = lunTickCount + 50;
-		}
-		if (lunTickCount >= window.beyBladeNextJumpTick) {
-			const nextInterval = Math.floor(Math.random() * (100 - 25 + 1)) + 25;
-			window.beyBladeNextJumpTick = lunTickCount + nextInterval;
-		}
+    	if (!window.beyBladeNextJumpTick) {
+        	window.beyBladeNextJumpTick = lunTickCount + 50;
+    	}
+    	if (lunTickCount >= window.beyBladeNextJumpTick) {
+        		const nextInterval = Math.floor(Math.random() * (100 - 25 + 1)) + 25;
+        		window.beyBladeNextJumpTick = lunTickCount + nextInterval;
+    	}
 	} else {
-		window.beyBladeNextJumpTick = 0;
+    	window.beyBladeNextJumpTick = 0;
 	}
 	lunAutoTravelTarget = null;
 	lunTickCount++;
@@ -516,14 +523,14 @@ function tick() {
 				console.warn(`[SpeakiMod+] Pinned quest query returned HTTP ${x.status}`);
 				return;
 			}
-			const resp = await x.json();
+			const resp = await spkmodReadQuestResponseJson(x);
 			if (!Array.isArray(resp)) return;
 			const q = resp.find(t => String(t.questId) === String(lunPinnedQuestId));
 			if (!q || q.isClaimed) {
 				unpinQuest();
 				return;
 			}
-			updatePinnedQuestDisplay(q);
+			updatePinnedQuestDisplay(spkmodCacheQuestRecord(q, period));
 		}).catch(err => {
 			lunPinnedQuestNextQueryTick = lunTickCount + (lunPinnedQuestInterval * 2);
 		});
@@ -571,60 +578,6 @@ window.spkmodForceNametagRedraw = function() {
 	}
 };
 
-function hookAvatarLabel(entity, explicitContainer) {
-	if (!entity || !entity.avatar) return;
-	const avatar = entity.avatar;
-	if (typeof avatar.setLabel !== 'function' || avatar.__spkmodLabelPatched) return;
-
-	const resolveContainer = () => explicitContainer || entity.container || entity.root || avatar.root || (typeof entity.traverse === 'function' ? entity : null);
-
-	const origSetLabel = avatar.setLabel;
-	avatar.setLabel = function(text, ...args) {
-		if (typeof text === 'string' && text.length > 0 && (!lunHidePlayerLevels || text.startsWith("LV"))) {
-			avatar.__spkmodLastRawLabel = text;
-		}
-		if (lunHidePlayerLevels && typeof text === 'string' && text.startsWith("LV")) {
-			const spaceIdx = text.indexOf(" ");
-			if (spaceIdx !== -1) {
-				text = text.substring(spaceIdx + 1); // remove "LVxxx "
-			}
-		}
-
-		try {
-			const targetContainer = resolveContainer();
-			if (targetContainer && typeof targetContainer.traverse === 'function') {
-				targetContainer.traverse(obj => {
-					// Position check ensures we only hit the floating nametag sprite above the player
-					if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
-						obj.material.map.dispose();
-
-						if (obj.material.map.image && typeof obj.material.map.image.getContext === 'function') {
-							const ctx = obj.material.map.image.getContext('2d');
-							ctx.clearRect(0, 0, obj.material.map.image.width, obj.material.map.image.height);
-						}
-					}
-				});
-			}
-		} catch(e) {}
-
-		return origSetLabel.call(this, text, ...args);
-	};
-	avatar.__spkmodLabelPatched = true;
-
-	// Force redraw with current text if level-hiding or a custom font is active
-	if (lunHidePlayerLevels || (typeof lunFontPreset !== "undefined" && lunFontPreset !== "default")) {
-		if (entity.info && entity.info.name) {
-			const lvl = entity.info.__spkmodOrigLevel || entity.info.level || 1;
-			avatar.setLabel("LV" + lvl + " " + entity.info.name);
-		} else if (entity === gameState.playerContainer || entity.isLocalPlayer) {
-			const lvl = (gameState.myStat && gameState.myStat.level) ? gameState.myStat.level : 1;
-			const name = (gameState.myPlayerName || (gameState.myStat && gameState.myStat.name)) || "";
-			if (name) avatar.setLabel("LV" + lvl + " " + name);
-		}
-	}
-}
-
-
 	if (lunPanelElements.renameLevelInput && lunPanelElements.renameLevelInput.style.display === "none") {
 		let isVip = false;
 		const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
@@ -648,47 +601,7 @@ function hookAvatarLabel(entity, explicitContainer) {
 		hookAvatarLabel({ avatar: gameState.localAvatar, container: gameState.playerContainer, isLocalPlayer: true }, gameState.playerContainer);
 	}
 
-	let partyNames = null;
-	if (gameState?.remotePlayers?.remotePlayers) {
-		gameState.remotePlayers.remotePlayers.forEach(t => {
-			if (t.avatar) hookAvatarLabel(t);
-			if (!t.container) return;
-
-			delete t.container.__spkmodNametagSprite;
-
-			let shouldBeVisible = true;
-			if (lunNametagMode === 0) {
-				shouldBeVisible = true;
-			} else if (lunNametagMode === 3) {
-				shouldBeVisible = false;
-			} else if (lunNametagMode === 1) {
-				if (partyNames === null) {
-					partyNames = new Set(Array.from(gameState?.partyMemberNamesBySlot?.values?.() ?? []).map(name => String(name ?? "").trim().toLowerCase()).filter(Boolean));
-				}
-				const pName = (t.info?.name || "").trim().toLowerCase();
-				const origName = (t.info?.__spkmodOrigName || "").trim().toLowerCase();
-				shouldBeVisible = partyNames.has(pName) || (Boolean(origName) && partyNames.has(origName));
-			} else if (lunNametagMode === 2) {
-				const pName = (t.info?.name || "").trim().toLowerCase();
-				const origName = (t.info?.__spkmodOrigName || "").trim().toLowerCase();
-				shouldBeVisible = lunFriendNicknames.has(pName) || (Boolean(origName) && lunFriendNicknames.has(origName));
-			}
-
-			if (typeof t.container.traverse === "function") {
-				t.container.traverse(obj => {
-					if (obj && obj.isSprite) {
-						if (typeof hookSpritePrototypeOnce === "function") hookSpritePrototypeOnce(obj);
-						if (obj.position && obj.position.y > 0.5) {
-							obj.visible = shouldBeVisible;
-						}
-					}
-				});
-			}
-		});
-	}
-	updateKnownBotVisibility();
 	hookKnownBotHeartEmotes();
-	hookKnownBotPlayerEmotesForAll();
 	if (typeof hookBlockedUserVoice === "function") hookBlockedUserVoice();
 	if (((typeof lunChromaKeyColor !== "undefined" && lunChromaKeyColor !== "none") || (typeof lunChromaFloorShape !== "undefined" && lunChromaFloorShape !== "off")) && typeof maintainChromaKeyColor === "function") {
 		if (lunTickCount % 20 === 0) {
@@ -716,39 +629,7 @@ function hookAvatarLabel(entity, explicitContainer) {
 		const startZone = (zoneId - 0) % 10000;
 		const endZone = (lunWalkToPortal - 0) % 10000;
 		
-		let path = null;
-		if (startZone === endZone) {
-			path = [];
-		} else {
-			let queue = [startZone];
-			let visited = new Set();
-			visited.add(startZone);
-			let parentMap = {};
-			
-			while (queue.length > 0) {
-				let curr = queue.shift();
-				if (curr === endZone) {
-					path = [];
-					let trace = endZone;
-					while (trace !== startZone) {
-						path.unshift(trace);
-						trace = parentMap[trace];
-					}
-					break;
-				}
-				let neighbors = Portals[curr];
-				if (neighbors) {
-					for (let n in neighbors) {
-						let nz = parseInt(n);
-						if (!visited.has(nz)) {
-							visited.add(nz);
-							parentMap[nz] = curr;
-							queue.push(nz);
-						}
-					}
-				}
-			}
-		}
+		const path = getSpkmodPortalPath(startZone, endZone);
 
 		if (path === null) {
 			chatLog(t("noPathMsg", startZone, -1, endZone, -1));

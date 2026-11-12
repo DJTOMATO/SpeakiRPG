@@ -4,11 +4,16 @@ function hookGameStateOnce() {
 	gameState.__speakiGameStateHooked = true;
 	window.__gameStateHooked = true;
 	if (window.spkmodDebug) spkmodDebug.log("Initializing in-game GameState hooks...");
-
-	if (typeof spkmodEnsureCartWatcher === "function") {
-		spkmodEnsureCartWatcher();
-	}
-
+	// Party nametag visibility hook
+    if (typeof gameState.handlePartyInfo === "function" && !gameState.__spkmodPartyInfoHooked) {
+        gameState.__spkmodPartyInfoHooked = true;
+        const originalHandlePartyInfo = gameState.handlePartyInfo.bind(gameState);
+		gameState.handlePartyInfo = function(e) {
+			const result = originalHandlePartyInfo(e);
+			if (lunNametagMode === 1) refreshAllNametags();
+            return result;
+        };
+    }
 	if (typeof gameState.handleQuestProgress === "function" && !gameState.__speakiQuestProgressHooked) {
 		gameState.__speakiQuestProgressHooked = true;
 		const origHandleQuestProgress = gameState.handleQuestProgress.bind(gameState);
@@ -841,32 +846,115 @@ function forceTranslateMessage(name, msg, assignedColor) {
 		});
 	});
 }
+
 function hookRemotePlayersOnce() {
-	if (typeof gameState === 'undefined' || !gameState?.remotePlayers?.remotePlayers) return;
-	if (gameState.remotePlayers.remotePlayers.__speakiHooked) return;
-	gameState.remotePlayers.remotePlayers.__speakiHooked = true;
+    if (typeof gameState === "undefined" || !gameState?.remotePlayers?.remotePlayers) return;
 
-	const hkRemotePlayersSet = gameState.remotePlayers.remotePlayers.set.bind(gameState.remotePlayers.remotePlayers);
-	gameState.remotePlayers.remotePlayers.set = function (key, value) {
-		if (value && value.info && typeof value.info.name === "string") {
-			value.info.name = filterName(value.info.name);
-		}
-		hookKnownBotPlayerEmotes(value);
-		if (typeof window.spkmodSanitizeRemotePlayers === "function") {
-			window.spkmodSanitizeRemotePlayers();
-		}
-		return hkRemotePlayersSet(key, value);
-	};
+    const remoteStore = gameState.remotePlayers;
+    const remoteMap = remoteStore.remotePlayers;
 
-	gameState.remotePlayers.remotePlayers.forEach(v => {
-		if (v && v.info && typeof v.info.name === "string") {
-			v.info.name = filterName(v.info.name);
-		}
-	});
-	hookKnownBotHeartEmotes();
-	hookKnownBotPlayerEmotesForAll();
-	if (typeof window.hookRemotePlayerRebuildIsolation === "function") window.hookRemotePlayerRebuildIsolation();
-	if (typeof window.spkmodSanitizeRemotePlayers === "function") window.spkmodSanitizeRemotePlayers();
+    if (!(remoteMap instanceof Map)) return;
+
+    if (!remoteMap.__speakiHooked) {
+        remoteMap.__speakiHooked = true;
+
+        const originalSet = remoteMap.set.bind(remoteMap);
+        const originalDelete = remoteMap.delete.bind(remoteMap);
+        const originalClear = remoteMap.clear.bind(remoteMap);
+
+        remoteMap.set = function(key, value) {
+            if (value?.info && typeof value.info.name === "string") {
+                value.info.name = filterName(value.info.name);
+            }
+
+            hookKnownBotPlayerEmotes(value);
+
+            if (typeof window.spkmodSanitizeRemotePlayers === "function") {
+                window.spkmodSanitizeRemotePlayers();
+            }
+
+            const result = originalSet(key, value);
+
+            if (value) {
+                value.__spkmodNametagManaged = true;
+                hookNametagAvatarReplacement(value);
+
+                if (value.avatar) hookAvatarLabel(value);
+
+                applyPlayerNametagVisibility(value);
+            }
+
+            updateKnownBotVisibility();
+
+            return result;
+        };
+
+        remoteMap.delete = function(key) {
+            const result = originalDelete(key);
+
+            if (result) updateKnownBotVisibility();
+
+            return result;
+        };
+
+        remoteMap.clear = function() {
+            const hadItems = this.size > 0;
+            const result = originalClear();
+
+            if (hadItems) updateKnownBotVisibility();
+
+            return result;
+        };
+
+        remoteMap.forEach(v => {
+            if (v?.info && typeof v.info.name === "string") {
+                v.info.name = filterName(v.info.name);
+            }
+
+            if (!v) return;
+
+            v.__spkmodNametagManaged = true;
+            hookNametagAvatarReplacement(v);
+
+            if (v.avatar) hookAvatarLabel(v);
+        });
+
+        refreshAllNametags();
+        hookKnownBotHeartEmotes();
+        hookKnownBotPlayerEmotesForAll();
+
+        if (typeof window.hookRemotePlayerRebuildIsolation === "function") {
+            window.hookRemotePlayerRebuildIsolation();
+        }
+
+        if (typeof window.spkmodSanitizeRemotePlayers === "function") {
+            window.spkmodSanitizeRemotePlayers();
+        }
+    }
+
+    if (!remoteStore.__spkmodApplyStatVisibilityHooked && typeof remoteStore.applyStat === "function") {
+        const originalApplyStat = remoteStore.applyStat;
+
+        remoteStore.applyStat = function(playerId, ...args) {
+            const player = remoteMap.get(playerId);
+            const oldName = player?.info?.name;
+            const oldLevel = player?.info?.level;
+            const result = originalApplyStat.call(this, playerId, ...args);
+
+            if (player && (player.info?.name !== oldName || player.info?.level !== oldLevel)) {
+                updateKnownBotVisibility();
+            }
+
+            return result;
+        };
+
+        remoteStore.__spkmodApplyStatVisibilityHooked = true;
+    }
+
+    spkmodHookVisibilityMap(gameState.remotePetRegistry?.pets);
+    spkmodHookVisibilityMap(gameState.remoteDroneCoreRegistry?.drones);
+
+    updateKnownBotVisibility();
 }
 hookRemotePlayersOnce();
 
@@ -978,7 +1066,19 @@ function spkmodResetFpsBaseline() {
 	spkmodFpsState.drawn = false;
 }
 
-document.addEventListener("visibilitychange", spkmodResetFpsBaseline);
+document.addEventListener("visibilitychange", () => {
+    spkmodResetFpsBaseline();
+    if (document.hidden) {
+        if (spkmodFpsRafId) {
+            cancelAnimationFrame(spkmodFpsRafId);
+        }
+        spkmodFpsRafId = 0;
+        spkmodFpsLoopRunning = false;
+        spkmodFpsState.enabled = false;
+    } else {
+        ensureFpsLoop();
+    }
+});
 // We no longer need to rely on a specific class named "sr-game-canvas"
 const spkmodGameGl = new WeakSet();
 
@@ -1041,60 +1141,96 @@ function spkmodIsGameGl(gl) {
 	}
 })();
 
-function fpsLoop() {
-	const now = performance.now();
+let spkmodFpsLoopRunning = false;
+let spkmodFpsRafId = 0;
+let spkmodResetTimerInterval = null;
 
-	const fpsWanted = lunFpsPingEnabled || !!(lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden"));
-	if (fpsWanted !== spkmodFpsState.enabled) {
-		spkmodFpsState.enabled = fpsWanted;
-		spkmodResetFpsBaseline();
-	}
-
-	if (spkmodFpsState.drawn) {
-		spkmodFpsState.frames++;
-		spkmodFpsState.drawn = false;
-	}
-
-	if (now - lunLastFrameTime >= 1000) {
-		if (spkmodFpsState.enabled) {
-			lunCurrentFps = Math.round((spkmodFpsState.frames - lunFpsLastRenderedFrames) * 1000 / (now - lunLastFrameTime));
-		}
-		lunFpsLastRenderedFrames = spkmodFpsState.frames;
-
-		if (lunFpsPingEnabled && lunHudElements.fpsPingTracker) {
-			setText(lunHudElements.fpsPingTracker, t("fpsPingText", lunCurrentFps, lunCurrentPing));
-		}
-
-		if (lunResetTimerEnabled && lunHudElements.resetTimerTracker) {
-			const nowUtc = new Date();
-			const kstOffset = 9 * 60 * 60 * 1000;
-			const kstNow = new Date(nowUtc.getTime() + kstOffset);
-			const kstNextMidnight = new Date(kstNow);
-			kstNextMidnight.setUTCHours(24, 0, 0, 0); // Next midnight in KST
-			const diffMs = kstNextMidnight.getTime() - kstNow.getTime();
-			const diffTotalSeconds = Math.floor(diffMs / 1000);
-			const hours = Math.floor(diffTotalSeconds / 3600);
-			const minutes = Math.floor((diffTotalSeconds % 3600) / 60);
-			const seconds = diffTotalSeconds % 60;
-			setText(lunHudElements.resetTimerTracker, t("resetTimerText",
-				String(hours).padStart(2, '0'),
-				String(minutes).padStart(2, '0'),
-				String(seconds).padStart(2, '0')
-			));
-		}
-
-		if (typeof updateStatsModalLive === 'function' && lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden")) {
-			updateStatsModalLive();
-		}
-
-		performActivePing();
-
-		lunLastFrameTime = now;
-	}
-
-	requestAnimationFrame(fpsLoop);
+function isSpkmodFpsWanted() {
+    return !document.hidden && (lunFpsPingEnabled ||
+		!!(lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden")));
 }
-requestAnimationFrame(fpsLoop);
+
+function updateSpkmodResetTimer() {
+    if (!lunResetTimerEnabled || !lunHudElements.resetTimerTracker) return;
+
+    const nowUtc = new Date();
+    const kstOffset = 9 * 60 * 60 * 1000;
+    const kstNow = new Date(nowUtc.getTime() + kstOffset);
+    const kstNextMidnight = new Date(kstNow);
+
+    kstNextMidnight.setUTCHours(24, 0, 0, 0);
+
+    const diffMs = kstNextMidnight.getTime() - kstNow.getTime();
+    const diffTotalSeconds = Math.floor(diffMs / 1000);
+    const hours = Math.floor(diffTotalSeconds / 3600);
+    const minutes = Math.floor((diffTotalSeconds % 3600) / 60);
+    const seconds = diffTotalSeconds % 60;
+
+    setText(lunHudElements.resetTimerTracker, t("resetTimerText", String(hours).padStart(2, "0"), String(minutes).padStart(2, "0"), String(seconds).padStart(2, "0")));
+}
+
+function syncSpkmodResetTimerInterval() {
+    if (lunResetTimerEnabled && lunHudElements.resetTimerTracker && !spkmodResetTimerInterval) {
+        updateSpkmodResetTimer();
+        spkmodResetTimerInterval = setInterval(updateSpkmodResetTimer, 1000);
+    } else if ((!lunResetTimerEnabled || !lunHudElements.resetTimerTracker) && spkmodResetTimerInterval) {
+        clearInterval(spkmodResetTimerInterval);
+        spkmodResetTimerInterval = null;
+    }
+}
+
+function ensureFpsLoop() {
+    if (spkmodFpsLoopRunning || !isSpkmodFpsWanted()) return;
+
+    spkmodFpsLoopRunning = true;
+    spkmodFpsState.enabled = true;
+
+    spkmodResetFpsBaseline();
+
+    spkmodFpsRafId = requestAnimationFrame(fpsLoop);
+}
+
+function fpsLoop() {
+    spkmodFpsRafId = 0;
+
+    if (!isSpkmodFpsWanted()) {
+        spkmodFpsLoopRunning = false;
+        spkmodFpsState.enabled = false;
+
+        spkmodResetFpsBaseline();
+
+        return;
+    }
+
+    const now = performance.now();
+
+    if (spkmodFpsState.drawn) {
+        spkmodFpsState.frames++;
+        spkmodFpsState.drawn = false;
+    }
+
+    if (now - lunLastFrameTime >= 1000) {
+        lunCurrentFps = Math.round((spkmodFpsState.frames - lunFpsLastRenderedFrames) * 1000 / (now - lunLastFrameTime));
+        lunFpsLastRenderedFrames = spkmodFpsState.frames;
+
+        if (lunFpsPingEnabled && lunHudElements.fpsPingTracker) {
+            setText(lunHudElements.fpsPingTracker, t("fpsPingText", lunCurrentFps, lunCurrentPing));
+        }
+
+        if (typeof updateStatsModalLive === "function" && lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden")) {
+            updateStatsModalLive();
+        }
+
+        performActivePing();
+
+        lunLastFrameTime = now;
+    }
+
+    spkmodFpsRafId = requestAnimationFrame(fpsLoop);
+}
+
+syncSpkmodResetTimerInterval();
+ensureFpsLoop();
 
 setTimeout(() => {
 	fetchPatchNotesOnce();
