@@ -538,6 +538,8 @@ var lunPanelElements = {
 	pumpkinCartTexBtn1: null,
 	pumpkinCartTexBtn2: null,
 	pumpkinCartTexBtn3: null,
+	pumpkinCartTexBtn4: null,
+	pumpkinCartTexBtn5: null,
 	pinnedQuestHeader: null,
 	langSelect: null,
 	settingsHeader: null,

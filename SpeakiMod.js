@@ -1747,6 +1747,8 @@ var lunPanelElements = {
 	pumpkinCartTexBtn1: null,
 	pumpkinCartTexBtn2: null,
 	pumpkinCartTexBtn3: null,
+	pumpkinCartTexBtn4: null,
+	pumpkinCartTexBtn5: null,
 	pinnedQuestHeader: null,
 	langSelect: null,
 	settingsHeader: null,
@@ -16471,7 +16473,8 @@ const SPKMOD_PUMPKIN_CART_SKINS = {
 	1: { id: "1", label: "1️⃣", file: "test2.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/test2.png" },
 	2: { id: "2", label: "2️⃣", file: "test3.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/test3.png" },
 	3: { id: "3", label: "3️⃣", file: "test4.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/test4.png" },
-	4: { id: "4", label: "4️⃣ ", file: "dancing.webp", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/dancing.webp" }
+	4: { id: "4", label: "4️⃣ ", file: "dancing.webp", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/dancing.webp" },
+	5: { id: "5", label: "5️⃣", file: "yuki.png", url: "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/assets/yuki.png" }
 };
 
 window.spkmodActivePumpkinSkin = null;
@@ -16721,7 +16724,7 @@ function spkmodApplyPumpkinCartTextureToScene(enable, targetImage) {
 			const mName = (m.name || "").toLowerCase();
 			const imgSrc = (m.map && m.map.image && typeof m.map.image.src === "string") ? m.map.image.src : "";
 			const isCartMap = (m.map && m.map.image && (
-				imgSrc.includes("HW_Map_Body") || imgSrc.includes("test") || imgSrc.includes("mount_pumpkin_cart") ||
+				imgSrc.includes("HW_Map_Body") || imgSrc.includes("test") || imgSrc.includes("dancing") || imgSrc.includes("yuki") || imgSrc.includes("mount_pumpkin_cart") ||
 				mName.includes("hw_map_body") || mName.includes("pumpkin")
 			)) || cName.includes("pumpkin") || cName.includes("hw_map");
 
@@ -16768,7 +16771,9 @@ function spkmodUpdatePumpkinCartButtonStyles() {
 		uifi: lunPanelElements.pumpkinCartTexBtn,
 		1: lunPanelElements.pumpkinCartTexBtn1,
 		2: lunPanelElements.pumpkinCartTexBtn2,
-		3: lunPanelElements.pumpkinCartTexBtn3
+		3: lunPanelElements.pumpkinCartTexBtn3,
+		4: lunPanelElements.pumpkinCartTexBtn4,
+		5: lunPanelElements.pumpkinCartTexBtn5
 	};
 	for (const [key, btn] of Object.entries(btnMap)) {
 		if (!btn) continue;
@@ -18360,13 +18365,22 @@ document.body.appendChild(
 							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("3");
 						}
 					}),
-					lunPanelElements.pumpkinCartTexBtn3 = buildElement("button", {
+					lunPanelElements.pumpkinCartTexBtn4 = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 5px 2px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
 						innerText: "4️⃣",
 						title: "Pumpkin Cart Skin: 4 (dancing.webp)",
 						onclick: () => {
-							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("4"); // lol im retarded
+							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("4");
+						}
+					}),
+					lunPanelElements.pumpkinCartTexBtn5 = buildElement("button", {
+						className: "spkmod-panel-btn",
+						style: "padding: 5px 2px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
+						innerText: "5️⃣",
+						title: "Pumpkin Cart Skin: 5 (yuki.png)",
+						onclick: () => {
+							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("5");
 						}
 					})
 				]),
