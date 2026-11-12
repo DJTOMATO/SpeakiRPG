@@ -1668,6 +1668,7 @@ document.body.appendChild(
 						if (lunNametagMode === 2) {
 							fetchFriendsList(true);
 						}
+						refreshAllNametags();
 						if (lunPanelElements.nametagsBtn) {
 							setText(lunPanelElements.nametagsBtn, t(NAMETAG_MODES[lunNametagMode] + "Btn"));
 						}
@@ -4850,4 +4851,3 @@ buildResourcePackModal();
 if (lunResourcePackEnabled && Object.keys(lunMiningCustomTextures).length > 0) {
 	setTimeout(spkmodApplyMiningResourcePack, 500);
 }
-

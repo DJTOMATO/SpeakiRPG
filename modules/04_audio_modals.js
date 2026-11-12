@@ -255,11 +255,16 @@ const LUN_EXP_INTERVAL_OPTIONS = [1, 5, 10, 15, 30, 60];
 var lunExpIntervalMinutes = parseInt((window.localStorage && localStorage.getItem("spkmod-exp-interval-minutes")) || "1", 10);
 if (!LUN_EXP_INTERVAL_OPTIONS.includes(lunExpIntervalMinutes)) lunExpIntervalMinutes = 1;
 function resetExpTracker() {
-	lunExpTrackerInitialized = false;
-	lunExpTrackerSamples = [];
-	lunExpTrackerLastSampleTick = 0;
-	window.lunExpTrackerIgnoredExp = 0;
-	window.lunExpTrackerLastRawExp = undefined;
+    lunExpTrackerInitialized = false;
+    lunExpTrackerSamples = [];
+    lunExpTrackerLastSampleTick = 0;
+    lunExpTrackerLastCalculationTime = 0;
+    lunExpTrackerDisplayL1 = null;
+    lunExpTrackerDisplayL2 = null;
+    window.lunExpTrackerIgnoredExp = 0;
+    window.lunExpTrackerLastRawExp = undefined;
+    window.lunExpTrackerLastMaxExp = undefined;
+    window.lunExpTrackerLevelCarry = 0;
 }
 function setExpRatePerHour(enabled) {
 	lunExpRatePerHour = !!enabled;
@@ -277,23 +282,25 @@ function setExpIntervalMinutes(minutes) {
 
 var lunFpsPingEnabled = (window.localStorage && localStorage.getItem("spkmod-fps-ping")) === "true";
 function setFpsPingEnabled(enabled) {
-	lunFpsPingEnabled = !!enabled;
-	if (window.localStorage) localStorage.setItem("spkmod-fps-ping", lunFpsPingEnabled ? "true" : "false");
-	if (lunHudElements.fpsPingTracker) {
-		lunHudElements.fpsPingTracker.style.display = lunFpsPingEnabled ? "" : "none";
-	}
-	if (lunFpsPingEnabled && typeof performActivePing === 'function') {
-		performActivePing();
-	}
+    lunFpsPingEnabled = !!enabled;
+    if (window.localStorage) localStorage.setItem("spkmod-fps-ping", lunFpsPingEnabled ? "true" : "false");
+    if (lunHudElements.fpsPingTracker) {
+        lunHudElements.fpsPingTracker.style.display = lunFpsPingEnabled ? "" : "none";
+    }
+    if (lunFpsPingEnabled && typeof performActivePing === "function") {
+        performActivePing();
+    }
+    ensureFpsLoop();
 }
 
 var lunResetTimerEnabled = (window.localStorage && localStorage.getItem("spkmod-reset-timer")) !== "false";
 function setResetTimerEnabled(enabled) {
-	lunResetTimerEnabled = !!enabled;
-	if (window.localStorage) localStorage.setItem("spkmod-reset-timer", lunResetTimerEnabled ? "true" : "false");
-	if (lunHudElements.resetTimerTracker) {
-		lunHudElements.resetTimerTracker.style.display = lunResetTimerEnabled ? "" : "none";
-	}
+    lunResetTimerEnabled = !!enabled;
+    if (window.localStorage) localStorage.setItem("spkmod-reset-timer", lunResetTimerEnabled ? "true" : "false");
+    if (lunHudElements.resetTimerTracker) {
+        lunHudElements.resetTimerTracker.style.display = lunResetTimerEnabled ? "" : "none";
+    }
+    syncSpkmodResetTimerInterval();
 }
 
 var lunMinigameTrackerEnabled = (window.localStorage && localStorage.getItem("spkmod-pumpkin-tracker")) === "true";
@@ -313,71 +320,110 @@ function setMinigameTrackerEnabled(enabled) {
 }
 
 let ACTIVE_MINIGAME_ID = null;
+let lunMinigameStatusInFlight = null;
+let lunMinigameStatusInFlightToken = "";
 
 function fetchMinigameStatus() {
-	const token = getAuthToken();
-	if (!token) return;
+    const token = getAuthToken();
 
-	let keysToTry = ["pumpkin", "sweep", "nuruling"];
-	if (typeof gameState !== "undefined" && gameState && gameState.minigameEntryDialogs) {
-		const dynamicKeys = gameState.minigameEntryDialogs.map(d => d.def && d.def.gameKey).filter(Boolean);
-		if (dynamicKeys.length > 0) keysToTry = dynamicKeys;
-	}
+    if (!token) return Promise.resolve(null);
 
-	if (!ACTIVE_MINIGAME_ID) {
-		let lastResp = null;
-		
-		const checkNext = (index) => {
-			if (index >= keysToTry.length) {
-				if (lastResp) {
-					lunMinigameStatus = lastResp;
-					updateMinigameUI();
-				}
-				return;
-			}
-			const key = keysToTry[index];
-			fetch(`https://sr1.overture.io.kr/api/minigame/${key}/status`, {
-				"method": "GET",
-				"headers": { "authorization": `Bearer ${token}` },
-				"mode": "cors"
-			})
-			.then(res => res.json())
-			.then(resp => {
-				if (resp && resp.isActive) {
-					ACTIVE_MINIGAME_ID = key;
-					lunMinigameStatus = resp;
-					updateMinigameUI();
-				} else {
-					if (resp) lastResp = resp;
-					checkNext(index + 1);
-				}
-			})
-			.catch(err => {
-				checkNext(index + 1);
-			});
-		};
-		checkNext(0);
-		return;
-	}
+    if (lunMinigameStatusInFlight && lunMinigameStatusInFlightToken === token) {
+        return lunMinigameStatusInFlight;
+    }
 
-	fetch(`https://sr1.overture.io.kr/api/minigame/${ACTIVE_MINIGAME_ID}/status`, {
-		"method": "GET",
-		"headers": {
-			"authorization": `Bearer ${token}`
-		},
-		"mode": "cors"
-	})
-		.then(res => res.json())
-		.then(resp => {
-			if (resp && !resp.isActive) {
-				ACTIVE_MINIGAME_ID = null; // reset so it searches again on next tick
-			}
-			lunMinigameStatus = resp;
-			updateMinigameUI();
-		})
-		.catch(err => {
-			console.error("[SpeakiMod] Failed to fetch minigame status:", err);
-		});
+    const request = (async () => {
+        const isCurrentRequest = () => token === getAuthToken();
+
+        let keysToTry = ["pumpkin", "sweep", "nuruling"];
+
+        if (typeof gameState !== "undefined" && gameState?.minigameEntryDialogs) {
+            const dynamicKeys = gameState.minigameEntryDialogs.map(d => d.def?.gameKey).filter(Boolean);
+
+            if (dynamicKeys.length > 0) {
+                keysToTry = dynamicKeys;
+            }
+        }
+
+        if (!ACTIVE_MINIGAME_ID) {
+            let lastResp = null;
+
+            for (const key of keysToTry) {
+                if (!isCurrentRequest()) return null;
+
+                try {
+                    const res = await fetch(`https://sr1.overture.io.kr/api/minigame/${key}/status`, {
+                        method: "GET",
+                        headers: {
+                            authorization: `Bearer ${token}`
+                        },
+                        mode: "cors"
+                    });
+
+                    const resp = await res.json();
+
+                    if (!isCurrentRequest()) return null;
+
+                    if (resp && resp.isActive) {
+                        ACTIVE_MINIGAME_ID = key;
+                        lunMinigameStatus = resp;
+                        updateMinigameUI();
+                        return resp;
+                    }
+
+                    if (resp) lastResp = resp;
+                } catch (_) {}
+            }
+
+            if (isCurrentRequest() && lastResp) {
+                lunMinigameStatus = lastResp;
+                updateMinigameUI();
+            }
+
+            return lastResp;
+        }
+
+        try {
+            const res = await fetch(`https://sr1.overture.io.kr/api/minigame/${ACTIVE_MINIGAME_ID}/status`, {
+                method: "GET",
+                headers: {
+                    authorization: `Bearer ${token}`
+                },
+                mode: "cors"
+            });
+
+            const resp = await res.json();
+
+            if (!isCurrentRequest()) return null;
+
+            if (resp && !resp.isActive) {
+                ACTIVE_MINIGAME_ID = null;
+            }
+
+            lunMinigameStatus = resp;
+            updateMinigameUI();
+
+            return resp;
+        } catch (err) {
+            console.error("[SpeakiMod] Failed to fetch minigame status:", err);
+            return null;
+        }
+    })();
+
+    lunMinigameStatusInFlight = request;
+    lunMinigameStatusInFlightToken = token;
+
+    try {
+        return request.finally(() => {
+            if (lunMinigameStatusInFlight === request) {
+                lunMinigameStatusInFlight = null;
+                lunMinigameStatusInFlightToken = "";
+            }
+        });
+    } catch (err) {
+        console.error("[SpeakiMod] Minigame status request failed:", err);
+        return Promise.resolve(null);
+    }
 }
 
 function updateMinigameUI() {
@@ -2088,7 +2134,7 @@ function suppressGameBgm(mute) {
             if (slider) {
                 slider.value = '0';
                 slider.dispatchEvent(new Event('input', { bubbles: true }));
-                slider.dispatchEvent(new Event('change', { bubbles: true }));
+				slider.dispatchEvent(new Event('change', { bubbles: true }));
             }
             if (typeof window.updateGameSettings === "function") {
                 try { window.updateGameSettings({ bgmVolume: 0 }); } catch (_) {}
@@ -3092,8 +3138,3 @@ setTimeout(() => {
         }
     } catch (_) {}
 }, 1500);
-
-
-
-
-

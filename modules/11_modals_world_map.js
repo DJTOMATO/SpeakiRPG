@@ -642,22 +642,13 @@ document.body.appendChild(
 							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("3");
 						}
 					}),
-					lunPanelElements.pumpkinCartTexBtn4 = buildElement("button", {
+					lunPanelElements.pumpkinCartTexBtn3 = buildElement("button", {
 						className: "spkmod-panel-btn",
 						style: "padding: 5px 2px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
 						innerText: "4️⃣",
 						title: "Pumpkin Cart Skin: 4 (dancing.webp)",
 						onclick: () => {
-							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("4");
-						}
-					}),
-					lunPanelElements.pumpkinCartTexBtn5 = buildElement("button", {
-						className: "spkmod-panel-btn",
-						style: "padding: 5px 2px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
-						innerText: "5️⃣",
-						title: "Pumpkin Cart Skin: 5 (yuki.png)",
-						onclick: () => {
-							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("5");
+							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("4"); // lol im retarded
 						}
 					})
 				]),

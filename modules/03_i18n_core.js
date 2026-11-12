@@ -16,60 +16,6 @@ function buildElement(tag, characteristics, inner, callback) {
 	return elem;
 }
 
-var __spkmodSpriteProtoHooked = false;
-function hookSpritePrototypeOnce(sprite) {
-	if (__spkmodSpriteProtoHooked || !sprite) return;
-	const proto = Object.getPrototypeOf(sprite);
-	if (!proto) return;
-	__spkmodSpriteProtoHooked = true;
-
-	Object.defineProperty(proto, "visible", {
-		get() {
-			if (typeof lunNametagMode !== "undefined" && lunNametagMode === 3 && this.position && this.position.y > 0.5) {
-				return false;
-			}
-			return this._spkmodVisible !== undefined ? this._spkmodVisible : true;
-		},
-		set(v) {
-			this._spkmodVisible = v;
-		},
-		configurable: true
-	});
-}
-
-function findNametagSprite(container) {
-	if (!container) return null;
-	const cached = container.__spkmodNametagSprite;
-	if (cached && cached.isSprite && cached.parent) {
-		let p = cached.parent;
-		while (p && p !== container) {
-			p = p.parent;
-		}
-		if (p === container) {
-			hookSpritePrototypeOnce(cached);
-			return cached;
-		}
-	}
-
-	let sprite = null;
-	if (typeof container.traverse === "function") {
-		container.traverse(obj => {
-			if (obj && obj.isSprite) {
-				hookSpritePrototypeOnce(obj);
-				if (!sprite && obj.position && obj.position.y > 0.5) {
-					sprite = obj;
-				}
-			}
-		});
-	}
-	if (sprite) {
-		container.__spkmodNametagSprite = sprite;
-	} else {
-		delete container.__spkmodNametagSprite;
-	}
-	return sprite;
-}
-
 
 function setText(elem, text) {
 	if (elem && elem.innerText !== text) {
@@ -221,8 +167,12 @@ function getEffectiveSourceLang(text) {
 
 var lunBadWordRegex = null;
 function rebuildBadWordRegex() {
-	var allWords = Object.values(lunBadWords).flat().filter(Boolean);
-	if (!allWords.length) {
+    for (const lang of Object.keys(lunBadWords)) {
+        lunBadWords[lang] = [...new Set(lunBadWords[lang].filter(Boolean))];
+    }
+
+    var allWords = Object.values(lunBadWords).flat().filter(Boolean);
+    if (!allWords.length) {
 		lunBadWordRegex = null;
 		return;
 	}
@@ -538,8 +488,6 @@ var lunPanelElements = {
 	pumpkinCartTexBtn1: null,
 	pumpkinCartTexBtn2: null,
 	pumpkinCartTexBtn3: null,
-	pumpkinCartTexBtn4: null,
-	pumpkinCartTexBtn5: null,
 	pinnedQuestHeader: null,
 	langSelect: null,
 	settingsHeader: null,
@@ -624,9 +572,12 @@ const lunTPS = 20;
 
 var lunExpTrackerStartExp = 0;
 var lunExpTrackerSpeed = 0;
-var lunExpTrackerInitialized = false; 
+var lunExpTrackerInitialized = false;
 var lunExpTrackerSamples = [];
 var lunExpTrackerLastSampleTick = 0;
+var lunExpTrackerLastCalculationTime = 0;
+var lunExpTrackerDisplayL1 = null;
+var lunExpTrackerDisplayL2 = null;
 
 var lunChannelTrackerWindow = 60 * lunTPS; // [SpeakiMod+] Reduced from 25s to 60s
 var lunChannelTrackerNextTicks = 0;
@@ -655,6 +606,164 @@ if (window.localStorage) {
 }
 window.lunNametagMode = lunNametagMode;
 const NAMETAG_MODES = ["showAllNametags", "keepPartyNametags", "keepFriendsNametags", "hideAllNametags"];
+
+function getPartyNametagNames() {
+    return new Set(Array.from(gameState?.partyMemberNamesBySlot?.values?.() ?? [])
+			.map(name => String(name ?? "").trim().toLowerCase()).filter(Boolean));
+}
+
+// Find and cache the nametag sprite.
+function getPlayerNametagSprite(player) {
+    const root = player?.avatar?.root;
+
+    if (!root) return null;
+
+    const cached = player.__spkmodNametagSprite;
+
+    // Reuse the cached sprite if it still belongs to the current avatar.
+    if (cached && cached.parent === root) return cached;
+
+    // In the current game source, the nametag is a direct child of avatar.root.
+    const sprite = root.children?.find(obj => obj?.isSprite && obj.position && obj.position.y > 0.5) ?? null;
+
+    if (sprite) {
+        player.__spkmodNametagSprite = sprite;
+    } else {
+        delete player.__spkmodNametagSprite;
+    }
+
+    return sprite;
+}
+
+// Apply visibility to one player's nametag.
+function applyPlayerNametagVisibility(player, partyNames = null) {
+    if (!player?.avatar?.root) return;
+
+    const pName = String(player.info?.name ?? "").trim().toLowerCase();
+    const origName = String(player.info?.__spkmodOrigName ?? "").trim().toLowerCase();
+
+    let shouldBeVisible = true;
+
+    if (lunNametagMode === 3) {
+        shouldBeVisible = false;
+    } else if (lunNametagMode === 1) {
+        const names = partyNames ?? getPartyNametagNames();
+		shouldBeVisible = names.has(pName) || (Boolean(origName) && names.has(origName));
+    } else if (lunNametagMode === 2) {
+        shouldBeVisible = lunFriendNicknames.has(pName) || (Boolean(origName) && lunFriendNicknames.has(origName));
+    }
+
+    const sprite = getPlayerNametagSprite(player);
+
+    if (sprite && sprite.visible !== shouldBeVisible) sprite.visible = shouldBeVisible;
+}
+
+// Refresh all nametags only when necessary.
+function refreshAllNametags() {
+    const players = gameState?.remotePlayers?.remotePlayers;
+
+    if (!players) return;
+
+    const partyNames = lunNametagMode === 1 ? getPartyNametagNames() : null;
+
+    players.forEach(player => {
+        applyPlayerNametagVisibility(player, partyNames);
+    });
+}
+
+function hookAvatarLabel(entity, explicitContainer) {
+	if (!entity || !entity.avatar) return;
+	const avatar = entity.avatar;
+	if (typeof avatar.setLabel !== 'function' || avatar.__spkmodLabelPatched) return;
+
+	const resolveContainer = () => explicitContainer || entity.container || entity.root || avatar.root || (typeof entity.traverse === 'function' ? entity : null);
+
+	const origSetLabel = avatar.setLabel;
+	avatar.setLabel = function(text, ...args) {
+		if (typeof text === 'string' && text.length > 0 && (!lunHidePlayerLevels || text.startsWith("LV"))) {
+			avatar.__spkmodLastRawLabel = text;
+		}
+		if (lunHidePlayerLevels && typeof text === 'string' && text.startsWith("LV")) {
+			const spaceIdx = text.indexOf(" ");
+			if (spaceIdx !== -1) {
+				text = text.substring(spaceIdx + 1); // remove "LVxxx "
+			}
+		}
+
+		try {
+			const targetContainer = resolveContainer();
+			if (targetContainer && typeof targetContainer.traverse === 'function') {
+				targetContainer.traverse(obj => {
+					// Position check ensures we only hit the floating nametag sprite above the player
+					if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+						obj.material.map.dispose();
+
+						if (obj.material.map.image && typeof obj.material.map.image.getContext === 'function') {
+							const ctx = obj.material.map.image.getContext('2d');
+							ctx.clearRect(0, 0, obj.material.map.image.width, obj.material.map.image.height);
+						}
+					}
+				});
+			}
+		} catch(e) {}
+
+		return origSetLabel.call(this, text, ...args);
+	};
+	avatar.__spkmodLabelPatched = true;
+
+	// Force redraw with current text if level-hiding or a custom font is active
+	if (lunHidePlayerLevels || (typeof lunFontPreset !== "undefined" && lunFontPreset !== "default")) {
+		if (entity.info && entity.info.name) {
+			const lvl = entity.info.__spkmodOrigLevel || entity.info.level || 1;
+			avatar.setLabel("LV" + lvl + " " + entity.info.name);
+		} else if (entity === gameState.playerContainer || entity.isLocalPlayer) {
+			const lvl = (gameState.myStat && gameState.myStat.level) ? gameState.myStat.level : 1;
+			const name = (gameState.myPlayerName || (gameState.myStat && gameState.myStat.name)) || "";
+			if (name) avatar.setLabel("LV" + lvl + " " + name);
+		}
+	}
+}
+
+function hookNametagAvatarReplacement(player) {
+    if (!player || player.__spkmodAvatarNametagHooked) return;
+
+    const descriptor = Object.getOwnPropertyDescriptor(player, "avatar");
+
+    if (descriptor && descriptor.configurable === false) return;
+
+    let currentAvatar = player.avatar;
+
+    try {
+        Object.defineProperty(player, "avatar", {
+            configurable: true,
+            enumerable: descriptor?.enumerable ?? true,
+
+            get() {
+                return currentAvatar;
+            },
+
+            set(nextAvatar) {
+                currentAvatar = nextAvatar;
+
+                // Previous nametag belongs to the old avatar.
+                delete player.__spkmodNametagSprite;
+
+                if (!nextAvatar) return;
+				
+				// Hook the new avatar's setLabel method.
+				hookAvatarLabel(player);
+				
+				// Apply current nametag visibility.
+				applyPlayerNametagVisibility(player);
+            }
+        });
+
+        player.__spkmodAvatarNametagHooked = true;
+
+    } catch (err) {
+        console.warn("[SpeakiMod+] Failed to hook avatar replacement:", err);
+    }
+}
 
 var lunFriendNicknames = new Set();
 if (window.localStorage) {
@@ -685,15 +794,22 @@ function replaceFriendNicknames(data) {
         if (f.friendshipId != null) nextIds.set(String(f.friendshipId), nick);
     }
 
+	// Check whether the friend nickname set actually changed.
+    // This MUST be before lunFriendNicknames.clear().
+    const namesChanged = nextNames.size !== lunFriendNicknames.size || [...nextNames].some(name => !lunFriendNicknames.has(name));
+
     lunFriendNicknames.clear();
 
     for (const nick of nextNames) lunFriendNicknames.add(nick);
 
     lunFriendshipNicknamesById = nextIds;
-
-    try {
-        localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
-    } catch (_) {}
+	
+	if (namesChanged) {
+		try {
+			localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
+		} catch (_) {}
+		if (lunNametagMode === 2) refreshAllNametags();
+	}
 }
 
 var lunFriendChatHighlightEnabled = (window.localStorage && localStorage.getItem("spkmod-friend-highlight-enabled")) === "true";
@@ -734,8 +850,6 @@ function fetchFriendsList(force = false) {
 	const targetUrl = endpoint + "/api/friend/list";
 	const headers = {};
 	if (token) headers["authorization"] = `Bearer ${token}`;
-	
-	const applyFriendData = replaceFriendNicknames;
 
 	(async () => {
 		try {
@@ -771,11 +885,7 @@ function fetchFriendsList(force = false) {
 					} catch (_) {}
 				}
 			}
-
-			if (res && res.ok) {
-				const data = await res.json();
-				applyFriendData(data);
-			}
+			
 		} catch (err) {
 			console.warn("[SpeakiMod+] Failed to fetch friend list:", err);
 		} finally {
@@ -790,7 +900,24 @@ function fetchFriendsList(force = false) {
 	})();
 }
 
-const lunKnownBotNames = ["GniloeAlo3", "Gniloe41o3", "Gniloe41oe", "GniloeA1oe", "GniloeA1o3", "GniloeA103", "toufufuton", "uhu", "clay79", "key7catace", "6air9dog5", "53lake", "1sealace", "2wave0bay1", "19owlfern", "red17wave", "nekomaru2", "king9SPK5", "ash6mist7", "takutaku8", "스핔이3984", "SPKtree21", "SPKleaf37", "3clayowl5", "3bayhero9", "99duckdog", "cow6SPK2", "fire8SPK7", "Takutaku3", "Takutaku4", "kutakuta", "0birdice2", "wind2SPK8", "SPKbay23", "3sky8king", "star2bat04", "map3kite4", "FrznTeardrop", "sun9SPK0", "5SPKsnow2", "SPKclay15", "frogfox40", "5air7moon", "SPKair00", "SPKblue88", "moss4ant36", "9gem4wind", "SPKjade05", "SPKfin06", "SPKdeer69", "OO0OOOOO72", "llIlIIll62", "lIllIIIl39", "IIlIIIlI45", "00OO0OO099", "sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", "OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", "CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", "LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", "SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", "IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", "IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", "OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63", "SPKecho98", "OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", "llIIllll38", "takutaku6", "kutakuta2", "takutaku7", "GniloeAlo3", "Gniloe4103", "Gniloe41o3", "GniloeAl03", "Gniloe41oe", "GniloeA1o3", "Gniloe41o3", "GniloeAlo3", "GniloeAl03", "Gniloe41oe"];
+const lunKnownBotNames = ["GniloeAlo3", "Gniloe41o3", "Gniloe41oe", "GniloeA1oe", "GniloeA1o3", "GniloeA103", "toufufuton", "uhu", "clay79", 
+	"key7catace", "6air9dog5", "53lake", "1sealace", "2wave0bay1", "19owlfern", "red17wave", "nekomaru2", "king9SPK5", "ash6mist7", "takutaku8", 
+	"스핔이3984", "SPKtree21", "SPKleaf37", "3clayowl5", "3bayhero9", "99duckdog", "cow6SPK2", "fire8SPK7", "Takutaku3", "Takutaku4", "kutakuta", 
+	"0birdice2", "wind2SPK8", "SPKbay23", "3sky8king", "star2bat04", "map3kite4", "FrznTeardrop", "sun9SPK0", "5SPKsnow2", "SPKclay15", "frogfox40", 
+	"5air7moon", "SPKair00", "SPKblue88", "moss4ant36", "9gem4wind", "SPKjade05", "SPKfin06", "SPKdeer69", "OO0OOOOO72", "llIlIIll62", "lIllIIIl39", 
+	"IIlIIIlI45", "00OO0OO099", "sorakara", "karakaze", "rainant78", "SPKlake78", "takutaku7", "rnmrrnvrm2", "SPKfern89", "llIIllll38", "SPKtree03", 
+	"OO0O00OO30", "SPKecho92", "OOOOO0O081", "takutaku6", "kutakuta2", "GOODSPIKI", "BADSPIKI", "NEXThobagi", "QAZWSXEDC", "kqland", "SPKsun83", 
+	"CHOWAYOHOBAG", "AdmiralSPK", "xHunterSPKx", "HOBAGIRENGOU", "TOKAlhobagi", "chowayooo5", "NELSPK", "TOKAIhobagi", "hobagihouse", "NORDSPEAKI", 
+	"LOGIN", "FunnySPK", "JpTHEspeaki", "MEXICOSPK", "JAXNOTD", "DDDDDDAA", "NOMUT", "alexasojk", "gotobasupk", "Nyandal", "amejiso", "SPKcalm33", 
+	"SPKtree51", "snowfin05", "fernhat76", "SPKhero04", "jadenet92", "000OO00O82", "00O000O081", "frogbee79", "00O000O081", "OOOOOO0030", "OOOOOO0081", 
+	"IIIIIII06", "lllllll06", "IIIIIII47", "lllllll47", "SPKecho92", "SPKtree03", "SPKstar65", "blueash78", "SPKfrog11", "OOOOOOO030", "OOOOOOO081", 
+	"IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", 
+	"OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63", "SPKecho98", "OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", 
+	"llIIllll38", "takutaku6", "kutakuta2", "takutaku7", "GniloeAlo3", "Gniloe4103", "Gniloe41o3", "GniloeAl03", "Gniloe41oe", "GniloeA1o3", "Gniloe41o3", 
+	"GniloeAlo3", "GniloeAl03", "Gniloe41oe"];
+
+const lunKnownBotNameSet = new Set(lunKnownBotNames.map(name => name.trim().toLocaleLowerCase()).filter(Boolean));
+const lunKnownBotPrefixSet = new Set(lunKnownBotNames.map(name => name.toLowerCase().replace(/[^a-z]/g, "").slice(0, 5)).filter(prefix => prefix.length >= 4));
 
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
@@ -847,7 +974,7 @@ function isKnownBotName(name, level, accountId) {
 	let isBot = false;
 	const parsedLevel = typeof level === "number" ? level : parseInt(level);
 	
-	if (lunKnownBotNames.some(botName => botName.trim().toLocaleLowerCase() === lowerName)) {
+	if (lunKnownBotNameSet.has(lowerName)) {
 		isBot = true;
 	} else if (!isNaN(parsedLevel)) {
 		if (parsedLevel === 1 && lunAutoBannedLevel1s.has(lowerName)) {
@@ -880,10 +1007,13 @@ function isKnownBotName(name, level, accountId) {
 	// Dynamic Strict Net with Loose Name Matching
 	if (accountIdNum > 0 && accountIdNum >= lunActiveBotWaveMinId && parsedLevel === 1) {
 		const letters = lowerName.replace(/[^a-z]/g, '');
-		const isLooseMatch = lunKnownBotNames.some(b => {
-			const p = b.toLowerCase().replace(/[^a-z]/g, '').substring(0, 5);
-			return p.length >= 4 && letters.includes(p);
-		});
+		let isLooseMatch = false;
+		for (const prefix of lunKnownBotPrefixSet) {
+			if (letters.includes(prefix)) {
+				isLooseMatch = true;
+				break;
+			}
+		}
 		if (isLooseMatch) {
 			return true;
 		}
@@ -895,112 +1025,293 @@ function isKnownBotName(name, level, accountId) {
 var lunSpkAuthToken = "";
 var cachedBlockedNames = new Set();
 var cachedBlockIds = new Map();
-async function spkmodFetchBlocklist() {
-    if (!lunSpkAuthToken) {
-        setTimeout(spkmodFetchBlocklist, 1000); // Retry until we steal the token
-        return;
+
+let legacyBlockedNamesCache = null;
+let spkmodBlockNameCounts = new Map();
+let spkmodBlockOrphanNames = new Set();
+let spkmodBlocklistSnapshotSignature = null;
+let spkmodBlocklistInFlight = null;
+let spkmodBlocklistInFlightToken = "";
+let spkmodBlocklistRequestVersion = 0;
+let spkmodBlocklistFetchTimer = null;
+
+function getLegacyBlockedNamesCache() {
+    if (legacyBlockedNamesCache instanceof Set) {
+        return legacyBlockedNamesCache;
     }
+
+    const names = new Set();
+
     try {
-        const apiUrl = (typeof window.lunActiveApiEndpoint !== 'undefined' ? window.lunActiveApiEndpoint : "https://sr1.overture.io.kr") + "/api/block";
-        const res = await window.fetch(apiUrl, {
-            method: "GET",
-            cache: "no-store",
-            headers: {
-                "Authorization": lunSpkAuthToken
-            }
-        });
-        if (res.ok) {
-            const data = await res.json();
-            if (data && data.blocks) {
-                cachedBlockedNames.clear();
-                cachedBlockIds.clear();
-                data.blocks.forEach(b => {
-                    if (b.nickname) {
-                        let n = b.nickname.trim().toLocaleLowerCase();
-                        cachedBlockedNames.add(n);
-                        if (b.blockId) cachedBlockIds.set(String(b.blockId), n);
-                    }
-                });
-                if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
+        const stored = JSON.parse(localStorage.getItem("sr1_blocked_players") || "[]");
+
+        if (Array.isArray(stored)) {
+            for (const name of stored) {
+                if (typeof name !== "string") continue;
+
+                const clean = name.trim().toLocaleLowerCase();
+
+                if (clean) names.add(clean);
             }
         }
-    } catch (e) {
-        console.warn("[SpeakiMod+] Failed to fetch native blocklist:", e);
+    } catch (_) {}
+
+    legacyBlockedNamesCache = names;
+
+    return legacyBlockedNamesCache;
+}
+
+function normalizeBlockedNickname(name) {
+    if (typeof name !== "string") return "";
+
+    return name.trim().toLocaleLowerCase();
+}
+
+function spkmodAdjustBlockedNameCount(name, delta) {
+    const next = (spkmodBlockNameCounts.get(name) || 0) + delta;
+
+    if (next <= 0) {
+        spkmodBlockNameCounts.delete(name);
+        cachedBlockedNames.delete(name);
+    } else {
+        spkmodBlockNameCounts.set(name, next);
+        cachedBlockedNames.add(name);
     }
 }
+
+function spkmodApplyBlocklistSnapshot(blocks) {
+    const nextIds = new Map();
+    const nextOrphans = new Set();
+
+    for (const block of blocks) {
+        const nickname = normalizeBlockedNickname(block?.nickname);
+
+        if (!nickname) continue;
+
+        if (block.blockId == null) {
+            nextOrphans.add(nickname);
+        } else {
+            nextIds.set(String(block.blockId), nickname);
+        }
+    }
+
+    const nextCounts = new Map();
+
+    for (const nickname of nextIds.values()) {
+        nextCounts.set(nickname, (nextCounts.get(nickname) || 0) + 1);
+    }
+
+    for (const nickname of nextOrphans) {
+        nextCounts.set(nickname, (nextCounts.get(nickname) || 0) + 1);
+    }
+
+    const signature = JSON.stringify({
+        ids: [...nextIds.entries()].sort((a, b) => a[0].localeCompare(b[0])),
+        orphans: [...nextOrphans].sort()
+    });
+
+    if (signature === spkmodBlocklistSnapshotSignature) {
+        return false;
+    }
+
+    cachedBlockIds.clear();
+    cachedBlockedNames.clear();
+
+    for (const [id, nickname] of nextIds) {
+        cachedBlockIds.set(id, nickname);
+    }
+
+    for (const nickname of nextCounts.keys()) {
+        cachedBlockedNames.add(nickname);
+    }
+
+    spkmodBlockNameCounts = nextCounts;
+    spkmodBlockOrphanNames = nextOrphans;
+    spkmodBlocklistSnapshotSignature = signature;
+
+    updateKnownBotVisibility();
+
+    return true;
+}
+
+function spkmodApplyBlocklistEntry(entry) {
+    const nickname = normalizeBlockedNickname(entry?.nickname);
+
+    if (!nickname) return false;
+
+    if (entry.blockId == null) {
+        if (spkmodBlockOrphanNames.has(nickname)) return false;
+
+        spkmodBlockOrphanNames.add(nickname);
+        spkmodAdjustBlockedNameCount(nickname, 1);
+    } else {
+        const id = String(entry.blockId);
+        const oldName = cachedBlockIds.get(id);
+
+        if (oldName === nickname) return false;
+
+        if (oldName) {
+            spkmodAdjustBlockedNameCount(oldName, -1);
+        }
+
+        cachedBlockIds.set(id, nickname);
+        spkmodAdjustBlockedNameCount(nickname, 1);
+    }
+
+    spkmodBlocklistSnapshotSignature = null;
+    updateKnownBotVisibility();
+
+    return true;
+}
+
+function spkmodApplyBlocklistPayload(data) {
+    if (Array.isArray(data?.blocks)) {
+        return spkmodApplyBlocklistSnapshot(data.blocks);
+    }
+
+    if (typeof data?.nickname === "string") {
+        return spkmodApplyBlocklistEntry(data);
+    }
+
+    return false;
+}
+
+function spkmodDeleteBlocklistEntry(blockId) {
+    const id = String(blockId);
+    const nickname = cachedBlockIds.get(id);
+
+    if (!nickname) {
+        scheduleSpkmodBlocklistFetch();
+        return;
+    }
+
+    cachedBlockIds.delete(id);
+    spkmodAdjustBlockedNameCount(nickname, -1);
+
+    spkmodBlocklistSnapshotSignature = null;
+    updateKnownBotVisibility();
+}
+
+function scheduleSpkmodBlocklistFetch(delay = 100) {
+    if (spkmodBlocklistFetchTimer !== null) return;
+
+    spkmodBlocklistFetchTimer = setTimeout(() => {
+        spkmodBlocklistFetchTimer = null;
+        spkmodFetchBlocklist();
+    }, delay);
+}
+
+async function spkmodFetchBlocklist() {
+    const token = lunSpkAuthToken;
+
+    if (!token) {
+        scheduleSpkmodBlocklistFetch(1000);
+        return;
+    }
+
+    if (spkmodBlocklistInFlight && spkmodBlocklistInFlightToken === token) {
+        return spkmodBlocklistInFlight;
+    }
+
+    const version = ++spkmodBlocklistRequestVersion;
+
+    const request = (async () => {
+        try {
+            const apiUrl = (typeof window.lunActiveApiEndpoint !== "undefined" ? window.lunActiveApiEndpoint : "https://sr1.overture.io.kr") + "/api/block";
+
+            const res = await lunBlocklistFetchOrig.call(window, apiUrl, {
+                method: "GET",
+                cache: "no-store",
+                headers: {
+                    Authorization: token
+                }
+            });
+
+            if (!res.ok) return;
+
+            const data = await res.json();
+
+            if (version !== spkmodBlocklistRequestVersion || token !== lunSpkAuthToken) {
+                return;
+            }
+
+            spkmodApplyBlocklistPayload(data);
+        } catch (e) {
+            console.warn("[SpeakiMod+] Failed to fetch native blocklist:", e);
+        }
+    })();
+
+    spkmodBlocklistInFlight = request;
+    spkmodBlocklistInFlightToken = token;
+
+    try {
+        return await request;
+    } finally {
+        if (spkmodBlocklistInFlight === request) {
+            spkmodBlocklistInFlight = null;
+            spkmodBlocklistInFlightToken = "";
+        }
+    }
+}
+
 // Run it once on load
 // Intercept window.fetch
 const lunBlocklistFetchOrig = window.fetch;
+
 window.fetch = async function(...args) {
     try {
         let auth = "";
         if (args[1] && args[1].headers && args[1].headers.Authorization) auth = args[1].headers.Authorization;
         else if (args[1] && args[1].headers && typeof args[1].headers.get === 'function') auth = args[1].headers.get('Authorization') || "";
         else if (args[0] && args[0].headers && typeof args[0].headers.get === 'function') auth = args[0].headers.get('Authorization') || "";
-        
-        if (auth && auth.startsWith("Bearer ") && lunSpkAuthToken !== auth) {
-            lunSpkAuthToken = auth;
-            setTimeout(spkmodFetchBlocklist, 100);
-        }
+		
+		if (auth && auth.startsWith("Bearer ") && lunSpkAuthToken !== auth) {
+			lunSpkAuthToken = auth;
+			spkmodBlocklistRequestVersion++;
+			scheduleSpkmodBlocklistFetch(100);
+		}
     } catch(e) {}
-    const response = await lunBlocklistFetchOrig.apply(this, args);
-    try {
-        const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
-        let method = 'GET';
-        if (args[1] && args[1].method) method = args[1].method;
-        else if (args[0] && args[0].method) method = args[0].method;
-        method = method.toUpperCase();
 
-        if (url.includes('/api/block')) {
-            response.clone().json().then(data => {
-                if (data && data.blocks) {
-                    cachedBlockedNames.clear();
-                    cachedBlockIds.clear();
-                    data.blocks.forEach(b => {
-                        if (b.nickname) {
-                            let n = b.nickname.trim().toLocaleLowerCase();
-                            cachedBlockedNames.add(n);
-                            if (b.blockId) cachedBlockIds.set(String(b.blockId), n);
-                        }
-                    });
-                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
-                } else if (data && data.nickname) {
-                    let n = data.nickname.trim().toLocaleLowerCase();
-                    cachedBlockedNames.add(n);
-                    if (data.blockId) cachedBlockIds.set(String(data.blockId), n);
-                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
-                }
-            }).catch(() => {});
-        }
-		if (url.includes('/api/friend/list')) {
-			response.clone().json().then(replaceFriendNicknames).catch(() => {});
-		}
-		const friendDeleteMatch = url.match(/\/api\/friend\/([^/?#]+)\/?$/);
-		if (method === "DELETE" && response.ok && friendDeleteMatch) {
-			const friendshipId = decodeURIComponent(friendDeleteMatch[1]);
-			const deletedNickname = lunFriendshipNicknamesById.get(friendshipId);
-			if (deletedNickname) {
-				lunFriendNicknames.delete(deletedNickname);
-				lunFriendshipNicknamesById.delete(friendshipId);
-				try {
-					localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
-				} catch (_) {}
+    const response = await lunBlocklistFetchOrig.apply(this, args);
+
+    try {
+		if (response.ok) {
+			const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+			let method = 'GET';
+			if (args[1] && args[1].method) method = args[1].method;
+			else if (args[0] && args[0].method) method = args[0].method;
+			method = method.toUpperCase();
+			const blockDeleteMatch = url.match(/\/api\/block\/([^/?#]+)\/?(?:[?#]|$)/);
+			const friendDeleteMatch = url.match(/\/api\/friend\/([^/?#]+)\/?$/);
+			
+			if (method === "DELETE" && blockDeleteMatch) {
+				const blockId = decodeURIComponent(blockDeleteMatch[1]);
+				spkmodDeleteBlocklistEntry(blockId);
 			}
-			fetchFriendsList(true);
-		}
-        if (url.includes('/api/block') && method === 'DELETE') {
-            try {
-                let parts = url.split('/');
-                let bId = parts[parts.length - 1];
-                if (bId && cachedBlockIds.has(bId)) {
-                    cachedBlockedNames.delete(cachedBlockIds.get(bId));
-                    cachedBlockIds.delete(bId);
-                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
-                }
-            } catch(e) {}
-            setTimeout(spkmodFetchBlocklist, 1500);
-        }
+			else if (url.includes("/api/block") && !blockDeleteMatch) {
+				response.clone().json().then(spkmodApplyBlocklistPayload).catch(() => {});
+			}
+		    else if (url.includes('/api/friend/list')) {
+			    try {
+				    const data = await response.clone().json();
+				    replaceFriendNicknames(data);
+			    } catch (_) {}
+		    }
+		    else if (method === "DELETE" && friendDeleteMatch) {
+			    const friendshipId = decodeURIComponent(friendDeleteMatch[1]);
+			    const deletedNickname = lunFriendshipNicknamesById.get(friendshipId);
+			    if (deletedNickname) {
+				    lunFriendNicknames.delete(deletedNickname);
+				    lunFriendshipNicknamesById.delete(friendshipId);
+				    try {
+					    localStorage.setItem("spkmod-friend-cache", JSON.stringify([...lunFriendNicknames]));
+				    } catch (_) {}
+				    if (lunNametagMode === 2) refreshAllNametags();
+			    }
+		    }
+	    }
     } catch (e) {}
+
     return response;
 };
 
@@ -1008,118 +1319,161 @@ window.fetch = async function(...args) {
 const origOpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url) {
     this._spkUrl = url;
-    this._spkMethod = method;
+	this._spkMethod = String(method || 'GET').toUpperCase();
     return origOpen.apply(this, arguments);
 };
 const origSetReqHeader = XMLHttpRequest.prototype.setRequestHeader;
 XMLHttpRequest.prototype.setRequestHeader = function(header, value) {
-    if (header.toLowerCase() === 'authorization' && value && value.startsWith('Bearer ') && lunSpkAuthToken !== value) {
-        lunSpkAuthToken = value;
-        setTimeout(spkmodFetchBlocklist, 100);
+    if (header.toLowerCase() === "authorization" && value && value.startsWith("Bearer ") && lunSpkAuthToken !== value) {
+		lunSpkAuthToken = value;
+        spkmodBlocklistRequestVersion++;
+        scheduleSpkmodBlocklistFetch(100);
     }
     return origSetReqHeader.apply(this, arguments);
 };
 const origSend = XMLHttpRequest.prototype.send;
 XMLHttpRequest.prototype.send = function() {
     this.addEventListener('load', function() {
-        if (this._spkUrl && typeof this._spkUrl === 'string' && this._spkUrl.includes('/api/block')) {
-            try {
-                const data = JSON.parse(this.responseText);
-                if (data && data.blocks) {
-                    cachedBlockedNames.clear();
-                    cachedBlockIds.clear();
-                    data.blocks.forEach(b => {
-                        if (b.nickname) {
-                            let n = b.nickname.trim().toLocaleLowerCase();
-                            cachedBlockedNames.add(n);
-                            if (b.blockId) cachedBlockIds.set(String(b.blockId), n);
-                        }
-                    });
-                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
-                } else if (data && data.nickname) {
-                    let n = data.nickname.trim().toLocaleLowerCase();
-                    cachedBlockedNames.add(n);
-                    if (data.blockId) cachedBlockIds.set(String(data.blockId), n);
-                    if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
-                }
-            } catch(e) {}
-            if (this._spkMethod && typeof this._spkMethod === 'string' && this._spkMethod.toUpperCase() === 'DELETE') {
-                try {
-                    let parts = this._spkUrl.split('/');
-                    let bId = parts[parts.length - 1];
-                    if (bId && cachedBlockIds.has(bId)) {
-                        cachedBlockedNames.delete(cachedBlockIds.get(bId));
-                        cachedBlockIds.delete(bId);
-                        if (typeof updateKnownBotVisibility === 'function') updateKnownBotVisibility();
-                    }
-                } catch(e) {}
-                setTimeout(spkmodFetchBlocklist, 1500);
-            }
+        if (this.status >= 200 && this.status < 300 && this._spkUrl && typeof this._spkUrl === 'string' && this._spkUrl.includes('/api/block')) {
+			try {
+				const blockDeleteMatch = this._spkUrl.match(/\/api\/block\/([^/?#]+)\/?(?:[?#]|$)/);
+				if (this._spkMethod === "DELETE" && blockDeleteMatch) {
+					const blockId = decodeURIComponent(blockDeleteMatch[1]);
+					spkmodDeleteBlocklistEntry(blockId);
+				}
+				else if (!blockDeleteMatch) {
+					const data = JSON.parse(this.responseText);
+					spkmodApplyBlocklistPayload(data);
+				}
+            } catch (_) {}
         }
     });
     return origSend.apply(this, arguments);
 };
 
-
-
 function isBlockedUser(name) {
     if (typeof name !== "string") return false;
+
     const clean = name.trim().toLocaleLowerCase();
+
     if (!clean) return false;
-    if (cachedBlockedNames.has(clean)) return true;
-    try {
-        const stored = JSON.parse(localStorage.getItem("sr1_blocked_players") || "[]");
-        if (Array.isArray(stored) && stored.some(n => typeof n === "string" && n.trim().toLocaleLowerCase() === clean)) {
-            cachedBlockedNames.add(clean);
-            return true;
-        }
-    } catch (_) {}
-    return false;
+
+    return cachedBlockedNames.has(clean) || getLegacyBlockedNamesCache().has(clean);
 }
 
+window.addEventListener("storage", e => {
+    if (e.key !== "sr1_blocked_players") return;
+
+    legacyBlockedNamesCache = null;
+    updateKnownBotVisibility();
+});
+
+let spkmodVisibilityFlushQueued = false;
+
 function updateKnownBotVisibility() {
-	if (!gameState?.remotePlayers?.remotePlayers) return;
-	gameState.remotePlayers.remotePlayers.forEach(player => {
-		if (player?.container) {
-			const accId = player.info?.userId || player.info?.id || player.info?.playerId;
-			const isBot = lunHideKnownBotsEnabled && isKnownBotName(player.info?.name, player.info?.level, accId);
-			const isBlocked = isBlockedUser(player.info?.name);
-			const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(player.info?.name);
-			const hideBySolitude = lunHideAllOtherPlayers && !isWhitelisted;
-			player.container.visible = !(hideBySolitude || isBot || isBlocked);
-		}
-	});
-	if (lunHideAllOtherPlayers) {
-		if (gameState?.remotePetRegistry?.pets) {
-			for (const pet of gameState.remotePetRegistry.pets.values()) {
-				const ownerName = pet?.info?.ownerName || pet?.ownerName || pet?.info?.name;
-				const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(ownerName);
-				if (pet?.root) pet.root.visible = isWhitelisted;
-				else if (pet?.container) pet.container.visible = isWhitelisted;
-			}
-		}
-		if (gameState?.remoteDroneCoreRegistry?.droneCores) {
-			for (const drone of gameState.remoteDroneCoreRegistry.droneCores.values()) {
-				const ownerName = drone?.info?.ownerName || drone?.ownerName || drone?.info?.name;
-				const isWhitelisted = typeof isSolitudeWhitelisted === "function" && isSolitudeWhitelisted(ownerName);
-				if (drone?.root) drone.root.visible = isWhitelisted;
-				else if (drone?.container) drone.container.visible = isWhitelisted;
-			}
-		}
-	} else {
-		if (gameState?.remotePetRegistry?.pets) {
-			for (const pet of gameState.remotePetRegistry.pets.values()) {
-				if (pet?.root && !pet.root.visible) pet.root.visible = true;
-				else if (pet?.container && !pet.container.visible) pet.container.visible = true;
-			}
-		}
-		if (gameState?.remoteDroneCoreRegistry?.droneCores) {
-			for (const drone of gameState.remoteDroneCoreRegistry.droneCores.values()) {
-				if (drone?.root && !drone.root.visible) drone.root.visible = true;
-				else if (drone?.container && !drone.container.visible) drone.container.visible = true;
-			}
-		}
-	}
+    if (spkmodVisibilityFlushQueued) return;
+
+    spkmodVisibilityFlushQueued = true;
+
+    const flush = () => {
+        spkmodVisibilityFlushQueued = false;
+        spkmodApplyKnownBotVisibility();
+    };
+
+    if (typeof queueMicrotask === "function") {
+        queueMicrotask(flush);
+    } else {
+        Promise.resolve().then(flush);
+    }
+}
+
+function spkmodApplyKnownBotVisibility() {
+    const remoteMap = gameState?.remotePlayers?.remotePlayers;
+
+    if (!(remoteMap instanceof Map)) return;
+
+    for (const player of remoteMap.values()) {
+        const container = player?.container;
+
+        if (!container) continue;
+
+        const name = player.info?.name;
+        const accId = player.info?.userId || player.info?.id || player.info?.playerId;
+
+        const isBot = lunHideKnownBotsEnabled && isKnownBotName(name, player.info?.level, accId);
+        const isBlocked = isBlockedUser(name);
+        const isWhitelisted = isSolitudeWhitelisted(name);
+        const hideBySolitude = lunHideAllOtherPlayers && !isWhitelisted;
+        const visible = !(hideBySolitude || isBot || isBlocked);
+
+        if (container.visible !== visible) {
+            container.visible = visible;
+        }
+    }
+
+    const applyCompanionVisibility = companionMap => {
+        if (!(companionMap instanceof Map)) return;
+
+        for (const [ownerId, companion] of companionMap) {
+            const owner = remoteMap.get(ownerId) ?? remoteMap.get(Number(ownerId));
+            const root = companion?.parts?.root;
+
+            if (!root) continue;
+
+            if (!owner?.info) {
+                if (root.visible !== false) root.visible = false;
+                continue;
+            }
+
+            const ownerName = owner.info.name;
+            const ownerAccountId = owner.info.userId || owner.info.id || owner.info.playerId;
+            const ownerIsBot = lunHideKnownBotsEnabled && isKnownBotName(ownerName, owner.info.level, ownerAccountId);
+            const ownerIsBlocked = isBlockedUser(ownerName);
+            const ownerIsWhitelisted = isSolitudeWhitelisted(ownerName);
+            const hideOwnerBySolitude = lunHideAllOtherPlayers && !ownerIsWhitelisted;
+            const visible = !(hideOwnerBySolitude || ownerIsBot || ownerIsBlocked);
+
+            if (root.visible !== visible) {
+                root.visible = visible;
+            }
+        }
+    };
+
+    applyCompanionVisibility(gameState.remotePetRegistry?.pets);
+    applyCompanionVisibility(gameState.remoteDroneCoreRegistry?.drones);
+}
+
+function spkmodHookVisibilityMap(map) {
+    if (!(map instanceof Map) || map.__spkmodVisibilityHooked) return;
+
+    map.__spkmodVisibilityHooked = true;
+
+    const originalSet = map.set.bind(map);
+    const originalDelete = map.delete.bind(map);
+    const originalClear = map.clear.bind(map);
+
+    map.set = function(key, value) {
+        const result = originalSet(key, value);
+        updateKnownBotVisibility();
+        return result;
+    };
+
+    map.delete = function(key) {
+        const result = originalDelete(key);
+
+        if (result) updateKnownBotVisibility();
+
+        return result;
+    };
+
+    map.clear = function() {
+        const hadItems = this.size > 0;
+        const result = originalClear();
+
+        if (hadItems) updateKnownBotVisibility();
+
+        return result;
+    };
 }
 
 function isKnownBotContainer(container) {
@@ -1288,7 +1642,6 @@ function isSilencedPlayer(player) {
     const lower = name.trim().toLocaleLowerCase();
     if (!lower) return false;
     if (isBlockedUser(name)) return true;
-    if (Array.isArray(lunKnownBotNames) && lunKnownBotNames.some(b => typeof b === "string" && b.trim().toLocaleLowerCase() === lower)) return true;
     const accId = player.info?.userId || player.info?.id || player.info?.playerId;
     const level = player.info?.level || player.level;
     if (typeof isKnownBotName === "function" && isKnownBotName(name, level, accId)) return true;
@@ -1297,9 +1650,8 @@ function isSilencedPlayer(player) {
 
 function hookBlockedUserVoice() {
     if (typeof gameState === "undefined" || !gameState) return;
-    if (gameState.__speakiBlockedUserVoiceHooked) return;
 
-    if (typeof gameState.handleEmote === "function") {
+    if (!gameState.__spkmodHandleEmoteHooked && typeof gameState.handleEmote === "function") {
         const originalHandleEmote = gameState.handleEmote;
 
         gameState.handleEmote = function(e) {
@@ -1308,10 +1660,12 @@ function hookBlockedUserVoice() {
             }
 
             let remotePlayer = resolveRemotePlayerById(e.playerId);
+
             if (!remotePlayer && gameState?.remotePlayers) {
                 const list = gameState.remotePlayers.remotePlayers instanceof Map
                     ? gameState.remotePlayers.remotePlayers.values()
                     : (typeof gameState.remotePlayers.values === "function" ? gameState.remotePlayers.values() : []);
+
                 for (const p of list) {
                     if (p?.info?.playerId == e.playerId) {
                         remotePlayer = p;
@@ -1320,15 +1674,15 @@ function hookBlockedUserVoice() {
                 }
             }
 
-            if (isSilencedPlayer(remotePlayer)) {
-                return; // Suppress emote completely: no animations, no voice lines, no sound!
-            }
+            if (isSilencedPlayer(remotePlayer)) return;
 
             return originalHandleEmote.call(this, e);
         };
+
+        gameState.__spkmodHandleEmoteHooked = true;
     }
 
-    if (typeof gameState.remoteSoundDistance === "function") {
+    if (!gameState.__spkmodRemoteSoundDistanceHooked && typeof gameState.remoteSoundDistance === "function") {
         const originalSoundDist = gameState.remoteSoundDistance;
 
         gameState.remoteSoundDistance = function(pos) {
@@ -1338,19 +1692,30 @@ function hookBlockedUserVoice() {
                     : (typeof gameState.remotePlayers.values === "function" ? gameState.remotePlayers.values() : []);
 
                 for (const p of list) {
+                    const cPos = p?.container?.position;
+
+                    if (!cPos) continue;
+
+                    const dx = cPos.x - pos.x;
+                    const dz = cPos.z - pos.z;
+
+                    if (!Number.isFinite(dx) || !Number.isFinite(dz) || dx * dx + dz * dz >= 0.01) {
+                        continue;
+                    }
+
                     if (isSilencedPlayer(p)) {
-                        const cPos = p?.container?.position;
-                        if (cPos === pos || (cPos && Math.hypot(cPos.x - pos.x, cPos.z - pos.z) < 0.1)) {
-                            return 999999; // Distance >= 25 mutes audio to 0 volume
-                        }
+                        return 999999;
                     }
                 }
             }
+
             return originalSoundDist.apply(this, arguments);
         };
+
+        gameState.__spkmodRemoteSoundDistanceHooked = true;
     }
 
-    gameState.__speakiBlockedUserVoiceHooked = true;
+    gameState.__speakiBlockedUserVoiceHooked = !!gameState.__spkmodHandleEmoteHooked && !!gameState.__spkmodRemoteSoundDistanceHooked;
 }
 
 var lunChatTimestampsEnabled = (window.localStorage && localStorage.getItem("spkmod-chat-timestamps")) === "true";

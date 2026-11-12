@@ -395,32 +395,40 @@ function findBotsRadar(auto = false) {
 	if (!gameState.remotePlayers || !gameState.remotePlayers.remotePlayers) return;
 	const players = Array.from(gameState.remotePlayers.remotePlayers.values());
 	
-	const level1s = players.filter(p => p.info?.level === 1 && p.container && (typeof lunKnownBotNames === "undefined" || !lunKnownBotNames.includes(p.info?.name)));
+	const level1s = players.filter(p => p.info?.level === 1 && p.container?.position && !lunKnownBotNameSet.has((p.info?.name || "").trim().toLocaleLowerCase()));
 	
-	const suspiciousBots = [];
+	const nearbyCounts = new Uint32Array(level1s.length);
 	
-	for (const p of level1s) {
-		let nearbyLv1s = 0;
-		for (const other of level1s) {
-			if (p === other) continue;
-			const dist = Math.hypot(
-				p.container.position.x - other.container.position.x,
-				p.container.position.z - other.container.position.z
-			);
-			if (dist < 5.0) nearbyLv1s++;
-		}
-		
-		// Only flag them if they are in a massive swarm (AT LEAST 4 other level 1 players within 5 meters)
-		// This prevents false positives when 2 or 3 real new players happen to spawn at the same time.
-		if (nearbyLv1s >= 4) {
-			const id = parseInt(p.info?.playerId) || 0;
-			suspiciousBots.push({
-				name: p.info?.name,
-				id: id,
-				clusterSize: nearbyLv1s
-			});
-		}
-	}
+	for (let i = 0; i < level1s.length; i++) {
+        const p = level1s[i];
+        const px = p.container.position.x;
+        const pz = p.container.position.z;
+
+        for (let j = i + 1; j < level1s.length; j++) {
+            const other = level1s[j];
+            const dx = px - other.container.position.x;
+            const dz = pz - other.container.position.z;
+
+            if (dx * dx + dz * dz < 25) {
+                nearbyCounts[i]++;
+                nearbyCounts[j]++;
+            }
+        }
+    }
+
+    const suspiciousBots = [];
+
+    for (let i = 0; i < level1s.length; i++) {
+        if (nearbyCounts[i] >= 4) {
+            const p = level1s[i];
+
+            suspiciousBots.push({
+                name: p.info?.name,
+                id: parseInt(p.info?.playerId) || 0,
+                clusterSize: nearbyCounts[i]
+            });
+        }
+    }
 	
 	if (!suspiciousBots.length) {
 		if (!auto && typeof gameState !== "undefined" && gameState && (gameState.myPlayerName === "Glas" || gameState.myStat?.name === "Glas")) {
@@ -1155,15 +1163,21 @@ function hijackAndRename(player, newName, newLevel) {
 		// Fix WebGL Texture Remnant Bug: 
 		// If the new name is shorter, shrinking the canvas leaves old pixels in the GPU buffer.
 		// We must explicitly dispose the old map to force three.js to reallocate a fresh one.
-		player.container.traverse(obj => {
-			if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
-				obj.material.map.dispose();
-			}
-		});
+		if (!player.avatar.__spkmodLabelPatched) {
+			player.container.traverse(obj => {
+				if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+					obj.material.map.dispose();
+				}
+			});
+		}
 		
 		// The game natively splits and formats "LV<level> <name>"
 		player.avatar.setLabel("LV" + lvl + " " + newName);
 	}
+
+	// Refresh nametag visibility after renaming.
+    if (player.__spkmodNametagManaged) applyPlayerNametagVisibility(player);
+	updateKnownBotVisibility();
 	
 	return true;
 }
@@ -1244,7 +1258,7 @@ window.spkmodResetNames = function() {
 				if (entity.avatar && typeof entity.avatar.setLabel === 'function') {
 					let lvl = (entity.info && entity.info.level) ? entity.info.level : 1;
 					
-					if (entity.container) {
+					if (entity.container && !entity.avatar.__spkmodLabelPatched) {
 						entity.container.traverse(obj => {
 							if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
 								obj.material.map.dispose();
@@ -1255,12 +1269,14 @@ window.spkmodResetNames = function() {
 					entity.avatar.setLabel("LV" + lvl + " " + origName);
 					count++;
 				}
+				if (entity.__spkmodNametagManaged) applyPlayerNametagVisibility(entity);
 			}
 		}
 	}
 	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) processMap(gameState.remotePlayers.remotePlayers);
 	if (gameState.remotePetRegistry) processMap(gameState.remotePetRegistry);
 	if (gameState.remoteDroneCoreRegistry) processMap(gameState.remoteDroneCoreRegistry);
+	updateKnownBotVisibility();
 	console.log(`[SpeakiMod+] Reset ${count} names to their original values`);
 };
 

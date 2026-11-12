@@ -523,4 +523,3 @@ document.addEventListener("contextmenu", (e) => {
         spkmodLastRightClickTime = now;
     }
 }, true);
-

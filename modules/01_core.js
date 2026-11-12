@@ -101,6 +101,23 @@ window.gameState = window.gameState || undefined;
 var lunCurrentPing = "--";
 var lunCurrentFps = "--";
 
+const spkmodQuestResponseJsonCache = new WeakMap();
+
+function spkmodReadQuestResponseJson(response) {
+    if (!response || typeof response.clone !== "function") {
+        return Promise.resolve(null);
+    }
+
+    let promise = spkmodQuestResponseJsonCache.get(response);
+
+    if (!promise) {
+        promise = response.clone().json();
+        spkmodQuestResponseJsonCache.set(response, promise);
+    }
+
+    return promise;
+}
+
 if (!window.__speakiFetchHooked) {
 	window.__speakiFetchHooked = true;
 	const origFetch = window.fetch;
@@ -134,28 +151,24 @@ if (!window.__speakiFetchHooked) {
 				}
 			}
 			if (url && url.includes("/api/quests")) {
-				const clone = res.clone();
-				clone.json().then(data => {
-					if (Array.isArray(data)) {
-						window.__spkmodCachedQuests = window.__spkmodCachedQuests || {};
-						for (const q of data) {
-							if (q && q.questId) {
-								window.__spkmodCachedQuests[q.questId] = q;
-								if (q.isClaimed) {
-									const removed = clearClaimedQuestPin(q);
-									if (removed && typeof renderQuestChecklist === "function") {
-										renderQuestChecklist();
-									}
-								}
-								else if (typeof lunPinnedQuestId !== "undefined" && lunPinnedQuestId && String(lunPinnedQuestId) === String(q.questId)) {
-									if (typeof updatePinnedQuestDisplay === "function") {
-										updatePinnedQuestDisplay(q);
-									}
-								}
-							}
-						}
-					}
-				}).catch(() => {});
+    			spkmodReadQuestResponseJson(res).then(data => {
+        			if (!Array.isArray(data)) return;
+        			window.__spkmodMergeCompletedQuests?.(data);
+        			for (const q of data) {
+            			if (!q?.questId) continue;
+            			const cachedQuest = spkmodCacheQuestRecord(q);
+            			if (q.isClaimed) {
+                			const removed = clearClaimedQuestPin(cachedQuest);
+                			if (removed && typeof renderQuestChecklist === "function") {
+                    			renderQuestChecklist();
+                			}
+            			} else if (typeof lunPinnedQuestId !== "undefined" && lunPinnedQuestId && String(lunPinnedQuestId) === String(q.questId)) {
+                			if (typeof updatePinnedQuestDisplay === "function") {
+                    			updatePinnedQuestDisplay(cachedQuest);
+                			}
+            			}
+        			}
+    			}).catch(() => {});
 			}
 		} catch (_) {}
 		return res;
@@ -362,7 +375,3 @@ if (typeof window !== "undefined" && window.localStorage) {
 	} catch (_) {}
 }
 var spkmodCinemaConfig = window.spkmodCinemaConfig;
-
-
-
-

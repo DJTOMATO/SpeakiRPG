@@ -750,6 +750,7 @@ var spkmodConstants = (function() {
 
 var Portals = spkmodConstants.portals || DEFAULT_PORTALS;
 window.Portals = Portals;
+const spkmodPortalPathCache = new Map();
 window.spkmodRaids = spkmodConstants.raids || DEFAULT_RAIDS;
 var WorldZones = spkmodConstants.zones || DEFAULT_WORLD_ZONES;
 window.WorldZones = WorldZones;
@@ -763,6 +764,7 @@ window.WorldZones = WorldZones;
 				if (data.portals) {
 					Portals = data.portals;
 					window.Portals = Portals;
+					spkmodPortalPathCache.clear();
 				}
 				if (data.raids) {
 					window.spkmodRaids = data.raids;
@@ -771,7 +773,6 @@ window.WorldZones = WorldZones;
 					WorldZones = data.zones;
 					window.WorldZones = WorldZones;
 				}
-
 				if (typeof window !== "undefined" && window.localStorage) {
 					try {
 						localStorage.setItem("spkmod-constants-cache", JSON.stringify(data));
@@ -792,32 +793,75 @@ try {
 	}
 } catch(e) {}
 
-const origFetch = window.fetch;
-window.fetch = async function(...args) {
-	const response = await origFetch.apply(this, args);
-	const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
-	if (url && url.includes('/api/quests')) {
-		const clone = response.clone();
-		clone.json().then(data => {
-			if (Array.isArray(data)) {
-				data.forEach(q => { if (q.isCompleted) window.lunCompletedQuests.add(q.code); });
-				localStorage.setItem('lunCompletedQuests', JSON.stringify([...window.lunCompletedQuests]));
-			}
-		}).catch(e => {});
-	}
-	return response;
+window.__spkmodMergeCompletedQuests = function(data) {
+    if (!Array.isArray(data)) return false;
+
+    const completed = window.lunCompletedQuests;
+    let changed = false;
+
+    for (const quest of data) {
+        if (!quest?.isCompleted || quest.code == null) continue;
+
+        if (!completed.has(quest.code)) {
+            completed.add(quest.code);
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        try {
+            localStorage.setItem("lunCompletedQuests", JSON.stringify([...completed]));
+        } catch (_) {}
+    }
+
+    return changed;
 };
+
+function spkmodCacheQuestRecord(quest, fallbackPeriod) {
+    if (!quest?.questId) return null;
+
+    const cache = window.__spkmodCachedQuests || (window.__spkmodCachedQuests = {});
+    const id = String(quest.questId);
+    const existing = cache[id];
+
+    if (!existing) {
+        if (!quest.period && fallbackPeriod) {
+            quest.period = fallbackPeriod;
+        }
+
+        cache[id] = quest;
+
+        return quest;
+    }
+
+    if (existing === quest) {
+        if (!existing.period && fallbackPeriod) {
+            existing.period = fallbackPeriod;
+        }
+
+        return existing;
+    }
+
+    for (const [key, value] of Object.entries(quest)) {
+        if (value === undefined || existing[key] === value) continue;
+
+        existing[key] = value;
+    }
+
+    if (!existing.period && fallbackPeriod) {
+        existing.period = fallbackPeriod;
+    }
+
+    return existing;
+}
 
 const origXhrOpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url) {
 	this.addEventListener('load', function() {
 		if (url && typeof url === 'string' && url.includes('/api/quests')) {
 			try {
-				let data = JSON.parse(this.responseText);
-				if (Array.isArray(data)) {
-					data.forEach(q => { if (q.isCompleted) window.lunCompletedQuests.add(q.code); });
-					localStorage.setItem('lunCompletedQuests', JSON.stringify([...window.lunCompletedQuests]));
-				}
+				const data = JSON.parse(this.responseText);
+				window.__spkmodMergeCompletedQuests(data);
 			} catch(e) {}
 		}
 	});
@@ -835,3 +879,66 @@ const Waypoints = {
 	]
 };
 
+function getSpkmodPortalPath(startZone, endZone) {
+    if (startZone === endZone) return [];
+
+    const key = `${startZone}>${endZone}`;
+
+    if (spkmodPortalPathCache.has(key)) {
+        return spkmodPortalPathCache.get(key);
+    }
+
+    const queue = [startZone];
+    const visited = new Set([startZone]);
+    const parents = new Map();
+
+    let head = 0;
+    let found = false;
+
+    while (head < queue.length) {
+        const current = queue[head++];
+
+        if (current === endZone) {
+            found = true;
+            break;
+        }
+
+        const neighbors = Portals[current];
+
+        if (!neighbors) continue;
+
+        for (const rawNextZone of Object.keys(neighbors)) {
+            const nextZone = parseInt(rawNextZone, 10);
+
+            if (!Number.isFinite(nextZone) || visited.has(nextZone)) continue;
+
+            visited.add(nextZone);
+            parents.set(nextZone, current);
+            queue.push(nextZone);
+        }
+    }
+
+    if (!found) {
+        spkmodPortalPathCache.set(key, null);
+        return null;
+    }
+
+    const path = [];
+    let current = endZone;
+
+    while (current !== startZone) {
+        if (!parents.has(current)) {
+            spkmodPortalPathCache.set(key, null);
+            return null;
+        }
+
+        path.push(current);
+        current = parents.get(current);
+    }
+
+    path.reverse();
+
+    spkmodPortalPathCache.set(key, path);
+
+    return path;
+}
