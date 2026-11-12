@@ -94,6 +94,7 @@ function spkmodStartCartAnimation(frames, skinKey) {
 
 	ctx.clearRect(0, 0, width, height);
 	ctx.drawImage(frames[0].bitmap, 0, 0, width, height);
+	ctx.clearRect(0, Math.floor(170 * (height / 512)), Math.ceil(180 * (width / 512)), Math.ceil(150 * (height / 512)));
 	spkmodApplyPumpkinCartTextureToScene(true, _spkmodCartAnimCanvas);
 
 	if (frames.length <= 1) return;
@@ -108,6 +109,7 @@ function spkmodStartCartAnimation(frames, skinKey) {
 		const curFrame = _spkmodCartAnimFrames[_spkmodCartAnimCurrentIndex];
 		ctx.clearRect(0, 0, width, height);
 		ctx.drawImage(curFrame.bitmap, 0, 0, width, height);
+		ctx.clearRect(0, Math.floor(170 * (height / 512)), Math.ceil(180 * (width / 512)), Math.ceil(150 * (height / 512)));
 
 		if (typeof gameState !== "undefined" && gameState && gameState.scene) {
 			gameState.scene.traverse(child => {
@@ -210,15 +212,26 @@ function spkmodEnsurePumpkinCartHooks() {
 function spkmodGetCartSkinImage(skinKey, callback) {
 	const skin = SPKMOD_PUMPKIN_CART_SKINS[skinKey];
 	if (!skin) return;
-	if (_spkmodCartImages[skinKey] && _spkmodCartImages[skinKey].complete) {
+	if (_spkmodCartImages[skinKey]) {
 		callback(_spkmodCartImages[skinKey]);
 		return;
 	}
 	const img = new Image();
 	img.crossOrigin = "anonymous";
 	img.onload = () => {
-		_spkmodCartImages[skinKey] = img;
-		callback(img);
+		const canvas = document.createElement("canvas");
+		const w = img.naturalWidth || img.width || 512;
+		const h = img.naturalHeight || img.height || 512;
+		canvas.width = w;
+		canvas.height = h;
+		const ctx = canvas.getContext("2d");
+		ctx.drawImage(img, 0, 0, w, h);
+		// Clear pumpkin face cutout region (x: 0..180, y: 170..320 on 512x512)
+		const scaleX = w / 512;
+		const scaleY = h / 512;
+		ctx.clearRect(0, Math.floor(170 * scaleY), Math.ceil(180 * scaleX), Math.ceil(150 * scaleY));
+		_spkmodCartImages[skinKey] = canvas;
+		callback(canvas);
 	};
 	img.src = skin.url;
 }
