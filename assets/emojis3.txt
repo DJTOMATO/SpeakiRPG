@@ -78,7 +78,6 @@ t_293,https://i.imgur.com/yChZF4A.jpeg
 t_148,https://i.imgur.com/KUSTBuV.png
 t_162,https://i.imgur.com/afxzHsm.jpeg
 t_146,https://i.imgur.com/SN6hCk8.jpeg
-t_288,https://i.imgur.com/ArAt7Ln.jpeg
 t_284,https://i.imgur.com/uPoFOQZ.png
 t_292,https://i.imgur.com/5PcjJHZ.png
 t_294,https://i.imgur.com/UHce2ms.jpeg
@@ -88,7 +87,6 @@ t_60,https://i.imgur.com/hXeKQT0.gif
 t_283,https://i.imgur.com/b4sZIr3.png
 t_78,https://i.imgur.com/HUOm7IC.png
 t_297,https://i.imgur.com/scuFHIi.png
-t_326,https://i.imgur.com/RXobzPZ.png
 t_65,https://i.imgur.com/SCAHNR3.png
 t_279,https://i.imgur.com/Sf8D7Eg.png
 t_15,https://i.imgur.com/B6pYX4b.png
