@@ -8425,6 +8425,9 @@ document.head.appendChild(buildElement(
 		body.spkmod-ui-hidden #spkmod-translate-picker {
 			display: none !important;
 		}
+		body.sr-hud-hidden.spkmod-hud-keep-chat .sr-chatbox {
+			display: flex !important;
+		}
 		#spkmod-quests-modal {
 			min-width: 380px;
 			max-width: 95vw;
@@ -28996,6 +28999,57 @@ window.addEventListener("keydown", e => {
 	const isHidden = document.body.classList.toggle("spkmod-ui-hidden");
 	chatLog(t(isHidden ? "uiHiddenMsg" : "uiShownMsg"));
 });
+
+(() => {
+	// Extend the game's F9 HUD-hide cycle:
+	// 0 (off) -> 1 (hide HUD, keep player names) -> 2 (hide all) -> 3 (hide all except chat) -> 0
+	let hudHideStage = document.body.classList.contains("sr-hud-hidden") ? 1 : 0;
+	const modifierKeys = new Set(["shift", "control", "alt", "meta"]);
+
+	const syncHudStageFromBody = () => {
+		if (!document.body.classList.contains("sr-hud-hidden")) {
+			hudHideStage = 0;
+			document.body.classList.remove("spkmod-hud-keep-chat");
+		} else if (hudHideStage === 0) {
+			hudHideStage = 1;
+		}
+	};
+
+	const hudClassObserver = new MutationObserver(syncHudStageFromBody);
+	hudClassObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+
+	window.addEventListener("keydown", e => {
+		if (e.repeat) return;
+		if (!document.body.classList.contains("sr-hud-hidden")) return;
+
+		const key = (e.key || "").toLowerCase();
+		if (!key || modifierKeys.has(key)) return;
+
+		const hudToggleKey = (
+			typeof window.getGameSettings === "function"
+				? window.getGameSettings()?.keybindOverrides?.hudToggle
+				: null
+		) || "f9";
+
+		if (key !== hudToggleKey.toLowerCase()) return;
+
+		if (hudHideStage === 0) hudHideStage = 1;
+
+		if (hudHideStage === 1) {
+			hudHideStage = 2;
+			// Let the game advance to stage 2 (hide player names)
+		} else if (hudHideStage === 2) {
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			hudHideStage = 3;
+			document.body.classList.add("spkmod-hud-keep-chat");
+		} else if (hudHideStage === 3) {
+			document.body.classList.remove("spkmod-hud-keep-chat");
+			hudHideStage = 0;
+			// Let the game restore HUD and player names
+		}
+	}, { capture: true });
+})();
 
 window.addEventListener("keydown", e => {
 	if (e.key !== "F2" && e.code !== "F2") return;
