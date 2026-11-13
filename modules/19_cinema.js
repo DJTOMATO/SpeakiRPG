@@ -3496,8 +3496,10 @@ function spkmodPlayFwCrackleSound(x, y, z) {
 }
 
 // ------------- Firework Visual Choreography (fireworknew3.txt) -------------
+// Array of firework shows: [0] = first show (!ani fire), [1] = second show (!ani fire2)
 // [0] = Time start, [1] = "normal" | "text" | "fountain" | "textGMDT" | "heart", [2] angle, [3] Height, [4] Color, [5] offset to side (z), [6] optional offset x, [7] optional duration, [8] optional particles, [9] optional burstSize
-var SPKMOD_FW_SHOW = [ 
+var SPKMOD_FW_SHOW = [
+	[
 	[4.0, "normal", 0, 8.5, "yellow", 0, 0, 0, 200, 7],
 	[6.5, "normal", -25, 11, "red", 0, 0, 0, 100, 6],
 	[6.6, "normal", 25, 11, "green", 0, 0, 0, 100, 6],
@@ -3608,6 +3610,10 @@ var SPKMOD_FW_SHOW = [
 	
 	[57, "normal", 0, 7, "rainbow", 0, -7, 0, 500, 20],
 	[57, "normal", 0, 7, "rainbow", 0, -7, 0, 300, 10]
+	],
+	[
+		// Second fireworks show (!ani fire2)
+	]
 ];
 
 var sparklerPositions = [
@@ -3628,7 +3634,7 @@ for (let group = 0; group < 4; group++) {
 	for (let i = 0; i < sparklerPositions.length; i++) {
 		const time = group * _fwAa + (i % 4) * _fwBb;
 		const pos = sparklerPositions[i];
-		SPKMOD_FW_SHOW.push([
+		SPKMOD_FW_SHOW[0].push([
 			time,
 			"fountain",
 			0,
@@ -3810,6 +3816,49 @@ function spkmodFwTextPoints() {
 	return spkmodFwShapePoints("text");
 }
 
+var spkmodFwHiddenCinema = false;
+
+window.spkmodSetCinemaEnabled = function(enabled, persist = true, fromFirework = false) {
+	if (!fromFirework) {
+		spkmodFwHiddenCinema = false;
+	}
+	const nextEnabled = !!enabled;
+	spkmodCinemaConfig.enabled = nextEnabled;
+	if (persist && window.localStorage) {
+		try { localStorage.setItem("spkmod-cinema-enabled", nextEnabled ? "true" : "false"); } catch (_) {}
+	}
+	if (typeof lunPanelElements !== "undefined" && lunPanelElements && lunPanelElements.cinemaToggleInput) {
+		lunPanelElements.cinemaToggleInput.checked = nextEnabled;
+	}
+	if (!nextEnabled) {
+		spkmodCinemaInZone = false;
+		spkmodSendYtCommand('pauseVideo');
+		spkmodSendYtCommand('mute');
+		spkmodSendYtCommand('setVolume', [0]);
+		spkmodCinemaLastVolume = 0;
+		if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = 'none';
+		if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = false;
+		if (spkmodCinemaOcclusionCanvas) spkmodCinemaOcclusionCanvas.style.display = 'none';
+		if (typeof window.spkmodSuppressGameBgm === 'function') {
+			window.spkmodSuppressGameBgm(false, "cinema");
+		}
+		if (spkmodCinemaModeActive && typeof window.spkmodToggleCinemaMode === 'function') {
+			window.spkmodToggleCinemaMode(false);
+		}
+		if (typeof spkmodUpdateCinemaTopBar === 'function') spkmodUpdateCinemaTopBar(false);
+		if (typeof window.spkmodUpdateCinemaFloatingPill === 'function') {
+			window.spkmodUpdateCinemaFloatingPill(false);
+		} else if (typeof spkmodUpdateCinemaFloatingPill === 'function') {
+			spkmodUpdateCinemaFloatingPill(false);
+		}
+	} else {
+		if (!spkmodCinemaScreenObject && typeof spkmodInitCinema === 'function') {
+			spkmodInitCinema();
+		}
+	}
+	if (typeof spkmodUpdateCinemaPlaybackUI === "function") spkmodUpdateCinemaPlaybackUI();
+};
+
 function spkmodFwStop() {
 	if (spkmodFw) {
 		cancelAnimationFrame(spkmodFw.raf);
@@ -3826,11 +3875,23 @@ function spkmodFwStop() {
 		} catch (_) {}
 		spkmodFwMasterGain = null;
 	}
+	// Restore cinema screen if it was automatically hidden for the first firework show
+	if (spkmodFwHiddenCinema) {
+		spkmodFwHiddenCinema = false;
+		if (typeof window.spkmodSetCinemaEnabled === "function") {
+			window.spkmodSetCinemaEnabled(true, false, true);
+		}
+	}
 }
 window.spkmodStopCinemaFireworks = spkmodFwStop;
 
-window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
-	if (spkmodFw) { spkmodFwStop(); return; }
+window.spkmodLaunchCinemaFireworks = function(loopMode = true, showIndex = 0) {
+	const idx = parseInt(showIndex, 10) || 0;
+	if (spkmodFw) {
+		const wasSameShow = spkmodFw.showIndex === idx;
+		spkmodFwStop();
+		if (wasSameShow) return;
+	}
 	spkmodGetFwAudioContext();
 	if (typeof window.spkmodSetNightMode === "function") {
 		window.spkmodSetNightMode(true);
@@ -3841,6 +3902,12 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 	if (zid !== 1 || (typeof spkmodIsInMinigame === "function" && spkmodIsInMinigame())) {
 		if (typeof chatLog === 'function') chatLog("🎆 Fireworks show can only be viewed in Zone 1 (Monatium)!");
 		return;
+	}
+
+	// Disable the cinema screen (blackscreen) during the first firework show
+	if (idx === 0 && spkmodCinemaConfig.enabled) {
+		spkmodFwHiddenCinema = true;
+		window.spkmodSetCinemaEnabled(false, false, true);
 	}
 
 	var fwStartPos = Object.assign({}, spkmodCinemaConfig.pos);
@@ -3859,7 +3926,8 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 	const v = new THREE.Vector3();
 	let t0 = performance.now();
 
-	const buildShots = () => SPKMOD_FW_SHOW.map(r => {
+	const showData = Array.isArray(SPKMOD_FW_SHOW[idx]) ? SPKMOD_FW_SHOW[idx] : (SPKMOD_FW_SHOW[0] || []);
+	const buildShots = () => showData.map(r => {
 		const h = r[3];
 		const angle = r[2];
 		const angleInRadians = angle * Math.PI / 180;
@@ -4028,6 +4096,10 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 			}
 		}
 
+		if (shots.length === 0) {
+			spkmodFwStop();
+			return;
+		}
 		if (!alive) {
 			if (loopMode && spkmodFw) {
 				t0 = performance.now();
@@ -4041,7 +4113,7 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true) {
 		spkmodFw.raf = requestAnimationFrame(frame);
 	};
 
-	spkmodFw = { canvas: canvas, raf: requestAnimationFrame(frame) };
+	spkmodFw = { canvas: canvas, raf: requestAnimationFrame(frame), showIndex: idx };
 };
 
 // Start cinema loop immediately

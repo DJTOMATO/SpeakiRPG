@@ -919,8 +919,9 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 		return;
 	}
 
-	// 4. Fireworks show (e.g. !ani fire, !ani fireworks, !ani80)
-	if (mainCmd === "fire" || mainCmd === "firework" || mainCmd === "fireworks" || mainCmd === "fw" || mainCmd === "80") {
+	// 4. Fireworks show (e.g. !ani fire, !ani fire2, !ani fireworks, !ani80)
+	const isFire2 = (mainCmd === "fire2" || mainCmd === "firework2" || mainCmd === "fireworks2" || mainCmd === "fw2");
+	if (mainCmd === "fire" || mainCmd === "firework" || mainCmd === "fireworks" || mainCmd === "fw" || mainCmd === "80" || isFire2) {
 		if (subCmd === "stop" || subCmd === "off") {
 			const target = extraArgs[0] || null;
 			if (!spkmodMatchesTarget(target)) return;
@@ -935,11 +936,12 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 		const target = subCmd || null;
 		if (!spkmodMatchesTarget(target)) return;
 
+		const showIndex = isFire2 ? "1" : "0";
 		if (typeof window.spkmodLaunchCinemaFireworks === "function") {
-			window.spkmodLaunchCinemaFireworks(true);
+			window.spkmodLaunchCinemaFireworks(true, showIndex);
 		}
 		spkmodSetNightMode(true);
-		appendColoredChatLine(-1337, "Anniversary", "🎆 [Anniversary] Fireworks show started!", "#ff70d9");
+		appendColoredChatLine(-1337, "Anniversary", `🎆 [Anniversary] Fireworks show${isFire2 ? " #2" : ""} started!`, "#ff70d9");
 		return;
 	}
 
@@ -952,6 +954,42 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 			window.spkmodStopCinemaFireworks();
 		}
 		appendColoredChatLine(-1337, "Anniversary", "🎆 [Anniversary] Fireworks show stopped.", "#ff8888");
+		return;
+	}
+
+	// 6. Remove / Add Cinema screen on demand (e.g. !ani removecinema, !ani addcinema, !ani screen on/off)
+	const isRemoveCinema = (mainCmd === "removecinema" || mainCmd === "delcinema" || mainCmd === "hidecinema" || mainCmd === "nocinema" || mainCmd === "screenoff");
+	const isAddCinema = (mainCmd === "addcinema" || mainCmd === "showcinema" || mainCmd === "screenon");
+	if (isRemoveCinema || isAddCinema || mainCmd === "screen") {
+		let desiredState = isAddCinema ? true : (isRemoveCinema ? false : null);
+		let target = null;
+
+		if (mainCmd === "screen") {
+			if (subCmd === "off" || subCmd === "remove" || subCmd === "hide" || subCmd === "disable" || subCmd === "del") {
+				desiredState = false;
+				target = extraArgs[0] || null;
+			} else if (subCmd === "on" || subCmd === "add" || subCmd === "show" || subCmd === "enable") {
+				desiredState = true;
+				target = extraArgs[0] || null;
+			} else {
+				target = subCmd || null;
+				desiredState = !(window.spkmodCinemaConfig && window.spkmodCinemaConfig.enabled);
+			}
+		} else {
+			target = subCmd || null;
+		}
+
+		if (!spkmodMatchesTarget(target)) return;
+
+		if (typeof window.spkmodSetCinemaEnabled === "function") {
+			window.spkmodSetCinemaEnabled(desiredState, true, false);
+		}
+		appendColoredChatLine(
+			-1337,
+			"Anniversary",
+			desiredState ? "🎬 [Anniversary] Cinema screen added." : "🎬 [Anniversary] Cinema screen removed.",
+			desiredState ? "#70e28f" : "#ff8888"
+		);
 		return;
 	}
 }
