@@ -272,6 +272,26 @@ function spkmodShouldHideInNormalPass(obj) {
 	return allTransparentOrOverlay;
 }
 
+function spkmodSceneHasOutlineEffect(sc) {
+	if (!sc || typeof sc.traverse !== "function") return false;
+	let found = false;
+	sc.traverse((obj) => {
+		if (found || !obj.visible || !obj.isMesh || !obj.material) return;
+		if (typeof spkmodIsOutlineMaterial === "function" && spkmodIsOutlineMaterial(obj.material)) {
+			found = true;
+			return;
+		}
+		const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+		for (const m of mats) {
+			if (m && (m.type === "OutlineEffect" || m.name === "OutlineEffect")) {
+				found = true;
+				return;
+			}
+		}
+	});
+	return found;
+}
+
 function spkmodCaptureRenderer(scene) {
 	if (spkmodShaderRuntime.renderer) return Promise.resolve(spkmodShaderRuntime.renderer);
 	if (spkmodShaderRuntime.capturing) return spkmodShaderRuntime.initPromise;
@@ -795,77 +815,90 @@ function spkmodEnableShaderHook() {
 
 	rt.renderer.render = function (sc, cam) {
 		const gs = typeof gameState !== "undefined" ? gameState : window.gameState;
-		if (rt.insideRender || !gs || sc !== rt.scene || cam !== rt.camera) {
+		if (rt.insideRender || !gs || sc !== rt.scene || cam !== rt.camera || sc.overrideMaterial) {
 			return rt.origRender(sc, cam);
 		}
 		rt.insideRender = true;
 		const prevRT = rt.renderer.getRenderTarget();
 
 		try {
-			const now = Date.now();
-			const curZone = gs.zoneId ?? null;
-			if (now - rt.lastSyncMs > 750 || curZone !== rt.lastZoneId) {
-				rt.lastSyncMs = now;
-				rt.lastZoneId = curZone;
-				spkmodSyncSceneLightingAndShadows(rt.activeCfg);
-			}
-
-			spkmodResizeShaderTargets();
-
-			if (rt.dirLight && rt.activeCfg && rt.activeCfg.sunOffset) {
-				const targetPos = gs.playerContainer ? gs.playerContainer.position : null;
-				const tx = targetPos ? targetPos.x : 0;
-				const ty = targetPos ? targetPos.y : 0;
-				const tz = targetPos ? targetPos.z : 0;
-				const [ox, oy, oz] = rt.activeCfg.sunOffset;
-				rt.dirLight.position.set(tx + ox, ty + oy, tz + oz);
-				rt.dirLight.target.position.set(tx, ty, tz);
-				rt.dirLight.target.updateMatrixWorld();
-			}
-
+			const isOutlinePass2 = !rt.renderer.autoClear && spkmodSceneHasOutlineEffect(sc);
 			const u = rt.postMat.uniforms;
 			u.uNear.value = cam.near;
 			u.uFar.value = cam.far;
-			u.uApplyGamma.value = rt.renderer.outputColorSpace === rt.THREE.SRGBColorSpace ? 1.0 : 0.0;
+			u.uApplyGamma.value = (prevRT === null && rt.renderer.outputColorSpace === rt.THREE.SRGBColorSpace) ? 1.0 : 0.0;
 
-			// 1. Optional Normal Pass (hiding transparent/sprite overlays to prevent quad boxes)
-			if (u.uOutline.value > 0.5) {
-				const prevOverride = sc.overrideMaterial;
-				const prevBg = sc.background;
-				const prevFog = sc.fog;
-				const prevClearCol = new rt.THREE.Color();
-				rt.renderer.getClearColor(prevClearCol);
-				const prevClearAlpha = rt.renderer.getClearAlpha();
-				const hiddenObjs = [];
-
-				sc.traverse((obj) => {
-					if (spkmodShouldHideInNormalPass(obj)) {
-						obj.visible = false;
-						hiddenObjs.push(obj);
-					}
-				});
-
+			if (isOutlinePass2) {
+				// Game's native OutlineEffect Pass 2: draw inverted-hull outlines onto Pass 1's colorRT + depth buffer
+				const prevShadowAuto = rt.renderer.shadowMap.autoUpdate;
+				rt.renderer.shadowMap.autoUpdate = false;
 				try {
-					sc.overrideMaterial = rt.normalMat;
-					sc.background = null;
-					sc.fog = null;
-					rt.renderer.setRenderTarget(rt.normalRT);
-					rt.renderer.setClearColor(0x8080ff, 1);
-					rt.renderer.clear();
+					rt.renderer.setRenderTarget(rt.colorRT);
 					rt.origRender(sc, cam);
 				} finally {
-					for (const obj of hiddenObjs) obj.visible = true;
-					sc.overrideMaterial = prevOverride;
-					sc.background = prevBg;
-					sc.fog = prevFog;
-					rt.renderer.setClearColor(prevClearCol, prevClearAlpha);
+					rt.renderer.shadowMap.autoUpdate = prevShadowAuto;
 				}
-			}
+			} else {
+				const now = Date.now();
+				const curZone = gs.zoneId ?? null;
+				if (now - rt.lastSyncMs > 750 || curZone !== rt.lastZoneId) {
+					rt.lastSyncMs = now;
+					rt.lastZoneId = curZone;
+					spkmodSyncSceneLightingAndShadows(rt.activeCfg);
+				}
 
-			// 2. Main Scene Color + Depth Pass
-			rt.renderer.setRenderTarget(rt.colorRT);
-			if (!rt.renderer.autoClear) rt.renderer.clear(true, true, true);
-			rt.origRender(sc, cam);
+				spkmodResizeShaderTargets();
+
+				if (rt.dirLight && rt.activeCfg && rt.activeCfg.sunOffset) {
+					const targetPos = gs.playerContainer ? gs.playerContainer.position : null;
+					const tx = targetPos ? targetPos.x : 0;
+					const ty = targetPos ? targetPos.y : 0;
+					const tz = targetPos ? targetPos.z : 0;
+					const [ox, oy, oz] = rt.activeCfg.sunOffset;
+					rt.dirLight.position.set(tx + ox, ty + oy, tz + oz);
+					rt.dirLight.target.position.set(tx, ty, tz);
+					rt.dirLight.target.updateMatrixWorld();
+				}
+
+				// 1. Optional Normal Pass (hiding transparent/sprite overlays to prevent quad boxes)
+				if (u.uOutline.value > 0.5) {
+					const prevOverride = sc.overrideMaterial;
+					const prevBg = sc.background;
+					const prevFog = sc.fog;
+					const prevClearCol = new rt.THREE.Color();
+					rt.renderer.getClearColor(prevClearCol);
+					const prevClearAlpha = rt.renderer.getClearAlpha();
+					const hiddenObjs = [];
+
+					sc.traverse((obj) => {
+						if (spkmodShouldHideInNormalPass(obj)) {
+							obj.visible = false;
+							hiddenObjs.push(obj);
+						}
+					});
+
+					try {
+						sc.overrideMaterial = rt.normalMat;
+						sc.background = null;
+						sc.fog = null;
+						rt.renderer.setRenderTarget(rt.normalRT);
+						rt.renderer.setClearColor(0x8080ff, 1);
+						rt.renderer.clear();
+						rt.origRender(sc, cam);
+					} finally {
+						for (const obj of hiddenObjs) obj.visible = true;
+						sc.overrideMaterial = prevOverride;
+						sc.background = prevBg;
+						sc.fog = prevFog;
+						rt.renderer.setClearColor(prevClearCol, prevClearAlpha);
+					}
+				}
+
+				// 2. Main Scene Color + Depth Pass
+				rt.renderer.setRenderTarget(rt.colorRT);
+				if (!rt.renderer.autoClear) rt.renderer.clear(true, true, true);
+				rt.origRender(sc, cam);
+			}
 
 			// 3. Optional Quarter-Res Bloom / DoF Blur Passes
 			const needsBlur = u.uBloomStrength.value > 0.001 || (u.uMode.value > 1.5 && u.uMode.value < 2.5);
