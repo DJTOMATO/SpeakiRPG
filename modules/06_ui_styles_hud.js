@@ -187,12 +187,11 @@ function updateDynamicStyles() {
 	}
 }
 
-const FAINT_BLOCKED_ZONE_IDS = new Set([6918, 6925]);
-
 function isFaintBlockedZone(zoneId) {
 	const raw = zoneId !== undefined ? zoneId : (typeof gameState !== "undefined" && gameState ? gameState.zoneId : null);
 	if (typeof raw !== "number" || isNaN(raw)) return false;
-	return FAINT_BLOCKED_ZONE_IDS.has(raw % 10000);
+	const zid = raw % 10000;
+	return zid >= 6900 && zid <= 6999;
 }
 
 function syncFaintButtonsForZone(zoneId) {
