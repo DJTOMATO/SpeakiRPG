@@ -1535,20 +1535,25 @@ window.addEventListener("keydown", e => {
 (() => {
 	// Extend the game's F9 HUD-hide cycle:
 	// 0 (off) -> 1 (hide HUD, keep player names) -> 2 (hide all) -> 3 (hide all except chat) -> 0
-	let hudHideStage = document.body.classList.contains("sr-hud-hidden") ? 1 : 0;
+	let hudHideStage = document.body?.classList.contains("sr-hud-hidden") ? 1 : 0;
 	const modifierKeys = new Set(["shift", "control", "alt", "meta"]);
 
 	const syncHudStageFromBody = () => {
+		if (!document.body) return;
 		if (!document.body.classList.contains("sr-hud-hidden")) {
 			hudHideStage = 0;
-			document.body.classList.remove("spkmod-hud-keep-chat");
+			if (document.body.classList.contains("spkmod-hud-keep-chat")) {
+				document.body.classList.remove("spkmod-hud-keep-chat");
+			}
 		} else if (hudHideStage === 0) {
 			hudHideStage = 1;
 		}
 	};
 
 	const hudClassObserver = new MutationObserver(syncHudStageFromBody);
-	hudClassObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+	if (document.body) {
+		hudClassObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+	}
 
 	window.addEventListener("keydown", e => {
 		if (e.repeat) return;
