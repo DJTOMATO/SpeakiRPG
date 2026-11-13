@@ -1532,6 +1532,79 @@ window.addEventListener("keydown", e => {
 	chatLog(t(isHidden ? "uiHiddenMsg" : "uiShownMsg"));
 });
 
+(() => {
+	// Extend the game's F9 HUD-hide cycle:
+	// 0 (off) -> 1 (hide HUD, keep player names) -> 2 (hide all) -> 3 (hide all except chat) -> 0
+	let hudHideStage = 0;
+	const modifierKeys = new Set(["shift", "control", "alt", "meta"]);
+
+	const resetHudStage = () => {
+		hudHideStage = 0;
+		document.body?.classList.remove("spkmod-hud-keep-chat");
+	};
+
+	window.addEventListener("keydown", e => {
+		if (e.repeat || !document.body) return;
+		const key = (e.key || "").toLowerCase();
+		if (!key || modifierKeys.has(key)) return;
+
+		const toggleKey = (
+			typeof window.getGameSettings === "function"
+				? window.getGameSettings()?.keybindOverrides?.hudToggle
+				: null
+		) || "f9";
+		const hudToggleKey = toggleKey.toLowerCase();
+		const isHidden = document.body.classList.contains("sr-hud-hidden");
+
+		if (!isHidden) {
+			if (key === hudToggleKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+				const el = document.activeElement;
+				if (el && (el.isContentEditable || el.matches?.("input, textarea, select"))) return;
+				hudHideStage = 1; // 1st F9: game hides HUD, keeps player names
+			}
+			return;
+		}
+
+		if (key !== hudToggleKey) {
+			// Allow typing & sending inside the chatbox in stage 3 without restoring the rest of the HUD
+			if (hudHideStage === 3 && document.activeElement?.closest?.(".sr-chatbox")) {
+				e.stopImmediatePropagation();
+				if (!e.isComposing && (e.key === "Enter" || e.key === "NumpadEnter" || e.key === "Escape")) {
+					e.preventDefault();
+					const chatBox = window.gameState?.chatBox;
+					if (chatBox && typeof chatBox.onInputKeyDown === "function") {
+						chatBox.onInputKeyDown(e.key === "NumpadEnter" ? { key: "Enter" } : e);
+					}
+				}
+				return;
+			}
+			resetHudStage();
+			return;
+		}
+
+		if (hudHideStage === 1) {
+			hudHideStage = 2; // 2nd F9: game hides player names
+		} else if (hudHideStage === 2) {
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			hudHideStage = 3;
+			document.body.classList.add("spkmod-hud-keep-chat");
+		} else {
+			resetHudStage(); // 4th F9: game restores HUD and player names
+		}
+	}, { capture: true });
+
+	window.addEventListener("pointerdown", e => {
+		if (e.button !== 0 || !document.body?.classList.contains("sr-hud-hidden")) return;
+		// Allow clicking/interacting with the chatbox in stage 3 without restoring the rest of the HUD
+		if (hudHideStage === 3 && e.target?.closest?.(".sr-chatbox, .sr-chatbox__block-menu")) {
+			e.stopImmediatePropagation();
+			return;
+		}
+		resetHudStage();
+	}, { capture: true });
+})();
+
 window.addEventListener("keydown", e => {
 	if (e.key !== "F2" && e.code !== "F2") return;
 	if (e.ctrlKey || e.altKey || e.metaKey) return;
