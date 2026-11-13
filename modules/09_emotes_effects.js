@@ -2,6 +2,16 @@ const lunJumpAnimMs = 500;
 
 const lunFaintAnimMs = 1200;
 function autoFaintLoop() {
+	if (typeof isFaintBlockedZone === "function" && isFaintBlockedZone()) {
+		if (typeof syncFaintButtonsForZone === "function") {
+			syncFaintButtonsForZone();
+		} else {
+			window.AutoFaintActive = false;
+			window.__autoFaintPhase = false;
+			clearTimeout(window.__autoFaintTimeoutId);
+		}
+		return;
+	}
 	if (!window.AutoFaintActive) {
 		window.__autoFaintPhase = false;
 		return;

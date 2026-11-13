@@ -7607,11 +7607,38 @@ function updateDynamicStyles() {
 		#spkmod-main > * {
 			text-shadow: 1px 1px 2px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.8) !important;
 		}
-		.spkmod-panel-btn:hover { background: rgba(255,255,255,0.1) !important; }
+		.spkmod-panel-btn:not(:disabled):hover { background: rgba(255,255,255,0.1) !important; }
+		.spkmod-panel-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 		.spkmod-custom-emoji { position: relative; display: inline-block; cursor: pointer; }
 	`;
 	if (!document.getElementById("spkmod-dynamic-styles")) {
 		document.head.appendChild(styleTag);
+	}
+}
+
+const FAINT_BLOCKED_ZONE_ID = 6918;
+
+function isFaintBlockedZone(zoneId) {
+	const raw = zoneId !== undefined ? zoneId : (typeof gameState !== "undefined" && gameState ? gameState.zoneId : null);
+	if (typeof raw !== "number" || isNaN(raw)) return false;
+	return (raw % 10000) === FAINT_BLOCKED_ZONE_ID;
+}
+
+function syncFaintButtonsForZone(zoneId) {
+	const blocked = isFaintBlockedZone(zoneId);
+	if (blocked && window.AutoFaintActive) {
+		window.AutoFaintActive = false;
+		window.__autoFaintPhase = false;
+		clearTimeout(window.__autoFaintTimeoutId);
+		if (lunPanelElements.autoFaintBtn) {
+			setText(lunPanelElements.autoFaintBtn, t("aFaintOff"));
+		}
+	}
+	if (lunPanelElements.faintBtn) {
+		lunPanelElements.faintBtn.disabled = blocked;
+	}
+	if (lunPanelElements.autoFaintBtn) {
+		lunPanelElements.autoFaintBtn.disabled = blocked;
 	}
 }
 
@@ -8665,11 +8692,13 @@ document.body.appendChild(
 						}
 					}
 				}),
-								lunPanelElements.faintBtn = buildElement("button", {
+				lunPanelElements.faintBtn = buildElement("button", {
 					className: "spkmod-panel-btn",
 					innerText: t("faintOn"),
 					value: "",
+					disabled: isFaintBlockedZone(),
 					onclick: _ => {
+						if (isFaintBlockedZone()) return;
 						if (typeof gameState !== "undefined" && gameState?.sendEmoteNow) gameState.sendEmoteNow(15);
 					}
 				}),
@@ -8705,7 +8734,9 @@ document.body.appendChild(
 					className: "spkmod-panel-btn",
 					innerText: t(window.AutoFaintActive ? "aFaintOn" : "aFaintOff"),
 					value: "",
+					disabled: isFaintBlockedZone(),
 					onclick: e => {
+						if (isFaintBlockedZone()) return;
 						window.AutoFaintActive = !window.AutoFaintActive;
 						setText(e.target, t(window.AutoFaintActive ? "aFaintOn" : "aFaintOff"));
 						if (window.AutoFaintActive) {
@@ -14719,6 +14750,16 @@ const lunJumpAnimMs = 500;
 
 const lunFaintAnimMs = 1200;
 function autoFaintLoop() {
+	if (typeof isFaintBlockedZone === "function" && isFaintBlockedZone()) {
+		if (typeof syncFaintButtonsForZone === "function") {
+			syncFaintButtonsForZone();
+		} else {
+			window.AutoFaintActive = false;
+			window.__autoFaintPhase = false;
+			clearTimeout(window.__autoFaintTimeoutId);
+		}
+		return;
+	}
 	if (!window.AutoFaintActive) {
 		window.__autoFaintPhase = false;
 		return;
@@ -26602,6 +26643,9 @@ function tick() {
 		window._lunSessionStartTime = Date.now();
 	}
 	var zoneId = gameState.zoneId % 10000;
+	if (typeof syncFaintButtonsForZone === "function") {
+		syncFaintButtonsForZone(zoneId);
+	}
     
     if (window.lunActiveMinigamePanel && gameState.zoneId !== window.lunMinigameZoneStarted) {
         window.lunActiveMinigamePanel.style.display = '';

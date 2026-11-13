@@ -233,6 +233,9 @@ function tick() {
 		window._lunSessionStartTime = Date.now();
 	}
 	var zoneId = gameState.zoneId % 10000;
+	if (typeof syncFaintButtonsForZone === "function") {
+		syncFaintButtonsForZone(zoneId);
+	}
     
     if (window.lunActiveMinigamePanel && gameState.zoneId !== window.lunMinigameZoneStarted) {
         window.lunActiveMinigamePanel.style.display = '';
