@@ -1163,6 +1163,21 @@ function setCameraEffectLocal(effectKey) {
 	if (typeof chatLog === "function") chatLog("Camera Effect: " + (lunCameraEffect === "none" ? "OFF (NORMAL)" : lunCameraEffect.toUpperCase()));
 }
 
+const SPKMOD_SHADER_UI_LIST = [
+	{ key: "none", icon: "", labelKey: "shaderNone", fallback: "Default", color: "" },
+	{ key: "hdShadows", icon: "💎 ", labelKey: "shaderHdShadows", fallback: "HD Shadows", color: "#93c5fd" },
+	{ key: "comic", icon: "🖊️ ", labelKey: "shaderComic", fallback: "Comic Outlines", color: "#fde047" },
+	{ key: "animeCel", icon: "🎨 ", labelKey: "shaderAnimeCel", fallback: "Anime Cel", color: "#f9a8d4" },
+	{ key: "golden", icon: "🌅 ", labelKey: "shaderGolden", fallback: "Golden Hour", color: "#fbbf24" },
+	{ key: "pastel", icon: "🌸 ", labelKey: "shaderPastel", fallback: "Pastel Daylight", color: "#fbcfe8" },
+	{ key: "softBloom", icon: "✨ ", labelKey: "shaderSoftBloom", fallback: "Soft Bloom", color: "#fef08a" },
+	{ key: "moonlight", icon: "🌙 ", labelKey: "shaderMoonlight", fallback: "Moonlight", color: "#818cf8" },
+	{ key: "depthMist", icon: "🌫️ ", labelKey: "shaderDepthMist", fallback: "Depth Mist", color: "#bae6fd" },
+	{ key: "miniature", icon: "📸 ", labelKey: "shaderMiniature", fallback: "Miniature DoF", color: "#6ee7b7" },
+	{ key: "retro3d", icon: "🕹️ ", labelKey: "shaderRetro3d", fallback: "Retro 3D", color: "#a7f3d0" },
+	{ key: "mangaInk", icon: "🖋️ ", labelKey: "shaderMangaInk", fallback: "Manga Ink", color: "#e5e7eb" }
+];
+
 function updateLocalEditsUI() {
 	// Headers & Labels
 	if (lunPanelElements.editsModalTitle) setText(lunPanelElements.editsModalTitle, t("localEditsTitle") || "🎨 Local Edits (Creator Mode)");
@@ -1170,6 +1185,7 @@ function updateLocalEditsUI() {
 	if (editsModalElements.chromaHeader) setText(editsModalElements.chromaHeader, "🎬 " + (t("chromaKeyHeader") || "Chroma Key Skybox (Background)"));
 	if (editsModalElements.chromaFloorHeader) setText(editsModalElements.chromaFloorHeader, "🟩 " + (t("chromaFloorHeader") || "Chroma Floor Pad (Stage)"));
 	if (editsModalElements.solitudeHeader) setText(editsModalElements.solitudeHeader, "👤 " + (t("solitudeHeader") || "Solitude (Alone Mode)"));
+	if (editsModalElements.shadersHeader) setText(editsModalElements.shadersHeader, "✨ " + tCustom("shadersHeader", "Shaders (3D Lighting & Outlines)"));
 	if (editsModalElements.facialHeader) setText(editsModalElements.facialHeader, "😊 " + (t("facialExpressionHeader") || "Character Facial Expression"));
 	if (editsModalElements.cameraHeader) setText(editsModalElements.cameraHeader, "📷 " + (t("cameraEffectsTitle") || "Camera Filters (Hotkeys)"));
 	if (editsModalElements.renameHeader) setText(editsModalElements.renameHeader, t("renameHeader") || "Rename Name Tags");
@@ -1291,6 +1307,21 @@ function updateLocalEditsUI() {
 		editsModalElements.solitudeWhitelistInput.placeholder = t("solitudeWhitelistPlaceholder") || "e.g. Player1, Player2...";
 		if (document.activeElement !== editsModalElements.solitudeWhitelistInput) {
 			editsModalElements.solitudeWhitelistInput.value = lunSolitudeWhitelist || "";
+		}
+	}
+
+	// Shaders Section
+	const activeShaderKey = (typeof lunActiveShader !== "undefined" && lunActiveShader) ? lunActiveShader : "none";
+	if (editsModalElements.shaderButtons) {
+		for (const item of SPKMOD_SHADER_UI_LIST) {
+			const btn = editsModalElements.shaderButtons[item.key];
+			if (!btn) continue;
+			setText(btn, item.icon + tCustom(item.labelKey, item.fallback));
+			const active = activeShaderKey === item.key;
+			btn.style.borderColor = active ? "var(--spkmod-accent, #ffd54a)" : "#555";
+			btn.style.background = active ? "rgba(255, 255, 255, 0.2)" : "";
+			btn.style.boxShadow = active ? "0 0 8px var(--spkmod-accent, #ffd54a)" : "none";
+			btn.style.fontWeight = active ? "bold" : "normal";
 		}
 	}
 
@@ -1956,6 +1987,29 @@ document.body.appendChild(
 				])
 			]),
 
+			// Section 2.5: Shaders (3D Lighting & Post-Processing)
+			buildElement("div", { style: "display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid #555; padding-bottom: 8px;" }, [
+				editsModalElements.shadersHeader = buildElement("div", {
+					className: "spkmod-panel-cat-header",
+					innerText: "✨ " + tCustom("shadersHeader", "Shaders (3D Lighting & Outlines)"),
+					style: "margin-top: 0px;"
+				}),
+				buildElement("div", { style: "display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;" },
+					SPKMOD_SHADER_UI_LIST.map(item => {
+						if (!editsModalElements.shaderButtons) editsModalElements.shaderButtons = {};
+						const colorCss = item.color ? ` color: ${item.color};` : "";
+						return editsModalElements.shaderButtons[item.key] = buildElement("button", {
+							className: "spkmod-panel-btn",
+							style: `padding: 5px 2px; font-size: 9.5px; text-align: center;${colorCss}`,
+							innerText: item.icon + tCustom(item.labelKey, item.fallback),
+							onclick: () => {
+								if (typeof setShaderPreset === "function") setShaderPreset(item.key);
+							}
+						});
+					})
+				)
+			]),
+
 			// Section 3: Facial Expression Lock
 			buildElement("div", { style: "display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid #555; padding-bottom: 8px;" }, [
 				editsModalElements.facialHeader = buildElement("div", {
@@ -2094,238 +2148,238 @@ document.body.appendChild(
 					innerText: "📷 " + (t("cameraEffectsTitle") || "Camera Filters (Hotkeys)"),
 					style: "margin-top: 0px;"
 				}),
-				buildElement("div", { style: "display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;" }, [
+				buildElement("div", { style: "display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;" }, [
 					editsModalElements.camBtnNone = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center;",
 						innerText: (t("effectNone") || "Normal") + " [Ctrl+6]",
 						onclick: () => setCameraEffectLocal("none")
 					}),
 					editsModalElements.camBtnBw = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center;",
 						innerText: (t("effectBw") || "B&W") + " [Ctrl+7]",
 						onclick: () => setCameraEffectLocal("bw")
 					}),
 					editsModalElements.camBtnSepia = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center;",
 						innerText: (t("effectSepia") || "Sepia") + " [Ctrl+8]",
 						onclick: () => setCameraEffectLocal("sepia")
 					}),
 					editsModalElements.camBtnMorning = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center;",
 						innerText: (t("effectMorning") || "Morning") + " [Ctrl+9]",
 						onclick: () => setCameraEffectLocal("morning")
 					}),
 					editsModalElements.camBtnDusk = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center;",
 						innerText: (t("effectDusk") || "Dusk") + " [Ctrl+0]",
 						onclick: () => setCameraEffectLocal("dusk")
 					}),
 					editsModalElements.camBtnNight = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center;",
 						innerText: (t("effectNight") || "Night"),
 						onclick: () => setCameraEffectLocal("night")
 					}),
 					editsModalElements.camBtnVaporwave = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ff77c6;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ff77c6;",
 						innerText: "🌸 " + (t("effectVaporwave") || "Vaporwave"),
 						onclick: () => setCameraEffectLocal("vaporwave")
 					}),
 					editsModalElements.camBtnChromatic = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #00ffcc;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #00ffcc;",
 						innerText: "🌈 " + (t("effectChromatic") || "Chromatic Aberration"),
 						onclick: () => setCameraEffectLocal("chromatic")
 					}),
 					editsModalElements.camBtnUnfocus = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #c4d8e2;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #c4d8e2;",
 						innerText: "🌫️ " + (t("effectUnfocus") || "Dreamy Blur"),
 						onclick: () => setCameraEffectLocal("unfocus")
 					}),
 					editsModalElements.camBtnFocus = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ffffff;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ffffff;",
 						innerText: "🔍 " + (t("effectFocus") || "Sharp Clarity"),
 						onclick: () => setCameraEffectLocal("focus")
 					}),
 					editsModalElements.camBtnVhs = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #39ff14;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #39ff14;",
 						innerText: "📼 " + (t("effectVhs") || "90s VHS Tape"),
 						onclick: () => setCameraEffectLocal("vhs")
 					}),
 					editsModalElements.camBtnCyberpunk = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #00ffff;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #00ffff;",
 						innerText: "⚡ " + (t("effectCyberpunk") || "Cyberpunk"),
 						onclick: () => setCameraEffectLocal("cyberpunk")
 					}),
 					editsModalElements.camBtnNostalgia = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #f4d06f;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #f4d06f;",
 						innerText: "🚂 " + (t("effectNostalgia") || "Dreamy Train"),
 						onclick: () => setCameraEffectLocal("nostalgia")
 					}),
 					editsModalElements.camBtnPastel = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ffb7b2;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ffb7b2;",
 						innerText: "🎀 " + (t("effectPastel") || "Pastel Anime"),
 						onclick: () => setCameraEffectLocal("pastel")
 					}),
 					editsModalElements.camBtnWarmVintage = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #e29578;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #e29578;",
 						innerText: "🎞️ " + (t("effectWarmVintage") || "Vintage Film"),
 						onclick: () => setCameraEffectLocal("warmVintage")
 					}),
 					editsModalElements.camBtnCoolCinema = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #83c5be;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #83c5be;",
 						innerText: "🎬 " + (t("effectCoolCinema") || "Cool Cinema"),
 						onclick: () => setCameraEffectLocal("coolCinema")
 					}),
 					editsModalElements.camBtnMatrix = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #00ff66;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #00ff66;",
 						innerText: "🟢 " + (t("effectMatrix") || "Matrix"),
 						onclick: () => setCameraEffectLocal("matrix")
 					}),
 					editsModalElements.camBtnInverted = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #e0e0e0;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #e0e0e0;",
 						innerText: "🔲 " + (t("effectInverted") || "Negative"),
 						onclick: () => setCameraEffectLocal("inverted")
 					}),
 					editsModalElements.camBtnGameboy = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #8bac0f;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #8bac0f;",
 						innerText: "👾 " + (t("effectGameboy") || "Monatium Boy"),
 						onclick: () => setCameraEffectLocal("gameboy")
 					}),
 					editsModalElements.camBtnBloodMoon = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ff4d4d;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ff4d4d;",
 						innerText: "🩸 " + (t("effectBloodMoon") || "Blood Moon"),
 						onclick: () => setCameraEffectLocal("bloodMoon")
 					}),
 					editsModalElements.camBtnSynthwave = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #e056fd;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #e056fd;",
 						innerText: "🔮 " + (t("effectSynthwave") || "Synthwave"),
 						onclick: () => setCameraEffectLocal("synthwave")
 					}),
 					editsModalElements.camBtnUnderwater = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #22d3ee;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #22d3ee;",
 						innerText: "🌊 " + (t("effectUnderwater") || "Aqua Fantasy"),
 						onclick: () => setCameraEffectLocal("underwater")
 					}),
 					editsModalElements.camBtnGoldenHour = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #f59e0b;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #f59e0b;",
 						innerText: "☀️ " + (t("effectGoldenHour") || "Golden Hour"),
 						onclick: () => setCameraEffectLocal("goldenHour")
 					}),
 					editsModalElements.camBtnComicBook = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #f43f5e;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #f43f5e;",
 						innerText: "💥 " + (t("effectComicBook") || "Comic Book"),
 						onclick: () => setCameraEffectLocal("comicBook")
 					}),
 					editsModalElements.camBtnArctic = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #93c5fd;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #93c5fd;",
 						innerText: "❄️ " + (t("effectArctic") || "Arctic Frost"),
 						onclick: () => setCameraEffectLocal("arctic")
 					}),
 					editsModalElements.camBtnCosmic = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #c084fc;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #c084fc;",
 						innerText: "🌌 " + (t("effectCosmic") || "Cosmic Aurora"),
 						onclick: () => setCameraEffectLocal("cosmic")
 					}),
 					editsModalElements.camBtnFilmNoir = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #e2e8f0;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #e2e8f0;",
 						innerText: "🕵️ " + (t("effectFilmNoir") || "Film Noir"),
 						onclick: () => setCameraEffectLocal("filmNoir")
 					}),
 					editsModalElements.camBtnAcidTrip = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #a855f7;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #a855f7;",
 						innerText: "🍄 " + (t("effectAcidTrip") || "Acid Trip"),
 						onclick: () => setCameraEffectLocal("acidTrip")
 					}),
 					editsModalElements.camBtnRadioactive = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #84cc16;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #84cc16;",
 						innerText: "☢️ " + (t("effectRadioactive") || "Radioactive"),
 						onclick: () => setCameraEffectLocal("radioactive")
 					}),
 					editsModalElements.camBtnDeepFried = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #f97316;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #f97316;",
 						innerText: "🍗 " + (t("effectDeepFried") || "Deep Fried"),
 						onclick: () => setCameraEffectLocal("deepFried")
 					}),
 					editsModalElements.camBtnAlienAbduction = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #10b981;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #10b981;",
 						innerText: "🛸 " + (t("effectAlienAbduction") || "Alien Abduction"),
 						onclick: () => setCameraEffectLocal("alienAbduction")
 					}),
 					editsModalElements.camBtnXRay = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #38bdf8;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #38bdf8;",
 						innerText: "💀 " + (t("effectXRay") || "X-Ray Vision"),
 						onclick: () => setCameraEffectLocal("xRay")
 					}),
 					editsModalElements.camBtnThermal = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ef4444;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ef4444;",
 						innerText: "🌡️ " + (t("effectThermal") || "Thermal Vision"),
 						onclick: () => setCameraEffectLocal("thermal")
 					}),
 					editsModalElements.camBtnVirtualBoy = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #dc2626;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #dc2626;",
 						innerText: "🕶️ " + (t("effectVirtualBoy") || "Virtual Boy"),
 						onclick: () => setCameraEffectLocal("virtualBoy")
 					}),
 					editsModalElements.camBtnEldritch = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #9333ea;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #9333ea;",
 						innerText: "👁️ " + (t("effectEldritch") || "Eldritch Void"),
 						onclick: () => setCameraEffectLocal("eldritch")
 					}),
 					editsModalElements.camBtnHaunted = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #a3e635;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #a3e635;",
 						innerText: "👻 " + (t("effectHaunted") || "Paranormal Cam"),
 						onclick: () => setCameraEffectLocal("haunted")
 					}),
 					editsModalElements.camBtnGlitch = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #06b6d4;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #06b6d4;",
 						innerText: "⚡ " + (t("effectGlitch") || "Glitch Art"),
 						onclick: () => setCameraEffectLocal("glitch")
 					}),
 					editsModalElements.camBtnKaleido = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #ec4899;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #ec4899;",
 						innerText: "🌈 " + (t("effectKaleido") || "Rainbow Prism"),
 						onclick: () => setCameraEffectLocal("kaleido")
 					}),
 					editsModalElements.camBtnSupernova = buildElement("button", {
 						className: "spkmod-panel-btn",
-						style: "padding: 6px 4px; font-size: 10px; text-align: center; color: #fde047;",
+						style: "padding: 5px 2px; font-size: 9.5px; text-align: center; color: #fde047;",
 						innerText: "💥 " + (t("effectSupernova") || "Supernova"),
 						onclick: () => setCameraEffectLocal("supernova")
 					})

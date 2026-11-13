@@ -812,7 +812,7 @@ document.head.appendChild(buildElement(
 		}
 		#spkmod-edits-modal {
 			width: fit-content;
-			min-width: 420px;
+			min-width: 460px;
 			max-width: 95vw;
 			top: 15%;
 			overflow-x: hidden;

@@ -1080,6 +1080,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-reset-timer",
 	"spkmod-separate-panel",
 	"spkmod-session-gold",
+	"spkmod-shader",
 	"spkmod-solitude-whitelist",
 	"spkmod-translate-enabled",
 	"spkmod-translate-target",
@@ -1450,6 +1451,7 @@ if (typeof window.speakiMobile !== "undefined" || (typeof navigator !== "undefin
 }
 var lunGameUiScale = (window.localStorage && localStorage.getItem("spkmod-uiscale")) || "1.0";
 var lunCameraEffect = (window.localStorage && localStorage.getItem("spkmod-camera-effect")) || "none";
+var lunActiveShader = (window.localStorage && localStorage.getItem("spkmod-shader")) || "none";
 var lunDroneSpeed = window.lunDroneSpeed = (window.localStorage && parseFloat(localStorage.getItem("spkmod-drone-speed"))) || 0.10;
 var lunViewClip = false;
 var lunBgOpacity = (window.localStorage && localStorage.getItem("spkmod-bg-opacity")) || "glass";
