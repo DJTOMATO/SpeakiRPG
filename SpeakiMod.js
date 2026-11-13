@@ -33819,124 +33819,96 @@ function spkmodPlayFwCrackleSound(x, y, z) {
 	}
 }
 
-// ------------- Firework Visual Choreography (fireworknew3.txt) -------------
-// Array of firework shows: [0] = first show (!ani fire), [1] = second show (!ani fire2)
-// [0] = Time start, [1] = "normal" | "text" | "fountain" | "textGMDT" | "heart", [2] angle, [3] Height, [4] Color, [5] offset to side (z), [6] optional offset x, [7] optional duration, [8] optional particles, [9] optional burstSize
+// ------------- Firework Visual Choreography (fireworks_final) -------------
+// Array of firework shows: [0] = first 10s show (!ani fire), [1] = second show after movies (!ani fire2)
+// [0] = Time start, [1] = "normal" | "fountain" | shape name, [2] angle, [3] Height, [4] Color, [5] offset to side (z), [6] optional offset x, [7] optional duration, [8] optional particles, [9] optional burstSize
 var SPKMOD_FW_SHOW = [
 	[
-	[4.0, "normal", 0, 8.5, "yellow", 0, 0, 0, 200, 7],
-	[6.5, "normal", -25, 11, "red", 0, 0, 0, 100, 6],
-	[6.6, "normal", 25, 11, "green", 0, 0, 0, 100, 6],
-	[6.7, "normal", 0, 11, "cyan", 0, 0, 0, 130, 6],
-	
-	[11, "normal", 0, 8, "yellow", 0, 0, 0, 100, 5],
-	[11, "normal", 0, 8, "yellow", -5, 0, 0, 100, 5],
-	[11, "normal", 0, 8, "yellow", -10, 0, 0, 100, 5],
-	[11, "normal", 0, 8, "yellow", 5, 0, 0, 100, 5],
-	[11, "normal", 0, 8, "yellow", 10, 0, 0, 100, 5],
-	
-	[11.5, "normal", 0, 12, "blue", 0, 0, 0, 100, 8],
-	[11.25, "normal", -35, 10, "blue", 0, 0, 0, 100, 9],
-	[12, "normal", -15, 11, "blue", 0, -5, 0, 100, 8],
-	[12.25, "normal", 35, 10, "blue", 0, 0, 0, 100, 9],
-	[12.4, "normal", 15, 11, "blue", 0, 5, 0, 100, 8],
-	
-	[14.5, "normal", 40, 9, "orange", -10, 0, 0, 100, 7],
-	[15, "normal", -40, 8, "red", 10, 0, 0, 100, 7],
-	[15.5, "normal", 30, 9, "red", -10, 0, 0, 130, 8],
-	[15.5, "normal", -30, 10, "orange", 10, 0, 0, 130, 8],
-	[15.8, "normal", 20, 8, "orange", -10, 0, 0, 130, 6],
-	[15.8, "normal", -20, 10, "red", 10, 0, 0, 130, 6],
-	[16, "normal", 40, 9, "orange", -10, 0, 0, 130, 6],
-	[16, "normal", -40, 12, "red", 10, 0, 0, 130, 6],
-	
-	[18.5, "normal", -40, 8, "rainbow", 0, 0, 0, 100, 6],
-	[18.7, "normal", -20, 9, "rainbow", 0, 0, 0, 100, 6],
-	[19.0, "normal", 20, 9, "rainbow", 0, 0, 0, 100, 6],
-	[19.2, "normal", 40, 8, "rainbow", 0, 0, 0, 100, 6],
-
-	[19.5, "normal", 0, 10, "green", 0, 0, 0, 100, 3],
-	[19.65, "normal", 0, 10, "red", 0, 0, 0, 150, 6],
-	[19.8, "normal", 0, 10, "cyan", 0, 0, 0, 200, 9],
-	[19.95, "normal", 0, 10, "blue", 0, 0, 0, 250, 12],
-	
-	[23, "normal", 0, 6, "yellow", -12, 0, 0, 60, 6],
-	[23, "normal", 0, 6, "yellow", 12, 0, 0, 60, 6],
-	[23.2, "normal", 0, 7, "yellow", -10, 0, 0, 60, 6],
-	[23.2, "normal", 0, 7, "yellow", 10, 0, 0, 60, 6],
-	[23.4, "normal", 0, 8, "yellow", -8, 0, 0, 60, 6],
-	[23.4, "normal", 0, 8, "yellow", 8, 0, 0, 60, 6],
-	[23.6, "normal", 0, 9, "yellow", -5, 0, 0, 60, 6],
-	[23.6, "normal", 0, 9, "yellow", 5, 0, 0, 60, 6],
-	[23.8, "normal", 0, 10, "yellow", -2, 0, 0, 60, 6],
-	[23.8, "normal", 0, 10, "yellow", 2, 0, 0, 60, 6],
-	[24, "normal", 0, 11, "yellow", 0, 0, 0, 60, 6],
-	[24.1, "normal", 0, 12, "yellow", 0, 0, 0, 60, 6],
-	
-	[24.5, "normal", 0, 10, "yellow", -12, 0, 0, 60, 6],
-	[24.5, "normal", 0, 10, "yellow", 12, 0, 0, 60, 6],
-	[24.7, "normal", 0, 11, "yellow", -10, 0, 0, 60, 6],
-	[24.7, "normal", 0, 11, "yellow", 10, 0, 0, 60, 6],
-	[24.9, "normal", 0, 12, "yellow", -8, 0, 0, 60, 6],
-	[24.9, "normal", 0, 12, "yellow", 8, 0, 0, 60, 6],
-	[25.1, "normal", 0, 13, "yellow", -5, 0, 0, 60, 6],
-	[25.1, "normal", 0, 13, "yellow", 5, 0, 0, 60, 6],
-	[25.3, "normal", 0, 14, "yellow", -2, 0, 0, 60, 6],
-	[25.3, "normal", 0, 14, "yellow", 2, 0, 0, 60, 6],
-	[25.5, "normal", 0, 15, "yellow", 0, 0, 0, 60, 6],
-	[25.4, "normal", 40, 9, "rainbow", -10, 0, 0, 130, 6],
-	[25.4, "normal", -40, 9, "rainbow", 10, 0, 0, 130, 6],
-	[25.4, "normal", -45, 9, "rainbow", 10, 0, 0, 200, 8],
-	
-	[31.8, "normal", 40, 9, "blue", 0, 0, 0, 100],
-	[31.8, "normal", 10, 13, "red", 0, -5, 0, 150],
-	[32.0, "normal", -40, 10, "white", 0, 5],
-	[32.3, "normal", -30, 11, "pink", 0],
-	[32.5, "normal", -10, 15, "green", 0],
-	[32.1, "normal", 40, 13, "orange", 0],
-	[32.3, "normal", 10, 16, "blue", 0],
-	[32.7, "normal", -30, 11, "yellow", 0],
-	
-	[33, "fountain", 0, 1.6, "yellow", 1.9, -8.4, 10, 30],
-	[33, "fountain", 0, 1.6, "yellow", 9.7, -7, 10, 30],
-	[33, "fountain", 0, 2.0, "yellow", 8.75, -2.6, 10, 30],
-	[33, "fountain", 0, 2.45, "yellow", 7.23, -1.82, 10, 30],
-	[33, "fountain", 0, 1.6, "yellow", -1.9, -8.4, 10, 30],
-	[33, "fountain", 0, 1.6, "yellow", -9.7, -7, 10, 30],
-	[33, "fountain", 0, 2.0, "yellow", -8.75, -2.6, 10, 30],
-	[33, "fountain", 0, 2.45, "yellow", -7.23, -1.82, 10, 30],
-	
-	[30, "text", 0, 9, "", 0],
-	[31.3, "normal", 0, 9, "white", 0, 0, 0, 50, 7],
-	[33.5, "normal", -40, 11, "red", 0, 0, 0, 100],
-	[33.5, "normal", 10, 16, "yellow", 0, -5, 0, 150],
-	[34, "normal", 15, 14, "blue", 0, 5],
-	[34.5, "normal", -30, 8, "cyan", 0],
-	[35, "normal", -10, 12, "green", -5],
-	[35, "normal", 15, 10, "pink", -5],
-	[35.5, "normal", 40, 7, "orange", 0],
-	[36, "normal", 10, 11, "blue", 0],
-	[36.5, "normal", -30, 12, "blue", -5],
-	[37, "normal", 35, 11, "white", 0, 0, 0, 100],
-	[37.3, "normal", 30, 11, "cyan", 0, 0, 0, 100],
-	[37, "normal", -40, 9, "green", 0, 0, 0, 100],
-	[37.5, "normal", 10, 16, "blue", 0, -5, 0, 150],
-	[38, "normal", 15, 15, "red", 0, 5],
-	[38.5, "normal", -30, 11, "pink", 0],
-	[39, "normal", -24, 12, "green", 0],
-	[39.5, "normal", 40, 13, "blue", 0],
-	[40, "normal", 25, 11, "red", 0],
-	[40.5, "normal", 30, 7, "yellow", 0],
-	
-	[45.3, "normal", 0, 9, "white", 0, 0, 0, 50, 4],
-	[44, "textGMDT", 0, 9, "", 0],
-	[44, "heart", 0, 9, "", 0],
-	
-	[57, "normal", 0, 7, "rainbow", 0, -7, 0, 500, 20],
-	[57, "normal", 0, 7, "rainbow", 0, -7, 0, 300, 10]
+		[0.0, "text100", 0, 6, "yellow", 0, 0, 0, 200],
+		[1.0, "textDays", 0, 2, "yellow", 0, 0, 0, 200]
 	],
 	[
-		// Second fireworks show (!ani fire2)
+		[4.0, "normal", 0, 8.5, "yellow", 0, 0, 0, 200, 7],
+		[6.5, "normal", -25, 11, "red", 0, 0, 0, 100, 6],
+		[6.6, "normal", 25, 11, "green", 0, 0, 0, 100, 6],
+		[6.7, "normal", 0, 11, "cyan", 0, 0, 0, 130, 6],
+
+		[11, "normal", 0, 8, "yellow", 0, 0, 0, 100, 5],
+		[11, "normal", 0, 8, "yellow", -5, 0, 0, 100, 5],
+		[11, "normal", 0, 8, "yellow", -10, 0, 0, 100, 5],
+		[11, "normal", 0, 8, "yellow", 5, 0, 0, 100, 5],
+		[11, "normal", 0, 8, "yellow", 10, 0, 0, 100, 5],
+
+		[11.5, "normal", 0, 12, "blue", 0, 0, 0, 100, 8],
+		[11.25, "normal", -35, 10, "blue", 0, 0, 0, 100, 9],
+		[12, "normal", -15, 11, "blue", 0, -5, 0, 100, 8],
+		[12.25, "normal", 35, 10, "blue", 0, 0, 0, 100, 9],
+		[12.4, "normal", 15, 11, "blue", 0, 5, 0, 100, 8],
+
+		[14.5, "normal", 40, 9, "orange", -10, 0, 0, 100, 7],
+		[15, "normal", -40, 8, "red", 10, 0, 0, 100, 7],
+		[15.5, "normal", 30, 9, "red", -10, 0, 0, 130, 8],
+		[15.5, "normal", -30, 10, "orange", 10, 0, 0, 130, 8],
+		[15.8, "normal", 20, 8, "orange", -10, 0, 0, 130, 6],
+		[15.8, "normal", -20, 10, "red", 10, 0, 0, 130, 6],
+		[16, "normal", 40, 9, "orange", -10, 0, 0, 130, 6],
+		[16, "normal", -40, 12, "red", 10, 0, 0, 130, 6],
+
+		[18, "normal", 0, 6, "yellow", -12, 0, 0, 30, 6],
+		[18, "normal", 0, 6, "yellow", 12, 0, 0, 30, 6],
+		[18.2, "normal", 0, 7, "yellow", -10, 0, 0, 30, 6],
+		[18.2, "normal", 0, 7, "yellow", 10, 0, 0, 30, 6],
+		[18.4, "normal", 0, 8, "yellow", -8, 0, 0, 30, 6],
+		[18.4, "normal", 0, 8, "yellow", 8, 0, 0, 30, 6],
+		[18.6, "normal", 0, 9, "yellow", -5, 0, 0, 30, 6],
+		[18.6, "normal", 0, 9, "yellow", 5, 0, 0, 30, 6],
+		[18.8, "normal", 0, 10, "yellow", -2, 0, 0, 30, 6],
+		[18.8, "normal", 0, 10, "yellow", 2, 0, 0, 30, 6],
+		[19, "normal", 0, 11, "yellow", 0, 0, 0, 30, 6],
+		[19, "normal", 0, 12, "yellow", 0, 0, 0, 30, 6],
+
+		[20.5, "normal", 0, 10, "yellow", -12, 0, 0, 30, 6],
+		[20.5, "normal", 0, 10, "yellow", 12, 0, 0, 30, 6],
+		[20.7, "normal", 0, 11, "yellow", -10, 0, 0, 30, 6],
+		[20.7, "normal", 0, 11, "yellow", 10, 0, 0, 30, 6],
+		[20.9, "normal", 0, 12, "yellow", -8, 0, 0, 30, 6],
+		[20.9, "normal", 0, 12, "yellow", 8, 0, 0, 30, 6],
+		[21.1, "normal", 0, 13, "yellow", -5, 0, 0, 30, 6],
+		[21.1, "normal", 0, 13, "yellow", 5, 0, 0, 30, 6],
+		[21.3, "normal", 0, 14, "yellow", -2, 0, 0, 30, 6],
+		[21.3, "normal", 0, 14, "yellow", 2, 0, 0, 60, 6],
+		[21.5, "normal", 0, 15, "yellow", 0, 0, 0, 60, 6],
+		[22.4, "normal", 40, 9, "rainbow", -10, 0, 0, 130, 6],
+		[22.4, "normal", -40, 9, "rainbow", 10, 0, 0, 130, 6],
+		[22.4, "normal", -45, 9, "rainbow", 10, 0, 0, 200, 8],
+
+		[26, "textSpeaki", 0, 9, "yellow", 0],
+		[27, "textMMO", 0, 6, "yellow", 0],
+
+		[27.5, "normal", 40, 9, "blue", 0, 0, 0, 100],
+		[27.8, "normal", 10, 13, "red", 0, -5, 0, 150],
+		[28.3, "normal", -30, 11, "pink", 0],
+		[28.5, "normal", -10, 15, "green", 0],
+		[29.3, "normal", 10, 16, "blue", 0],
+
+		[29.5, "normal", -40, 11, "red", 0, 0, 0, 100],
+		[30, "normal", 15, 14, "blue", 0, 5],
+		[30.5, "normal", 40, 8, "cyan", 0],
+		[30.7, "normal", -10, 12, "green", -5],
+		[31, "normal", 15, 10, "pink", -5],
+		[31.3, "normal", 10, 11, "blue", 0],
+		[31.6, "normal", -30, 12, "blue", -5],
+		[31.9, "normal", 30, 11, "cyan", 0, 0, 0, 100],
+		[32.3, "normal", -40, 9, "green", 0, 0, 0, 100],
+		[32.5, "normal", 10, 16, "blue", 0, -5, 0, 150],
+		[32.7, "normal", 15, 15, "red", 0, 5],
+		[32.9, "normal", -30, 11, "pink", 0],
+		[33.4, "normal", -24, 12, "green", 0],
+		[33.6, "normal", 40, 13, "blue", 0],
+		[34, "normal", 25, 11, "red", 0],
+		[34.3, "normal", 0, 9, "white", 0, 0, 0, 50, 4],
+		[39, "textGMDT", 0, 9, "yellow", 0],
+		[39, "heart", 0, 9, "yellow", 0]
 	]
 ];
 
@@ -33951,14 +33923,14 @@ var sparklerPositions = [
 	[7.23, -1.82, 2.45]
 ];
 
-// Add sparkler waves automatically at the start of the show (0.0s - 3.0s)
+// Add sparkler waves automatically at the start of show #2 (0.0s - 3.0s)
 const _fwAa = 0.8;
 const _fwBb = _fwAa / 4; 
 for (let group = 0; group < 4; group++) {
 	for (let i = 0; i < sparklerPositions.length; i++) {
 		const time = group * _fwAa + (i % 4) * _fwBb;
 		const pos = sparklerPositions[i];
-		SPKMOD_FW_SHOW[0].push([
+		SPKMOD_FW_SHOW[1].push([
 			time,
 			"fountain",
 			0,
@@ -33977,11 +33949,10 @@ var SPKMOD_FW_COLORS = {
 	blue: [70, 130, 255], pink: [255, 90, 200], orange: [255, 150, 30], cyan: [60, 235, 255]
 };
 
-const fireworkSpawnOffset = {
-	x: 16, 
-	y: 0, 
-	z: 1
-};
+const fireworkSpawnOffset = [
+	{ x: 0, y: 0, z: 0 },   // show 1 (index 0)
+	{ x: 16, y: 0, z: 1 }   // show 2 (index 1)
+];
 
 const SPKMOD_FW_ADJ = {
 	burstSparkCount: 150,
@@ -33997,9 +33968,9 @@ const SPKMOD_FW_TIMES = {
 	textPause: 1.5,
 	normalPause: 0.1,
 	textBurst: 1.3,
-	textHold: 9.3,
+	textHold: 10,
 	textFadeDelayMax: 1,
-	textFade: 2.5,
+	textFade: 4,
 	normalLife: 5
 };
 
@@ -34014,8 +33985,8 @@ var SPKMOD_FW_FOUNTAIN = {
 };
 
 var SPKMOD_FW_SHAPES = {
-	text: {
-		worldWidth: 10, particles: 200, colors: ["white", "yellow"], canvasScale: 2,
+	text100: {
+		worldWidth: 11, particles: 250, colors: ["white", "yellow"], canvasScale: 2,
 		draw: (ctx, w, h) => { 
 			const thicknessFont = "900";
 			const heightText = "200px";
@@ -34027,6 +33998,52 @@ var SPKMOD_FW_SHAPES = {
 			ctx.lineWidth = 10;   
 			ctx.lineJoin = "round";
 			ctx.strokeText("100", w / 2, h / 2);
+		}
+	},
+	textDays: {
+		worldWidth: 10, particles: 200, colors: ["white", "yellow"], canvasScale: 3,
+		draw: (ctx, w, h) => { 
+			const thicknessFont = "900";
+			const heightText = "150px";
+			ctx.font = thicknessFont + " " + heightText + " Arial, sans-serif";
+			ctx.textAlign = "center"; 
+			ctx.textBaseline = "middle";
+			ctx.fillStyle = "#fff"; 
+			ctx.strokeStyle = "#fff"; 
+			ctx.lineWidth = 8;   
+			ctx.lineJoin = "round";
+			ctx.strokeText("DAYS", w / 2, h / 2);
+		}
+	},
+	textSpeaki: {
+		worldWidth: 15, particles: 300, colors: ["white", "yellow"], canvasScale: 3,
+		draw: (ctx, w, h) => { 
+			const thicknessFont = "900";
+			const heightText = "150px";
+			ctx.font = thicknessFont + " " + heightText + " Arial, sans-serif";
+			ctx.textAlign = "center"; 
+			ctx.textBaseline = "middle";
+			ctx.fillStyle = "#fff"; 
+			ctx.strokeStyle = "#fff"; 
+			ctx.lineWidth = 8;   
+			ctx.lineJoin = "round";
+			ctx.strokeText("SPEAKI", w / 2, h / 2);
+		}
+	},
+	textMMO: {
+		worldWidth: 9, particles: 180, colors: ["white", "yellow"], canvasScale: 3,
+		draw: (ctx, w, h) => { 
+			const thicknessFont = "900";
+			const heightText = "150px";
+			ctx.font = thicknessFont + " " + heightText + " Arial, sans-serif";
+			ctx.textAlign = "center"; 
+			ctx.letterSpacing = "20px";
+			ctx.textBaseline = "middle";
+			ctx.fillStyle = "#fff"; 
+			ctx.strokeStyle = "#fff"; 
+			ctx.lineWidth = 5;   
+			ctx.lineJoin = "round";
+			ctx.strokeText("MMO", w / 2, h / 2);
 		}
 	},
 	textGMDT: {
@@ -34137,7 +34154,7 @@ function spkmodFwShapePoints(name) {
 }
 
 function spkmodFwTextPoints() {
-	return spkmodFwShapePoints("text");
+	return spkmodFwShapePoints("text100");
 }
 
 var spkmodFwHiddenCinema = false;
@@ -34209,8 +34226,16 @@ function spkmodFwStop() {
 }
 window.spkmodStopCinemaFireworks = spkmodFwStop;
 
-window.spkmodLaunchCinemaFireworks = function(loopMode = true, showIndex = 0) {
-	const idx = parseInt(showIndex, 10) || 0;
+window.spkmodLaunchCinemaFireworks = function(arg1 = 0, arg2 = 0) {
+	let loop = false;
+	let idx = 0;
+	if (typeof arg1 === "boolean") {
+		loop = arg1 === true;
+		idx = parseInt(arg2, 10) || 0;
+	} else {
+		idx = parseInt(arg1, 10) || 0;
+		loop = arg2 === true;
+	}
 	if (spkmodFw) {
 		const wasSameShow = spkmodFw.showIndex === idx;
 		spkmodFwStop();
@@ -34234,11 +34259,12 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true, showIndex = 0) {
 		window.spkmodSetCinemaEnabled(false, false, true);
 	}
 
+	const spawnOffset = fireworkSpawnOffset[idx] || fireworkSpawnOffset[0] || { x: 0, y: 0, z: 0 };
 	var fwStartPos = Object.assign({}, spkmodCinemaConfig.pos);
 	fwStartPos = {
-		x: fwStartPos.x + fireworkSpawnOffset.x,
-		y: fwStartPos.y + fireworkSpawnOffset.y,
-		z: fwStartPos.z + fireworkSpawnOffset.z
+		x: fwStartPos.x + spawnOffset.x,
+		y: fwStartPos.y + spawnOffset.y,
+		z: fwStartPos.z + spawnOffset.z
 	};
 	if (!THREE || !cam || !fwStartPos) return;
 
@@ -34382,7 +34408,7 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true, showIndex = 0) {
 					spkmodPlayFwBurstSound(s.x, s.y, endPos, true);
 					const colors = SPKMOD_FW_SHAPES[s.type]?.colors || ["white", "yellow"];
 					s.pts = spkmodFwShapePoints(s.type).map(p => ({
-						u: p.u, v: p.v, tw: Math.random() * 6.28, fd: Math.random(),
+						u: (s.type === "text100" || s.type === "textDays" ? -p.u : p.u), v: p.v, tw: Math.random() * 6.28, fd: Math.random(),
 						c: colors[(Math.random() * colors.length) | 0]
 					}));
 				}
@@ -34425,7 +34451,7 @@ window.spkmodLaunchCinemaFireworks = function(loopMode = true, showIndex = 0) {
 			return;
 		}
 		if (!alive) {
-			if (loopMode && spkmodFw) {
+			if (loop && spkmodFw) {
 				t0 = performance.now();
 				shots = buildShots();
 				spkmodFw.raf = requestAnimationFrame(frame);
