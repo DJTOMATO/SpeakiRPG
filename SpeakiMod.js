@@ -33819,6 +33819,34 @@ function spkmodPlayFwCrackleSound(x, y, z) {
 	}
 }
 
+function spkmodPlayFwSparkleSound(x, y, z) {
+	const ctx = spkmodGetFwAudioContext();
+	if (!ctx) return;
+	const vol = spkmodGetFwVolumeScale(x, y, z);
+	if (vol <= 0.01) return;
+
+	const t = ctx.currentTime;
+	const notes = [1567.98, 1760.0, 2093.0, 2349.32, 2637.02, 3135.96]; // G6, A6, C7, D7, E7, G7
+	const count = 9;
+	for (let i = 0; i < count; i++) {
+		const delay = 0.08 + i * 0.11 + Math.random() * 0.05;
+		const freq = notes[(Math.random() * notes.length) | 0] * (0.995 + Math.random() * 0.01);
+		const chime = ctx.createOscillator();
+		chime.type = "sine";
+		chime.frequency.setValueAtTime(freq, t + delay);
+
+		const gain = ctx.createGain();
+		gain.gain.setValueAtTime(0.0001, t + delay);
+		gain.gain.linearRampToValueAtTime(vol * (0.06 + Math.random() * 0.04), t + delay + 0.015);
+		gain.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.45);
+
+		chime.connect(gain);
+		gain.connect(spkmodFwMasterGain || ctx.destination);
+		chime.start(t + delay);
+		chime.stop(t + delay + 0.48);
+	}
+}
+
 // ------------- Firework Visual Choreography (fireworks_final) -------------
 // Array of firework shows: [0] = first 10s show (!ani fire), [1] = second show after movies (!ani fire2)
 // [0] = Time start, [1] = "normal" | "fountain" | shape name, [2] angle, [3] Height, [4] Color, [5] offset to side (z), [6] optional offset x, [7] optional duration, [8] optional particles, [9] optional burstSize
@@ -34406,6 +34434,8 @@ window.spkmodLaunchCinemaFireworks = function(arg1 = 0, arg2 = 0) {
 			if (s.isShape) {
 				if (!s.pts) {
 					spkmodPlayFwBurstSound(s.x, s.y, endPos, true);
+					spkmodPlayFwCrackleSound(s.x, s.y, endPos);
+					spkmodPlayFwSparkleSound(s.x, s.y, endPos);
 					const colors = SPKMOD_FW_SHAPES[s.type]?.colors || ["white", "yellow"];
 					s.pts = spkmodFwShapePoints(s.type).map(p => ({
 						u: (s.type === "text100" || s.type === "textDays" ? -p.u : p.u), v: p.v, tw: Math.random() * 6.28, fd: Math.random(),
