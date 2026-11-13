@@ -994,6 +994,9 @@ document.head.appendChild(buildElement(
 		body.spkmod-ui-hidden #spkmod-translate-picker {
 			display: none !important;
 		}
+		body.sr-hud-hidden.spkmod-hud-keep-chat .sr-chatbox {
+			display: flex !important;
+		}
 		#spkmod-quests-modal {
 			min-width: 380px;
 			max-width: 95vw;
