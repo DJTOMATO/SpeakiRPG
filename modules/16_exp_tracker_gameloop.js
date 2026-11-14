@@ -847,6 +847,15 @@ function spkmodToggleNightMode() {
 }
 window.spkmodToggleNightMode = spkmodToggleNightMode;
 
+function spkmodExtractYoutubeId(input) {
+	if (!input) return null;
+	const trimmed = String(input).trim();
+	const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|live\/|watch\?v=|watch\?.+&v=))([\w-]{11})/i);
+	if (match && match[1]) return match[1];
+	if (/^[\w-]{11}$/.test(trimmed)) return trimmed;
+	return null;
+}
+
 function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 	let clean = rawMsg.trim();
 	if (clean.startsWith("!") || clean.startsWith("/")) clean = clean.substring(1);
@@ -854,13 +863,17 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 
 	const parts = clean.split(/\s+/);
 	let mainCmd = (parts[0] || "").toLowerCase();
-	let subCmd = (parts[1] || "").toLowerCase();
-	let extraArgs = parts.slice(2);
+	let rawSubCmd = parts[1] || "";
+	let rawExtraArgs = parts.slice(2);
+	let subCmd = rawSubCmd.toLowerCase();
+	let extraArgs = rawExtraArgs;
 
 	if (mainCmd === "ani") {
 		mainCmd = subCmd;
-		subCmd = (extraArgs[0] || "").toLowerCase();
-		extraArgs = extraArgs.slice(1);
+		rawSubCmd = rawExtraArgs[0] || "";
+		rawExtraArgs = rawExtraArgs.slice(1);
+		subCmd = rawSubCmd.toLowerCase();
+		extraArgs = rawExtraArgs;
 	} else if (mainCmd.startsWith("ani")) {
 		mainCmd = mainCmd.substring(3);
 	}
@@ -887,10 +900,12 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 		return;
 	}
 
-	// 2. Movie / Cinema Lockdown (e.g. !ani movie, !ani lock, !ani73)
+	// 2. Movie / Cinema Lockdown (e.g. !ani movie, !ani lock, !ani73, !video <url>, !video <player> <url>)
 	if (mainCmd === "movie" || mainCmd === "cinema" || mainCmd === "lock" || mainCmd === "video" || mainCmd === "73") {
-		if (subCmd === "resume" || subCmd === "unlock" || subCmd === "off" || subCmd === "stop") {
-			const target = extraArgs[0] || null;
+		const isStopWord = (s) => s === "resume" || s === "unlock" || s === "off" || s === "stop";
+		const arg2Lower = (rawExtraArgs[0] || "").toLowerCase();
+		if (isStopWord(subCmd) || isStopWord(arg2Lower)) {
+			const target = isStopWord(subCmd) ? (rawExtraArgs[0] || null) : (rawSubCmd || null);
 			if (!spkmodMatchesTarget(target)) return;
 			if (typeof window.spkmodSetCinemaAnniversaryLock === "function") {
 				window.spkmodSetCinemaAnniversaryLock(false);
@@ -899,11 +914,34 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 			return;
 		}
 
-		const target = subCmd || null;
+		let customVideoId = null;
+		let target = null;
+		const idFromArg1 = spkmodExtractYoutubeId(rawSubCmd);
+		const idFromArg2 = spkmodExtractYoutubeId(rawExtraArgs[0]);
+
+		if (rawSubCmd && rawExtraArgs[0]) {
+			// !video <player> <url> (or swapped !video <url> <player>)
+			if (idFromArg2) {
+				target = rawSubCmd;
+				customVideoId = idFromArg2;
+			} else if (idFromArg1) {
+				customVideoId = idFromArg1;
+				target = rawExtraArgs[0];
+			} else {
+				target = rawSubCmd;
+			}
+		} else if (rawSubCmd) {
+			if (idFromArg1) {
+				customVideoId = idFromArg1;
+			} else {
+				target = rawSubCmd;
+			}
+		}
+
 		if (!spkmodMatchesTarget(target)) return;
 
 		if (typeof window.spkmodSetCinemaAnniversaryLock === "function") {
-			window.spkmodSetCinemaAnniversaryLock(true);
+			window.spkmodSetCinemaAnniversaryLock(true, customVideoId);
 		}
 		spkmodSetNightMode(true);
 		appendColoredChatLine(-1337, "Anniversary", "🎬 [Anniversary] Special broadcast started!", "#ffc94a");

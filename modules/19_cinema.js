@@ -3279,9 +3279,16 @@ window.spkmodCinemaAnniversaryVideo = {
 
 window.spkmodSetCinemaAnniversaryLock = function(locked, customVideoId) {
 	window.spkmodCinemaAnniversaryLocked = !!locked;
+	if (customVideoId) {
+		window.spkmodCinemaAnniversaryVideo.id = customVideoId;
+		window.spkmodCinemaAnniversaryVideo.url = `https://www.youtube.com/watch?v=${customVideoId}`;
+	}
 	const videoId = customVideoId || window.spkmodCinemaAnniversaryVideo.id;
 
 	if (locked) {
+		if (!spkmodCinemaConfig.enabled && typeof window.spkmodSetCinemaEnabled === "function") {
+			window.spkmodSetCinemaEnabled(true, true, false);
+		}
 		spkmodCinemaConfig.enabled = true;
 		if (typeof window.spkmodSetNightMode === "function") {
 			window.spkmodSetNightMode(true);

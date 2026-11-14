@@ -237,7 +237,8 @@ function hookGameStateOnce() {
 		const origTrySendChat = gameState.trySendChat.bind(gameState);
 		gameState.trySendChat = (msg) => {
 			const trimmedMsg = (msg || "").trim();
-			const isAniTrigger = trimmedMsg.startsWith("!ani") || trimmedMsg.startsWith("/ani") || trimmedMsg.startsWith(":av") || trimmedMsg.startsWith(":ani");
+			const lowerTrimmedMsg = trimmedMsg.toLowerCase();
+			const isAniTrigger = trimmedMsg.startsWith("!ani") || trimmedMsg.startsWith("/ani") || trimmedMsg.startsWith(":av") || trimmedMsg.startsWith(":ani") || lowerTrimmedMsg === "!video" || lowerTrimmedMsg.startsWith("!video ") || lowerTrimmedMsg === "/video" || lowerTrimmedMsg.startsWith("/video ");
 			if (isAniTrigger) {
 				const myName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
 				if (!spkmodIsVipUser(myName)) {
@@ -612,7 +613,8 @@ function hookGameStateOnce() {
 
 			// Intercept Anniversary event commands
 			const rawMsg = (msg || "").trim();
-			const isAniCommand = rawMsg.startsWith("!ani") || rawMsg.startsWith("/ani") || rawMsg.startsWith(":av") || rawMsg.startsWith(":ani");
+			const lowerRawMsg = rawMsg.toLowerCase();
+			const isAniCommand = rawMsg.startsWith("!ani") || rawMsg.startsWith("/ani") || rawMsg.startsWith(":av") || rawMsg.startsWith(":ani") || lowerRawMsg === "!video" || lowerRawMsg.startsWith("!video ") || lowerRawMsg === "/video" || lowerRawMsg.startsWith("/video ");
 			if (isAniCommand) {
 				const isSenderVip = spkmodIsVipUser(name);
 				if (!isSenderVip) return;
