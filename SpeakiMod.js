@@ -31087,11 +31087,20 @@ var spkmodCinemaYtReady = false;
 function spkmodIsDirectVideoUrl(input) {
 	if (!input) return false;
 	const trimmed = String(input).trim();
-	if (!/^https?:\/\//i.test(trimmed)) return false;
+	const hasScheme = /^https?:\/\//i.test(trimmed);
+	const isSchemelessUrl = /^[a-z0-9-]+(?:\.[a-z0-9-]+)+\/\S+$/i.test(trimmed) || /\.(?:mp4|webm|ogg|mov|m3u8)(?:[?#].*)?$/i.test(trimmed);
+	if (!hasScheme && !isSchemelessUrl) return false;
 	if (/(?:youtube\.com|youtu\.be)/i.test(trimmed)) return false;
 	return true;
 }
 window.spkmodIsDirectVideoUrl = spkmodIsDirectVideoUrl;
+
+function spkmodNormalizeDirectVideoUrl(input) {
+	const trimmed = String(input || "").trim();
+	if (!trimmed) return "";
+	if (/^https?:\/\//i.test(trimmed)) return trimmed;
+	return "https://" + trimmed;
+}
 
 function spkmodHasActiveCinemaMedia() {
 	if (spkmodCinemaIsDirectVideo) {
@@ -31150,6 +31159,7 @@ function spkmodSetCinemaPlayerMode(useDirectVideo) {
 
 function spkmodPlayDirectVideo(url, startSec = 0, loop = false) {
 	if (!spkmodCinemaVideoEl || !url) return;
+	const normalizedUrl = spkmodNormalizeDirectVideoUrl(url);
 	spkmodSetCinemaPlayerMode(true);
 	const isMuted = !!window.spkmodCinemaConfig?.muted;
 	const vol = Math.max(0, Math.min(1, (window.spkmodCinemaConfig?.volume ?? 80) / 100));
@@ -31158,8 +31168,8 @@ function spkmodPlayDirectVideo(url, startSec = 0, loop = false) {
 	spkmodCinemaVideoEl.volume = vol;
 
 	const currentSrc = spkmodCinemaVideoEl.getAttribute('src');
-	if (currentSrc !== url) {
-		spkmodCinemaVideoEl.src = url;
+	if (currentSrc !== normalizedUrl) {
+		spkmodCinemaVideoEl.src = normalizedUrl;
 	}
 	if (typeof startSec === 'number' && startSec > 0 && isFinite(startSec)) {
 		try { spkmodCinemaVideoEl.currentTime = startSec; } catch (_) {}
@@ -33827,8 +33837,9 @@ window.spkmodSetCinemaAnniversaryLock = function(locked, customVideoId) {
 	window.spkmodCinemaAnniversaryLocked = !!locked;
 	if (customVideoId) {
 		const isDirect = spkmodIsDirectVideoUrl(customVideoId);
-		window.spkmodCinemaAnniversaryVideo.id = customVideoId;
-		window.spkmodCinemaAnniversaryVideo.url = isDirect ? customVideoId : `https://www.youtube.com/watch?v=${customVideoId}`;
+		const resolvedId = isDirect ? spkmodNormalizeDirectVideoUrl(customVideoId) : customVideoId;
+		window.spkmodCinemaAnniversaryVideo.id = resolvedId;
+		window.spkmodCinemaAnniversaryVideo.url = isDirect ? resolvedId : `https://www.youtube.com/watch?v=${resolvedId}`;
 	}
 	const videoId = customVideoId || window.spkmodCinemaAnniversaryVideo.id;
 
@@ -33891,7 +33902,7 @@ function spkmodGetFwAudioContext() {
 	if (spkmodFwAudioCtx && !spkmodFwMasterGain) {
 		try {
 			spkmodFwMasterGain = spkmodFwAudioCtx.createGain();
-			spkmodFwMasterGain.gain.setValueAtTime(1, spkmodFwAudioCtx.currentTime);
+			spkmodFwMasterGain.gain.setValueAtTime(0.5, spkmodFwAudioCtx.currentTime);
 			spkmodFwMasterGain.connect(spkmodFwAudioCtx.destination);
 		} catch (_) {}
 	}
