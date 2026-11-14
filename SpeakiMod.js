@@ -27195,19 +27195,19 @@ var hkChatBoxAppend = (id, name, msg) => {
 // ============================================================================
 
 const SPKMOD_ANNIVERSARY_I18N = {
-	en: "📢 [Anniversary] A special show will begin in {0} minutes in channel 1 throne room!",
-	es: "📢 [Aniversario] ¡Un espectáculo especial comenzará en {0} minutos en la sala del trono del canal 1!",
-	"es-419": "📢 [Aniversario] ¡Un espectáculo especial comenzará en {0} minutos en la sala del trono del canal 1!",
-	ja: "📢 [記念イベント] 特別なショーがチャンネル1の玉座の間で{0}分後に始まります！",
-	ko: "📢 [기념일] 1채널 알현실에서 {0}분 후에 특별 쇼가 시작됩니다!",
-	zh: "📢 [周年庆] 特别节目将在1频道的王座之厅于{0}分钟后开始！",
-	"zh-CN": "📢 [周年庆] 特别节目将在1频道的王座之厅于{0}分钟后开始！",
-	"zh-TW": "📢 [週年慶] 特別節目將在1頻道的王座之廳於{0}分鐘後開始！",
-	pt: "📢 [Aniversário] Um show especial começará em {0} minutos na sala do trono do canal 1!",
-	"pt-BR": "📢 [Aniversário] Um show especial começará em {0} minutos na sala do trono do canal 1!",
-	fr: "📢 [Anniversaire] Un spectacle spécial commencera dans {0} minutes dans la salle du trône du canal 1 !",
-	de: "📢 [Jubiläum] Eine Sondershow beginnt in {0} Minuten im Thronsaal von Kanal 1!",
-	ru: "📢 [Юбилей] Специальное шоу начнется через {0} минут в тронном зале канала 1!"
+	en: "📢 [EVENT] A special show will begin in {0} minutes in channel 1 throne room!",
+	es: "📢 [EVENTO] ¡Un espectáculo especial comenzará en {0} minutos en la sala del trono del canal 1!",
+	"es-419": "📢 [EVENTO] ¡Un espectáculo especial comenzará en {0} minutos en la sala del trono del canal 1!",
+	ja: "📢 [イベント] 特別なショーがチャンネル1の玉座の間で{0}分後に始まります！",
+	ko: "📢 [이벤트] 1채널 알현실에서 {0}분 후에 특별 쇼가 시작됩니다!",
+	zh: "📢 [活动] 特别节目将在1频道的王座之厅于{0}分钟后开始！",
+	"zh-CN": "📢 [活动] 特别节目将在1频道的王座之厅于{0}分钟后开始！",
+	"zh-TW": "📢 [活動] 特別節目將在1頻道的王座之廳於{0}分鐘後開始！",
+	pt: "📢 [EVENTO] Um show especial começará em {0} minutos na sala do trono do canal 1!",
+	"pt-BR": "📢 [EVENTO] Um show especial começará em {0} minutos na sala do trono do canal 1!",
+	fr: "📢 [ÉVÉNEMENT] Un spectacle spécial commencera dans {0} minutes dans la salle du trône du canal 1 !",
+	de: "📢 [EVENT] Eine Sondershow beginnt in {0} Minuten im Thronsaal von Kanal 1!",
+	ru: "📢 [СОБЫТИЕ] Специальное шоу начнется через {0} минут в тронном зале канала 1!"
 };
 
 function spkmodIsVipUser(playerName) {
@@ -27363,7 +27363,7 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 		const template = SPKMOD_ANNIVERSARY_I18N[lang] || SPKMOD_ANNIVERSARY_I18N.en;
 		const alertText = template.replace("{0}", minutes);
 
-		appendColoredChatLine(-1337, "Anniversary", alertText, "#ffd700");
+		appendColoredChatLine(-1337, "ANNOUNCEMENT", alertText, "#ffd700");
 		if (typeof playPingSound === "function") playPingSound();
 		return;
 	}
@@ -27378,7 +27378,7 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 			if (typeof window.spkmodSetCinemaAnniversaryLock === "function") {
 				window.spkmodSetCinemaAnniversaryLock(false);
 			}
-			appendColoredChatLine(-1337, "Anniversary", "🎬 [Anniversary] Theater broadcast resumed.", "#70e28f");
+			appendColoredChatLine(-1337, "ANNOUNCEMENT", "🎬 [EVENT] Theater broadcast resumed.", "#70e28f");
 			return;
 		}
 
@@ -27412,7 +27412,7 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 			window.spkmodSetCinemaAnniversaryLock(true, customVideoId);
 		}
 		spkmodSetNightMode(true);
-		appendColoredChatLine(-1337, "Anniversary", "🎬 [Anniversary] Special broadcast started!", "#ffc94a");
+		appendColoredChatLine(-1337, "ANNOUNCEMENT", "🎬 [EVENT] Special broadcast started!", "#ffc94a");
 		return;
 	}
 
@@ -27424,7 +27424,7 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 		if (typeof window.spkmodSetCinemaAnniversaryLock === "function") {
 			window.spkmodSetCinemaAnniversaryLock(false);
 		}
-		appendColoredChatLine(-1337, "Anniversary", "🎬 [Anniversary] Theater broadcast resumed.", "#70e28f");
+		appendColoredChatLine(-1337, "ANNOUNCEMENT", "🎬 [EVENT] Theater broadcast resumed.", "#70e28f");
 		return;
 	}
 
@@ -27438,7 +27438,7 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 			if (typeof window.spkmodStopCinemaFireworks === "function") {
 				window.spkmodStopCinemaFireworks();
 			}
-			appendColoredChatLine(-1337, "Anniversary", "🎆 [Anniversary] Fireworks show stopped.", "#ff8888");
+			appendColoredChatLine(-1337, "ANNOUNCEMENT", "🎆 [EVENT] Fireworks show stopped.", "#ff8888");
 			return;
 		}
 
@@ -27450,7 +27450,7 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 			window.spkmodLaunchCinemaFireworks(true, showIndex);
 		}
 		spkmodSetNightMode(true);
-		appendColoredChatLine(-1337, "Anniversary", `🎆 [Anniversary] Fireworks show${isFire2 ? " #2" : ""} started!`, "#ff70d9");
+		appendColoredChatLine(-1337, "ANNOUNCEMENT", `🎆 [EVENT] Fireworks show${isFire2 ? " #2" : ""} started!`, "#ff70d9");
 		return;
 	}
 
@@ -27462,7 +27462,7 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 		if (typeof window.spkmodStopCinemaFireworks === "function") {
 			window.spkmodStopCinemaFireworks();
 		}
-		appendColoredChatLine(-1337, "Anniversary", "🎆 [Anniversary] Fireworks show stopped.", "#ff8888");
+		appendColoredChatLine(-1337, "ANNOUNCEMENT", "🎆 [EVENT] Fireworks show stopped.", "#ff8888");
 		return;
 	}
 
@@ -27495,8 +27495,8 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 		}
 		appendColoredChatLine(
 			-1337,
-			"Anniversary",
-			desiredState ? "🎬 [Anniversary] Cinema screen added." : "🎬 [Anniversary] Cinema screen removed.",
+			"ANNOUNCEMENT",
+			desiredState ? "🎬 [EVENT] Cinema screen added." : "🎬 [EVENT] Cinema screen removed.",
 			desiredState ? "#70e28f" : "#ff8888"
 		);
 		return;
