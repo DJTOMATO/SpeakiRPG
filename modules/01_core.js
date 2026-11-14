@@ -333,7 +333,7 @@ var lunCurrentSpeedMps = 0;
 
 // In-Game 3D Cinema / Movie Player Default Configuration
 var SPKMOD_CINEMA_DEFAULT_CONFIG = {
-	enabled: false,
+	enabled: true,
 	muted: false,
 	volume: 80,
 	pos: { x: 75.0, y: 4.2, z: 32.5 },
@@ -346,12 +346,8 @@ var SPKMOD_CINEMA_DEFAULT_CONFIG = {
 window.spkmodCinemaConfig = Object.assign({}, SPKMOD_CINEMA_DEFAULT_CONFIG);
 if (typeof window !== "undefined" && window.localStorage) {
 	try {
-		const en = localStorage.getItem("spkmod-cinema-enabled");
-		if (en !== null) {
-			window.spkmodCinemaConfig.enabled = en === "true";
-		} else {
-			window.spkmodCinemaConfig.enabled = false;
-		}
+		window.spkmodCinemaConfig.enabled = true;
+		localStorage.setItem("spkmod-cinema-enabled", "true");
 		const mutedStr = localStorage.getItem("spkmod-cinema-muted");
 		if (mutedStr !== null) window.spkmodCinemaConfig.muted = mutedStr === "true";
 		const vol = localStorage.getItem("spkmod-cinema-volume");

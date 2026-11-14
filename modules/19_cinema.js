@@ -3,7 +3,7 @@
 // ============================================================================
 
 var SPKMOD_CINEMA_DEFAULT_CONFIG = window.SPKMOD_CINEMA_DEFAULT_CONFIG || {
-	enabled: false,
+	enabled: true,
 	muted: false,
 	volume: 80,
 	pos: { x: 75.0, y: 4.2, z: 32.5 },
@@ -17,12 +17,8 @@ var spkmodCinemaConfig = window.spkmodCinemaConfig || Object.assign({}, SPKMOD_C
 window.spkmodCinemaConfig = spkmodCinemaConfig;
 if (window.localStorage) {
 	try {
-		const en = localStorage.getItem("spkmod-cinema-enabled");
-		if (en !== null) {
-			spkmodCinemaConfig.enabled = en === "true";
-		} else {
-			spkmodCinemaConfig.enabled = false;
-		}
+		spkmodCinemaConfig.enabled = true;
+		localStorage.setItem("spkmod-cinema-enabled", "true");
 		const mutedStr = localStorage.getItem("spkmod-cinema-muted");
 		if (mutedStr !== null) spkmodCinemaConfig.muted = mutedStr === "true";
 		const vol = localStorage.getItem("spkmod-cinema-volume");
@@ -1191,10 +1187,10 @@ function spkmodIsPlayerInCinemaSeats(playerPos) {
 	const curZone = spkmodGetExactCinemaZone();
 	if (curZone !== 1) return false;
 
-	// Seats bounding box with ~0.35m cushion around amphitheater seat coordinates:
-	// Points: (83.72, 42.44), (89.28, 42.27), (89.28, 24.83), (83.66, 24.31)
-	return playerPos.x >= 83.3 && playerPos.x <= 89.6 &&
-	       playerPos.z >= 24.0 && playerPos.z <= 42.8;
+	// Seats bounding box expanded by 10m on each side around amphitheater seat coordinates:
+	// Base points: (83.72, 42.44), (89.28, 42.27), (89.28, 24.83), (83.66, 24.31)
+	return playerPos.x >= 73.3 && playerPos.x <= 99.6 &&
+	       playerPos.z >= 14.0 && playerPos.z <= 52.8;
 }
 window.spkmodIsPlayerInCinemaSeats = spkmodIsPlayerInCinemaSeats;
 

@@ -2656,7 +2656,7 @@ document.body.appendChild(
 					}),
 					lunPanelElements.cinemaToggleInput = buildElement("input", {
 						type: "checkbox",
-						checked: (window.spkmodCinemaConfig ? window.spkmodCinemaConfig.enabled : false),
+						checked: (window.spkmodCinemaConfig ? window.spkmodCinemaConfig.enabled : true),
 						title: "Toggle 3D screen in Zone 1 Festival Plaza",
 						onchange: e => {
 							if (window.spkmodCinemaConfig) {
