@@ -895,7 +895,7 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 		const template = SPKMOD_ANNIVERSARY_I18N[lang] || SPKMOD_ANNIVERSARY_I18N.en;
 		const alertText = template.replace("{0}", minutes);
 
-		appendColoredChatLine(-1337, "ANNOUNCEMENT", alertText, "#ffd700");
+		appendColoredChatLine(-1337, "", alertText, "#ffd700");
 		if (typeof playPingSound === "function") playPingSound();
 		return;
 	}
