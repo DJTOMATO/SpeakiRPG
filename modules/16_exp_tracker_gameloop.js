@@ -916,8 +916,16 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 
 		let customVideoId = null;
 		let target = null;
-		const idFromArg1 = spkmodExtractYoutubeId(rawSubCmd);
-		const idFromArg2 = spkmodExtractYoutubeId(rawExtraArgs[0]);
+		const extractSource = (input) => {
+			const ytId = spkmodExtractYoutubeId(input);
+			if (ytId) return ytId;
+			if (typeof window.spkmodIsDirectVideoUrl === "function" && window.spkmodIsDirectVideoUrl(input)) {
+				return String(input).trim();
+			}
+			return null;
+		};
+		const idFromArg1 = extractSource(rawSubCmd);
+		const idFromArg2 = extractSource(rawExtraArgs[0]);
 
 		if (rawSubCmd && rawExtraArgs[0]) {
 			// !video <player> <url> (or swapped !video <url> <player>)

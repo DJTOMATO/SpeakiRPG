@@ -64,6 +64,8 @@ var spkmodCinemaScreenObject = null;
 var spkmodCinemaFrameMesh = null;
 var spkmodCinemaContainer = null;
 var spkmodCinemaIframe = null;
+var spkmodCinemaVideoEl = null;
+var spkmodCinemaIsDirectVideo = false;
 var spkmodCinemaRenderLoopId = null;
 var spkmodCinemaOcclusionRenderer = null;
 var spkmodCinemaOcclusionScene = null;
@@ -714,7 +716,145 @@ function spkmodGetCinemaSyncedTrack() {
 }
 
 var spkmodCinemaYtReady = false;
+function spkmodIsDirectVideoUrl(input) {
+	if (!input) return false;
+	const trimmed = String(input).trim();
+	if (!/^https?:\/\//i.test(trimmed)) return false;
+	if (/(?:youtube\.com|youtu\.be)/i.test(trimmed)) return false;
+	return true;
+}
+window.spkmodIsDirectVideoUrl = spkmodIsDirectVideoUrl;
+
+function spkmodHasActiveCinemaMedia() {
+	if (spkmodCinemaIsDirectVideo) {
+		return !!(spkmodCinemaVideoEl && spkmodCinemaVideoEl.getAttribute('src'));
+	}
+	return !!(spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src !== 'about:blank');
+}
+
+function spkmodUnloadCinemaMedia() {
+	try {
+		spkmodSendYtCommand('pauseVideo');
+		spkmodSendYtCommand('stopVideo');
+		spkmodSendYtCommand('mute');
+	} catch (_) {}
+	if (spkmodCinemaIframe) {
+		spkmodCinemaIframe.src = 'about:blank';
+	}
+	if (spkmodCinemaVideoEl) {
+		spkmodCinemaVideoEl.pause();
+		spkmodCinemaVideoEl.removeAttribute('src');
+		spkmodCinemaVideoEl.load();
+	}
+	spkmodCinemaYtReady = false;
+	window.spkmodCinemaLastPlayerState = -1;
+}
+
+function spkmodSetCinemaPlayerMode(useDirectVideo) {
+	spkmodCinemaIsDirectVideo = !!useDirectVideo;
+	if (spkmodCinemaIsDirectVideo) {
+		if (spkmodCinemaIframe) {
+			try {
+				if (spkmodCinemaIframe.contentWindow) {
+					spkmodCinemaIframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+					spkmodCinemaIframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*');
+				}
+			} catch (_) {}
+			spkmodCinemaIframe.src = 'about:blank';
+			spkmodCinemaIframe.style.display = 'none';
+			spkmodCinemaYtReady = false;
+		}
+		if (spkmodCinemaVideoEl) {
+			spkmodCinemaVideoEl.style.display = 'block';
+		}
+	} else {
+		if (spkmodCinemaVideoEl) {
+			spkmodCinemaVideoEl.pause();
+			spkmodCinemaVideoEl.removeAttribute('src');
+			spkmodCinemaVideoEl.load();
+			spkmodCinemaVideoEl.style.display = 'none';
+		}
+		if (spkmodCinemaIframe) {
+			spkmodCinemaIframe.style.display = 'block';
+		}
+	}
+}
+
+function spkmodPlayDirectVideo(url, startSec = 0, loop = false) {
+	if (!spkmodCinemaVideoEl || !url) return;
+	spkmodSetCinemaPlayerMode(true);
+	const isMuted = !!window.spkmodCinemaConfig?.muted;
+	const vol = Math.max(0, Math.min(1, (window.spkmodCinemaConfig?.volume ?? 80) / 100));
+	spkmodCinemaVideoEl.loop = !!loop;
+	spkmodCinemaVideoEl.muted = isMuted || vol === 0;
+	spkmodCinemaVideoEl.volume = vol;
+
+	const currentSrc = spkmodCinemaVideoEl.getAttribute('src');
+	if (currentSrc !== url) {
+		spkmodCinemaVideoEl.src = url;
+	}
+	if (typeof startSec === 'number' && startSec > 0 && isFinite(startSec)) {
+		try { spkmodCinemaVideoEl.currentTime = startSec; } catch (_) {}
+	}
+	spkmodCinemaVideoEl.play().catch(() => {
+		// Fallback to muted autoplay if browser blocks unmuted autoplay before interaction
+		if (!spkmodCinemaVideoEl.muted) {
+			spkmodCinemaVideoEl.muted = true;
+			spkmodCinemaVideoEl.play().catch(() => {});
+		}
+	});
+}
+
 function spkmodSendYtCommand(func, args = []) {
+	if (spkmodCinemaIsDirectVideo && spkmodCinemaVideoEl) {
+		switch (func) {
+			case 'playVideo':
+				if (spkmodCinemaInZone) {
+					spkmodCinemaVideoEl.play().catch(() => {
+						if (!spkmodCinemaVideoEl.muted) {
+							spkmodCinemaVideoEl.muted = true;
+							spkmodCinemaVideoEl.play().catch(() => {});
+						}
+					});
+				}
+				break;
+			case 'pauseVideo':
+				spkmodCinemaVideoEl.pause();
+				break;
+			case 'stopVideo':
+				spkmodCinemaVideoEl.pause();
+				try { spkmodCinemaVideoEl.currentTime = 0; } catch (_) {}
+				break;
+			case 'mute':
+				spkmodCinemaVideoEl.muted = true;
+				break;
+			case 'unMute':
+				spkmodCinemaVideoEl.muted = false;
+				break;
+			case 'setVolume': {
+				const v = Math.max(0, Math.min(1, (Number(args[0]) || 0) / 100));
+				spkmodCinemaVideoEl.volume = v;
+				if (v === 0) spkmodCinemaVideoEl.muted = true;
+				break;
+			}
+			case 'seekTo':
+				if (typeof args[0] === 'number' && isFinite(args[0])) {
+					try { spkmodCinemaVideoEl.currentTime = Math.max(0, args[0]); } catch (_) {}
+				}
+				break;
+			case 'getCurrentTime':
+				if (isFinite(spkmodCinemaVideoEl.currentTime)) {
+					window.spkmodCinemaCurrentVideoTimeSec = spkmodCinemaVideoEl.currentTime;
+				}
+				break;
+			case 'getDuration':
+				if (isFinite(spkmodCinemaVideoEl.duration) && spkmodCinemaVideoEl.duration > 0) {
+					window.spkmodCinemaVideoDurationSec = spkmodCinemaVideoEl.duration;
+				}
+				break;
+		}
+		return;
+	}
 	if (!spkmodCinemaIframe || !spkmodCinemaIframe.contentWindow) return;
 	// Do not send playback queries before YouTube iframe API has initialized,
 	// but ALWAYS allow commands that silence, stop, or pause the player!
@@ -1089,6 +1229,49 @@ function spkmodInitCinema() {
 		spkmodCinemaIframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
 		screenDiv.appendChild(spkmodCinemaIframe);
 
+		spkmodCinemaVideoEl = document.createElement('video');
+		spkmodCinemaVideoEl.id = 'spkmod-cinema-video';
+		spkmodCinemaVideoEl.style.cssText = 'width: 100%; height: 100%; background: #000; object-fit: contain; display: none; pointer-events: auto;';
+		spkmodCinemaVideoEl.playsInline = true;
+		spkmodCinemaVideoEl.controls = true;
+		spkmodCinemaVideoEl.preload = 'auto';
+		spkmodCinemaVideoEl.addEventListener('loadedmetadata', () => {
+			if (isFinite(spkmodCinemaVideoEl.duration) && spkmodCinemaVideoEl.duration > 0) {
+				window.spkmodCinemaVideoDurationSec = spkmodCinemaVideoEl.duration;
+			}
+			if (typeof spkmodUpdateCinemaTimeDisplay === 'function') spkmodUpdateCinemaTimeDisplay();
+		});
+		spkmodCinemaVideoEl.addEventListener('timeupdate', () => {
+			if (!spkmodCinemaIsDirectVideo || !spkmodCinemaInZone) return;
+			if (isFinite(spkmodCinemaVideoEl.currentTime)) {
+				window.spkmodCinemaCurrentVideoTimeSec = spkmodCinemaVideoEl.currentTime;
+				spkmodCinemaCurrentVideoStartTimeMs = Date.now() - (spkmodCinemaVideoEl.currentTime * 1000);
+			}
+		});
+		spkmodCinemaVideoEl.addEventListener('play', () => {
+			if (!spkmodCinemaInZone) {
+				spkmodCinemaVideoEl.pause();
+				spkmodCinemaVideoEl.muted = true;
+				return;
+			}
+			window.spkmodCinemaLastPlayerState = 1;
+		});
+		spkmodCinemaVideoEl.addEventListener('pause', () => {
+			window.spkmodCinemaLastPlayerState = 2;
+		});
+		spkmodCinemaVideoEl.addEventListener('ended', () => {
+			window.spkmodCinemaLastPlayerState = 0;
+			if (!spkmodCinemaInZone) return;
+			if (window.spkmodCinemaAnniversaryLocked) {
+				try { spkmodCinemaVideoEl.currentTime = 0; } catch (_) {}
+				spkmodCinemaVideoEl.play().catch(() => {});
+				spkmodCinemaCurrentVideoStartTimeMs = Date.now();
+			} else if (typeof spkmodAdvanceCinemaTrack === 'function') {
+				spkmodAdvanceCinemaTrack('ended_event');
+			}
+		});
+		screenDiv.appendChild(spkmodCinemaVideoEl);
+
 		spkmodCinemaScreenObject = new classes.CSS3DObject(screenDiv);
 		spkmodCinemaScreenObject.scale.set(0.01, 0.01, 0.01);
 		spkmodCinemaScene.add(spkmodCinemaScreenObject);
@@ -1112,7 +1295,11 @@ function spkmodSyncCinemaPlayback(force = false) {
 	spkmodCinemaManualTrackIndex = null;
 	spkmodCinemaIsPaused = false;
 
-	const isSameVideo = (spkmodCinemaCurrentVideo === videoId && spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src.includes(videoId));
+	const isDirect = spkmodIsDirectVideoUrl(track.url || track.id);
+	const directUrl = isDirect ? (spkmodIsDirectVideoUrl(track.id) ? track.id : track.url) : null;
+	const isSameVideo = isDirect
+		? (spkmodCinemaIsDirectVideo && spkmodCinemaCurrentVideo === videoId && spkmodCinemaVideoEl && spkmodCinemaVideoEl.getAttribute('src') === directUrl)
+		: (!spkmodCinemaIsDirectVideo && spkmodCinemaCurrentVideo === videoId && spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src.includes(videoId));
 
 	spkmodCinemaCurrentVideo = videoId;
 	spkmodCinemaCurrentVideoStartTimeMs = Date.now() - (startSec * 1000);
@@ -1132,12 +1319,16 @@ function spkmodSyncCinemaPlayback(force = false) {
 	}
 
 	if (isSameVideo) {
-		// Video is already loaded in iframe: seamlessly seek to sync time without iframe flash or reloading
+		// Video is already loaded: seamlessly seek to sync time without reloading
 		const effectiveStart = (track.isStream || track.isLiveStream) ? 0 : startSec;
 		spkmodSendYtCommand('seekTo', [effectiveStart, true]);
 		spkmodSendYtCommand('playVideo');
+	} else if (isDirect && directUrl) {
+		const effectiveStart = (track.isStream || track.isLiveStream) ? 0 : startSec;
+		spkmodPlayDirectVideo(directUrl, effectiveStart, spkmodCinemaRepeatMode === 'one');
 	} else {
 		// New video or initial load
+		spkmodSetCinemaPlayerMode(false);
 		if (spkmodCinemaIframe) {
 			const isMuted = !!window.spkmodCinemaConfig?.muted;
 			const loopParam = (spkmodCinemaRepeatMode === 'one') ? `&loop=1&playlist=${videoId}` : '';
@@ -1370,7 +1561,12 @@ function spkmodPlayCinemaTrackIndex(index, startSec = 0, isManual = true) {
 			return;
 		}
 
-		if (spkmodCinemaIframe) {
+		if (spkmodIsDirectVideoUrl(track.url || track.id)) {
+			const directUrl = spkmodIsDirectVideoUrl(track.id) ? track.id : track.url;
+			const effectiveStart = (track.isStream || track.isLiveStream || track.duration === 0) ? 0 : startSec;
+			spkmodPlayDirectVideo(directUrl, effectiveStart, spkmodCinemaRepeatMode === 'one');
+		} else if (spkmodCinemaIframe) {
+			spkmodSetCinemaPlayerMode(false);
 			const isMuted = !!window.spkmodCinemaConfig?.muted;
 			const loopParam = (spkmodCinemaRepeatMode === 'one') ? `&loop=1&playlist=${track.id}` : '';
 			const effectiveStart = (track.isStream || track.isLiveStream || track.duration === 0) ? 0 : startSec;
@@ -2519,15 +2715,8 @@ function spkmodCinemaTick() {
 				spkmodCinemaModalOpen = false;
 			}
 		}
-		if (spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src !== 'about:blank') {
-			try {
-				spkmodSendYtCommand('pauseVideo');
-				spkmodSendYtCommand('stopVideo');
-				spkmodSendYtCommand('mute');
-			} catch (_) {}
-			spkmodCinemaIframe.src = 'about:blank';
-			spkmodCinemaYtReady = false;
-			window.spkmodCinemaLastPlayerState = -1;
+		if (spkmodHasActiveCinemaMedia()) {
+			spkmodUnloadCinemaMedia();
 		}
 		return;
 	}
@@ -2584,17 +2773,10 @@ function spkmodCinemaTick() {
 		const isOutsideZone1OrMinigame = curZone !== 1 || spkmodIsInMinigame();
 		const isLongAway = spkmodCinemaLeftZoneTimeMs > 0 && (Date.now() - spkmodCinemaLeftZoneTimeMs >= 60000);
 
-		// If player transitioned to another map/minigame or has been away for > 60s, completely unload the iframe
-		if ((isOutsideZone1OrMinigame || isLongAway) && spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src !== 'about:blank') {
-			try {
-				spkmodSendYtCommand('pauseVideo');
-				spkmodSendYtCommand('stopVideo');
-				spkmodSendYtCommand('mute');
-			} catch (_) {}
-			spkmodCinemaIframe.src = 'about:blank';
-			spkmodCinemaYtReady = false;
-			window.spkmodCinemaLastPlayerState = -1;
-		} else if (spkmodCinemaIframe && (window.spkmodCinemaLastPlayerState === 1 || window.spkmodCinemaLastPlayerState === 3)) {
+		// If player transitioned to another map/minigame or has been away for > 60s, completely unload the player
+		if ((isOutsideZone1OrMinigame || isLongAway) && spkmodHasActiveCinemaMedia()) {
+			spkmodUnloadCinemaMedia();
+		} else if ((spkmodCinemaIframe || spkmodCinemaVideoEl) && (window.spkmodCinemaLastPlayerState === 1 || window.spkmodCinemaLastPlayerState === 3)) {
 			// Enforce pause & mute if still playing or buffering in background
 			spkmodSendYtCommand('pauseVideo');
 			spkmodSendYtCommand('mute');
@@ -2625,7 +2807,7 @@ function spkmodCinemaTick() {
 		const wasBrieflyAway = wasInSameMap && spkmodCinemaLeftZoneTimeMs > 0 && (Date.now() - spkmodCinemaLeftZoneTimeMs < 60000);
 		if (window.spkmodCinemaAnniversaryLocked) {
 			window.spkmodSetCinemaAnniversaryLock(true);
-		} else if (spkmodCinemaCurrentVideo && spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src !== 'about:blank' && wasBrieflyAway) {
+		} else if (spkmodCinemaCurrentVideo && spkmodHasActiveCinemaMedia() && wasBrieflyAway) {
 			spkmodSendYtCommand('playVideo');
 		} else {
 			spkmodSyncCinemaPlayback(true);
@@ -2657,13 +2839,13 @@ function spkmodCinemaTick() {
 	const now = Date.now();
 	if (now - spkmodCinemaLastSyncCheckMs > 1000) {
 		spkmodCinemaLastSyncCheckMs = now;
-		if (spkmodCinemaIframe && spkmodCinemaIframe.src && spkmodCinemaIframe.src !== 'about:blank') {
+		if (spkmodHasActiveCinemaMedia()) {
 			spkmodSendYtCommand('getCurrentTime');
 		}
 
 		if (window.spkmodCinemaAnniversaryLocked) {
 			// In lockdown mode: if anniversary video ends or unloads, keep it looping
-			if (!spkmodCinemaCurrentVideo || !spkmodCinemaIframe || !spkmodCinemaIframe.src || spkmodCinemaIframe.src === 'about:blank') {
+			if (!spkmodCinemaCurrentVideo || !spkmodHasActiveCinemaMedia()) {
 				window.spkmodSetCinemaAnniversaryLock(true);
 			} else if (window.spkmodCinemaLastPlayerState === 0) {
 				spkmodSendYtCommand('seekTo', [0, true]);
@@ -2672,7 +2854,7 @@ function spkmodCinemaTick() {
 			}
 		} else if (spkmodCinemaManualTrackIndex === null) {
 			// SYNC MODE: Auto-tune when schedule transitions to next track
-			if (!spkmodCinemaCurrentVideo || !spkmodCinemaIframe || !spkmodCinemaIframe.src || spkmodCinemaIframe.src === 'about:blank') {
+			if (!spkmodCinemaCurrentVideo || !spkmodHasActiveCinemaMedia()) {
 				spkmodSyncCinemaPlayback(true);
 			} else {
 				const synced = spkmodGetCinemaSyncedTrack();
@@ -3276,8 +3458,9 @@ window.spkmodCinemaAnniversaryVideo = {
 window.spkmodSetCinemaAnniversaryLock = function(locked, customVideoId) {
 	window.spkmodCinemaAnniversaryLocked = !!locked;
 	if (customVideoId) {
+		const isDirect = spkmodIsDirectVideoUrl(customVideoId);
 		window.spkmodCinemaAnniversaryVideo.id = customVideoId;
-		window.spkmodCinemaAnniversaryVideo.url = `https://www.youtube.com/watch?v=${customVideoId}`;
+		window.spkmodCinemaAnniversaryVideo.url = isDirect ? customVideoId : `https://www.youtube.com/watch?v=${customVideoId}`;
 	}
 	const videoId = customVideoId || window.spkmodCinemaAnniversaryVideo.id;
 
@@ -3299,17 +3482,23 @@ window.spkmodSetCinemaAnniversaryLock = function(locked, customVideoId) {
 		window.spkmodCinemaCurrentVideoTimeSec = 0;
 		window.spkmodCurrentCinemaTitle = window.spkmodCinemaAnniversaryVideo.title;
 
-		if (spkmodCinemaInZone && spkmodCinemaIframe) {
-			const isMuted = !!window.spkmodCinemaConfig?.muted;
-			const ytUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&start=0&loop=1&playlist=${videoId}&origin=${encodeURIComponent(location.origin)}`;
-			spkmodCinemaYtReady = false;
-			spkmodCinemaIframe.src = ytUrl;
-			spkmodCinemaIframe.onload = () => {
-				try { spkmodCinemaIframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*'); } catch (_) {}
-			};
+		if (spkmodCinemaInZone) {
+			if (spkmodIsDirectVideoUrl(videoId)) {
+				spkmodPlayDirectVideo(videoId, 0, true);
+			} else if (spkmodCinemaIframe) {
+				spkmodSetCinemaPlayerMode(false);
+				const isMuted = !!window.spkmodCinemaConfig?.muted;
+				const ytUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&start=0&loop=1&playlist=${videoId}&origin=${encodeURIComponent(location.origin)}`;
+				spkmodCinemaYtReady = false;
+				spkmodCinemaIframe.src = ytUrl;
+				spkmodCinemaIframe.onload = () => {
+					try { spkmodCinemaIframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*'); } catch (_) {}
+				};
+			}
 		}
 	} else {
 		// Unlock and resume regular schedule
+		spkmodSetCinemaPlayerMode(false);
 		window.spkmodCinemaSyncSchedule();
 	}
 
