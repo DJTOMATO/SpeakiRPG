@@ -14042,7 +14042,7 @@ setTimeout(() => window.checkDecalogueToS(), 500);
 
 
 window.showMovieNews = function(forceLang) {
-    if (localStorage.getItem('spkmod-movie-seen-v1') === 'true') return;
+    if (localStorage.getItem('spkmod-movie-seen-v2') === 'true') return;
 
     const existing = document.getElementById('spkmod-movie-news');
     if (existing) existing.remove();
@@ -14111,7 +14111,7 @@ window.showMovieNews = function(forceLang) {
     iframeContainer.style.cssText = 'position: relative; width: 100%; padding-bottom: 56.25%; height: 0; border-radius: 8px; overflow: hidden; border: 1px solid #334155;';
     
     const iframe = document.createElement('iframe');
-    iframe.src = 'https://www.youtube.com/embed/yaIEanyk6WI?autoplay=0';
+    iframe.src = 'https://www.youtube.com/embed/IzSeGYj5AJ8?autoplay=0';
     iframe.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;';
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
     iframe.allowFullscreen = true;
@@ -14126,7 +14126,7 @@ window.showMovieNews = function(forceLang) {
     closeBtn.onmouseleave = () => closeBtn.style.background = '#3b82f6';
     
     closeBtn.addEventListener('click', () => {
-        localStorage.setItem('spkmod-movie-seen-v1', 'true');
+        localStorage.setItem('spkmod-movie-seen-v2', 'true');
         overlay.remove();
     });
 
