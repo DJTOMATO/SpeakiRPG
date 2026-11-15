@@ -30798,7 +30798,8 @@ function spkmodParseMoviesTxt(text) {
 				baseDuration: baseDur,
 				url: url,
 				isStream: isStream,
-				isLiveStream: isStream
+				isLiveStream: isStream,
+				excludeFromLive: isStream || id === "wn069Hag470"
 			};
 			list.push(item);
 
@@ -30848,12 +30849,12 @@ window.spkmodGetCinemaText = getCinemaText;
 
 async function spkmodLoadMoviesPlaylist() {
 	const defaultList = [
-		{ id: "4yJpxyU8VtI", title: "oage", author: "oagemono", duration: 0, baseDuration: 600, isStream: true, isLiveStream: true, url: "https://www.youtube.com/watch?v=4yJpxyU8VtI" },
+		{ id: "4yJpxyU8VtI", title: "oage", author: "oagemono", duration: 0, baseDuration: 600, isStream: true, isLiveStream: true, excludeFromLive: true, url: "https://www.youtube.com/watch?v=4yJpxyU8VtI" },
 		{ id: "yaIEanyk6WI", title: "Speaki MMO MV-Don't bully SPEAKI", author: "", duration: 496, baseDuration: 496 },
 		{ id: "pu_ULvS0l2k", title: "ｽﾋﾟｷ × バニラ求人 MMOスピキver. スピキMMORPG Speaki 스피키 키우기", author: "", duration: 64, baseDuration: 64 },
 		{ id: "ifMMrYSEncM", title: "I interviewed the ONLY Max-Level Speaki in the Game!", author: "Speaki MMO", duration: 735, baseDuration: 735 },
 		{ id: "nC1WFWF3G8o", title: "Speaki MMO MV – The Price of Peace", author: "", duration: 98, baseDuration: 98 },
-		{ id: "wn069Hag470", title: "speaki cuayo for an hour!", author: "", duration: 3610, baseDuration: 3610 }
+		{ id: "wn069Hag470", title: "speaki cuayo for an hour!", author: "", duration: 3610, baseDuration: 3610, excludeFromLive: true }
 	];
 
 	// Load movies.txt directly from GitHub (never fetch relative URL on game server)
@@ -31025,13 +31026,22 @@ function spkmodSwitchCinemaTab(tab) {
 }
 window.spkmodSwitchCinemaTab = spkmodSwitchCinemaTab;
 
+function spkmodIsMovieExcludedFromLive(track) {
+	if (!track) return false;
+	return !!(track.excludeFromLive || track.id === "wn069Hag470" || track.isStream || track.isLiveStream || track.duration === 0);
+}
+
 function spkmodGetCinemaSyncedTrack() {
 	const currentList = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
 		? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
 		: (spkmodCinemaLoadedPlaylist || []);
 	if (!currentList || currentList.length === 0) return null;
 
-	const tracks = currentList;
+	let tracks = currentList;
+	if (spkmodCinemaActiveTab === 'movies') {
+		const eligible = currentList.filter(t => !spkmodIsMovieExcludedFromLive(t));
+		if (eligible.length > 0) tracks = eligible;
+	}
 
 	// Scheduled programming with accurate durations to keep timeline continuous and synchronized
 	const getDur = (t) => {
@@ -31042,7 +31052,7 @@ function spkmodGetCinemaSyncedTrack() {
 
 	const totalDuration = tracks.reduce((acc, t) => acc + getDur(t), 0);
 	if (totalDuration <= 0) {
-		return { track: tracks[0], startSec: 0, trackIndex: 0, totalTracks: tracks.length };
+		return { track: tracks[0], startSec: 0, trackIndex: currentList.indexOf(tracks[0]), totalTracks: currentList.length };
 	}
 
 	// Spread videos sequentially along universal UTC timezone on an infinite loop
@@ -31059,28 +31069,28 @@ function spkmodGetCinemaSyncedTrack() {
 
 			// If current track is marked offline or ended, gracefully play next track without shifting the grid
 			if (track.isOffline || track.isEnded) {
-				const nextI = (i + 1) % tracks.length;
-				return { track: tracks[nextI], startSec: 0, trackIndex: nextI, totalTracks: tracks.length };
+				const nextTrack = tracks[(i + 1) % tracks.length];
+				return { track: nextTrack, startSec: 0, trackIndex: currentList.indexOf(nextTrack), totalTracks: currentList.length };
 			}
 
 			// Livestreams are always watched live from current edge (startSec 0)
 			if (track.isStream || track.isLiveStream) {
-				return { track, startSec: 0, trackIndex: i, totalTracks: tracks.length };
+				return { track, startSec: 0, trackIndex: currentList.indexOf(track), totalTracks: currentList.length };
 			}
 
 			// Video duration check: if actual video is shorter than its broadcast slot, tune to next track
 			const actualDur = (track.duration && track.duration > 0) ? track.duration : slotDur;
 			if (actualDur > 0 && startSec >= actualDur) {
-				const nextI = (i + 1) % tracks.length;
-				return { track: tracks[nextI], startSec: 0, trackIndex: nextI, totalTracks: tracks.length };
+				const nextTrack = tracks[(i + 1) % tracks.length];
+				return { track: nextTrack, startSec: 0, trackIndex: currentList.indexOf(nextTrack), totalTracks: currentList.length };
 			}
 
-			return { track, startSec, trackIndex: i, totalTracks: tracks.length };
+			return { track, startSec, trackIndex: currentList.indexOf(track), totalTracks: currentList.length };
 		}
 		accum += slotDur;
 	}
 
-	return { track: tracks[0], startSec: 0, trackIndex: 0, totalTracks: tracks.length };
+	return { track: tracks[0], startSec: 0, trackIndex: currentList.indexOf(tracks[0]), totalTracks: currentList.length };
 }
 
 var spkmodCinemaYtReady = false;
@@ -32005,7 +32015,16 @@ function spkmodAdvanceCinemaTrack(reason = "ended") {
 		console.log(`[SpeakiMod+] Synced cinema track ended (${reason}). Auto-tuning to broadcast schedule...`);
 		const synced = spkmodGetCinemaSyncedTrack();
 		if (synced && synced.track.id === curTrack?.id && (reason === "ended_event" || reason === "at_end_time")) {
-			const nextIdx = (synced.trackIndex + 1) % list.length;
+			let nextIdx = (synced.trackIndex + 1) % list.length;
+			if (spkmodCinemaActiveTab === 'movies') {
+				for (let step = 1; step <= list.length; step++) {
+					const candidateIdx = (synced.trackIndex + step) % list.length;
+					if (!spkmodIsMovieExcludedFromLive(list[candidateIdx])) {
+						nextIdx = candidateIdx;
+						break;
+					}
+				}
+			}
 			spkmodPlayCinemaTrackIndex(nextIdx, 0, false);
 		} else {
 			spkmodSyncCinemaPlayback(false);
