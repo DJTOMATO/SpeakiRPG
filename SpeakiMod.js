@@ -14042,7 +14042,7 @@ setTimeout(() => window.checkDecalogueToS(), 500);
 
 
 window.showMovieNews = function(forceLang) {
-    if (localStorage.getItem('spkmod-movie-seen-v3') === 'true') return;
+    if (localStorage.getItem('spkmod-movie-seen-v4') === 'true') return;
 
     const existing = document.getElementById('spkmod-movie-news');
     if (existing) existing.remove();
@@ -14126,7 +14126,7 @@ window.showMovieNews = function(forceLang) {
     closeBtn.onmouseleave = () => closeBtn.style.background = '#3b82f6';
     
     closeBtn.addEventListener('click', () => {
-        localStorage.setItem('spkmod-movie-seen-v3', 'true');
+        localStorage.setItem('spkmod-movie-seen-v4', 'true');
         overlay.remove();
     });
 
