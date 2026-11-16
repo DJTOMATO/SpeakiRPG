@@ -655,6 +655,10 @@ function spkmodRestoreLightsAndFog() {
 		obj.intensity = s.intensity;
 		obj.castShadow = s.castShadow;
 		if (obj.position && s.pos) obj.position.copy(s.pos);
+		if (obj.isDirectionalLight && obj.target && obj.target.position && s.targetPos) {
+			obj.target.position.copy(s.targetPos);
+			obj.target.updateMatrixWorld();
+		}
 	}
 	if (rt.customDirLight && rt.scene) {
 		rt.scene.remove(rt.customDirLight.target);
@@ -690,6 +694,7 @@ function spkmodSyncSceneLightingAndShadows(cfg) {
 					intensity: obj.intensity,
 					castShadow: obj.castShadow,
 					pos: obj.position ? obj.position.clone() : null,
+					targetPos: (obj.isDirectionalLight && obj.target && obj.target.position) ? obj.target.position.clone() : null,
 				});
 			}
 			if (obj.isDirectionalLight && !dirLight) dirLight = obj;
@@ -849,12 +854,27 @@ function spkmodEnableShaderHook() {
 
 				spkmodResizeShaderTargets();
 
-				if (rt.dirLight && rt.activeCfg && rt.activeCfg.sunOffset) {
+				if (rt.dirLight && rt.activeCfg) {
 					const targetPos = gs.playerContainer ? gs.playerContainer.position : null;
 					const tx = targetPos ? targetPos.x : 0;
 					const ty = targetPos ? targetPos.y : 0;
 					const tz = targetPos ? targetPos.z : 0;
-					const [ox, oy, oz] = rt.activeCfg.sunOffset;
+					let ox, oy, oz;
+					if (rt.activeCfg.sunOffset) {
+						[ox, oy, oz] = rt.activeCfg.sunOffset;
+					} else {
+						const saved = rt.savedLights.get(rt.dirLight);
+						const sp = saved && saved.pos;
+						const len = sp ? Math.hypot(sp.x, sp.y, sp.z) : 0;
+						if (len > 0.001) {
+							const scale = 65 / len;
+							ox = sp.x * scale;
+							oy = sp.y * scale;
+							oz = sp.z * scale;
+						} else {
+							[ox, oy, oz] = [36, 48, 24];
+						}
+					}
 					rt.dirLight.position.set(tx + ox, ty + oy, tz + oz);
 					rt.dirLight.target.position.set(tx, ty, tz);
 					rt.dirLight.target.updateMatrixWorld();
