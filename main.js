@@ -306,10 +306,14 @@ async function createWindow() {
         modified = true;
       } else if (lower === 'content-security-policy') {
         responseHeaders[key] = responseHeaders[key].map(csp => {
-          if (csp.includes('img-src') && !csp.includes('i.imgur.com')) {
-            return csp.replace(/img-src\s+([^;]+)/, "img-src $1 https: blob: data:");
+          let updated = csp;
+          if (updated.includes('img-src') && !updated.includes('i.imgur.com')) {
+            updated = updated.replace(/img-src\s+([^;]+)/, "img-src $1 https: blob: data:");
           }
-          return csp;
+          if (details.url && (details.url.includes('youtube.com') || details.url.includes('speakirpg.overture.io.kr')) && updated.includes('script-src') && !updated.includes('data:')) {
+            updated = updated.replace(/script-src\s+([^;]+)/, "script-src $1 data:");
+          }
+          return updated;
         });
         modified = true;
       }
@@ -325,6 +329,17 @@ async function createWindow() {
     callback({ cancel: false, responseHeaders: modified ? responseHeaders : details.responseHeaders });
   };
   session.defaultSession.webRequest.onHeadersReceived(filter, removeCspReportOnly);
+
+  // Stub unreachable DoubleClick & Cloudflare Insights requests to prevent ERR_ADDRESS_UNREACHABLE spam
+  session.defaultSession.webRequest.onBeforeRequest(
+    { urls: ['*://*.doubleclick.net/*', '*://*.cloudflareinsights.com/*'] },
+    (details, callback) => {
+      const redirectURL = details.resourceType === 'script'
+        ? 'data:application/javascript,'
+        : 'data:text/plain,';
+      callback({ redirectURL });
+    }
+  );
 
   mainWindow.loadFile('index.html');
 }

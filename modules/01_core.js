@@ -42,6 +42,35 @@ try {
 				}
 			});
 		}
+		const cwDesc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
+		if (cwDesc && typeof cwDesc.get === 'function') {
+			Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
+				configurable: true,
+				enumerable: cwDesc.enumerable,
+				get() {
+					const win = cwDesc.get.call(this);
+					if (win) {
+						try {
+							if (win.location && win.location.href === 'about:blank' && !win.__spkPostMsgPatched) {
+								const origPost = win.postMessage;
+								if (typeof origPost === 'function') {
+									win.__spkPostMsgPatched = true;
+									win.postMessage = function(message, targetOrigin) {
+										try {
+											if (win.location.href === 'about:blank' && typeof targetOrigin === 'string' && targetOrigin !== '*' && targetOrigin !== window.location.origin) {
+												return;
+											}
+										} catch (_) {}
+										return origPost.apply(this, arguments);
+									};
+								}
+							}
+						} catch (_) {}
+					}
+					return win;
+				}
+			});
+		}
 	}
 } catch (_) {}
 

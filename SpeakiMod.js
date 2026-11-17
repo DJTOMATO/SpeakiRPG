@@ -42,6 +42,35 @@ try {
 				}
 			});
 		}
+		const cwDesc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
+		if (cwDesc && typeof cwDesc.get === 'function') {
+			Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
+				configurable: true,
+				enumerable: cwDesc.enumerable,
+				get() {
+					const win = cwDesc.get.call(this);
+					if (win) {
+						try {
+							if (win.location && win.location.href === 'about:blank' && !win.__spkPostMsgPatched) {
+								const origPost = win.postMessage;
+								if (typeof origPost === 'function') {
+									win.__spkPostMsgPatched = true;
+									win.postMessage = function(message, targetOrigin) {
+										try {
+											if (win.location.href === 'about:blank' && typeof targetOrigin === 'string' && targetOrigin !== '*' && targetOrigin !== window.location.origin) {
+												return;
+											}
+										} catch (_) {}
+										return origPost.apply(this, arguments);
+									};
+								}
+							}
+						} catch (_) {}
+					}
+					return win;
+				}
+			});
+		}
 	}
 } catch (_) {}
 
@@ -15372,13 +15401,14 @@ function findBotsRadar(auto = false) {
             suspiciousBots.push({
                 name: p.info?.name,
                 id: parseInt(p.info?.playerId) || 0,
+                level: Number(p.info?.level) || 1,
                 clusterSize: nearbyCounts[i]
             });
         }
     }
 	
 	let addedCount = 0;
-	const newlyAddedNames = [];
+	const newlyAddedEntries = [];
 	suspiciousBots.forEach(b => {
 		const cleanName = (b.name || "").trim();
 		const lowerName = cleanName.toLocaleLowerCase();
@@ -15390,7 +15420,7 @@ function findBotsRadar(auto = false) {
 			if (typeof lunActiveBotWaveMinId !== "undefined" && b.id > 0) {
 				lunActiveBotWaveMinId = Math.min(lunActiveBotWaveMinId, b.id);
 			}
-			newlyAddedNames.push(cleanName);
+			newlyAddedEntries.push({ name: cleanName, level: b.level, id: b.id });
 			addedCount++;
 		}
 	});
@@ -15403,7 +15433,7 @@ function findBotsRadar(auto = false) {
 			updateKnownBotVisibility();
 		}
 		if (typeof reportBotsToServer === "function") {
-			reportBotsToServer(newlyAddedNames, humanPromotedNames);
+			reportBotsToServer(newlyAddedEntries, humanPromotedNames);
 		}
 	}
 	

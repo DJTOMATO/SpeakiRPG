@@ -451,13 +451,14 @@ function findBotsRadar(auto = false) {
             suspiciousBots.push({
                 name: p.info?.name,
                 id: parseInt(p.info?.playerId) || 0,
+                level: Number(p.info?.level) || 1,
                 clusterSize: nearbyCounts[i]
             });
         }
     }
 	
 	let addedCount = 0;
-	const newlyAddedNames = [];
+	const newlyAddedEntries = [];
 	suspiciousBots.forEach(b => {
 		const cleanName = (b.name || "").trim();
 		const lowerName = cleanName.toLocaleLowerCase();
@@ -469,7 +470,7 @@ function findBotsRadar(auto = false) {
 			if (typeof lunActiveBotWaveMinId !== "undefined" && b.id > 0) {
 				lunActiveBotWaveMinId = Math.min(lunActiveBotWaveMinId, b.id);
 			}
-			newlyAddedNames.push(cleanName);
+			newlyAddedEntries.push({ name: cleanName, level: b.level, id: b.id });
 			addedCount++;
 		}
 	});
@@ -482,7 +483,7 @@ function findBotsRadar(auto = false) {
 			updateKnownBotVisibility();
 		}
 		if (typeof reportBotsToServer === "function") {
-			reportBotsToServer(newlyAddedNames, humanPromotedNames);
+			reportBotsToServer(newlyAddedEntries, humanPromotedNames);
 		}
 	}
 	
