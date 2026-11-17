@@ -1,8 +1,8 @@
-// Suppress report-only CSP warnings in console for custom emoji assets
+// Suppress report-only CSP warnings, Three.js duplicate-instance warnings, WebGPU Windows powerPreference warnings, and unsupported iframe allow="web-share"
 try {
 	const _spkOrigWarn = console.warn;
 	console.warn = function(...args) {
-		if (typeof args[0] === 'string' && (args[0].includes('violates the following Content Security Policy directive') || args[0].includes('Content Security Policy'))) return;
+		if (typeof args[0] === 'string' && (args[0].includes('violates the following Content Security Policy directive') || args[0].includes('Content Security Policy') || args[0].includes('Multiple instances of Three.js'))) return;
 		return _spkOrigWarn.apply(this, args);
 	};
 	const _spkOrigError = console.error;
@@ -10,6 +10,39 @@ try {
 		if (typeof args[0] === 'string' && (args[0].includes('violates the following Content Security Policy directive') || args[0].includes('Content Security Policy'))) return;
 		return _spkOrigError.apply(this, args);
 	};
+	if (typeof GPU !== 'undefined' && GPU.prototype && typeof GPU.prototype.requestAdapter === 'function' && /Win/i.test(navigator.platform || navigator.userAgent || '')) {
+		const _spkOrigRequestAdapter = GPU.prototype.requestAdapter;
+		GPU.prototype.requestAdapter = function(options) {
+			if (options && typeof options === 'object' && 'powerPreference' in options) {
+				const { powerPreference, ...rest } = options;
+				return _spkOrigRequestAdapter.call(this, Object.keys(rest).length ? rest : undefined);
+			}
+			return _spkOrigRequestAdapter.apply(this, arguments);
+		};
+	}
+	if (typeof HTMLIFrameElement !== 'undefined') {
+		const stripWebShare = (val) => typeof val === 'string'
+			? val.replace(/(^|[;\s])web-share(?=[;\s]|$)/gi, '$1').replace(/;\s*;/g, ';').replace(/^\s*;\s*|\s*;\s*$/g, '').trim()
+			: val;
+		const _spkOrigSetAttr = HTMLIFrameElement.prototype.setAttribute;
+		HTMLIFrameElement.prototype.setAttribute = function(name, value) {
+			if (typeof name === 'string' && name.toLowerCase() === 'allow') {
+				value = stripWebShare(value);
+			}
+			return _spkOrigSetAttr.call(this, name, value);
+		};
+		const allowDesc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'allow');
+		if (allowDesc && typeof allowDesc.set === 'function') {
+			Object.defineProperty(HTMLIFrameElement.prototype, 'allow', {
+				configurable: true,
+				enumerable: allowDesc.enumerable,
+				get: allowDesc.get,
+				set(value) {
+					return allowDesc.set.call(this, stripWebShare(value));
+				}
+			});
+		}
+	}
 } catch (_) {}
 
 /*
