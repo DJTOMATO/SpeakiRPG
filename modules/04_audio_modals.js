@@ -1111,6 +1111,7 @@ function toggleSettingsModal() {
 		}
 	}
 }
+window.toggleSettingsModal = toggleSettingsModal;
 
 function toggleEventModal() {
 	if (!lunHudElements.eventModal) return;

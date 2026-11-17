@@ -209,6 +209,8 @@ async function createWindow() {
             }
             if (typeof toggleSettingsModal === "function") {
               toggleSettingsModal();
+            } else {
+              window.dispatchEvent(new KeyboardEvent("keydown", { key: "F2", code: "F2", keyCode: 113, which: 113, bubbles: true, cancelable: true }));
             }
           })();
         `).catch(() => {});

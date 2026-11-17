@@ -4364,6 +4364,7 @@ function toggleSettingsModal() {
 		}
 	}
 }
+window.toggleSettingsModal = toggleSettingsModal;
 
 function toggleEventModal() {
 	if (!lunHudElements.eventModal) return;
@@ -15215,7 +15216,6 @@ function findBotsRadar(auto = false) {
 	
 	if (isGlas && addedCount > 0) {
 		const botNames = suspiciousBots.map(b => `"${b.name}"`);
-		chatLog(`[Debug] Auto-banned ${addedCount} clustered bots: ${botNames.join(", ")}`);
 		console.log("[SpeakiMod] Auto-banned bots:", botNames);
 	} else if (!auto && !suspiciousBots.length && isGlas) {
 		chatLog("No clustered Level 1 bots found nearby.");
