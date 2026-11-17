@@ -1055,12 +1055,6 @@ window.showPollModal = function(forceLang) {
     bodyContainer.style.cssText = "display: flex; flex-direction: column; gap: 14px;";
     content.appendChild(bodyContainer);
 
-    const getPollServerUrl = () => {
-        let saved = (window.localStorage && localStorage.getItem("spkmod-poll-server-url")) || "";
-        if (saved.startsWith("http://") || saved.includes("YOUR_RPI")) saved = "";
-        return window.spkmodPollServerUrl || saved || "https://spk.lena.moe";
-    };
-
     let storedVote = null;
     let pendingVote = null;
     try {
@@ -1246,9 +1240,8 @@ window.showPollModal = function(forceLang) {
                 localStorage.setItem("spkmod-poll-pending-v1", JSON.stringify(voteData));
             } catch (_) {}
 
-            const sUrl = getPollServerUrl().replace(/\/+$/, "");
             const safeFetch = window.spkmodSafeFetch || window.fetch;
-            safeFetch(`${sUrl}/api/poll/vote`, {
+            safeFetch(`${SPKMOD_SERVER_URL}/api/poll/vote`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(voteData)
@@ -1330,12 +1323,11 @@ window.showPollModal = function(forceLang) {
     if (storedVote) {
         const username = (window.gameState && window.gameState.myPlayerName) ? String(window.gameState.myPlayerName).trim() : (localStorage.getItem("spkmod-last-player-name") || "Player");
         const playerId = (window.gameState && window.gameState.myPlayerId) ? String(window.gameState.myPlayerId) : (localStorage.getItem("spkmod-last-player-id") || "");
-        const sUrl = getPollServerUrl().replace(/\/+$/, "");
 
         bodyContainer.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 24px; font-size: 15px;">⏳ ${getTranslation("pollSubmitting")}</div>`;
 
         const safeFetch = window.spkmodSafeFetch || window.fetch;
-        safeFetch(`${sUrl}/api/poll/status?username=${encodeURIComponent(username)}&playerId=${encodeURIComponent(playerId)}`, {}, 5000)
+        safeFetch(`${SPKMOD_SERVER_URL}/api/poll/status?username=${encodeURIComponent(username)}&playerId=${encodeURIComponent(playerId)}`, {}, 5000)
         .then(res => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return res.json();

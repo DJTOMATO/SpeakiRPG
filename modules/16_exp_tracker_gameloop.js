@@ -16,9 +16,6 @@ window.spkmodRenderChannelTracker = function() {
 };
 
 window.spkmodSendTelemetryPing = function() {
-	let saved = (window.localStorage && localStorage.getItem("spkmod-poll-server-url")) || "";
-	if (saved.startsWith("http://") || saved.includes("YOUR_RPI")) saved = "";
-	const sUrl = (window.spkmodPollServerUrl || saved || "https://spk.lena.moe").replace(/\/+$/, "");
 	const consent = window.localStorage ? localStorage.getItem("spkmod-telemetry-consent") : null;
 
 	// Always mark attempt timestamp so failures never trigger repeated pings every second
@@ -29,7 +26,7 @@ window.spkmodSendTelemetryPing = function() {
 		const username = (window.gameState && window.gameState.myPlayerName) ? String(window.gameState.myPlayerName).trim() : (localStorage.getItem("spkmod-last-player-name") || "Player");
 		const playerId = (window.gameState && window.gameState.myPlayerId) ? String(window.gameState.myPlayerId) : (localStorage.getItem("spkmod-last-player-id") || "");
 
-		safeFetch(`${sUrl}/api/telemetry/ping`, {
+		safeFetch(`${SPKMOD_SERVER_URL}/api/telemetry/ping`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ username, playerId })
@@ -49,7 +46,7 @@ window.spkmodSendTelemetryPing = function() {
 			if (window.spkmodServerHealth) window.spkmodServerHealth.recordFailure();
 		});
 	} else {
-		safeFetch(`${sUrl}/api/telemetry/stats`, {}, 4000)
+		safeFetch(`${SPKMOD_SERVER_URL}/api/telemetry/stats`, {}, 4000)
 		.then(res => {
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			return res.json();
@@ -504,39 +501,42 @@ function tick() {
 		const period = lunPinnedQuestPeriod || "daily";
 		const token = (typeof window.getNativeAuthToken === "function" ? window.getNativeAuthToken() : "") ||
 		              (typeof getAuthToken === "function" ? getAuthToken() : "");
-		const headers = {};
-		if (token) headers["authorization"] = `Bearer ${token.replace(/^Bearer /i, "")}`;
+		if (token) {
+			const headers = {
+				"authorization": `Bearer ${token.replace(/^Bearer /i, "")}`
+			};
 
-		const endpoint = window.lunActiveApiEndpoint ||
-		                 (window.speakiServerEndpoint ? window.speakiServerEndpoint : "") ||
-		                 "https://sr1.overture.io.kr";
-		fetch(`${endpoint}/api/quests?period=${period}`, {
-			method: "GET",
-			headers: headers,
-			mode: "cors"
-		}).then(async x => {
-			if (!x.ok) {
-				if (x.status === 404) {
-					lunPinnedQuestNextQueryTick = lunTickCount + (lunPinnedQuestInterval * 5);
-					if (window.__spkmodCachedQuests && window.__spkmodCachedQuests[lunPinnedQuestId]) {
-						updatePinnedQuestDisplay(window.__spkmodCachedQuests[lunPinnedQuestId]);
+			const endpoint = window.lunActiveApiEndpoint ||
+			                 (window.speakiServerEndpoint ? window.speakiServerEndpoint : "") ||
+			                 "https://sr1.overture.io.kr";
+			fetch(`${endpoint}/api/quests?period=${period}`, {
+				method: "GET",
+				headers: headers,
+				mode: "cors"
+			}).then(async x => {
+				if (!x.ok) {
+					if (x.status === 404) {
+						lunPinnedQuestNextQueryTick = lunTickCount + (lunPinnedQuestInterval * 5);
+						if (window.__spkmodCachedQuests && window.__spkmodCachedQuests[lunPinnedQuestId]) {
+							updatePinnedQuestDisplay(window.__spkmodCachedQuests[lunPinnedQuestId]);
+						}
+						return;
 					}
+					console.warn(`[SpeakiMod+] Pinned quest query returned HTTP ${x.status}`);
 					return;
 				}
-				console.warn(`[SpeakiMod+] Pinned quest query returned HTTP ${x.status}`);
-				return;
-			}
-			const resp = await spkmodReadQuestResponseJson(x);
-			if (!Array.isArray(resp)) return;
-			const q = resp.find(t => String(t.questId) === String(lunPinnedQuestId));
-			if (!q || q.isClaimed) {
-				unpinQuest();
-				return;
-			}
-			updatePinnedQuestDisplay(spkmodCacheQuestRecord(q, period));
-		}).catch(err => {
-			lunPinnedQuestNextQueryTick = lunTickCount + (lunPinnedQuestInterval * 2);
-		});
+				const resp = await spkmodReadQuestResponseJson(x);
+				if (!Array.isArray(resp)) return;
+				const q = resp.find(t => String(t.questId) === String(lunPinnedQuestId));
+				if (!q || q.isClaimed) {
+					unpinQuest();
+					return;
+				}
+				updatePinnedQuestDisplay(spkmodCacheQuestRecord(q, period));
+			}).catch(err => {
+				lunPinnedQuestNextQueryTick = lunTickCount + (lunPinnedQuestInterval * 2);
+			});
+		}
 	}
 
 	if ((lunMinigameTrackerEnabled || (lunHudElements.eventModal && !lunHudElements.eventModal.classList.contains("hidden")) || (lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden"))) && lunTickCount >= lunMinigameTrackerNextTicks) {

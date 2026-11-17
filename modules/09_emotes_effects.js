@@ -404,7 +404,23 @@ function showPlayersRadar(levelFilter) {
 function findBotsRadar(auto = false) {
 	if (!gameState.remotePlayers || !gameState.remotePlayers.remotePlayers) return;
 	const players = Array.from(gameState.remotePlayers.remotePlayers.values());
-	
+
+	// Promote any tracked auto-banned bot that reached over level 3 to human
+	const humanPromotedNames = [];
+	for (const p of players) {
+		const rawName = (p.info?.name || "").trim();
+		const lowerName = rawName.toLocaleLowerCase();
+		const lvl = Number(p.info?.level || 0);
+		if (!lowerName || lvl <= 3 || lunKnownBotNameSet.has(lowerName)) continue;
+		const inBanned = typeof lunAutoBannedLevel1s !== "undefined" && lunAutoBannedLevel1s.has(lowerName);
+		const inPending = typeof lunLocalPendingBots !== "undefined" && lunLocalPendingBots.has(lowerName);
+		if (inBanned || inPending) {
+			if (typeof lunAutoBannedLevel1s !== "undefined") lunAutoBannedLevel1s.delete(lowerName);
+			if (typeof lunLocalPendingBots !== "undefined") lunLocalPendingBots.delete(lowerName);
+			humanPromotedNames.push(rawName);
+		}
+	}
+
 	const level1s = players.filter(p => p.info?.level === 1 && p.container?.position && !lunKnownBotNameSet.has((p.info?.name || "").trim().toLocaleLowerCase()));
 	
 	const nearbyCounts = new Uint32Array(level1s.length);
@@ -440,27 +456,34 @@ function findBotsRadar(auto = false) {
         }
     }
 	
-	if (!suspiciousBots.length) {
-		if (!auto && typeof gameState !== "undefined" && gameState && (gameState.myPlayerName === "Glas" || gameState.myStat?.name === "Glas")) {
-			chatLog("No clustered Level 1 bots found nearby.");
-		}
-		return;
-	}
-	
 	let addedCount = 0;
+	const newlyAddedNames = [];
 	suspiciousBots.forEach(b => {
-		const lowerName = (b.name || "").trim().toLowerCase();
+		const cleanName = (b.name || "").trim();
+		const lowerName = cleanName.toLocaleLowerCase();
 		if (lowerName && typeof lunAutoBannedLevel1s !== "undefined" && !lunAutoBannedLevel1s.has(lowerName)) {
 			lunAutoBannedLevel1s.add(lowerName);
+			if (typeof lunLocalPendingBots !== "undefined") {
+				lunLocalPendingBots.add(lowerName);
+			}
 			if (typeof lunActiveBotWaveMinId !== "undefined" && b.id > 0) {
 				lunActiveBotWaveMinId = Math.min(lunActiveBotWaveMinId, b.id);
 			}
+			newlyAddedNames.push(cleanName);
 			addedCount++;
 		}
 	});
 
-	if (addedCount > 0 && typeof updateKnownBotVisibility === "function") {
-		updateKnownBotVisibility();
+	if (addedCount > 0 || humanPromotedNames.length > 0) {
+		if (typeof saveAutoBannedBotsToStorage === "function") {
+			saveAutoBannedBotsToStorage();
+		}
+		if (typeof updateKnownBotVisibility === "function") {
+			updateKnownBotVisibility();
+		}
+		if (typeof reportBotsToServer === "function") {
+			reportBotsToServer(newlyAddedNames, humanPromotedNames);
+		}
 	}
 	
 	const isGlas = typeof gameState !== "undefined" && gameState && (gameState.myPlayerName === "Glas" || gameState.myStat?.name === "Glas");

@@ -176,6 +176,7 @@ if (!window.__speakiFetchHooked) {
 }
 
 // --- NETWORK RESILIENCE: SAFE FETCH & CIRCUIT BREAKER ---
+const SPKMOD_SERVER_URL = "https://spk.lena.moe";
 window.spkmodSafeFetch = async function(url, options = {}, timeoutMs = 5000) {
 	const controller = new AbortController();
 	const timer = setTimeout(() => {
@@ -2241,7 +2242,7 @@ const lunKnownBotNames = ["GniloeAlo3", "Gniloe41o3", "Gniloe41oe", "GniloeA1oe"
 	"IIIIIIII06", "IIIIIIII47", "IIlIIIll47", "OO0O00OO30", "IIlIIIll47", "OO0O00OO30", "llIIlIll06", "IIlIIIll47", "OOOOO0O081", "llIIlIll06", 
 	"OO0O00OO30", "SPKfern89", "SPKtree03", "rnmrrnvrm2", "SPKblue93", "SPKrain63", "SPKecho98", "OOOOO0O081", "duckjay85", "SPKstar65", "echosun86", 
 	"llIIllll38", "takutaku6", "kutakuta2", "takutaku7", "GniloeAlo3", "Gniloe4103", "Gniloe41o3", "GniloeAl03", "Gniloe41oe", "GniloeA1o3", "Gniloe41o3", 
-	"GniloeAlo3", "GniloeAl03", "Gniloe41oe"];
+	"GniloeAlo3", "GniloeAl03", "Gniloe41oe", "ace7cow6", "2calmace", "airpen5sea", "deer8dog", "03ashhero", "7seal0bay6", "fern60", "gem4rain", "lake35ink"];
 
 const lunKnownBotNameSet = new Set(lunKnownBotNames.map(name => name.trim().toLocaleLowerCase()).filter(Boolean));
 const lunKnownBotPrefixSet = new Set(lunKnownBotNames.map(name => name.toLowerCase().replace(/[^a-z]/g, "").slice(0, 5)).filter(prefix => prefix.length >= 4));
@@ -2290,8 +2291,154 @@ function setHideKnownBotsEnabled(enabled) {
 	updateKnownBotVisibility();
 }
 
+const SPKMOD_AUTO_BANNED_BOTS_KEY = "spkmod-auto-banned-bots";
 var lunAutoBannedLevel1s = new Set();
+var lunLocalPendingBots = new Set();
 var lunActiveBotWaveMinId = Infinity;
+let lunBotSyncInFlight = false;
+
+
+function loadAutoBannedBotsFromStorage() {
+	if (!window.localStorage) return;
+	try {
+		const raw = localStorage.getItem(SPKMOD_AUTO_BANNED_BOTS_KEY);
+		if (!raw) return;
+		const parsed = JSON.parse(raw);
+		if (!Array.isArray(parsed)) return;
+		for (const item of parsed) {
+			if (typeof item !== "string") continue;
+			const lower = item.trim().toLocaleLowerCase();
+			if (lower && !lunKnownBotNameSet.has(lower)) {
+				lunAutoBannedLevel1s.add(lower);
+			}
+		}
+	} catch (_) {}
+}
+
+function saveAutoBannedBotsToStorage() {
+	if (!window.localStorage) return;
+	try {
+		localStorage.setItem(SPKMOD_AUTO_BANNED_BOTS_KEY, JSON.stringify([...lunAutoBannedLevel1s]));
+	} catch (_) {}
+}
+
+loadAutoBannedBotsFromStorage();
+
+function getBotReporterAuth() {
+	const username = (typeof gameState !== "undefined" && gameState)
+		? String(gameState.myPlayerName || gameState.myStat?.name || "").trim()
+		: "";
+	const playerId = (typeof gameState !== "undefined" && gameState && gameState.myPlayerId != null)
+		? String(gameState.myPlayerId).trim()
+		: "";
+	const level = (typeof gameState !== "undefined" && gameState && gameState.myStat && typeof gameState.myStat.level === "number")
+		? gameState.myStat.level
+		: Number(gameState?.myStat?.level || 0);
+	const authorized = Boolean(username && username !== "Anonymous" && playerId && Number.isFinite(level) && level >= 5);
+	return { authorized, username, playerId, level };
+}
+
+function applyServerBotList(serverBots, allowPromoteCheck = true) {
+	if (!Array.isArray(serverBots)) return;
+	const nextSet = new Set();
+	for (const name of serverBots) {
+		if (typeof name !== "string") continue;
+		const lower = name.trim().toLocaleLowerCase();
+		if (lower && !lunKnownBotNameSet.has(lower)) {
+			nextSet.add(lower);
+		}
+	}
+	for (const pending of lunLocalPendingBots) {
+		if (!lunKnownBotNameSet.has(pending)) {
+			nextSet.add(pending);
+		}
+	}
+	lunAutoBannedLevel1s = nextSet;
+	saveAutoBannedBotsToStorage();
+
+	if (allowPromoteCheck && typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers instanceof Map) {
+		const promoted = [];
+		for (const player of gameState.remotePlayers.remotePlayers.values()) {
+			const lower = (player?.info?.name || "").trim().toLocaleLowerCase();
+			const lvl = Number(player?.info?.level || 0);
+			if (lower && lvl > 3 && !lunKnownBotNameSet.has(lower) && lunAutoBannedLevel1s.has(lower)) {
+				lunAutoBannedLevel1s.delete(lower);
+				lunLocalPendingBots.delete(lower);
+				promoted.push(lower);
+			}
+		}
+		if (promoted.length > 0) {
+			saveAutoBannedBotsToStorage();
+			reportBotsToServer([], promoted, false);
+		}
+	}
+
+	if (typeof updateKnownBotVisibility === "function") {
+		updateKnownBotVisibility();
+	}
+}
+
+async function fetchRemoteBotList() {
+	if (lunBotSyncInFlight) return;
+	if (window.spkmodServerHealth && !window.spkmodServerHealth.isAvailable()) return;
+	lunBotSyncInFlight = true;
+	try {
+		const safeFetch = window.spkmodSafeFetch || window.fetch;
+		const res = await safeFetch(`${SPKMOD_SERVER_URL}/api/bots/list`, {}, 5000);
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const data = await res.json();
+		if (window.spkmodServerHealth) window.spkmodServerHealth.recordSuccess();
+		if (data && data.success && Array.isArray(data.bots)) {
+			applyServerBotList(data.bots, true);
+		}
+	} catch (_) {
+		if (window.spkmodServerHealth) window.spkmodServerHealth.recordFailure();
+	} finally {
+		lunBotSyncInFlight = false;
+	}
+}
+
+async function reportBotsToServer(newBotNames = [], removeNames = [], allowPromoteCheck = true) {
+	const auth = getBotReporterAuth();
+	if (!auth.authorized) {
+		fetchRemoteBotList();
+		return;
+	}
+	if (window.spkmodServerHealth && !window.spkmodServerHealth.isAvailable()) return;
+	if (lunBotSyncInFlight) return;
+
+	lunBotSyncInFlight = true;
+	try {
+		const safeFetch = window.spkmodSafeFetch || window.fetch;
+		const res = await safeFetch(`${SPKMOD_SERVER_URL}/api/bots/report`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				username: auth.username,
+				playerId: auth.playerId,
+				level: auth.level,
+				bots: newBotNames,
+				removeNames
+			})
+		}, 5000);
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const data = await res.json();
+		if (window.spkmodServerHealth) window.spkmodServerHealth.recordSuccess();
+		if (data && data.success && Array.isArray(data.bots)) {
+			applyServerBotList(data.bots, allowPromoteCheck);
+		}
+	} catch (_) {
+		if (window.spkmodServerHealth) window.spkmodServerHealth.recordFailure();
+	} finally {
+		lunBotSyncInFlight = false;
+	}
+}
+
+setTimeout(() => {
+	if (typeof fetchRemoteBotList === "function") {
+		fetchRemoteBotList();
+	}
+}, 3000);
 
 function isKnownBotName(name, level, accountId) {
 	if (typeof name !== "string") return false;
@@ -2304,7 +2451,7 @@ function isKnownBotName(name, level, accountId) {
 	if (lunKnownBotNameSet.has(lowerName)) {
 		isBot = true;
 	} else if (!isNaN(parsedLevel)) {
-		if (parsedLevel === 1 && lunAutoBannedLevel1s.has(lowerName)) {
+		if (parsedLevel <= 3 && lunAutoBannedLevel1s.has(lowerName)) {
 			isBot = true;
 		}
 		if (!isBot && parsedLevel <= 2) {
@@ -13372,12 +13519,6 @@ window.showPollModal = function(forceLang) {
     bodyContainer.style.cssText = "display: flex; flex-direction: column; gap: 14px;";
     content.appendChild(bodyContainer);
 
-    const getPollServerUrl = () => {
-        let saved = (window.localStorage && localStorage.getItem("spkmod-poll-server-url")) || "";
-        if (saved.startsWith("http://") || saved.includes("YOUR_RPI")) saved = "";
-        return window.spkmodPollServerUrl || saved || "https://spk.lena.moe";
-    };
-
     let storedVote = null;
     let pendingVote = null;
     try {
@@ -13563,9 +13704,8 @@ window.showPollModal = function(forceLang) {
                 localStorage.setItem("spkmod-poll-pending-v1", JSON.stringify(voteData));
             } catch (_) {}
 
-            const sUrl = getPollServerUrl().replace(/\/+$/, "");
             const safeFetch = window.spkmodSafeFetch || window.fetch;
-            safeFetch(`${sUrl}/api/poll/vote`, {
+            safeFetch(`${SPKMOD_SERVER_URL}/api/poll/vote`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(voteData)
@@ -13647,12 +13787,11 @@ window.showPollModal = function(forceLang) {
     if (storedVote) {
         const username = (window.gameState && window.gameState.myPlayerName) ? String(window.gameState.myPlayerName).trim() : (localStorage.getItem("spkmod-last-player-name") || "Player");
         const playerId = (window.gameState && window.gameState.myPlayerId) ? String(window.gameState.myPlayerId) : (localStorage.getItem("spkmod-last-player-id") || "");
-        const sUrl = getPollServerUrl().replace(/\/+$/, "");
 
         bodyContainer.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 24px; font-size: 15px;">⏳ ${getTranslation("pollSubmitting")}</div>`;
 
         const safeFetch = window.spkmodSafeFetch || window.fetch;
-        safeFetch(`${sUrl}/api/poll/status?username=${encodeURIComponent(username)}&playerId=${encodeURIComponent(playerId)}`, {}, 5000)
+        safeFetch(`${SPKMOD_SERVER_URL}/api/poll/status?username=${encodeURIComponent(username)}&playerId=${encodeURIComponent(playerId)}`, {}, 5000)
         .then(res => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return res.json();
@@ -15153,7 +15292,23 @@ function showPlayersRadar(levelFilter) {
 function findBotsRadar(auto = false) {
 	if (!gameState.remotePlayers || !gameState.remotePlayers.remotePlayers) return;
 	const players = Array.from(gameState.remotePlayers.remotePlayers.values());
-	
+
+	// Promote any tracked auto-banned bot that reached over level 3 to human
+	const humanPromotedNames = [];
+	for (const p of players) {
+		const rawName = (p.info?.name || "").trim();
+		const lowerName = rawName.toLocaleLowerCase();
+		const lvl = Number(p.info?.level || 0);
+		if (!lowerName || lvl <= 3 || lunKnownBotNameSet.has(lowerName)) continue;
+		const inBanned = typeof lunAutoBannedLevel1s !== "undefined" && lunAutoBannedLevel1s.has(lowerName);
+		const inPending = typeof lunLocalPendingBots !== "undefined" && lunLocalPendingBots.has(lowerName);
+		if (inBanned || inPending) {
+			if (typeof lunAutoBannedLevel1s !== "undefined") lunAutoBannedLevel1s.delete(lowerName);
+			if (typeof lunLocalPendingBots !== "undefined") lunLocalPendingBots.delete(lowerName);
+			humanPromotedNames.push(rawName);
+		}
+	}
+
 	const level1s = players.filter(p => p.info?.level === 1 && p.container?.position && !lunKnownBotNameSet.has((p.info?.name || "").trim().toLocaleLowerCase()));
 	
 	const nearbyCounts = new Uint32Array(level1s.length);
@@ -15189,27 +15344,34 @@ function findBotsRadar(auto = false) {
         }
     }
 	
-	if (!suspiciousBots.length) {
-		if (!auto && typeof gameState !== "undefined" && gameState && (gameState.myPlayerName === "Glas" || gameState.myStat?.name === "Glas")) {
-			chatLog("No clustered Level 1 bots found nearby.");
-		}
-		return;
-	}
-	
 	let addedCount = 0;
+	const newlyAddedNames = [];
 	suspiciousBots.forEach(b => {
-		const lowerName = (b.name || "").trim().toLowerCase();
+		const cleanName = (b.name || "").trim();
+		const lowerName = cleanName.toLocaleLowerCase();
 		if (lowerName && typeof lunAutoBannedLevel1s !== "undefined" && !lunAutoBannedLevel1s.has(lowerName)) {
 			lunAutoBannedLevel1s.add(lowerName);
+			if (typeof lunLocalPendingBots !== "undefined") {
+				lunLocalPendingBots.add(lowerName);
+			}
 			if (typeof lunActiveBotWaveMinId !== "undefined" && b.id > 0) {
 				lunActiveBotWaveMinId = Math.min(lunActiveBotWaveMinId, b.id);
 			}
+			newlyAddedNames.push(cleanName);
 			addedCount++;
 		}
 	});
 
-	if (addedCount > 0 && typeof updateKnownBotVisibility === "function") {
-		updateKnownBotVisibility();
+	if (addedCount > 0 || humanPromotedNames.length > 0) {
+		if (typeof saveAutoBannedBotsToStorage === "function") {
+			saveAutoBannedBotsToStorage();
+		}
+		if (typeof updateKnownBotVisibility === "function") {
+			updateKnownBotVisibility();
+		}
+		if (typeof reportBotsToServer === "function") {
+			reportBotsToServer(newlyAddedNames, humanPromotedNames);
+		}
 	}
 	
 	const isGlas = typeof gameState !== "undefined" && gameState && (gameState.myPlayerName === "Glas" || gameState.myStat?.name === "Glas");
@@ -21069,12 +21231,6 @@ function escapeBbsHtml(text) {
 	return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function getBbsServerUrl() {
-	let saved = (window.localStorage && localStorage.getItem("spkmod-poll-server-url")) || "";
-	if (saved.startsWith("http://") || saved.includes("YOUR_RPI")) saved = "";
-	return (window.spkmodPollServerUrl || saved || "https://spk.lena.moe").replace(/\/+$/, "");
-}
-
 // --- BBS THEMING & FONT SCALING ---
 var lunBbsTheme = (window.localStorage && localStorage.getItem("spkmod-bbs-theme")) || "normal";
 var lunBbsFontSize = parseInt((window.localStorage && localStorage.getItem("spkmod-bbs-font-size")) || "11", 10);
@@ -21467,7 +21623,7 @@ async function fetchBbsPosts(isBackground) {
 	if (bbsModalElements.refreshBtn) bbsModalElements.refreshBtn.style.opacity = "0.4";
 
 	try {
-		const sUrl = getBbsServerUrl();
+		const sUrl = SPKMOD_SERVER_URL;
 		const safeFetch = window.spkmodSafeFetch || window.fetch;
 		const res = await safeFetch(`${sUrl}/api/bbs/posts?limit=100`, {}, 5000);
 		if (res.ok) {
@@ -22308,7 +22464,7 @@ async function sendBbsPost() {
 	const postMessage = replyToId ? `>>${replyToId} ${msg}` : msg;
 
 	try {
-		const sUrl = getBbsServerUrl();
+		const sUrl = SPKMOD_SERVER_URL;
 		const adminSecret = (me.isStaff && window.localStorage && localStorage.getItem("spkmod-admin-secret")) || "";
 		const headers = { "Content-Type": "application/json" };
 		if (adminSecret) {
@@ -22428,7 +22584,7 @@ async function deleteBbsPost(postId) {
 		if (window.localStorage) localStorage.setItem("spkmod-admin-secret", adminSecret);
 	}
 	try {
-		const sUrl = getBbsServerUrl();
+		const sUrl = SPKMOD_SERVER_URL;
 		const safeFetch = window.spkmodSafeFetch || window.fetch;
 		const res = await safeFetch(`${sUrl}/api/bbs/delete`, {
 			method: "POST",
@@ -22490,7 +22646,7 @@ async function toggleBbsHeart(postId, btnEl) {
 
 	// 2. Synchronize with BBS server
 	try {
-		const sUrl = getBbsServerUrl();
+		const sUrl = SPKMOD_SERVER_URL;
 		const safeFetch = window.spkmodSafeFetch || window.fetch;
 		const res = await safeFetch(`${sUrl}/api/bbs/heart`, {
 			method: "POST",
@@ -24899,8 +25055,10 @@ async function fetchAllQuests() {
 	try {
 		const token = (typeof window.getNativeAuthToken === "function" ? window.getNativeAuthToken() : "") ||
 		              (typeof getAuthToken === "function" ? getAuthToken() : "");
-		const headers = {};
-		if (token) headers["authorization"] = `Bearer ${token.replace(/^Bearer /i, "")}`;
+		if (!token) return;
+		const headers = {
+			"authorization": `Bearer ${token.replace(/^Bearer /i, "")}`
+		};
 
 		const endpoint = window.lunActiveApiEndpoint ||
 		                 (window.speakiServerEndpoint ? window.speakiServerEndpoint : "") ||
@@ -24913,6 +25071,7 @@ async function fetchAllQuests() {
 					headers: headers,
 					mode: "cors"
 				});
+				if (res.status === 401 || res.status === 403) break;
 				if (res.ok) {
 					const data = await spkmodReadQuestResponseJson(res);
 					if (Array.isArray(data)) {
@@ -26480,9 +26639,6 @@ window.spkmodRenderChannelTracker = function() {
 };
 
 window.spkmodSendTelemetryPing = function() {
-	let saved = (window.localStorage && localStorage.getItem("spkmod-poll-server-url")) || "";
-	if (saved.startsWith("http://") || saved.includes("YOUR_RPI")) saved = "";
-	const sUrl = (window.spkmodPollServerUrl || saved || "https://spk.lena.moe").replace(/\/+$/, "");
 	const consent = window.localStorage ? localStorage.getItem("spkmod-telemetry-consent") : null;
 
 	// Always mark attempt timestamp so failures never trigger repeated pings every second
@@ -26493,7 +26649,7 @@ window.spkmodSendTelemetryPing = function() {
 		const username = (window.gameState && window.gameState.myPlayerName) ? String(window.gameState.myPlayerName).trim() : (localStorage.getItem("spkmod-last-player-name") || "Player");
 		const playerId = (window.gameState && window.gameState.myPlayerId) ? String(window.gameState.myPlayerId) : (localStorage.getItem("spkmod-last-player-id") || "");
 
-		safeFetch(`${sUrl}/api/telemetry/ping`, {
+		safeFetch(`${SPKMOD_SERVER_URL}/api/telemetry/ping`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ username, playerId })
@@ -26513,7 +26669,7 @@ window.spkmodSendTelemetryPing = function() {
 			if (window.spkmodServerHealth) window.spkmodServerHealth.recordFailure();
 		});
 	} else {
-		safeFetch(`${sUrl}/api/telemetry/stats`, {}, 4000)
+		safeFetch(`${SPKMOD_SERVER_URL}/api/telemetry/stats`, {}, 4000)
 		.then(res => {
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			return res.json();
@@ -26968,39 +27124,42 @@ function tick() {
 		const period = lunPinnedQuestPeriod || "daily";
 		const token = (typeof window.getNativeAuthToken === "function" ? window.getNativeAuthToken() : "") ||
 		              (typeof getAuthToken === "function" ? getAuthToken() : "");
-		const headers = {};
-		if (token) headers["authorization"] = `Bearer ${token.replace(/^Bearer /i, "")}`;
+		if (token) {
+			const headers = {
+				"authorization": `Bearer ${token.replace(/^Bearer /i, "")}`
+			};
 
-		const endpoint = window.lunActiveApiEndpoint ||
-		                 (window.speakiServerEndpoint ? window.speakiServerEndpoint : "") ||
-		                 "https://sr1.overture.io.kr";
-		fetch(`${endpoint}/api/quests?period=${period}`, {
-			method: "GET",
-			headers: headers,
-			mode: "cors"
-		}).then(async x => {
-			if (!x.ok) {
-				if (x.status === 404) {
-					lunPinnedQuestNextQueryTick = lunTickCount + (lunPinnedQuestInterval * 5);
-					if (window.__spkmodCachedQuests && window.__spkmodCachedQuests[lunPinnedQuestId]) {
-						updatePinnedQuestDisplay(window.__spkmodCachedQuests[lunPinnedQuestId]);
+			const endpoint = window.lunActiveApiEndpoint ||
+			                 (window.speakiServerEndpoint ? window.speakiServerEndpoint : "") ||
+			                 "https://sr1.overture.io.kr";
+			fetch(`${endpoint}/api/quests?period=${period}`, {
+				method: "GET",
+				headers: headers,
+				mode: "cors"
+			}).then(async x => {
+				if (!x.ok) {
+					if (x.status === 404) {
+						lunPinnedQuestNextQueryTick = lunTickCount + (lunPinnedQuestInterval * 5);
+						if (window.__spkmodCachedQuests && window.__spkmodCachedQuests[lunPinnedQuestId]) {
+							updatePinnedQuestDisplay(window.__spkmodCachedQuests[lunPinnedQuestId]);
+						}
+						return;
 					}
+					console.warn(`[SpeakiMod+] Pinned quest query returned HTTP ${x.status}`);
 					return;
 				}
-				console.warn(`[SpeakiMod+] Pinned quest query returned HTTP ${x.status}`);
-				return;
-			}
-			const resp = await spkmodReadQuestResponseJson(x);
-			if (!Array.isArray(resp)) return;
-			const q = resp.find(t => String(t.questId) === String(lunPinnedQuestId));
-			if (!q || q.isClaimed) {
-				unpinQuest();
-				return;
-			}
-			updatePinnedQuestDisplay(spkmodCacheQuestRecord(q, period));
-		}).catch(err => {
-			lunPinnedQuestNextQueryTick = lunTickCount + (lunPinnedQuestInterval * 2);
-		});
+				const resp = await spkmodReadQuestResponseJson(x);
+				if (!Array.isArray(resp)) return;
+				const q = resp.find(t => String(t.questId) === String(lunPinnedQuestId));
+				if (!q || q.isClaimed) {
+					unpinQuest();
+					return;
+				}
+				updatePinnedQuestDisplay(spkmodCacheQuestRecord(q, period));
+			}).catch(err => {
+				lunPinnedQuestNextQueryTick = lunTickCount + (lunPinnedQuestInterval * 2);
+			});
+		}
 	}
 
 	if ((lunMinigameTrackerEnabled || (lunHudElements.eventModal && !lunHudElements.eventModal.classList.contains("hidden")) || (lunHudElements.statsModal && !lunHudElements.statsModal.classList.contains("hidden"))) && lunTickCount >= lunMinigameTrackerNextTicks) {

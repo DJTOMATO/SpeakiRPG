@@ -36,12 +36,6 @@ function escapeBbsHtml(text) {
 	return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function getBbsServerUrl() {
-	let saved = (window.localStorage && localStorage.getItem("spkmod-poll-server-url")) || "";
-	if (saved.startsWith("http://") || saved.includes("YOUR_RPI")) saved = "";
-	return (window.spkmodPollServerUrl || saved || "https://spk.lena.moe").replace(/\/+$/, "");
-}
-
 // --- BBS THEMING & FONT SCALING ---
 var lunBbsTheme = (window.localStorage && localStorage.getItem("spkmod-bbs-theme")) || "normal";
 var lunBbsFontSize = parseInt((window.localStorage && localStorage.getItem("spkmod-bbs-font-size")) || "11", 10);
@@ -434,7 +428,7 @@ async function fetchBbsPosts(isBackground) {
 	if (bbsModalElements.refreshBtn) bbsModalElements.refreshBtn.style.opacity = "0.4";
 
 	try {
-		const sUrl = getBbsServerUrl();
+		const sUrl = SPKMOD_SERVER_URL;
 		const safeFetch = window.spkmodSafeFetch || window.fetch;
 		const res = await safeFetch(`${sUrl}/api/bbs/posts?limit=100`, {}, 5000);
 		if (res.ok) {
@@ -1275,7 +1269,7 @@ async function sendBbsPost() {
 	const postMessage = replyToId ? `>>${replyToId} ${msg}` : msg;
 
 	try {
-		const sUrl = getBbsServerUrl();
+		const sUrl = SPKMOD_SERVER_URL;
 		const adminSecret = (me.isStaff && window.localStorage && localStorage.getItem("spkmod-admin-secret")) || "";
 		const headers = { "Content-Type": "application/json" };
 		if (adminSecret) {
@@ -1395,7 +1389,7 @@ async function deleteBbsPost(postId) {
 		if (window.localStorage) localStorage.setItem("spkmod-admin-secret", adminSecret);
 	}
 	try {
-		const sUrl = getBbsServerUrl();
+		const sUrl = SPKMOD_SERVER_URL;
 		const safeFetch = window.spkmodSafeFetch || window.fetch;
 		const res = await safeFetch(`${sUrl}/api/bbs/delete`, {
 			method: "POST",
@@ -1457,7 +1451,7 @@ async function toggleBbsHeart(postId, btnEl) {
 
 	// 2. Synchronize with BBS server
 	try {
-		const sUrl = getBbsServerUrl();
+		const sUrl = SPKMOD_SERVER_URL;
 		const safeFetch = window.spkmodSafeFetch || window.fetch;
 		const res = await safeFetch(`${sUrl}/api/bbs/heart`, {
 			method: "POST",

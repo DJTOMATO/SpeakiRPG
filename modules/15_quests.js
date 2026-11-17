@@ -269,8 +269,10 @@ async function fetchAllQuests() {
 	try {
 		const token = (typeof window.getNativeAuthToken === "function" ? window.getNativeAuthToken() : "") ||
 		              (typeof getAuthToken === "function" ? getAuthToken() : "");
-		const headers = {};
-		if (token) headers["authorization"] = `Bearer ${token.replace(/^Bearer /i, "")}`;
+		if (!token) return;
+		const headers = {
+			"authorization": `Bearer ${token.replace(/^Bearer /i, "")}`
+		};
 
 		const endpoint = window.lunActiveApiEndpoint ||
 		                 (window.speakiServerEndpoint ? window.speakiServerEndpoint : "") ||
@@ -283,6 +285,7 @@ async function fetchAllQuests() {
 					headers: headers,
 					mode: "cors"
 				});
+				if (res.status === 401 || res.status === 403) break;
 				if (res.ok) {
 					const data = await spkmodReadQuestResponseJson(res);
 					if (Array.isArray(data)) {

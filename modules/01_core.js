@@ -176,6 +176,7 @@ if (!window.__speakiFetchHooked) {
 }
 
 // --- NETWORK RESILIENCE: SAFE FETCH & CIRCUIT BREAKER ---
+const SPKMOD_SERVER_URL = "https://spk.lena.moe";
 window.spkmodSafeFetch = async function(url, options = {}, timeoutMs = 5000) {
 	const controller = new AbortController();
 	const timer = setTimeout(() => {
