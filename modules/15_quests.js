@@ -474,7 +474,14 @@ function isChecklistPinned(questId) {
 
     ensureSpkmodChecklistPinCache();
 
-    return spkmodChecklistPinnedIdSetCache.has(String(questId));
+    if (!spkmodChecklistPinnedIdSetCache.has(String(questId))) {
+        return false;
+    }
+    const cached = window.__spkmodCachedQuests?.[String(questId)];
+    if (typeof isQuestDismissed === "function" && isQuestDismissed(questId, cached?.period)) {
+        return false;
+    }
+    return true;
 }
 
 function toggleChecklistPin(questId) {
@@ -483,13 +490,20 @@ function toggleChecklistPin(questId) {
     const pins = getChecklistPinnedIds();
     const id = String(questId);
     const idx = pins.findIndex(value => String(value) === id);
+    const cached = window.__spkmodCachedQuests?.[id];
+    const wasDismissed = typeof isQuestDismissed === "function" && isQuestDismissed(id, cached?.period);
 
     let nowPinned = false;
 
-    if (idx >= 0) {
+    if (idx >= 0 && !wasDismissed) {
         pins.splice(idx, 1);
     } else {
-        pins.push(questId);
+        if (idx < 0) {
+            pins.push(questId);
+        }
+        if (typeof undismissQuest === "function") {
+            undismissQuest(questId);
+        }
         nowPinned = true;
     }
 
@@ -541,14 +555,24 @@ function saveDismissedQuests() {
 function dismissQuest(questId, period) {
     if (!questId) return;
 
+    const id = String(questId);
     const dismissed = getDismissedQuests();
 
-    dismissed[String(questId)] = {
+    dismissed[id] = {
         ts: Date.now(),
         period: period || "daily"
     };
 
     saveDismissedQuests();
+
+    const pins = getChecklistPinnedIds();
+    const nextPins = pins.filter(p => String(p) !== id);
+    if (nextPins.length !== pins.length) {
+        setChecklistPinnedIds(nextPins);
+    }
+    if (typeof refreshPinButtons === "function") {
+        refreshPinButtons();
+    }
 }
 
 function undismissQuest(questId) {
@@ -776,8 +800,14 @@ function renderQuestChecklist() {
 		if (!q || !q.questId) continue;
 		const period = (q.period || "daily").toLowerCase();
 		const isDaily = (period === "daily");
-		const isPinned = isChecklistPinned(q.questId);
-		const isDismissed = isQuestDismissed(q.questId, period);
+		ensureSpkmodChecklistPinCache();
+		const isExplicitlyPinned = spkmodChecklistPinnedIdSetCache.has(String(q.questId));
+		let isDismissed = isQuestDismissed(q.questId, period);
+		if (isExplicitlyPinned && isDismissed) {
+			undismissQuest(q.questId);
+			isDismissed = false;
+		}
+		const isPinned = isExplicitlyPinned && !isDismissed;
 
 		const cur = q.currentAmount ?? 0;
 		const tgt = q.targetAmount ?? 1;
@@ -1074,11 +1104,9 @@ function matchQuestFromTitleText(titleText, item) {
 			...allCached.filter(q => (q.period || "daily") !== period)
 		];
 
-		const matchesQuestText = (q) => {
-			if (q.title && (domTitle === q.title || titleText.includes(q.title))) return true;
-			if (q._localizedTitle && (domTitle === q._localizedTitle || titleText.includes(q._localizedTitle))) return true;
-			if (q.description && titleText.includes(q.description)) return true;
-			if (q._localizedDesc && titleText.includes(q._localizedDesc)) return true;
+		const getCandidateTitlesAndDescs = (q) => {
+			const titles = [];
+			const descs = [];
 			if (q.code) {
 				if (typeof window.i18n === "function") {
 					try {
@@ -1086,8 +1114,8 @@ function matchQuestFromTitleText(titleText, item) {
 						const dKey = `content.quest.${q.code}.description`;
 						const tVal = window.i18n(tKey);
 						const dVal = window.i18n(dKey);
-						if (tVal && tVal !== tKey && (domTitle === tVal || titleText.includes(tVal))) return true;
-						if (dVal && dVal !== dKey && titleText.includes(dVal)) return true;
+						if (tVal && tVal !== tKey) titles.push(tVal.trim());
+						if (dVal && dVal !== dKey) descs.push(dVal.trim());
 					} catch (_) {}
 				}
 				if (window.i18nMap && typeof window.i18nMap === "object") {
@@ -1095,16 +1123,33 @@ function matchQuestFromTitleText(titleText, item) {
 						if (!table || typeof table !== "object") continue;
 						const tVal = table[`content.quest.${q.code}.title`];
 						const dVal = table[`content.quest.${q.code}.description`];
-						if (tVal && (domTitle === tVal || titleText.includes(tVal))) return true;
-						if (dVal && titleText.includes(dVal)) return true;
+						if (tVal) titles.push(tVal.trim());
+						if (dVal) descs.push(dVal.trim());
 					}
 				}
 			}
-			return false;
+			if (q.title) titles.push(q.title.trim());
+			if (q.description) descs.push(q.description.trim());
+			if (q._localizedTitle) titles.push(q._localizedTitle.trim());
+			if (q._localizedDesc) descs.push(q._localizedDesc.trim());
+			return { titles, descs };
 		};
 
+		// Pass 1a: Exact title match
 		for (const q of orderedCandidates) {
-			if (matchesQuestText(q)) {
+			const { titles } = getCandidateTitlesAndDescs(q);
+			if (titles.some(t => t && domTitle === t)) {
+				return finalizeMatchedQuest(q);
+			}
+		}
+
+		// Pass 1b: Exact description match or full title+desc match
+		for (const q of orderedCandidates) {
+			const { titles, descs } = getCandidateTitlesAndDescs(q);
+			if (domDesc && descs.some(d => d && (domDesc === d || titleText.includes(d)))) {
+				return finalizeMatchedQuest(q);
+			}
+			if (titles.some(t => t && titleText.startsWith(t + " "))) {
 				return finalizeMatchedQuest(q);
 			}
 		}
