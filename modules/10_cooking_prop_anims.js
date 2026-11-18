@@ -651,17 +651,26 @@ async function spkmodEnsureFBXLoader() {
 }
 
 let _spkmodGLTFLoaderClass = null;
+let _spkmodMeshoptDecoder = null;
 async function spkmodEnsureGLTFLoader() {
 	if (_spkmodGLTFLoaderClass) return _spkmodGLTFLoaderClass;
 	await spkmodEnsureThree();
-	if (window.THREE && window.THREE.GLTFLoader) {
+	if (window.THREE && window.THREE.GLTFLoader && window.THREE.MeshoptDecoder) {
 		_spkmodGLTFLoaderClass = window.THREE.GLTFLoader;
+		_spkmodMeshoptDecoder = window.THREE.MeshoptDecoder;
 		return _spkmodGLTFLoaderClass;
 	}
 	try {
-		const mod = await import('https://esm.sh/v135/three@0.185.0/examples/jsm/loaders/GLTFLoader.js');
+		const [mod, meshoptMod] = await Promise.all([
+			import('https://esm.sh/v135/three@0.185.0/examples/jsm/loaders/GLTFLoader.js'),
+			import('https://esm.sh/v135/three@0.185.0/examples/jsm/libs/meshopt_decoder.module.js').catch(() => null)
+		]);
 		_spkmodGLTFLoaderClass = mod.GLTFLoader;
-		if (window.THREE) window.THREE.GLTFLoader = mod.GLTFLoader;
+		_spkmodMeshoptDecoder = meshoptMod?.MeshoptDecoder || null;
+		if (window.THREE) {
+			window.THREE.GLTFLoader = mod.GLTFLoader;
+			if (_spkmodMeshoptDecoder) window.THREE.MeshoptDecoder = _spkmodMeshoptDecoder;
+		}
 		return _spkmodGLTFLoaderClass;
 	} catch (e) {
 		console.warn("[SpeakiMod+] Failed to load GLTFLoader:", e);

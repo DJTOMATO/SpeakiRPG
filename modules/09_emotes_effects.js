@@ -261,6 +261,11 @@ async function spkmodLoadBurgerVehiclesScene() {
 		const GLTFLoader = await spkmodEnsureGLTFLoader();
 		if (!GLTFLoader) return null;
 		const loader = new GLTFLoader();
+		const meshopt = (typeof _spkmodMeshoptDecoder !== "undefined" && _spkmodMeshoptDecoder) || window.THREE?.MeshoptDecoder;
+		if (meshopt) {
+			if (meshopt.ready) await meshopt.ready;
+			loader.setMeshoptDecoder(meshopt);
+		}
 		const gltf = await loader.loadAsync("/models/burger_shop/burger-shop-vehicles.glb");
 		_lunBurgerCarGltfScene = gltf?.scene || null;
 		return _lunBurgerCarGltfScene;
