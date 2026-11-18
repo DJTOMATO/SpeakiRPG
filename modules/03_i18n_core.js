@@ -471,6 +471,8 @@ var lunPanelElements = {
 	autoMopBtn: null,
 	burgerSkinBtn: null,
 	burgerCarBtn: null,
+	randomCarEveryoneBtn: null,
+	resetCarsEveryoneBtn: null,
 	chowayoBtn: null,
 	heartsBtn: null,
 	autoHeartsBtn: null,

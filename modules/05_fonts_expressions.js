@@ -537,18 +537,22 @@ function applyChromaFloorPad(shape, scale, silent = false) {
     	const mat = new THREE.MeshBasicMaterial({
         	color: hex,
         	side: THREE.DoubleSide,
-        	depthWrite: true
+        	depthWrite: true,
+        	polygonOffset: true,
+        	polygonOffsetFactor: -1,
+        	polygonOffsetUnits: -1
     	});
 
     	mesh = new THREE.Mesh(buildGeometry(lunChromaFloorShape, lunChromaFloorScale), mat);
     	mesh.name = "spkmod_chroma_floor_pad";
     	mesh.rotation.x = -Math.PI / 2;
-    	mesh.position.set(0, 0.02, 0);
+    	mesh.position.set(0, 0.002, 0);
     	mesh.userData.spkmodGeometryKey = geometryKey;
 
     	playerContainer.add(mesh);
 	} else {
     	mesh.visible = true;
+    	mesh.position.set(0, 0.002, 0);
 
     	if (!mesh.geometry || mesh.userData.spkmodGeometryKey !== geometryKey) {
         	const oldGeometry = mesh.geometry;

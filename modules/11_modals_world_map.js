@@ -605,6 +605,20 @@ document.body.appendChild(
 					innerText: t("flyEveryoneBtn"),
 					onclick: () => window.spkmodTriggerFlyEveryone && window.spkmodTriggerFlyEveryone()
 				}),
+				buildElement("div", { style: "display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;" }, [
+					lunPanelElements.randomCarEveryoneBtn = buildElement("button", {
+						className: "spkmod-panel-btn", style: "padding: 6px 4px; font-size: 10.5px; color: #38bdf8; font-weight: bold;",
+						innerText: t("randomCarEveryoneBtn") || "🚗 Random Car (ALL)",
+						title: "Give a random car model and color to everyone",
+						onclick: () => window.spkmodRandomCarsEveryone && window.spkmodRandomCarsEveryone()
+					}),
+					lunPanelElements.resetCarsEveryoneBtn = buildElement("button", {
+						className: "spkmod-panel-btn", style: "padding: 6px 4px; font-size: 10.5px; color: #fca5a5;",
+						innerText: t("resetCarsEveryoneBtn") || "🚗 Reset Cars",
+						title: "Remove all spawned cars and restore everyone",
+						onclick: () => window.spkmodResetCarsEveryone && window.spkmodResetCarsEveryone()
+					})
+				]),
 				buildElement("div", { style: "display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px;" }, [
 					lunPanelElements.pumpkinCartTexBtn = buildElement("button", {
 						className: "spkmod-panel-btn",

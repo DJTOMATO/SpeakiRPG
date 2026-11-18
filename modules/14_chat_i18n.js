@@ -816,6 +816,8 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.farmEveryoneBtn) setText(lunPanelElements.farmEveryoneBtn, t("farmEveryoneBtn"));
 	if (lunPanelElements.hobagiEveryoneBtn) setText(lunPanelElements.hobagiEveryoneBtn, t("hobagiEveryoneBtn"));
 	if (lunPanelElements.flyEveryoneBtn) setText(lunPanelElements.flyEveryoneBtn, t("flyEveryoneBtn"));
+	if (lunPanelElements.randomCarEveryoneBtn) setText(lunPanelElements.randomCarEveryoneBtn, t("randomCarEveryoneBtn") || "🚗 Random Car (ALL)");
+	if (lunPanelElements.resetCarsEveryoneBtn) setText(lunPanelElements.resetCarsEveryoneBtn, t("resetCarsEveryoneBtn") || "🚗 Reset Cars");
 	if (lunPanelElements.invisibleBtn) lunPanelElements.invisibleBtn.title = t("invisibleBtn");
 	if (lunPanelElements.renameTargetInput) lunPanelElements.renameTargetInput.placeholder = t("originalNamePlaceholder");
 	if (lunPanelElements.renameValueInput) lunPanelElements.renameValueInput.placeholder = t("newNamePlaceholder");
