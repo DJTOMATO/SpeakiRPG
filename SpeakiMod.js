@@ -15317,8 +15317,6 @@ function autoChowayoLoop() {
 }
 
 window.AutoMopActive = false;
-window.__autoMopTimeoutId = null;
-const lunMopAnimMs = 1150;
 const lunMopPatchedControllers = new WeakSet();
 
 function spkmodGetLocalAnimController() {
@@ -15347,52 +15345,23 @@ function spkmodPatchControllerForMop(controller) {
 			return origExitEmoteIdle.apply(this, args);
 		};
 	}
-
-	const origPlayEmote = controller.playEmote;
-	if (typeof origPlayEmote === "function") {
-		controller.playEmote = function (...args) {
-			if (
-				window.AutoMopActive &&
-				this === spkmodGetLocalAnimController() &&
-				(this.emoteIdlePlaying || this.emoteIdleHeld || (this.oneShotPlaying && this.oneShotClip === "otl"))
-			) {
-				return true;
-			}
-			return origPlayEmote.apply(this, args);
-		};
-	}
-}
-
-function autoMopLoop() {
-	if (!window.AutoMopActive) return;
-	const controller = spkmodGetLocalAnimController();
-	if (controller) spkmodPatchControllerForMop(controller);
-	if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
-		if (gameState.myAnimState !== 4) {
-			gameState.sendEmoteNow(typeof Emotes !== "undefined" ? (Emotes.Mop || Emotes.Cry || 1) : 1);
-		}
-	}
-	window.__autoMopTimeoutId = setTimeout(autoMopLoop, lunMopAnimMs);
 }
 
 function toggleAutoMop(btn) {
 	window.AutoMopActive = !window.AutoMopActive;
+	const controller = spkmodGetLocalAnimController();
 	if (window.AutoMopActive) {
-		const controller = spkmodGetLocalAnimController();
-		if (controller) spkmodPatchControllerForMop(controller);
-		if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
-			gameState.sendEmoteNow(typeof Emotes !== "undefined" ? (Emotes.Mop || Emotes.Cry || 1) : 1);
-		}
-		clearTimeout(window.__autoMopTimeoutId);
-		window.__autoMopTimeoutId = setTimeout(autoMopLoop, lunMopAnimMs);
-	} else {
-		clearTimeout(window.__autoMopTimeoutId);
-		window.__autoMopTimeoutId = null;
-		const controller = spkmodGetLocalAnimController();
 		if (controller) {
-			if (typeof controller.exitEmoteIdle === "function") controller.exitEmoteIdle();
-			else if (typeof controller.crossFadeToLocomotion === "function") controller.crossFadeToLocomotion();
+			spkmodPatchControllerForMop(controller);
+			if (typeof controller.playEmote === "function") {
+				controller.playEmote();
+			} else if (typeof controller.enterEmoteIdle === "function") {
+				controller.enterEmoteIdle();
+			}
 		}
+	} else if (controller) {
+		if (typeof controller.exitEmoteIdle === "function") controller.exitEmoteIdle();
+		else if (typeof controller.crossFadeToLocomotion === "function") controller.crossFadeToLocomotion();
 	}
 	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.autoMopBtn);
 	if (targetBtn) {
