@@ -544,6 +544,7 @@ function getAuthToken() {
 }
 const Emotes = {
 	Cry: 1,
+	Mop: 1, // Maid skin (SKIN_SPEAKI_MAID) emoteOverride on Cry/otl
 	Jump: 2,
 	MinigameJoayo: 3,
 	StrokeStart: 4,
@@ -551,9 +552,19 @@ const Emotes = {
 	StrokeBloom: 6,
 	StrokeCancel: 7,
 	StageDance: 8,
+	QuickTalkYes: 9,
+	QuickTalkNo: 10,
+	QuickTalkGo: 11,
+	QuickTalkStop: 12,
+	QuickTalkHelp: 13,
+	QuickTalkFollowMe: 14,
 	Faint: 15,
 	Dance: 16
 };
+
+const LUN_BURGER_SKIN_CODES = [null, "SKIN_SPEAKI_BURGER_STAFF_A", "SKIN_SPEAKI_BURGER_STAFF_B"];
+const LUN_BURGER_SKIN_KEYS = ["burgerSkinOff", "burgerSkinA", "burgerSkinB"];
+const LUN_BURGER_SKIN_FALLBACKS = ["Burger: OFF", "Burger: A", "Burger: B"];
 
 // True First Person & Speedometer State
 var lunTrueFirstPersonActive = false;

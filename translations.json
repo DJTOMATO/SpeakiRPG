@@ -900,7 +900,12 @@
         "cinemaRepeatAll": "Repeat: All",
         "cinemaRepeatOne": "Repeat: One",
         "cinemaRepeatOff": "Repeat: Off",
-        "cinemaNoEntries": "No entries found in {0}"
+        "cinemaNoEntries": "No entries found in {0}",
+        "autoMopOn": "Mop: ⏸️",
+        "autoMopOff": "Mop: ▶️",
+        "burgerSkinOff": "Burger: OFF",
+        "burgerSkinA": "Burger: A",
+        "burgerSkinB": "Burger: B"
     },
     "ja": {
         "langName": "日本語",
@@ -1833,7 +1838,12 @@
         "cinemaRepeatAll": "リピート: すべて",
         "cinemaRepeatOne": "リピート: 1曲",
         "cinemaRepeatOff": "リピート: オフ",
-        "cinemaNoEntries": "{0} に動画が見つかりません"
+        "cinemaNoEntries": "{0} に動画が見つかりません",
+        "autoMopOn": "雑巾がけ: ⏸️",
+        "autoMopOff": "雑巾がけ: ▶️",
+        "burgerSkinOff": "バーガー: OFF",
+        "burgerSkinA": "バーガー: A",
+        "burgerSkinB": "バーガー: B"
     },
     "ko": {
         "langName": "한국어",
@@ -2736,7 +2746,12 @@
         "cinemaRepeatAll": "반복: 전체",
         "cinemaRepeatOne": "반복: 한 곡",
         "cinemaRepeatOff": "반복: 끄기",
-        "cinemaNoEntries": "{0}에서 영상을 찾을 수 없습니다"
+        "cinemaNoEntries": "{0}에서 영상을 찾을 수 없습니다",
+        "autoMopOn": "걸레질: ⏸️",
+        "autoMopOff": "걸레질: ▶️",
+        "burgerSkinOff": "버거: OFF",
+        "burgerSkinA": "버거: A",
+        "burgerSkinB": "버거: B"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -3639,7 +3654,12 @@
         "cinemaRepeatAll": "循環播放: 全部",
         "cinemaRepeatOne": "循環播放: 單曲",
         "cinemaRepeatOff": "循環播放: 關閉",
-        "cinemaNoEntries": "{0} 中找不到影片"
+        "cinemaNoEntries": "{0} 中找不到影片",
+        "autoMopOn": "擦地: ⏸️",
+        "autoMopOff": "擦地: ▶️",
+        "burgerSkinOff": "漢堡: OFF",
+        "burgerSkinA": "漢堡: A",
+        "burgerSkinB": "漢堡: B"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -4542,7 +4562,12 @@
         "cinemaRepeatAll": "循环播放: 全部",
         "cinemaRepeatOne": "循环播放: 单曲",
         "cinemaRepeatOff": "循环播放: 关闭",
-        "cinemaNoEntries": "{0} 中未找到视频"
+        "cinemaNoEntries": "{0} 中未找到视频",
+        "autoMopOn": "擦地: ⏸️",
+        "autoMopOff": "擦地: ▶️",
+        "burgerSkinOff": "汉堡: OFF",
+        "burgerSkinA": "汉堡: A",
+        "burgerSkinB": "汉堡: B"
     },
     "es-419": {
         "langName": "Español",
@@ -5445,6 +5470,11 @@
         "cinemaRepeatAll": "Repetir: Todo",
         "cinemaRepeatOne": "Repetir: Una",
         "cinemaRepeatOff": "Repetir: Desactivado",
-        "cinemaNoEntries": "No se encontraron videos en {0}"
+        "cinemaNoEntries": "No se encontraron videos en {0}",
+        "autoMopOn": "Trapear: ⏸️",
+        "autoMopOff": "Trapear: ▶️",
+        "burgerSkinOff": "Burger: OFF",
+        "burgerSkinA": "Burger: A",
+        "burgerSkinB": "Burger: B"
     }
 }

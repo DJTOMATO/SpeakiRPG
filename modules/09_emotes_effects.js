@@ -108,6 +108,124 @@ function autoChowayoLoop() {
 	window.__autoChowayoTimeoutId = setTimeout(autoChowayoLoop, lunChowayoAnimMs);
 }
 
+window.AutoMopActive = false;
+window.__autoMopTimeoutId = null;
+const lunMopAnimMs = 1150;
+const lunMopPatchedControllers = new WeakSet();
+
+function spkmodGetLocalAnimController() {
+	if (typeof gameState === "undefined" || !gameState) return null;
+	return gameState.localAnimationController || gameState.localAvatar?.animationController || null;
+}
+
+function spkmodPatchControllerForMop(controller) {
+	if (!controller || typeof controller !== "object" || lunMopPatchedControllers.has(controller)) return;
+	lunMopPatchedControllers.add(controller);
+
+	const origSetLocomotion = controller.setLocomotion;
+	if (typeof origSetLocomotion === "function") {
+		controller.setLocomotion = function (...args) {
+			if (window.AutoMopActive && this === spkmodGetLocalAnimController()) {
+				return origSetLocomotion.call(this, false);
+			}
+			return origSetLocomotion.apply(this, args);
+		};
+	}
+
+	const origExitEmoteIdle = controller.exitEmoteIdle;
+	if (typeof origExitEmoteIdle === "function") {
+		controller.exitEmoteIdle = function (...args) {
+			if (window.AutoMopActive && this === spkmodGetLocalAnimController()) return;
+			return origExitEmoteIdle.apply(this, args);
+		};
+	}
+
+	const origPlayEmote = controller.playEmote;
+	if (typeof origPlayEmote === "function") {
+		controller.playEmote = function (...args) {
+			if (
+				window.AutoMopActive &&
+				this === spkmodGetLocalAnimController() &&
+				(this.emoteIdlePlaying || this.emoteIdleHeld || (this.oneShotPlaying && this.oneShotClip === "otl"))
+			) {
+				return true;
+			}
+			return origPlayEmote.apply(this, args);
+		};
+	}
+}
+
+function autoMopLoop() {
+	if (!window.AutoMopActive) return;
+	const controller = spkmodGetLocalAnimController();
+	if (controller) spkmodPatchControllerForMop(controller);
+	if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
+		if (gameState.myAnimState !== 4) {
+			gameState.sendEmoteNow(typeof Emotes !== "undefined" ? (Emotes.Mop || Emotes.Cry || 1) : 1);
+		}
+	}
+	window.__autoMopTimeoutId = setTimeout(autoMopLoop, lunMopAnimMs);
+}
+
+function toggleAutoMop(btn) {
+	window.AutoMopActive = !window.AutoMopActive;
+	if (window.AutoMopActive) {
+		const controller = spkmodGetLocalAnimController();
+		if (controller) spkmodPatchControllerForMop(controller);
+		if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
+			gameState.sendEmoteNow(typeof Emotes !== "undefined" ? (Emotes.Mop || Emotes.Cry || 1) : 1);
+		}
+		clearTimeout(window.__autoMopTimeoutId);
+		window.__autoMopTimeoutId = setTimeout(autoMopLoop, lunMopAnimMs);
+	} else {
+		clearTimeout(window.__autoMopTimeoutId);
+		window.__autoMopTimeoutId = null;
+		const controller = spkmodGetLocalAnimController();
+		if (controller) {
+			if (typeof controller.exitEmoteIdle === "function") controller.exitEmoteIdle();
+			else if (typeof controller.crossFadeToLocomotion === "function") controller.crossFadeToLocomotion();
+		}
+	}
+	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.autoMopBtn);
+	if (targetBtn) {
+		setText(targetBtn, t(window.AutoMopActive ? "autoMopOn" : "autoMopOff") || (window.AutoMopActive ? "Mop: ⏸️" : "Mop: ▶️"));
+	}
+}
+
+window.LocalBurgerSkinMode = 0; // 0 = Off, 1 = BurgerStaff_A, 2 = BurgerStaff_B
+const lunBurgerSkinPatchedGameStates = new WeakSet();
+
+function spkmodPatchLocalSkinOverride(gs) {
+	if (!gs || typeof gs !== "object" || lunBurgerSkinPatchedGameStates.has(gs)) return;
+	if (typeof gs.effectiveLocalSkinCode !== "function") return;
+	lunBurgerSkinPatchedGameStates.add(gs);
+	const origEffectiveLocalSkinCode = gs.effectiveLocalSkinCode;
+	gs.effectiveLocalSkinCode = function (...args) {
+		const overrideCode = LUN_BURGER_SKIN_CODES[window.LocalBurgerSkinMode] || null;
+		if (overrideCode) return overrideCode;
+		return origEffectiveLocalSkinCode.apply(this, args);
+	};
+}
+
+function getBurgerSkinBtnLabel() {
+	const idx = window.LocalBurgerSkinMode || 0;
+	return t(LUN_BURGER_SKIN_KEYS[idx]) || LUN_BURGER_SKIN_FALLBACKS[idx];
+}
+
+function cycleBurgerSkin(btn) {
+	window.LocalBurgerSkinMode = ((window.LocalBurgerSkinMode || 0) + 1) % LUN_BURGER_SKIN_CODES.length;
+	if (typeof gameState !== "undefined" && gameState) {
+		spkmodPatchLocalSkinOverride(gameState);
+		if (typeof gameState.applyLocalSkin === "function") {
+			gameState.applyLocalSkin();
+		}
+	}
+	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.burgerSkinBtn);
+	if (targetBtn) {
+		setText(targetBtn, getBurgerSkinBtnLabel());
+	}
+}
+
 window.PetDanceActive = false;
 let petDanceInterval = null;
 let petDanceTick = 0;

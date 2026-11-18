@@ -468,6 +468,8 @@ var lunPanelElements = {
 	jukeboxBtn: null,
 	danceBtn: null,
 	autoJumpBtn: null,
+	autoMopBtn: null,
+	burgerSkinBtn: null,
 	chowayoBtn: null,
 	heartsBtn: null,
 	autoHeartsBtn: null,

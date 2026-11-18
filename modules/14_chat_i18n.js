@@ -833,6 +833,8 @@ spkmodI18nRenderers.push(() => {
 		setText(lunPanelElements.danceBtn, t("dance"));
 	if (lunPanelElements.faintBtn) setText(lunPanelElements.faintBtn, t("faintOn"));
 	if (lunPanelElements.autoFaintBtn) setText(lunPanelElements.autoFaintBtn, t(window.AutoFaintActive ? "aFaintOn" : "aFaintOff"));
+	if (lunPanelElements.autoMopBtn) setText(lunPanelElements.autoMopBtn, t(window.AutoMopActive ? "autoMopOn" : "autoMopOff") || (window.AutoMopActive ? "Mop: ⏸️" : "Mop: ▶️"));
+	if (lunPanelElements.burgerSkinBtn && typeof getBurgerSkinBtnLabel === "function") setText(lunPanelElements.burgerSkinBtn, getBurgerSkinBtnLabel());
 	setText(lunPanelElements.chowayoBtn, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
 	setText(lunPanelElements.heartsBtn, t("hearts"));
 	setText(lunPanelElements.autoHeartsBtn, t(window.AutoHeartsActive ? "autoHeartsOn" : "autoHeartsOff"));

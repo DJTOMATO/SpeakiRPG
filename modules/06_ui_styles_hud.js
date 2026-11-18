@@ -1319,6 +1319,24 @@ document.body.appendChild(
 						}
 					}
 				}),
+				lunPanelElements.autoMopBtn = buildElement("button", {
+					id: "spkmod-automop-btn",
+					className: "spkmod-panel-btn",
+					innerText: t(window.AutoMopActive ? "autoMopOn" : "autoMopOff") || (window.AutoMopActive ? "Mop: ⏸️" : "Mop: ▶️"),
+					value: "",
+					onclick: e => {
+						if (typeof toggleAutoMop === "function") toggleAutoMop(e.target);
+					}
+				}),
+				lunPanelElements.burgerSkinBtn = buildElement("button", {
+					id: "spkmod-burgerskin-btn",
+					className: "spkmod-panel-btn",
+					innerText: typeof getBurgerSkinBtnLabel === "function" ? getBurgerSkinBtnLabel() : "Burger: OFF",
+					value: "",
+					onclick: e => {
+						if (typeof cycleBurgerSkin === "function") cycleBurgerSkin(e.target);
+					}
+				}),
 				lunPanelElements.autoHeartsBtn = buildElement("button", {
 					id: "spkmod-autohearts-btn",
 					className: "spkmod-panel-btn",
