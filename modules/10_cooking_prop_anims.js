@@ -650,6 +650,25 @@ async function spkmodEnsureFBXLoader() {
 	}
 }
 
+let _spkmodGLTFLoaderClass = null;
+async function spkmodEnsureGLTFLoader() {
+	if (_spkmodGLTFLoaderClass) return _spkmodGLTFLoaderClass;
+	await spkmodEnsureThree();
+	if (window.THREE && window.THREE.GLTFLoader) {
+		_spkmodGLTFLoaderClass = window.THREE.GLTFLoader;
+		return _spkmodGLTFLoaderClass;
+	}
+	try {
+		const mod = await import('https://esm.sh/v135/three@0.185.0/examples/jsm/loaders/GLTFLoader.js');
+		_spkmodGLTFLoaderClass = mod.GLTFLoader;
+		if (window.THREE) window.THREE.GLTFLoader = mod.GLTFLoader;
+		return _spkmodGLTFLoaderClass;
+	} catch (e) {
+		console.warn("[SpeakiMod+] Failed to load GLTFLoader:", e);
+		return null;
+	}
+}
+
 const _spkmodLoadedCookingClips = {};
 async function spkmodLoadCookingAnimation(clipName) {
 	const ctrl = gameState?.localAnimationController;

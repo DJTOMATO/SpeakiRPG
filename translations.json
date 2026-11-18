@@ -905,7 +905,10 @@
         "autoMopOff": "Mop: ▶️",
         "burgerSkinOff": "Burger: OFF",
         "burgerSkinA": "Burger: A",
-        "burgerSkinB": "Burger: B"
+        "burgerSkinB": "Burger: B",
+        "burgerCarOff": "Car: OFF",
+        "burgerCarSedan": "Car: Sedan",
+        "burgerCarVan": "Car: Van"
     },
     "ja": {
         "langName": "日本語",
@@ -1843,7 +1846,10 @@
         "autoMopOff": "雑巾がけ: ▶️",
         "burgerSkinOff": "バーガー: OFF",
         "burgerSkinA": "バーガー: A",
-        "burgerSkinB": "バーガー: B"
+        "burgerSkinB": "バーガー: B",
+        "burgerCarOff": "車: OFF",
+        "burgerCarSedan": "車: セダン",
+        "burgerCarVan": "車: バン"
     },
     "ko": {
         "langName": "한국어",
@@ -2751,7 +2757,10 @@
         "autoMopOff": "걸레질: ▶️",
         "burgerSkinOff": "버거: OFF",
         "burgerSkinA": "버거: A",
-        "burgerSkinB": "버거: B"
+        "burgerSkinB": "버거: B",
+        "burgerCarOff": "차량: OFF",
+        "burgerCarSedan": "차량: 세단",
+        "burgerCarVan": "차량: 밴"
     },
     "zh-TW": {
         "langName": "繁體中文",
@@ -3659,7 +3668,10 @@
         "autoMopOff": "擦地: ▶️",
         "burgerSkinOff": "漢堡: OFF",
         "burgerSkinA": "漢堡: A",
-        "burgerSkinB": "漢堡: B"
+        "burgerSkinB": "漢堡: B",
+        "burgerCarOff": "汽車: OFF",
+        "burgerCarSedan": "汽車: 轎車",
+        "burgerCarVan": "汽車: 廂型車"
     },
     "zh-CN": {
         "langName": "简体中文",
@@ -4567,7 +4579,10 @@
         "autoMopOff": "擦地: ▶️",
         "burgerSkinOff": "汉堡: OFF",
         "burgerSkinA": "汉堡: A",
-        "burgerSkinB": "汉堡: B"
+        "burgerSkinB": "汉堡: B",
+        "burgerCarOff": "汽车: OFF",
+        "burgerCarSedan": "汽车: 轿车",
+        "burgerCarVan": "汽车: 面包车"
     },
     "es-419": {
         "langName": "Español",
@@ -5475,6 +5490,9 @@
         "autoMopOff": "Trapear: ▶️",
         "burgerSkinOff": "Burger: OFF",
         "burgerSkinA": "Burger: A",
-        "burgerSkinB": "Burger: B"
+        "burgerSkinB": "Burger: B",
+        "burgerCarOff": "Auto: OFF",
+        "burgerCarSedan": "Auto: Sedán",
+        "burgerCarVan": "Auto: Van"
     }
 }

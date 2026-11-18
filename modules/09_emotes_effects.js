@@ -195,6 +195,197 @@ function cycleBurgerSkin(btn) {
 	}
 }
 
+window.BurgerCarMode = 0; // 0 = Off, 1 = Sedan, 2 = Van
+let _lunBurgerCarGltfScene = null;
+let _lunBurgerCarLoadingPromise = null;
+let _lunBurgerCarState = null;
+let _lunBurgerCarLastColorIdx = -1;
+let _lunBurgerCarKeyHooked = false;
+
+function getBurgerCarBtnLabel() {
+	const idx = window.BurgerCarMode || 0;
+	return t(LUN_BURGER_CAR_KEYS[idx]) || LUN_BURGER_CAR_FALLBACKS[idx];
+}
+
+function spkmodPickNextBurgerCarColor() {
+	const len = LUN_BURGER_CAR_COLORS.length;
+	let next = Math.floor(Math.random() * len);
+	if (len > 1 && next === _lunBurgerCarLastColorIdx) {
+		next = (next + 1 + Math.floor(Math.random() * (len - 1))) % len;
+	}
+	_lunBurgerCarLastColorIdx = next;
+	return LUN_BURGER_CAR_COLORS[next];
+}
+
+function spkmodPlayBurgerCarAudio(sfxPath) {
+	try {
+		const audio = new Audio(sfxPath);
+		audio.volume = 0.65;
+		audio.play().catch(() => {});
+	} catch (_) {}
+}
+
+function spkmodEnsureBurgerCarKeyHooks() {
+	if (_lunBurgerCarKeyHooked) return;
+	_lunBurgerCarKeyHooked = true;
+	const isTypingTarget = el =>
+		el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+	window.addEventListener("keydown", e => {
+		if (!window.BurgerCarMode || isTypingTarget(e.target)) return;
+		if (e.code === "KeyF" || e.code === "KeyG") {
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			if (!e.repeat) {
+				spkmodPlayBurgerCarAudio(
+					e.code === "KeyF"
+						? "/audio/sfx/burger_shop/carHorn.mp3"
+						: "/audio/sfx/burger_shop/carHornDouble.mp3"
+				);
+			}
+		}
+	}, true);
+	window.addEventListener("keyup", e => {
+		if (!window.BurgerCarMode || isTypingTarget(e.target)) return;
+		if (e.code === "KeyF" || e.code === "KeyG") {
+			e.preventDefault();
+			e.stopImmediatePropagation();
+		}
+	}, true);
+}
+
+async function spkmodLoadBurgerVehiclesScene() {
+	if (_lunBurgerCarGltfScene) return _lunBurgerCarGltfScene;
+	if (_lunBurgerCarLoadingPromise) return _lunBurgerCarLoadingPromise;
+	_lunBurgerCarLoadingPromise = (async () => {
+		if (typeof spkmodEnsureGLTFLoader !== "function") return null;
+		const GLTFLoader = await spkmodEnsureGLTFLoader();
+		if (!GLTFLoader) return null;
+		const loader = new GLTFLoader();
+		const gltf = await loader.loadAsync("/models/burger_shop/burger-shop-vehicles.glb");
+		_lunBurgerCarGltfScene = gltf?.scene || null;
+		return _lunBurgerCarGltfScene;
+	})().finally(() => {
+		_lunBurgerCarLoadingPromise = null;
+	});
+	return _lunBurgerCarLoadingPromise;
+}
+
+function spkmodRemoveBurgerCar() {
+	if (_lunBurgerCarState) {
+		if (_lunBurgerCarState.rafId) cancelAnimationFrame(_lunBurgerCarState.rafId);
+		if (_lunBurgerCarState.root && _lunBurgerCarState.root.parent) {
+			_lunBurgerCarState.root.parent.remove(_lunBurgerCarState.root);
+		}
+		_lunBurgerCarState = null;
+	}
+	if (typeof gameState !== "undefined" && gameState) {
+		if (gameState.localAvatarPose?.position) {
+			gameState.localAvatarPose.position.y = 0;
+		}
+		const ctrl = spkmodGetLocalAnimController();
+		if (ctrl && typeof ctrl.exitMountPose === "function") {
+			ctrl.exitMountPose();
+		}
+	}
+}
+
+async function spkmodSpawnBurgerCar(modeIdx) {
+	const modelName = LUN_BURGER_CAR_MODES[modeIdx];
+	if (!modelName) {
+		spkmodRemoveBurgerCar();
+		return;
+	}
+	const scene = await spkmodLoadBurgerVehiclesScene();
+	if (!scene || window.BurgerCarMode !== modeIdx) return;
+	const prefab = scene.getObjectByName(modelName);
+	if (!prefab || typeof gameState === "undefined" || !gameState?.playerContainer) return;
+
+	spkmodRemoveBurgerCar();
+	const carObj = prefab.clone(true);
+	const colorHex = spkmodPickNextBurgerCarColor();
+	carObj.traverse(node => {
+		if (node.isMesh && node.material) {
+			const mats = Array.isArray(node.material) ? node.material : [node.material];
+			const replaced = mats.map(m => {
+				if (m && m.name === "car_body") {
+					const cloned = m.clone();
+					if (cloned.color) cloned.color.setHex(colorHex);
+					return cloned;
+				}
+				return m;
+			});
+			node.material = Array.isArray(node.material) ? replaced : replaced[0];
+		}
+	});
+
+	const isVan = modelName === "Vehicle_Van";
+	const wheelRadius = isVan ? 0.34 : 0.36;
+	const seatOffsetY = isVan ? 1.35 : 1.05;
+	const wheels = ["FL", "FR", "RL", "RR"]
+		.map(suffix => carObj.getObjectByName(`${modelName}_Wheel_${suffix}`))
+		.filter(Boolean);
+
+	gameState.playerContainer.add(carObj);
+	if (gameState.localAvatarPose?.position) {
+		gameState.localAvatarPose.position.y = seatOffsetY;
+	}
+	const ctrl = spkmodGetLocalAnimController();
+	if (ctrl && typeof ctrl.enterMountPose === "function") {
+		ctrl.enterMountPose("sit");
+	}
+
+	const state = {
+		root: carObj,
+		wheels,
+		wheelRadius,
+		seatOffsetY,
+		lastX: gameState.playerContainer.position.x,
+		lastZ: gameState.playerContainer.position.z,
+		rafId: 0
+	};
+	_lunBurgerCarState = state;
+
+	const tick = () => {
+		if (!window.BurgerCarMode || _lunBurgerCarState !== state) return;
+		if (typeof gameState !== "undefined" && gameState?.playerContainer) {
+			const pc = gameState.playerContainer;
+			if (state.root.parent !== pc) pc.add(state.root);
+			if (gameState.localAvatarPose?.position) {
+				gameState.localAvatarPose.position.y = state.seatOffsetY;
+			}
+			const c = spkmodGetLocalAnimController();
+			if (c && !c.mountSitPlaying && typeof c.enterMountPose === "function") {
+				c.enterMountPose("sit");
+			}
+			const dx = pc.position.x - state.lastX;
+			const dz = pc.position.z - state.lastZ;
+			const dist = Math.hypot(dx, dz);
+			if (dist > 0.0001) {
+				const angle = dist / state.wheelRadius;
+				for (const w of state.wheels) w.rotation.x += angle;
+				state.lastX = pc.position.x;
+				state.lastZ = pc.position.z;
+			}
+		}
+		state.rafId = requestAnimationFrame(tick);
+	};
+	state.rafId = requestAnimationFrame(tick);
+}
+
+function cycleBurgerCar(btn) {
+	spkmodEnsureBurgerCarKeyHooks();
+	window.BurgerCarMode = ((window.BurgerCarMode || 0) + 1) % LUN_BURGER_CAR_MODES.length;
+	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.burgerCarBtn);
+	if (targetBtn) {
+		setText(targetBtn, getBurgerCarBtnLabel());
+	}
+	if (window.BurgerCarMode === 0) {
+		spkmodRemoveBurgerCar();
+	} else {
+		spkmodSpawnBurgerCar(window.BurgerCarMode);
+	}
+}
+
 window.PetDanceActive = false;
 let petDanceInterval = null;
 let petDanceTick = 0;

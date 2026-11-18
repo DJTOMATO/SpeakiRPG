@@ -1337,6 +1337,15 @@ document.body.appendChild(
 						if (typeof cycleBurgerSkin === "function") cycleBurgerSkin(e.target);
 					}
 				}),
+				lunPanelElements.burgerCarBtn = buildElement("button", {
+					id: "spkmod-burgercar-btn",
+					className: "spkmod-panel-btn",
+					innerText: typeof getBurgerCarBtnLabel === "function" ? getBurgerCarBtnLabel() : "Car: OFF",
+					value: "",
+					onclick: e => {
+						if (typeof cycleBurgerCar === "function") cycleBurgerCar(e.target);
+					}
+				}),
 				lunPanelElements.autoHeartsBtn = buildElement("button", {
 					id: "spkmod-autohearts-btn",
 					className: "spkmod-panel-btn",

@@ -470,6 +470,7 @@ var lunPanelElements = {
 	autoJumpBtn: null,
 	autoMopBtn: null,
 	burgerSkinBtn: null,
+	burgerCarBtn: null,
 	chowayoBtn: null,
 	heartsBtn: null,
 	autoHeartsBtn: null,
