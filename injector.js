@@ -63,15 +63,17 @@ async function patchScript(og, src) {
 	let code = await (await fetch(src)).text();
 
 	// Identify minified i18n function
-	const m_i18n = (code.match(/function (\w+?)\(e\)\s*\{\s*let \w+\s*=\s*\w+\[\w+\(\)\];\s*return Object\.prototype\.hasOwnProperty.call\(\w+,\s*e\)\s*\?\s*\w+\[e\]\s*:/) || [])[1] || "null";
-	const m_settingsMatch = code.match(/case[\x60'"]muteAll[\x60'"]\s*:\s*(\w+)\(\{muteAll:!(\w+)\(\)\.muteAll\}\)/) || [];
+	const m_i18nMatch = code.match(/function ([\w$]+?)\(e\)\s*\{\s*let [\w$]+\s*=\s*([\w$]+)\[[\w$]+\(\)\];\s*return Object\.prototype\.hasOwnProperty\.call\([\w$]+,\s*e\)\s*\?\s*[\w$]+\[e\]\s*:/) || [];
+	const m_i18n = m_i18nMatch[1] || "null";
+	const m_i18nMap = m_i18nMatch[2] || "null";
+	const m_settingsMatch = code.match(/case[\x60'"]muteAll[\x60'"]\s*:\s*([\w$]+)\(\{muteAll:!([\w$]+)\(\)\.muteAll\}\)/) || [];
 	const m_updateSettings = m_settingsMatch[1] || "null";
 	const m_getSettings = m_settingsMatch[2] || "null";
-	const m_listenerMatch = code.match(/function\s+(\w+)\((\w+)\)\{(\w+)=new \w+,\2\.add\(\3\)/) || [];
+	const m_listenerMatch = code.match(/function\s+([\w$]+)\(([\w$]+)\)\{([\w$]+)=new [\w$]+,\2\.add\(\3\)/) || [];
 	const m_vc = m_listenerMatch[3] || "null";
-	const m_tokenMatch = code.match(/function (\w+)\(\)\{return \w+\}function \w+\(\w+\)\{\w+=\w+\.accessToken/) || [];
+	const m_tokenMatch = code.match(/function ([\w$]+)\(\)\{return [\w$]+\}function [\w$]+\([\w$]+\)\{[\w$]+=[\w$]+\.accessToken/) || [];
 	const m_getToken = m_tokenMatch[1] || "null";
-	const m_refreshMatch = code.match(/function (\w+)\(\)\{if\(\w+\)return \w+;let \w+=\w+\(\)\.finally\(\(\)=>\{\w+=null\}/) || [];
+	const m_refreshMatch = code.match(/function ([\w$]+)\(\)\{if\([\w$]+\)return [\w$]+;let [\w$]+=[\w$]+\(\)\.finally\(\(\)=>\{[\w$]+=null\}/) || [];
 	const m_refreshToken = m_refreshMatch[1] || "null";
 	
 	code = code.replace(
@@ -82,7 +84,7 @@ async function patchScript(og, src) {
 
 	// Frame limiter fix: keep the frame schedule instead of re-anchoring on every rendered frame
 	code = code.replace(
-		/shouldRender\((\w+),(\w+)\)\{if\(\2<=0\)return!0;let (\w+)=1e3\/\2\*(\w+);return \1-this\.lastFrameTimeMs<\3\?!1:\(this\.lastFrameTimeMs=\1,!0\)\}/,
+		/shouldRender\(([\w$]+),([\w$]+)\)\{if\(\2<=0\)return!0;let ([\w$]+)=1e3\/\2\*([\w$]+);return \1-this\.lastFrameTimeMs<\3\?!1:\(this\.lastFrameTimeMs=\1,!0\)\}/,
 		(_m, e, t, n, k) =>
 			`shouldRender(${e},${t}){if(${t}<=0)return!0;const p=1e3/${t};const d=${e}-this.lastFrameTimeMs;if(d<p*${k})return!1;this.lastFrameTimeMs=d>p*2?${e}:this.lastFrameTimeMs+p;return!0}`
 	);
@@ -94,16 +96,16 @@ async function patchScript(og, src) {
 	// Layer A: Internal GameState method hook on connect(e)
 	const reqChannelPattern = /connect\(([^)]*)\)\s*\{\s*this\.requestedChannel\s*=/;
 	if (reqChannelPattern.test(code)) {
-		code = code.replace(reqChannelPattern, `connect($1){window.speakiInjectorVer = 2; window.gameState = this; window.getAudioListener = () => ${m_vc}; window.i18n = ${m_i18n}; window.getGameSettings = ${m_getSettings}; window.updateGameSettings = ${m_updateSettings}; window.getNativeAuthToken = ${m_getToken}; window.refreshAuthToken = ${m_refreshToken}; this.requestedChannel=`);
+		code = code.replace(reqChannelPattern, `connect($1){window.speakiInjectorVer = 2; window.gameState = this; window.getAudioListener = () => ${m_vc}; if (${m_i18n}) window.i18n = ${m_i18n}; if (${m_i18nMap}) window.i18nMap = ${m_i18nMap}; window.getGameSettings = ${m_getSettings}; window.updateGameSettings = ${m_updateSettings}; window.getNativeAuthToken = ${m_getToken}; window.refreshAuthToken = ${m_refreshToken}; this.requestedChannel=`);
 	}
 
 	// Layer B: Internal GameState method hook on handleLogin(e)
 	const handleLoginPattern = /handleLogin\(([^)]*)\)\s*\{/;
 	if (handleLoginPattern.test(code)) {
-		code = code.replace(handleLoginPattern, `handleLogin($1){window.gameState = this; window.getAudioListener = () => ${m_vc}; window.getGameSettings = ${m_getSettings}; window.updateGameSettings = ${m_updateSettings}; window.getNativeAuthToken = ${m_getToken}; window.refreshAuthToken = ${m_refreshToken}; if (typeof window.injectSpeakiMod === "function") window.injectSpeakiMod();`);
+		code = code.replace(handleLoginPattern, `handleLogin($1){window.gameState = this; window.getAudioListener = () => ${m_vc}; if (${m_i18n}) window.i18n = ${m_i18n}; if (${m_i18nMap}) window.i18nMap = ${m_i18nMap}; window.getGameSettings = ${m_getSettings}; window.updateGameSettings = ${m_updateSettings}; window.getNativeAuthToken = ${m_getToken}; window.refreshAuthToken = ${m_refreshToken}; if (typeof window.injectSpeakiMod === "function") window.injectSpeakiMod();`);
 	}
 
-	code += `\ntry { window.getAudioListener = () => ${m_vc}; window.getGameSettings = ${m_getSettings}; window.updateGameSettings = ${m_updateSettings}; window.getNativeAuthToken = ${m_getToken}; window.refreshAuthToken = ${m_refreshToken}; } catch (_) {}\n`;
+	code += `\ntry { window.getAudioListener = () => ${m_vc}; if (${m_i18n}) window.i18n = ${m_i18n}; if (${m_i18nMap}) window.i18nMap = ${m_i18nMap}; window.getGameSettings = ${m_getSettings}; window.updateGameSettings = ${m_updateSettings}; window.getNativeAuthToken = ${m_getToken}; window.refreshAuthToken = ${m_refreshToken}; } catch (_) {}\n`;
 
 	const blob = URL.createObjectURL(
 		new Blob([code], { type: "text/javascript" })

@@ -817,7 +817,7 @@ window.__spkmodMergeCompletedQuests = function(data) {
     return changed;
 };
 
-function spkmodCacheQuestRecord(quest, fallbackPeriod) {
+function spkmodCacheQuestRecord(quest, fallbackPeriod, orderIndex) {
     if (!quest?.questId) return null;
 
     const cache = window.__spkmodCachedQuests || (window.__spkmodCachedQuests = {});
@@ -828,8 +828,14 @@ function spkmodCacheQuestRecord(quest, fallbackPeriod) {
         if (!quest.period && fallbackPeriod) {
             quest.period = fallbackPeriod;
         }
+        if (orderIndex !== undefined) {
+            quest._orderIndex = orderIndex;
+        }
 
         cache[id] = quest;
+        if (typeof reconcileVirtualQuestPin === "function" && !id.startsWith("v_")) {
+            reconcileVirtualQuestPin(quest);
+        }
 
         return quest;
     }
@@ -837,6 +843,12 @@ function spkmodCacheQuestRecord(quest, fallbackPeriod) {
     if (existing === quest) {
         if (!existing.period && fallbackPeriod) {
             existing.period = fallbackPeriod;
+        }
+        if (orderIndex !== undefined) {
+            existing._orderIndex = orderIndex;
+        }
+        if (typeof reconcileVirtualQuestPin === "function" && !id.startsWith("v_")) {
+            reconcileVirtualQuestPin(existing);
         }
 
         return existing;
@@ -850,6 +862,12 @@ function spkmodCacheQuestRecord(quest, fallbackPeriod) {
 
     if (!existing.period && fallbackPeriod) {
         existing.period = fallbackPeriod;
+    }
+    if (orderIndex !== undefined) {
+        existing._orderIndex = orderIndex;
+    }
+    if (typeof reconcileVirtualQuestPin === "function" && !id.startsWith("v_")) {
+        reconcileVirtualQuestPin(existing);
     }
 
     return existing;

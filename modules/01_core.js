@@ -202,34 +202,59 @@ if (!window.__speakiFetchHooked) {
 		const res = await origFetch.apply(this, args);
 		try {
 			const url = typeof resource === "string" ? resource : (resource?.url || "");
-			// Detect a successful quest reward claim
+			// Detect a successful quest reward claim (single or claim-all)
 			const method = String(config?.method || resource?.method || "GET").toUpperCase();			
 			const claimMatch = url.match(/\/api\/quests\/([^/?#]+)\/claim(?:[/?#]|$)/i);
 			if (method === "POST" && res.ok && claimMatch) {
 				const questId = decodeURIComponent(claimMatch[1]);
 				console.info("[SpeakiMod+] Quest reward claimed; clearing pins:", questId);
+				if (window.__spkmodCachedQuests && window.__spkmodCachedQuests[questId]) {
+					window.__spkmodCachedQuests[questId].isClaimed = true;
+					window.__spkmodCachedQuests[questId].isCompleted = true;
+				}
 				if (typeof clearClaimedQuestPin === "function") {
 					clearClaimedQuestPin({questId: questId, isClaimed: true});
 				}
+				if (typeof refreshPinButtons === "function") refreshPinButtons();
+				if (typeof renderQuestChecklist === "function") renderQuestChecklist();
 			}
-			if (url && url.includes("/api/quests")) {
+			if (method === "POST" && res.ok && /\/api\/quests\/claim-all(?:[/?#]|$)/i.test(url)) {
+				spkmodReadQuestResponseJson(res).then(data => {
+					const claimedIds = Array.isArray(data?.claimedQuestIds) ? data.claimedQuestIds : [];
+					for (const qId of claimedIds) {
+						if (window.__spkmodCachedQuests && window.__spkmodCachedQuests[qId]) {
+							window.__spkmodCachedQuests[qId].isClaimed = true;
+							window.__spkmodCachedQuests[qId].isCompleted = true;
+						}
+						if (typeof clearClaimedQuestPin === "function") {
+							clearClaimedQuestPin({questId: qId, isClaimed: true});
+						}
+					}
+					if (typeof refreshPinButtons === "function") refreshPinButtons();
+					if (typeof renderQuestChecklist === "function") renderQuestChecklist();
+				}).catch(() => {});
+			}
+			if (url && url.includes("/api/quests") && !/\/claim(?:-all)?(?:[/?#]|$)/i.test(url)) {
+				const periodMatch = url.match(/[?&]period=([^&#]+)/i);
+				const reqPeriod = periodMatch ? decodeURIComponent(periodMatch[1]).toLowerCase() : undefined;
     			spkmodReadQuestResponseJson(res).then(data => {
         			if (!Array.isArray(data)) return;
         			window.__spkmodMergeCompletedQuests?.(data);
-        			for (const q of data) {
+        			for (let idx = 0; idx < data.length; idx++) {
+            			const q = data[idx];
             			if (!q?.questId) continue;
-            			const cachedQuest = spkmodCacheQuestRecord(q);
+            			const cachedQuest = spkmodCacheQuestRecord(q, reqPeriod, idx);
             			if (q.isClaimed) {
-                			const removed = clearClaimedQuestPin(cachedQuest);
-                			if (removed && typeof renderQuestChecklist === "function") {
-                    			renderQuestChecklist();
-                			}
+                			clearClaimedQuestPin(cachedQuest);
             			} else if (typeof lunPinnedQuestId !== "undefined" && lunPinnedQuestId && String(lunPinnedQuestId) === String(q.questId)) {
                 			if (typeof updatePinnedQuestDisplay === "function") {
                     			updatePinnedQuestDisplay(cachedQuest);
                 			}
             			}
         			}
+        			if (typeof scheduleSpkmodQuestPinScan === "function") scheduleSpkmodQuestPinScan();
+        			if (typeof refreshPinButtons === "function") refreshPinButtons();
+        			if (typeof renderQuestChecklist === "function") renderQuestChecklist();
     			}).catch(() => {});
 			}
 		} catch (_) {}
@@ -328,9 +353,150 @@ if (!window.gameState) {
 	console.log("[SpeakiMod+] Loaded before gameState. Pre-login gate assistant active.");
 }
 
-if (!window.i18n) {
-	window.i18n = e => e;
-}
+(function initSpkmodI18nBridge() {
+	let _nativeI18nFn = null;
+	const existingFn = window.i18n;
+	if (typeof existingFn === "function") {
+		try {
+			const test = existingFn("content.item.1.name");
+			if (test && test !== "content.item.1.name") {
+				_nativeI18nFn = existingFn;
+			}
+		} catch (_) {}
+	}
+
+	function getActiveGameLocale() {
+		try {
+			if (typeof window.getGameSettings === "function") {
+				const gs = window.getGameSettings();
+				if (gs && gs.locale) return gs.locale;
+			}
+		} catch (_) {}
+		try {
+			if (window.localStorage) {
+				const raw = localStorage.getItem("sr1_settings");
+				if (raw) {
+					const parsed = JSON.parse(raw);
+					if (parsed && parsed.locale) return parsed.locale;
+				}
+			}
+		} catch (_) {}
+		return typeof spkmodLang === "string" && spkmodLang ? spkmodLang : "en";
+	}
+
+	function spkmodI18nLookup(key) {
+		if (!key) return key;
+		if (typeof _nativeI18nFn === "function") {
+			try {
+				const val = _nativeI18nFn(key);
+				if (val && val !== key) return val;
+			} catch (_) {}
+		}
+		const map = window.i18nMap;
+		if (map && typeof map === "object") {
+			const loc = getActiveGameLocale();
+			const primary = map[loc];
+			if (primary && Object.prototype.hasOwnProperty.call(primary, key)) {
+				return primary[key];
+			}
+			const fallbacks = ["en", "ko", "ja", "zh-CN", "zh-TW"];
+			for (const fb of fallbacks) {
+				if (map[fb] && Object.prototype.hasOwnProperty.call(map[fb], key)) {
+					return map[fb][key];
+				}
+			}
+		}
+		return key;
+	}
+
+	try {
+		Object.defineProperty(window, "i18n", {
+			configurable: true,
+			enumerable: true,
+			get() {
+				return _nativeI18nFn || spkmodI18nLookup;
+			},
+			set(fn) {
+				if (typeof fn === "function" && fn !== spkmodI18nLookup) {
+					try {
+						const test = fn("content.item.1.name");
+						if (test && test !== "content.item.1.name") {
+							_nativeI18nFn = fn;
+						}
+					} catch (_) {
+						_nativeI18nFn = fn;
+					}
+				}
+			}
+		});
+	} catch (_) {
+		if (typeof window.i18n !== "function") {
+			window.i18n = spkmodI18nLookup;
+		}
+	}
+
+	async function recoverGameI18nMapFromBundle() {
+		if (window.i18nMap && typeof window.i18nMap === "object" && window.i18nMap.en) return;
+		try {
+			let bundleUrl = "";
+			if (typeof performance !== "undefined" && typeof performance.getEntriesByType === "function") {
+				const resEntries = performance.getEntriesByType("resource") || [];
+				for (const r of resEntries) {
+					if (r && typeof r.name === "string" && r.name.includes("/assets/index-") && r.name.endsWith(".js")) {
+						bundleUrl = r.name;
+						break;
+					}
+				}
+			}
+			if (!bundleUrl && typeof document !== "undefined") {
+				const scriptEl = document.querySelector('script[src*="/assets/index-"]');
+				if (scriptEl && scriptEl.src) bundleUrl = scriptEl.src;
+			}
+			if (!bundleUrl) {
+				const htmlRes = await fetch("https://speakirpg.overture.io.kr/");
+				if (htmlRes.ok) {
+					const htmlText = await htmlRes.text();
+					const m = htmlText.match(/assets\/index-[^"']+\.js/);
+					if (m) bundleUrl = "https://speakirpg.overture.io.kr/" + m[0].replace(/^\/+/, "");
+				}
+			}
+			if (!bundleUrl) return;
+
+			const res = await fetch(bundleUrl);
+			if (!res.ok) return;
+			const code = await res.text();
+			const dictMatch = code.match(/var [\w$]+=(\{ko:\{"content\.item\.1\.name":[\s\S]*?\}\});function [\w$]+\(e\)/);
+			if (!dictMatch || !dictMatch[1]) return;
+
+			const dictStr = dictMatch[1];
+			const sections = dictStr.split(/(?:^\{|\},)(ko|en|ja|"zh-CN"|"zh-TW"):\{/);
+			const parsedMap = {};
+			for (let i = 1; i < sections.length; i += 2) {
+				const lang = sections[i].replace(/"/g, "");
+				const body = sections[i + 1] || "";
+				const entries = {};
+				const entryRe = /"(content\.[^"]+)":`([^`]*)`/g;
+				let em;
+				while ((em = entryRe.exec(body)) !== null) {
+					entries[em[1]] = em[2];
+				}
+				parsedMap[lang] = entries;
+			}
+			if (Object.keys(parsedMap).length > 0) {
+				window.i18nMap = parsedMap;
+				if (typeof _zoneNameToIdMap !== "undefined") _zoneNameToIdMap = null;
+				if (typeof scheduleSpkmodQuestPinScan === "function") scheduleSpkmodQuestPinScan();
+				if (typeof refreshPinButtons === "function") refreshPinButtons();
+				if (typeof renderQuestChecklist === "function") renderQuestChecklist();
+				if (typeof lunPinnedQuestId !== "undefined" && lunPinnedQuestId && window.__spkmodCachedQuests?.[lunPinnedQuestId] && typeof updatePinnedQuestDisplay === "function") {
+					updatePinnedQuestDisplay(window.__spkmodCachedQuests[lunPinnedQuestId]);
+				}
+			}
+		} catch (_) {}
+	}
+
+	setTimeout(recoverGameI18nMapFromBundle, 50);
+})();
 
 function getAuthToken() {
 	if (typeof window.getNativeAuthToken === "function") {

@@ -1,23 +1,13 @@
 function getQuestDisplayText(quest) {
 	if (!quest) return "";
-	let title = quest.title || "";
-	let desc = quest.description || "";
-	if (quest.code && typeof window.i18n === "function") {
-		try {
-			const tKey = `content.quest.${quest.code}.title`;
-			const dKey = `content.quest.${quest.code}.description`;
-			const tVal = window.i18n(tKey);
-			const dVal = window.i18n(dKey);
-			if (tVal && tVal !== tKey) title = tVal;
-			if (dVal && dVal !== dKey) desc = dVal;
-		} catch (_) {}
-	}
+	const title = getQuestTitle(quest);
+	const desc = getQuestDescription(quest);
 	return desc ? `${title ? title + " — " : ""}${desc}` : (title || quest.code || "Quest");
 }
 
 function getQuestTitle(quest) {
 	if (!quest) return "";
-	let title = quest.title || "";
+	let title = quest._localizedTitle || quest.title || "";
 	if (quest.code && typeof window.i18n === "function") {
 		try {
 			const tKey = `content.quest.${quest.code}.title`;
@@ -30,7 +20,7 @@ function getQuestTitle(quest) {
 
 function getQuestDescription(quest) {
 	if (!quest) return "";
-	let desc = quest.description || "";
+	let desc = quest._localizedDesc || quest.description || "";
 	if (quest.code && typeof window.i18n === "function") {
 		try {
 			const dKey = `content.quest.${quest.code}.description`;
@@ -39,6 +29,71 @@ function getQuestDescription(quest) {
 		} catch (_) {}
 	}
 	return desc;
+}
+
+function computeVirtualQuestId(cleanTitle) {
+	if (!cleanTitle) return "";
+	let hash = 0;
+	for (let i = 0; i < cleanTitle.length; i++) {
+		hash = ((hash << 5) - hash) + cleanTitle.charCodeAt(i);
+		hash |= 0;
+	}
+	return "v_" + Math.abs(hash);
+}
+
+function migrateVirtualQuestPinToReal(vId, realQuest) {
+	if (!vId || !realQuest || !realQuest.questId) return false;
+	const realId = String(realQuest.questId);
+	if (realId.startsWith("v_")) return false;
+
+	let migrated = false;
+	if (typeof isChecklistPinned === "function" && isChecklistPinned(vId)) {
+		const pins = getChecklistPinnedIds().filter(id => String(id) !== String(vId));
+		if (!pins.some(id => String(id) === realId)) {
+			pins.push(realQuest.questId);
+		}
+		setChecklistPinnedIds(pins);
+		migrated = true;
+	}
+	if (window.__spkmodCachedQuests && window.__spkmodCachedQuests[vId]) {
+		delete window.__spkmodCachedQuests[vId];
+		migrated = true;
+	}
+	if (typeof lunPinnedQuestId !== "undefined" && lunPinnedQuestId && String(lunPinnedQuestId) === String(vId)) {
+		lunPinnedQuestId = realQuest.questId;
+		lunPinnedQuestPeriod = realQuest.period || lunPinnedQuestPeriod || "daily";
+		updatePinnedQuestDisplay(realQuest);
+		migrated = true;
+	}
+	return migrated;
+}
+
+function reconcileVirtualQuestPin(quest) {
+	if (!quest || !quest.questId || String(quest.questId).startsWith("v_")) return false;
+	const candidateTitles = new Set();
+	const disp = getQuestDisplayText(quest);
+	if (disp) candidateTitles.add(disp.trim());
+	if (quest._localizedTitle) {
+		candidateTitles.add(quest._localizedDesc ? `${quest._localizedTitle} — ${quest._localizedDesc}`.trim() : quest._localizedTitle.trim());
+	}
+	if (quest.code && window.i18nMap && typeof window.i18nMap === "object") {
+		for (const table of Object.values(window.i18nMap)) {
+			if (!table || typeof table !== "object") continue;
+			const tVal = table[`content.quest.${quest.code}.title`];
+			const dVal = table[`content.quest.${quest.code}.description`];
+			if (tVal) {
+				candidateTitles.add(dVal ? `${tVal} — ${dVal}`.trim() : tVal.trim());
+			}
+		}
+	}
+	let anyMigrated = false;
+	for (const ct of candidateTitles) {
+		const vId = computeVirtualQuestId(ct);
+		if (vId && migrateVirtualQuestPinToReal(vId, quest)) {
+			anyMigrated = true;
+		}
+	}
+	return anyMigrated;
 }
 
 var lunPinnedQuestExpanded = false;
@@ -141,7 +196,7 @@ function getPanelType(panel) {
 				txt.includes("week") || txt.includes("주간") || txt.includes("ウィークリー") || txt.includes("semanal") || txt.includes("每周") || txt.includes("周常") ||
 				txt.includes("stand") || txt.includes("perma") || txt.includes("상시") || txt.includes("常設") || txt.includes("permanente") || txt.includes("永久") || txt.includes("常驻")
 			) {
-				return "quest";
+				return "quests";
 			}
 		}
 	}
@@ -157,6 +212,30 @@ function refreshPinButtons() {
 	document.querySelectorAll(".sr-panel, .sr-modal, .sr-dialog, [role='dialog']").forEach(panel => {
 		if (!isQuestPanel(panel)) {
 			panel.querySelectorAll(".spkmod-pq-button, .spkmod-star-button, .spkmod-list-button").forEach(btn => btn.remove());
+		}
+	});
+
+	document.querySelectorAll(".sr-list-item").forEach(item => {
+		const starBtn = item.querySelector(".spkmod-star-button");
+		const listBtn = item.querySelector(".spkmod-list-button");
+		if (!starBtn && !listBtn) return;
+		const curId = String(starBtn?.__questId || listBtn?.__questId || "");
+		if (!curId || curId.startsWith("v_")) {
+			const titleEl = item.querySelector(".sr-list-item__title");
+			const titleText = (titleEl?.textContent || "").trim();
+			if (titleText) {
+				const matched = matchQuestFromTitleText(titleText, item);
+				if (matched && matched.questId) {
+					if (starBtn) {
+						starBtn.__quest = matched;
+						starBtn.__questId = matched.questId;
+					}
+					if (listBtn) {
+						listBtn.__quest = matched;
+						listBtn.__questId = matched.questId;
+					}
+				}
+			}
 		}
 	});
 
@@ -205,6 +284,10 @@ function unpinQuest() {
 window.unpinQuest = unpinQuest;
 
 function pinQuest(quest, questElm) {
+	if (!quest || !quest.questId) return;
+	if (typeof spkmodCacheQuestRecord === "function") {
+		spkmodCacheQuestRecord(quest, quest.period);
+	}
 	if (lunPinnedQuestId && String(lunPinnedQuestId) === String(quest.questId)) {
 		unpinQuest();
 		return;
@@ -289,9 +372,10 @@ async function fetchAllQuests() {
 				if (res.ok) {
 					const data = await spkmodReadQuestResponseJson(res);
 					if (Array.isArray(data)) {
-						for (const q of data) {
+						for (let idx = 0; idx < data.length; idx++) {
+							const q = data[idx];
 							if (!q?.questId) continue;
-							const cachedQuest = spkmodCacheQuestRecord(q, p);
+							const cachedQuest = spkmodCacheQuestRecord(q, p, idx);
 							if (lunPinnedQuestId && String(lunPinnedQuestId) === String(q.questId)) {
 								updatePinnedQuestDisplay(cachedQuest);
 							}
@@ -302,6 +386,7 @@ async function fetchAllQuests() {
 		}
 	} finally {
 		_fetchingQuests = false;
+		if (typeof scheduleSpkmodQuestPinScan === "function") scheduleSpkmodQuestPinScan();
 		refreshPinButtons();
 		if (typeof renderQuestChecklist === "function") {
 			renderQuestChecklist();
@@ -951,58 +1036,121 @@ setTimeout(() => {
 function matchQuestFromTitleText(titleText, item) {
 	if (!titleText) return null;
 
-	// 1. Try matching from cached quests
-	if (window.__spkmodCachedQuests) {
-		for (const q of Object.values(window.__spkmodCachedQuests)) {
-			if (!q) continue;
-			if (q.title && titleText.includes(q.title)) return q;
-			if (q.description && titleText.includes(q.description)) return q;
-			if (q.code) {
-				try {
-					const tVal = typeof window.i18n === "function" ? window.i18n(`content.quest.${q.code}.title`) : "";
-					const dVal = typeof window.i18n === "function" ? window.i18n(`content.quest.${q.code}.description`) : "";
-					if (tVal && titleText.includes(tVal)) return q;
-					if (dVal && titleText.includes(dVal)) return q;
-				} catch (_) {}
-			}
-		}
-	}
-
-	// 2. Parse from DOM row text ONLY if it contains an explicit quest progress fraction (/ X / Y)
 	const progressMatch = titleText.match(/\/\s*(\d+)\s*\/\s*(\d+)\s*$/);
-	if (!progressMatch) {
-		return null;
-	}
-
-	const currentAmount = parseInt(progressMatch[1], 10);
-	const targetAmount = parseInt(progressMatch[2], 10);
-
 	const cleanTitle = titleText.replace(/\/\s*\d+\s*\/\s*\d+\s*$/, "").trim();
-	let hash = 0;
-	for (let i = 0; i < cleanTitle.length; i++) {
-		hash = ((hash << 5) - hash) + cleanTitle.charCodeAt(i);
-		hash |= 0;
-	}
-	const virtualId = "v_" + Math.abs(hash);
+	const dashIdx = cleanTitle.indexOf(" — ");
+	const domTitle = dashIdx >= 0 ? cleanTitle.slice(0, dashIdx).trim() : cleanTitle;
+	const domDesc = dashIdx >= 0 ? cleanTitle.slice(dashIdx + 3).trim() : "";
 
 	let period = "daily";
 	const activeTab = (_spkmodQuestDomState.panelRoot || document).querySelector(".sr-panel__tabs .sr-btn--secondary, .sr-panel__tabs .active");
 	if (activeTab) {
 		const tabText = (activeTab.textContent || "").toLowerCase();
-		if (tabText.includes("stand") || tabText.includes("perma") || tabText.includes("상시") || tabText.includes("常設") || tabText.includes("permanente")) period = "permanent";
-		else if (tabText.includes("week") || tabText.includes("주간") || tabText.includes("ウィークリー") || tabText.includes("semanal")) period = "weekly";
+		if (tabText.includes("stand") || tabText.includes("perma") || tabText.includes("상시") || tabText.includes("常設") || tabText.includes("permanente") || tabText.includes("永久") || tabText.includes("常驻")) period = "permanent";
+		else if (tabText.includes("week") || tabText.includes("주간") || tabText.includes("ウィークリー") || tabText.includes("semanal") || tabText.includes("每周") || tabText.includes("周常")) period = "weekly";
 	}
 
-	return {
+	const currentAmount = progressMatch ? parseInt(progressMatch[1], 10) : undefined;
+	const targetAmount = progressMatch ? parseInt(progressMatch[2], 10) : undefined;
+	const virtualId = computeVirtualQuestId(cleanTitle);
+
+	const finalizeMatchedQuest = (q) => {
+		if (!q.period && period) q.period = period;
+		if (domTitle) q._localizedTitle = domTitle;
+		if (domDesc) q._localizedDesc = domDesc;
+		if (currentAmount !== undefined) q.currentAmount = currentAmount;
+		if (targetAmount !== undefined) q.targetAmount = targetAmount;
+		if (virtualId && !String(q.questId).startsWith("v_")) {
+			migrateVirtualQuestPinToReal(virtualId, q);
+		}
+		return q;
+	};
+
+	// 1. Try matching from cached quests (prefer real quests in the active tab period first)
+	if (window.__spkmodCachedQuests) {
+		const allCached = Object.values(window.__spkmodCachedQuests).filter(q => q && q.questId && !String(q.questId).startsWith("v_"));
+		const orderedCandidates = [
+			...allCached.filter(q => (q.period || "daily") === period),
+			...allCached.filter(q => (q.period || "daily") !== period)
+		];
+
+		const matchesQuestText = (q) => {
+			if (q.title && (domTitle === q.title || titleText.includes(q.title))) return true;
+			if (q._localizedTitle && (domTitle === q._localizedTitle || titleText.includes(q._localizedTitle))) return true;
+			if (q.description && titleText.includes(q.description)) return true;
+			if (q._localizedDesc && titleText.includes(q._localizedDesc)) return true;
+			if (q.code) {
+				if (typeof window.i18n === "function") {
+					try {
+						const tKey = `content.quest.${q.code}.title`;
+						const dKey = `content.quest.${q.code}.description`;
+						const tVal = window.i18n(tKey);
+						const dVal = window.i18n(dKey);
+						if (tVal && tVal !== tKey && (domTitle === tVal || titleText.includes(tVal))) return true;
+						if (dVal && dVal !== dKey && titleText.includes(dVal)) return true;
+					} catch (_) {}
+				}
+				if (window.i18nMap && typeof window.i18nMap === "object") {
+					for (const table of Object.values(window.i18nMap)) {
+						if (!table || typeof table !== "object") continue;
+						const tVal = table[`content.quest.${q.code}.title`];
+						const dVal = table[`content.quest.${q.code}.description`];
+						if (tVal && (domTitle === tVal || titleText.includes(tVal))) return true;
+						if (dVal && titleText.includes(dVal)) return true;
+					}
+				}
+			}
+			return false;
+		};
+
+		for (const q of orderedCandidates) {
+			if (matchesQuestText(q)) {
+				return finalizeMatchedQuest(q);
+			}
+		}
+
+		// Fallback 1b: Match by native Quest Panel's deterministic sort order + progress fraction
+		if (item && _spkmodQuestDomState.panelBody && progressMatch) {
+			const periodQuests = allCached.filter(q => (q.period || "daily") === period);
+			const domItems = [..._spkmodQuestDomState.panelBody.querySelectorAll(".sr-list-item")];
+			const rowIdx = domItems.indexOf(item);
+			if (rowIdx >= 0 && periodQuests.length === domItems.length) {
+				const rank = q => q.isClaimed ? 2 : +!(q.isCompleted || (q.currentAmount ?? 0) >= (q.targetAmount ?? 1));
+				const sortedPeriodQuests = [...periodQuests].sort((a, b) => {
+					const rDiff = rank(a) - rank(b);
+					if (rDiff !== 0) return rDiff;
+					return (a._orderIndex ?? 0) - (b._orderIndex ?? 0);
+				});
+				const candidate = sortedPeriodQuests[rowIdx];
+				if (candidate && (candidate.currentAmount ?? 0) === currentAmount && (candidate.targetAmount ?? 1) === targetAmount) {
+					return finalizeMatchedQuest(candidate);
+				}
+			}
+		}
+	}
+
+	// 2. Parse from DOM row text ONLY if it contains an explicit quest progress fraction (/ X / Y)
+	if (!progressMatch) {
+		return null;
+	}
+
+	const virtualQuest = {
 		questId: virtualId,
-		title: cleanTitle,
-		description: "",
+		title: domTitle || cleanTitle,
+		description: domDesc || "",
+		_localizedTitle: domTitle || cleanTitle,
+		_localizedDesc: domDesc || "",
 		currentAmount: currentAmount,
 		targetAmount: targetAmount,
 		period: period,
 		isCompleted: currentAmount >= targetAmount,
 		isClaimed: false
 	};
+
+	if (typeof spkmodCacheQuestRecord === "function") {
+		return spkmodCacheQuestRecord(virtualQuest, period);
+	}
+	return virtualQuest;
 }
 
 // Cached references for the game quest panel
@@ -1185,7 +1333,29 @@ function injectPinButtonsIntoQuestList() {
 				return;
 			}
 
-			if (item.querySelector(".spkmod-star-button, .spkmod-list-button, .spkmod-pq-button")) return;
+			const existingStar = item.querySelector(".spkmod-star-button");
+			const existingList = item.querySelector(".spkmod-list-button");
+			if (existingStar || existingList || item.querySelector(".spkmod-pq-button")) {
+				const curId = String(existingStar?.__questId || existingList?.__questId || "");
+				if (!curId || curId.startsWith("v_")) {
+					const tEl = item.querySelector(".sr-list-item__title");
+					const tTxt = (tEl?.textContent || "").trim();
+					if (tTxt) {
+						const resolved = matchQuestFromTitleText(tTxt, item);
+						if (resolved && resolved.questId) {
+							if (existingStar) {
+								existingStar.__quest = resolved;
+								existingStar.__questId = resolved.questId;
+							}
+							if (existingList) {
+								existingList.__quest = resolved;
+								existingList.__questId = resolved.questId;
+							}
+						}
+					}
+				}
+				return;
+			}
 
 			const topRow = item.firstElementChild;
 			if (!topRow) return;
@@ -1234,8 +1404,16 @@ function injectPinButtonsIntoQuestList() {
 			starBtn.onclick = function (e) {
 				e.preventDefault();
 				e.stopPropagation();
-				const q = starBtn.__quest || matchQuestFromTitleText(titleText, item);
+				let q = starBtn.__quest;
+				if (!q || String(q.questId).startsWith("v_")) {
+					q = matchQuestFromTitleText(titleText, item) || q;
+				}
 				if (q) {
+					starBtn.__quest = q;
+					starBtn.__questId = q.questId;
+					if (typeof spkmodCacheQuestRecord === "function") {
+						spkmodCacheQuestRecord(q, q.period);
+					}
 					pinQuest(q, item);
 				}
 			};
@@ -1266,8 +1444,16 @@ function injectPinButtonsIntoQuestList() {
 			pinBtn.onclick = function (e) {
 				e.preventDefault();
 				e.stopPropagation();
-				const q = pinBtn.__quest || matchQuestFromTitleText(titleText, item);
+				let q = pinBtn.__quest;
+				if (!q || String(q.questId).startsWith("v_")) {
+					q = matchQuestFromTitleText(titleText, item) || q;
+				}
 				if (q) {
+					pinBtn.__quest = q;
+					pinBtn.__questId = q.questId;
+					if (typeof spkmodCacheQuestRecord === "function") {
+						spkmodCacheQuestRecord(q, q.period);
+					}
 					if (typeof toggleChecklistPin === "function") {
 						toggleChecklistPin(q.questId);
 					}
