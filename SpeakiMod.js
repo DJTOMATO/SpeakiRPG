@@ -2491,7 +2491,7 @@ const lunKnownBotNames = ["GniloeAlo3", "Gniloe41o3", "Gniloe41oe", "GniloeA1oe"
 	"GniloeAlo3", "GniloeAl03", "Gniloe41oe", "ace7cow6", "2calmace", "airpen5sea", "deer8dog", "03ashhero", "7seal0bay6", "fern60", "gem4rain", "lake35ink"];
 
 const lunKnownBotNameSet = new Set(lunKnownBotNames.map(name => name.trim().toLocaleLowerCase()).filter(Boolean));
-const lunKnownBotPrefixSet = new Set(lunKnownBotNames.map(name => name.toLowerCase().replace(/[^a-z]/g, "").slice(0, 5)).filter(prefix => prefix.length >= 4));
+const lunKnownBotPrefixSet = new Set(lunKnownBotNames.map(name => name.toLowerCase().replace(/[^a-z]/g, "").slice(0, 5)).filter(prefix => prefix.length >= 5));
 
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
@@ -2542,6 +2542,29 @@ var lunAutoBannedLevel1s = new Set();
 var lunLocalPendingBots = new Set();
 var lunActiveBotWaveMinId = Infinity;
 let lunBotSyncInFlight = false;
+let lunPendingBotReportQueue = null;
+
+function enqueuePendingBotReport(newBotNames, removeNames, allowPromoteCheck) {
+	if (!lunPendingBotReportQueue) {
+		lunPendingBotReportQueue = {
+			bots: [],
+			removeNames: new Set(),
+			allowPromoteCheck: Boolean(allowPromoteCheck)
+		};
+	} else if (allowPromoteCheck) {
+		lunPendingBotReportQueue.allowPromoteCheck = true;
+	}
+	if (Array.isArray(newBotNames)) {
+		for (const item of newBotNames) lunPendingBotReportQueue.bots.push(item);
+	}
+	if (Array.isArray(removeNames)) {
+		for (const name of removeNames) {
+			if (typeof name === "string" && name.trim()) {
+				lunPendingBotReportQueue.removeNames.add(name.trim().toLocaleLowerCase());
+			}
+		}
+	}
+}
 
 
 function loadAutoBannedBotsFromStorage() {
@@ -2651,7 +2674,10 @@ async function reportBotsToServer(newBotNames = [], removeNames = [], allowPromo
 		return;
 	}
 	if (window.spkmodServerHealth && !window.spkmodServerHealth.isAvailable()) return;
-	if (lunBotSyncInFlight) return;
+	if (lunBotSyncInFlight) {
+		enqueuePendingBotReport(newBotNames, removeNames, allowPromoteCheck);
+		return;
+	}
 
 	lunBotSyncInFlight = true;
 	try {
@@ -2670,13 +2696,30 @@ async function reportBotsToServer(newBotNames = [], removeNames = [], allowPromo
 		if (!res.ok) throw new Error(`HTTP ${res.status}`);
 		const data = await res.json();
 		if (window.spkmodServerHealth) window.spkmodServerHealth.recordSuccess();
-		if (data && data.success && Array.isArray(data.bots)) {
-			applyServerBotList(data.bots, allowPromoteCheck);
+		if (data && data.success) {
+			if (Array.isArray(newBotNames)) {
+				for (const item of newBotNames) {
+					const rawName = (item && typeof item === "object") ? item.name : item;
+					if (typeof rawName === "string") {
+						lunLocalPendingBots.delete(rawName.trim().toLocaleLowerCase());
+					}
+				}
+			}
+			if (Array.isArray(data.bots)) {
+				applyServerBotList(data.bots, allowPromoteCheck);
+			}
 		}
 	} catch (_) {
 		if (window.spkmodServerHealth) window.spkmodServerHealth.recordFailure();
 	} finally {
 		lunBotSyncInFlight = false;
+		if (lunPendingBotReportQueue) {
+			const queued = lunPendingBotReportQueue;
+			lunPendingBotReportQueue = null;
+			setTimeout(() => {
+				reportBotsToServer(queued.bots, [...queued.removeNames], queued.allowPromoteCheck);
+			}, 3100);
+		}
 	}
 }
 
@@ -2724,12 +2767,12 @@ function isKnownBotName(name, level, accountId) {
 		return true;
 	}
 	
-	// Dynamic Strict Net with Loose Name Matching
+	// Dynamic Strict Net with Prefix Matching
 	if (accountIdNum > 0 && accountIdNum >= lunActiveBotWaveMinId && parsedLevel === 1) {
 		const letters = lowerName.replace(/[^a-z]/g, '');
 		let isLooseMatch = false;
 		for (const prefix of lunKnownBotPrefixSet) {
-			if (letters.includes(prefix)) {
+			if (letters.startsWith(prefix)) {
 				isLooseMatch = true;
 				break;
 			}
