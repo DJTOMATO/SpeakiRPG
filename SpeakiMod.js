@@ -25507,14 +25507,18 @@ function isChecklistPinned(questId) {
 
     ensureSpkmodChecklistPinCache();
 
-    if (!spkmodChecklistPinnedIdSetCache.has(String(questId))) {
+    const id = String(questId);
+    const cached = window.__spkmodCachedQuests?.[id];
+    const period = (cached?.period || "").toLowerCase();
+    const dismissed = typeof isQuestDismissed === "function" && isQuestDismissed(id, period || "daily");
+
+    if (dismissed) {
         return false;
     }
-    const cached = window.__spkmodCachedQuests?.[String(questId)];
-    if (typeof isQuestDismissed === "function" && isQuestDismissed(questId, cached?.period)) {
-        return false;
+    if (period === "daily" && !cached?.isClaimed) {
+        return true;
     }
-    return true;
+    return spkmodChecklistPinnedIdSetCache.has(id);
 }
 
 function toggleChecklistPin(questId) {
@@ -25524,23 +25528,31 @@ function toggleChecklistPin(questId) {
     const id = String(questId);
     const idx = pins.findIndex(value => String(value) === id);
     const cached = window.__spkmodCachedQuests?.[id];
-    const wasDismissed = typeof isQuestDismissed === "function" && isQuestDismissed(id, cached?.period);
+    const period = (cached?.period || "").toLowerCase();
+    const isDaily = period === "daily";
+    const currentlyInList = isChecklistPinned(id);
 
     let nowPinned = false;
 
-    if (idx >= 0 && !wasDismissed) {
-        pins.splice(idx, 1);
+    if (currentlyInList) {
+        if (idx >= 0) {
+            pins.splice(idx, 1);
+        }
+        setChecklistPinnedIds(pins);
+        if (isDaily && typeof dismissQuest === "function") {
+            dismissQuest(id, "daily");
+        }
+        nowPinned = false;
     } else {
         if (idx < 0) {
             pins.push(questId);
         }
+        setChecklistPinnedIds(pins);
         if (typeof undismissQuest === "function") {
             undismissQuest(questId);
         }
         nowPinned = true;
     }
-
-    setChecklistPinnedIds(pins);
 
     return nowPinned;
 }
