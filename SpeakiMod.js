@@ -590,8 +590,8 @@ var SPKMOD_CINEMA_DEFAULT_CONFIG = {
 window.spkmodCinemaConfig = Object.assign({}, SPKMOD_CINEMA_DEFAULT_CONFIG);
 if (typeof window !== "undefined" && window.localStorage) {
 	try {
-		window.spkmodCinemaConfig.enabled = true;
-		localStorage.setItem("spkmod-cinema-enabled", "true");
+		const enabledStr = localStorage.getItem("spkmod-cinema-enabled");
+		if (enabledStr !== null) window.spkmodCinemaConfig.enabled = enabledStr === "true";
 		const mutedStr = localStorage.getItem("spkmod-cinema-muted");
 		if (mutedStr !== null) window.spkmodCinemaConfig.muted = mutedStr === "true";
 		const vol = localStorage.getItem("spkmod-cinema-volume");
@@ -10576,7 +10576,9 @@ document.body.appendChild(
 						checked: (window.spkmodCinemaConfig ? window.spkmodCinemaConfig.enabled : true),
 						title: "Toggle 3D screen in Zone 1 Festival Plaza",
 						onchange: e => {
-							if (window.spkmodCinemaConfig) {
+							if (typeof window.spkmodSetCinemaEnabled === "function") {
+								window.spkmodSetCinemaEnabled(e.target.checked, true, false);
+							} else if (window.spkmodCinemaConfig) {
 								window.spkmodCinemaConfig.enabled = e.target.checked;
 								localStorage.setItem("spkmod-cinema-enabled", e.target.checked ? "true" : "false");
 								if (!e.target.checked) {
@@ -31633,8 +31635,8 @@ var spkmodCinemaConfig = window.spkmodCinemaConfig || Object.assign({}, SPKMOD_C
 window.spkmodCinemaConfig = spkmodCinemaConfig;
 if (window.localStorage) {
 	try {
-		spkmodCinemaConfig.enabled = true;
-		localStorage.setItem("spkmod-cinema-enabled", "true");
+		const enabledStr = localStorage.getItem("spkmod-cinema-enabled");
+		if (enabledStr !== null) spkmodCinemaConfig.enabled = enabledStr === "true";
 		const mutedStr = localStorage.getItem("spkmod-cinema-muted");
 		if (mutedStr !== null) spkmodCinemaConfig.muted = mutedStr === "true";
 		const vol = localStorage.getItem("spkmod-cinema-volume");

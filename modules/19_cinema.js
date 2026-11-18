@@ -17,8 +17,8 @@ var spkmodCinemaConfig = window.spkmodCinemaConfig || Object.assign({}, SPKMOD_C
 window.spkmodCinemaConfig = spkmodCinemaConfig;
 if (window.localStorage) {
 	try {
-		spkmodCinemaConfig.enabled = true;
-		localStorage.setItem("spkmod-cinema-enabled", "true");
+		const enabledStr = localStorage.getItem("spkmod-cinema-enabled");
+		if (enabledStr !== null) spkmodCinemaConfig.enabled = enabledStr === "true";
 		const mutedStr = localStorage.getItem("spkmod-cinema-muted");
 		if (mutedStr !== null) spkmodCinemaConfig.muted = mutedStr === "true";
 		const vol = localStorage.getItem("spkmod-cinema-volume");

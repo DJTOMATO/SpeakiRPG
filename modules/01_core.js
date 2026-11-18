@@ -590,8 +590,8 @@ var SPKMOD_CINEMA_DEFAULT_CONFIG = {
 window.spkmodCinemaConfig = Object.assign({}, SPKMOD_CINEMA_DEFAULT_CONFIG);
 if (typeof window !== "undefined" && window.localStorage) {
 	try {
-		window.spkmodCinemaConfig.enabled = true;
-		localStorage.setItem("spkmod-cinema-enabled", "true");
+		const enabledStr = localStorage.getItem("spkmod-cinema-enabled");
+		if (enabledStr !== null) window.spkmodCinemaConfig.enabled = enabledStr === "true";
 		const mutedStr = localStorage.getItem("spkmod-cinema-muted");
 		if (mutedStr !== null) window.spkmodCinemaConfig.muted = mutedStr === "true";
 		const vol = localStorage.getItem("spkmod-cinema-volume");

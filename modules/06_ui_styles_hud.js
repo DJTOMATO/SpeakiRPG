@@ -2688,7 +2688,9 @@ document.body.appendChild(
 						checked: (window.spkmodCinemaConfig ? window.spkmodCinemaConfig.enabled : true),
 						title: "Toggle 3D screen in Zone 1 Festival Plaza",
 						onchange: e => {
-							if (window.spkmodCinemaConfig) {
+							if (typeof window.spkmodSetCinemaEnabled === "function") {
+								window.spkmodSetCinemaEnabled(e.target.checked, true, false);
+							} else if (window.spkmodCinemaConfig) {
 								window.spkmodCinemaConfig.enabled = e.target.checked;
 								localStorage.setItem("spkmod-cinema-enabled", e.target.checked ? "true" : "false");
 								if (!e.target.checked) {
