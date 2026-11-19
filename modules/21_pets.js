@@ -1138,7 +1138,42 @@ const spkmodPendingRemotePetsByName = new Map(); // lowerName -> petId
 const spkmodPendingRemotePetsById = new Map(); // String(id) -> petId
 const spkmodShowcaseInstances = [];
 
-function spkmodPlayPetSfx(pet, isLocalOwner, worldPos) {
+function spkmodGetOwnerVisualScale(inst) {
+	if (!inst) return 1.0;
+	const gs = typeof gameState !== "undefined" ? gameState : window.gameState;
+	let avatar = null;
+	let permille = 1000;
+	if (inst.isLocal) {
+		avatar = gs?.localAvatar || null;
+		if (typeof gs?.myVisualScalePermille === "number" && Number.isFinite(gs.myVisualScalePermille)) {
+			permille = gs.myVisualScalePermille;
+		}
+	} else {
+		const rp = inst.resolveRemotePlayer?.();
+		avatar = rp?.avatar || null;
+		if (typeof rp?.visualScalePermille === "number" && Number.isFinite(rp.visualScalePermille)) {
+			permille = rp.visualScalePermille;
+		}
+	}
+	// Prefer live avatar visualRoot scale (children[0] created by game's visual-scale wrapper),
+	// which automatically respects both resizer potions and minigame scale suppression.
+	const visualChild = avatar?.root?.children?.[0];
+	if (visualChild && visualChild.isObject3D && !visualChild.isSprite && !visualChild.isMesh && visualChild.scale) {
+		const sx = visualChild.scale.x;
+		const sy = visualChild.scale.y;
+		const sz = visualChild.scale.z;
+		if (
+			Number.isFinite(sx) && sx >= 0.1 && sx <= 10.0 &&
+			Math.abs(sx - sy) < 0.002 && Math.abs(sx - sz) < 0.002
+		) {
+			return sx;
+		}
+	}
+	const clamped = (permille >= 100 && permille <= 10000) ? Math.trunc(permille) : 1000;
+	return clamped / 1000;
+}
+
+function spkmodPlayPetSfx(pet, isLocalOwner, worldPos, scaleMul) {
 	if (!spkmodIsPetsSystemEnabled() || !pet) return;
 	if (typeof isGameMuted === "function" && isGameMuted()) return;
 	if (isLocalOwner && !window.spkmodPetSettings.mySfx) return;
@@ -1158,6 +1193,15 @@ function spkmodPlayPetSfx(pet, isLocalOwner, worldPos) {
 	try {
 		const audio = new Audio(sfxUrl);
 		audio.volume = volume;
+		const effScale = (typeof scaleMul === "number" && isFinite(scaleMul) && scaleMul > 0)
+			? scaleMul
+			: (isLocalOwner ? spkmodGetOwnerVisualScale({ isLocal: true }) : 1);
+		if (Math.abs(effScale - 1) > 0.03) {
+			if ("preservesPitch" in audio) audio.preservesPitch = false;
+			if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = false;
+			if ("webkitPreservesPitch" in audio) audio.webkitPreservesPitch = false;
+			audio.playbackRate = Math.max(0.65, Math.min(1.6, 1 / Math.pow(effScale, 0.45)));
+		}
 		audio.play().catch(() => {});
 	} catch (_) {}
 }
@@ -1249,7 +1293,7 @@ function spkmodComputePetVisualTopOffsetY(instance) {
 			scanVisible(instance.modelHolder);
 
 			if (isFinite(maxWorldY) && isFinite(holderWorldY)) {
-				const holderScaleY = Math.max(0.5, Math.abs(instance.modelHolder.scale?.y || 1));
+				const holderScaleY = Math.max(0.05, Math.abs(instance.modelHolder.scale?.y || 1));
 				const relTop = (maxWorldY - holderWorldY) / holderScaleY;
 				if (relTop > 0 && relTop <= 8.0) {
 					measuredTop = relTop;
@@ -1270,8 +1314,9 @@ function spkmodComputePetVisualTopOffsetY(instance) {
 
 function spkmodPositionActivePetBubble(instance, entry) {
 	if (!instance || !entry || !entry.sprite) return;
-	const topY = spkmodComputePetVisualTopOffsetY(instance);
-	const clearance = 0.35 + Math.min(0.25, topY * 0.12);
+	const scaleMul = (isFinite(instance.ownerScaleCurrent) && instance.ownerScaleCurrent > 0) ? instance.ownerScaleCurrent : 1;
+	const topY = spkmodComputePetVisualTopOffsetY(instance) * scaleMul;
+	const clearance = 0.35 + Math.min(0.45, topY * 0.12);
 	const spriteHalfH = (entry.sprite.scale && isFinite(entry.sprite.scale.y)) ? entry.sprite.scale.y * 0.5 : 0;
 	entry.sprite.position.set(0, topY + clearance + spriteHalfH, 0);
 }
@@ -1484,10 +1529,13 @@ async function spkmodCreatePetInstance(ownerKey, pet, isLocal, resolveContainerF
 	root.add(modelHolder, speechAnchor);
 
 	const ownerContainer = resolveContainerFn?.();
+	const initOwnerScale = spkmodGetOwnerVisualScale({ isLocal, resolveRemotePlayer: resolveRemotePlayerFn });
+	modelHolder.scale.setScalar(initOwnerScale);
 	const initOwnerYaw = ownerContainer?.rotation ? (ownerContainer.rotation.y || 0) : 0;
 	const initSide = Math.random() < 0.5 ? -1 : 1;
 	const initSpawnAng = initOwnerYaw + initSide * (1.25 + Math.random() * 1.15);
-	const initDist = (pet?.moveMode === "fly" ? 2.85 : 2.55) + Math.random() * 1.1;
+	const initScaleBias = initOwnerScale >= 1 ? Math.min(1.8, (initOwnerScale - 1) * 0.85) : Math.max(-0.55, (initOwnerScale - 1) * 0.75);
+	const initDist = Math.max(1.5, (pet?.moveMode === "fly" ? 2.85 : 2.55) + initScaleBias) + Math.random() * 1.1;
 	if (ownerContainer?.position) {
 		root.position.set(
 			ownerContainer.position.x + Math.sin(initSpawnAng) * initDist,
@@ -1552,6 +1600,9 @@ async function spkmodCreatePetInstance(ownerKey, pet, isLocal, resolveContainerF
 		_petFallDownUsingNativeClip: false,
 		fallDownBlend: 0,
 		fallDownSide: Math.random() < 0.5 ? -1 : 1,
+		ownerScaleCurrent: initOwnerScale,
+		ownerScaleTarget: initOwnerScale,
+		_lastBubbleScale: initOwnerScale,
 		disposed: false
 	};
 
@@ -1570,10 +1621,14 @@ function spkmodNormalizeAngleDiff(targetYaw, currentYaw) {
 
 function spkmodGetPetComfortRange(inst) {
 	const isFlyer = inst?.pet?.moveMode === "fly";
-	const visualH = Math.max(inst?.pet?.targetHeight || 0.65, inst?._peakVisualTopY || 0);
-	const sizeExtra = visualH > 1.0 ? Math.min(0.70, (visualH - 1.0) * 0.55) : 0;
-	const minR = (isFlyer ? 2.40 : 2.15) + sizeExtra;
-	const maxR = (isFlyer ? 4.55 : 4.20) + sizeExtra;
+	const scaleMul = (isFinite(inst?.ownerScaleCurrent) && inst.ownerScaleCurrent > 0) ? inst.ownerScaleCurrent : 1;
+	const visualH = Math.max(inst?.pet?.targetHeight || 0.65, inst?._peakVisualTopY || 0) * scaleMul;
+	const sizeExtra = visualH > 1.0 ? Math.min(1.65, (visualH - 1.0) * 0.55) : 0;
+	const scaleBias = scaleMul >= 1
+		? Math.min(1.6, (scaleMul - 1) * 0.75)
+		: Math.max(-0.55, (scaleMul - 1) * 0.70);
+	const minR = Math.max(1.35, (isFlyer ? 2.40 : 2.15) + sizeExtra + scaleBias);
+	const maxR = Math.max(2.75, (isFlyer ? 4.55 : 4.20) + sizeExtra + scaleBias * 1.2);
 	return { minR, maxR };
 }
 
@@ -1670,6 +1725,21 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 	const isFallenDown = spkmodIsOwnerFallenDown(inst);
 	const isDancing = !isFallenDown && spkmodIsOwnerDancing(inst);
 	const isFlyer = inst.pet.moveMode === "fly";
+
+	// Sync pet size with owner's active Resizer Potion scale (smoothly eases on drink/expire, preserves across pet swaps)
+	const targetOwnerScale = spkmodGetOwnerVisualScale(inst);
+	inst.ownerScaleTarget = targetOwnerScale;
+	const curOwnerScale = (isFinite(inst.ownerScaleCurrent) && inst.ownerScaleCurrent > 0) ? inst.ownerScaleCurrent : 1;
+	const scaleDiff = targetOwnerScale - curOwnerScale;
+	inst.ownerScaleCurrent = Math.abs(scaleDiff) < 0.002
+		? targetOwnerScale
+		: curOwnerScale + scaleDiff * Math.min(1, dt * 10);
+	const ownerScale = (isFinite(inst.ownerScaleCurrent) && inst.ownerScaleCurrent > 0) ? inst.ownerScaleCurrent : 1;
+	if (Math.abs(ownerScale - (inst._lastBubbleScale || 1)) > 0.02) {
+		inst._lastBubbleScale = ownerScale;
+		spkmodRepositionPetBubbleIfActive(inst);
+	}
+
 	const { minR, maxR } = spkmodGetPetComfortRange(inst);
 
 	// Detect owner jump (Spacebar, Jump emote, Auto-Jump, or remote player jump)
@@ -1901,8 +1971,9 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		let dirX = dx / distToTarget;
 		let dirZ = dz / distToTarget;
 
-		// Only gently nudge outward if path gets right up against the owner's body (< 1.15m)
-		if (!isDancing && distPetToOwner > 0.05 && distPetToOwner < 1.15) {
+		// Only gently nudge outward if path gets right up against the owner's body
+		const avoidR = Math.max(0.75, Math.min(2.8, 1.15 * ownerScale));
+		if (!isDancing && distPetToOwner > 0.05 && distPetToOwner < avoidR) {
 			const toOwnerX = (ownerPos.x - inst.root.position.x) / distPetToOwner;
 			const toOwnerZ = (ownerPos.z - inst.root.position.z) / distPetToOwner;
 			const approachDot = dirX * toOwnerX + dirZ * toOwnerZ;
@@ -1911,7 +1982,7 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 				const sideSign = cross >= 0 ? 1 : -1;
 				const tangX = -toOwnerZ * sideSign;
 				const tangZ = toOwnerX * sideSign;
-				const pushOut = (1.15 - distPetToOwner) / 1.15;
+				const pushOut = (avoidR - distPetToOwner) / avoidR;
 				dirX = dirX * 0.45 + tangX * 0.35 - toOwnerX * (0.75 * pushOut);
 				dirZ = dirZ * 0.45 + tangZ * 0.35 - toOwnerZ * (0.75 * pushOut);
 				const dLen = Math.hypot(dirX, dirZ) || 1;
@@ -1985,11 +2056,14 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 	let poseRotX = inst.modelHolder.rotation.x;
 	let poseRotZ = inst.modelHolder.rotation.z;
 
+	const flyerHoverScale = Math.max(0.55, Math.min(2.2, 0.35 + 0.65 * ownerScale));
+	const hopScale = Math.max(0.45, Math.min(2.2, ownerScale));
+
 	if (isDancing) {
 		inst.walkPhase += dt * 11.0;
 		const jumpWave = Math.abs(Math.sin(inst.walkPhase));
-		const baseHover = isFlyer ? 1.15 : 0;
-		poseY = baseHover + jumpWave * 0.46;
+		const baseHover = isFlyer ? (1.15 * flyerHoverScale) : 0;
+		poseY = baseHover + jumpWave * 0.46 * hopScale;
 		const squash = Math.cos(inst.walkPhase * 2) * 0.15;
 		poseSX = 1 + squash;
 		poseSY = 1 - squash * 1.2;
@@ -2020,8 +2094,8 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		const targetHover = isFinite(inst.hoverHeightTarget) ? inst.hoverHeightTarget : 1.32;
 		inst.hoverHeightCurrent = (isFinite(inst.hoverHeightCurrent) ? inst.hoverHeightCurrent : 1.32)
 			+ (targetHover - (isFinite(inst.hoverHeightCurrent) ? inst.hoverHeightCurrent : 1.32)) * Math.min(1, dt * 1.6);
-		const hoverBob = Math.sin(inst.idlePhase * 1.15) * 0.13;
-		poseY = inst.hoverHeightCurrent + hoverBob;
+		const hoverBob = Math.sin(inst.idlePhase * 1.15) * 0.13 * hopScale;
+		poseY = inst.hoverHeightCurrent * flyerHoverScale + hoverBob;
 		const breathe = 1 + Math.sin(inst.idlePhase) * 0.03;
 		poseSX = breathe;
 		poseSY = breathe;
@@ -2033,7 +2107,7 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		// Poring-style walking bounce!
 		inst.walkPhase += dt * Math.min(13.5, Math.max(7.2, moveSpeedMps * 2.15));
 		const hop = Math.abs(Math.sin(inst.walkPhase));
-		poseY = hop * Math.min(0.34, 0.18 + moveSpeedMps * 0.045);
+		poseY = hop * Math.min(0.34, 0.18 + moveSpeedMps * 0.045) * hopScale;
 		const squash = Math.cos(inst.walkPhase * 2) * 0.13;
 		poseSX = 1 + squash;
 		poseSY = 1 - squash * 1.25;
@@ -2042,7 +2116,7 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		poseRotZ = 0;
 	} else {
 		// Gentle Poring idle bounce / bop
-		const bop = Math.max(0, Math.sin(inst.idlePhase)) * 0.075;
+		const bop = Math.max(0, Math.sin(inst.idlePhase)) * 0.075 * hopScale;
 		const squash = Math.sin(inst.idlePhase) * 0.045;
 		poseY = bop;
 		poseSX = 1 - squash * 0.6;
@@ -2062,8 +2136,8 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 			const p = inst.petJumpElapsed / dur;
 			const arc = 4 * p * (1 - p); // Smooth 0 -> 1 -> 0 parabola
 			if (isFlyer) {
-				const baseH = isFinite(inst.hoverHeightCurrent) ? inst.hoverHeightCurrent : 1.32;
-				poseY = baseH + arc * 0.68;
+				const baseH = (isFinite(inst.hoverHeightCurrent) ? inst.hoverHeightCurrent : 1.32) * flyerHoverScale;
+				poseY = baseH + arc * 0.68 * hopScale;
 				const stretch = arc * 0.08;
 				poseSX = 1 - stretch * 0.5;
 				poseSY = 1 + stretch;
@@ -2071,7 +2145,7 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 				poseRotX = -arc * 0.26;
 				poseRotZ = Math.sin(p * Math.PI * 2) * 0.24;
 			} else {
-				poseY = arc * 0.92;
+				poseY = arc * 0.92 * hopScale;
 				let stretchY = 0;
 				if (p < 0.15) {
 					stretchY = -0.18 * Math.sin((p / 0.15) * Math.PI);
@@ -2096,7 +2170,7 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		const sleepyBreathe = Math.sin(inst.idlePhase * 0.45) * 0.025 * ease;
 		if (inst._petFallDownUsingNativeClip) {
 			// Native skeletal death/slump clip handles the flop; descend flyers smoothly onto the floor
-			poseY = poseY * (1 - ease) + 0.02 * ease;
+			poseY = poseY * (1 - ease) + 0.02 * ownerScale * ease;
 			poseRotX = poseRotX * (1 - ease);
 			poseRotZ = poseRotZ * (1 - ease);
 			poseSX = poseSX * (1 - ease) + (1 + sleepyBreathe) * ease;
@@ -2104,8 +2178,8 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 			poseSZ = poseSZ * (1 - ease) + (1 + sleepyBreathe) * ease;
 		} else {
 			// Procedural dramatic side-flop resting flush on the ground
-			const fallFloorY = Math.max(0.14, Math.min(0.32, (inst.pet?.targetHeight || 0.65) * 0.34));
-			const settleBounce = b > 0.78 ? Math.sin(((b - 0.78) / 0.22) * Math.PI) * 0.05 : 0;
+			const fallFloorY = Math.max(0.14, Math.min(0.32, (inst.pet?.targetHeight || 0.65) * 0.34)) * ownerScale;
+			const settleBounce = b > 0.78 ? Math.sin(((b - 0.78) / 0.22) * Math.PI) * 0.05 * hopScale : 0;
 			const targetRoll = (inst.fallDownSide || 1) * (Math.PI * 0.47);
 			poseY = poseY * (1 - ease) + (fallFloorY + settleBounce) * ease;
 			poseRotX = poseRotX * (1 - ease);
@@ -2117,7 +2191,7 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 	}
 
 	inst.modelHolder.position.y = poseY;
-	inst.modelHolder.scale.set(poseSX, poseSY, poseSZ);
+	inst.modelHolder.scale.set(poseSX * ownerScale, poseSY * ownerScale, poseSZ * ownerScale);
 	inst.modelHolder.rotation.x = poseRotX;
 	inst.modelHolder.rotation.z = poseRotZ;
 
@@ -2206,7 +2280,7 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		if (window.spkmodPetSettings.speechBubbles) {
 			spkmodShowPetSpeechBubble(inst);
 		}
-		spkmodPlayPetSfx(inst.pet, inst.isLocal, inst.root.position);
+		spkmodPlayPetSfx(inst.pet, inst.isLocal, inst.root.position, ownerScale);
 	}
 }
 
