@@ -410,8 +410,7 @@ function spkmodDisableRaycastAndSanitize(root, hideSpritesAndRings = false) {
 		if (!obj) return;
 		if (obj.isMesh) {
 			obj.raycast = SPKMOD_NOOP_RAYCAST;
-			// Only disable frustum culling on SkinnedMesh (animated bones may extend past bind-pose sphere); keep culling ON for static meshes
-			obj.frustumCulled = !obj.isSkinnedMesh;
+			obj.frustumCulled = false;
 			obj.castShadow = false;
 			obj.receiveShadow = false;
 			if (!obj.userData) obj.userData = {};
@@ -800,8 +799,10 @@ function spkmodBuildProceduralPet(pet) {
 }
 
 async function spkmodInstantiatePetVisual(pet, instance) {
-	const THREE = (typeof spkmodEnsureThree === "function") ? await spkmodEnsureThree() : window.THREE;
-	if (!THREE || instance.disposed) return;
+	const THREE = (window.THREE && window.THREE.Group && window.THREE.Mesh && window.THREE.BoxGeometry)
+		? window.THREE
+		: ((typeof spkmodEnsureThree === "function") ? await spkmodEnsureThree() : window.THREE);
+	if (!THREE || !THREE.Group || instance.disposed) return;
 
 	const spec = pet.spec || {};
 
@@ -1068,7 +1069,7 @@ async function spkmodInstantiatePetVisual(pet, instance) {
 			if (node.isMesh) {
 				node.visible = true;
 				node.raycast = SPKMOD_NOOP_RAYCAST;
-				node.frustumCulled = !node.isSkinnedMesh;
+				node.frustumCulled = false;
 				node.castShadow = false;
 				node.receiveShadow = false;
 				if (!node.userData) node.userData = {};
@@ -1469,8 +1470,10 @@ function spkmodSweepScenePetRoots(exactNameOrPrefix, keepRoot = null, matchPrefi
 }
 
 async function spkmodCreatePetInstance(ownerKey, pet, isLocal, resolveContainerFn, resolveRemotePlayerFn) {
-	const THREE = window.THREE || ((typeof spkmodEnsureThree === "function") ? await spkmodEnsureThree() : null);
-	if (!THREE || typeof gameState === "undefined" || !gameState?.scene) return null;
+	const THREE = (window.THREE && window.THREE.Group && window.THREE.Mesh && window.THREE.BoxGeometry)
+		? window.THREE
+		: ((typeof spkmodEnsureThree === "function") ? await spkmodEnsureThree() : window.THREE);
+	if (!THREE || !THREE.Group || typeof gameState === "undefined" || !gameState?.scene) return null;
 
 	const root = new THREE.Group();
 	root.name = "spkmod_pet_root_" + ownerKey;
@@ -2720,7 +2723,6 @@ async function spkmodEquipLocalPet(idOrLevel, broadcast = true, silentToast = fa
 
 	const mySeq = ++_spkmodLocalEquipSeq;
 	_spkmodLocalEquipInFlight = true;
-	_spkmodDidInitialAutoRestore = true;
 
 	if (spkmodLocalPetInstance) {
 		spkmodDisposePetInstance(spkmodLocalPetInstance);
@@ -2750,6 +2752,10 @@ async function spkmodEquipLocalPet(idOrLevel, broadcast = true, silentToast = fa
 		if (createdInst) spkmodDisposePetInstance(createdInst);
 		return false;
 	}
+	if (!createdInst) {
+		return false;
+	}
+	_spkmodDidInitialAutoRestore = true;
 	if (spkmodLocalPetInstance && spkmodLocalPetInstance !== createdInst) {
 		spkmodDisposePetInstance(spkmodLocalPetInstance);
 	}
@@ -2877,13 +2883,16 @@ function spkmodPetsMasterLoop(nowMs) {
 	_spkmodPetLoopLastMs = nowMs;
 
 	if (!document.hidden && typeof gameState !== "undefined" && gameState && gameState.scene && gameState.playerContainer) {
-		// Auto-restore saved local pet ONCE when gameState becomes ready (never race with manual pet switching!)
+		// Auto-restore saved local pet ONCE when gameState & Three.js are ready (never race with manual pet switching!)
 		if (!_spkmodDidInitialAutoRestore && !spkmodLocalPetInstance && !_spkmodAutoRestoringPet && !_spkmodLocalEquipInFlight && window.spkmodPetSettings.equippedId) {
 			const savedPet = SPKMOD_PETS_BY_ID.get(window.spkmodPetSettings.equippedId);
 			if (savedPet && spkmodIsPetUnlocked(savedPet)) {
-				_spkmodDidInitialAutoRestore = true;
 				_spkmodAutoRestoringPet = true;
-				Promise.resolve(spkmodEquipLocalPet(savedPet.id, true, true)).finally(() => {
+				Promise.resolve(spkmodEquipLocalPet(savedPet.id, true, true)).then(ok => {
+					if (ok && spkmodLocalPetInstance) {
+						_spkmodDidInitialAutoRestore = true;
+					}
+				}).catch(() => {}).finally(() => {
 					_spkmodAutoRestoringPet = false;
 				});
 			}
