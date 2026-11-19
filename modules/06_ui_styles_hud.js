@@ -2851,6 +2851,28 @@ document.body.appendChild(
 							}
 						}
 					})
+				]),
+
+				// Burger Shop Big-Order Fat Customers Toggle (under Cars)
+				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 4px;" }, [
+					lunPanelElements.burgerFatCustomersToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;",
+						innerText: "🍔 " + tCustom("burgerFatCustomersToggleLabel", "Fat Burger Shop Customers"),
+						title: tCustom("burgerFatCustomersToggleDesc", "Make Burger Shop customers who order a big combo (burger + fries + drink + multiplier) wider")
+					}),
+					lunPanelElements.burgerFatCustomersToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: (window.spkmodBurgerFatCustomersEnabled !== false),
+						title: tCustom("burgerFatCustomersToggleDesc", "Make Burger Shop customers who order a big combo (burger + fries + drink + multiplier) wider"),
+						onchange: e => {
+							if (typeof window.spkmodSetBurgerFatCustomersEnabled === "function") {
+								window.spkmodSetBurgerFatCustomersEnabled(e.target.checked);
+							} else {
+								window.spkmodBurgerFatCustomersEnabled = !!e.target.checked;
+								if (window.localStorage) localStorage.setItem("spkmod-burger-fat-customers", e.target.checked ? "true" : "false");
+							}
+						}
+					})
 				])
 			]),
 

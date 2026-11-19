@@ -1033,6 +1033,13 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.carSystemToggleInput) {
 		lunPanelElements.carSystemToggleInput.title = t("carSystemToggleDesc") || "Enable or disable 3D car display, HUD button, and multiplayer car sync";
 	}
+	if (lunPanelElements.burgerFatCustomersToggleLabel) {
+		setText(lunPanelElements.burgerFatCustomersToggleLabel, "🍔 " + tCustom("burgerFatCustomersToggleLabel", "Fat Burger Shop Customers"));
+		lunPanelElements.burgerFatCustomersToggleLabel.title = tCustom("burgerFatCustomersToggleDesc", "Make Burger Shop customers who order a big combo (burger + fries + drink + multiplier) wider");
+	}
+	if (lunPanelElements.burgerFatCustomersToggleInput) {
+		lunPanelElements.burgerFatCustomersToggleInput.title = tCustom("burgerFatCustomersToggleDesc", "Make Burger Shop customers who order a big combo (burger + fries + drink + multiplier) wider");
+	}
 	if (lunPanelElements.exportSettingsBtn) setText(lunPanelElements.exportSettingsBtn, t("exportSettingsBtn"));
 	if (lunPanelElements.importSettingsBtn) setText(lunPanelElements.importSettingsBtn, t("importSettingsBtn"));
 	if (lunPanelElements.resetPositionsBtn) setText(lunPanelElements.resetPositionsBtn, "🔄 " + (t("resetPositionsBtn") || "Reset Window Positions (F3)"));

@@ -687,6 +687,9 @@ function onInGameReady() {
 	if (typeof hookRemotePlayersOnce === "function") {
 		hookRemotePlayersOnce();
 	}
+	if (typeof spkmodEnsureBurgerFatSceneHook === "function") {
+		spkmodEnsureBurgerFatSceneHook();
+	}
 	if (typeof fetchAllQuests === "function") {
 		fetchAllQuests();
 	}

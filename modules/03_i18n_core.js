@@ -553,6 +553,8 @@ var lunPanelElements = {
 	petsSystemToggleInput: null,
 	carSystemToggleLabel: null,
 	carSystemToggleInput: null,
+	burgerFatCustomersToggleLabel: null,
+	burgerFatCustomersToggleInput: null,
 	separatePanelLabel: null,
 	separatePanelToggleInput: null,
 	hidePlayerLevelsLabel: null,

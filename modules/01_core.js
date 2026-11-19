@@ -677,6 +677,11 @@ window.spkmodCarSystemEnabled = (typeof window !== "undefined" && window.localSt
 	? localStorage.getItem("spkmod-car-enabled") !== "false"
 	: true;
 
+// Burger Shop Big-Order Fat Customers Toggle (ON by default; persisted in localStorage)
+window.spkmodBurgerFatCustomersEnabled = (typeof window !== "undefined" && window.localStorage)
+	? localStorage.getItem("spkmod-burger-fat-customers") !== "false"
+	: true;
+
 
 
 

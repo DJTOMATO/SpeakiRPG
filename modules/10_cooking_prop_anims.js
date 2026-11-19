@@ -1495,4 +1495,332 @@ window.spkmodToggleBurstSpam = function(forceState) {
 
 spkmodEnsureCartWatcher();
 
+// ============================================================================
+// BURGER SHOP BIG-ORDER WIDE ("FAT") CUSTOMERS
+// ============================================================================
+var spkmodCA = {
+	on: typeof window !== "undefined" ? window.spkmodBurgerFatCustomersEnabled !== false : true,
+	fx: 2,
+	fz: 2,
+	list: [],
+	t: 0,
+	tScan: 0,
+	bubbles: [],
+	need: ["Burger_Basic", "Potato_Cooked", "Drink_Prepped"],
+	sprites: 1,
+	visible: true,
+	every: 100,
+	window: 3000,
+	log: false,
+	pelvis: /pelvis|hip/i,
+	head: /head/i,
+	spine: /spine/i
+};
+if (typeof window !== "undefined") window.spkmodCA = spkmodCA;
+
+let _spkmodCAMatH1 = null;
+let _spkmodCAMatInv = null;
+
+function spkmodCAContainers() {
+	const gs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
+	const c = gs && gs.burgerShop && gs.burgerShop.customers;
+	if (!c) return [];
+	const list = Array.isArray(c) ? c : (typeof c.values === "function" ? [...c.values()] : Object.values(c));
+	return list.map(e => e && e.container).filter(Boolean);
+}
+
+function spkmodCAAxes(bone, cont) {
+	const B = bone.matrixWorld.elements, C = cont.matrixWorld.elements;
+	const n = (e, o) => {
+		const l = Math.hypot(e[o], e[o + 1], e[o + 2]) || 1;
+		return [e[o] / l, e[o + 1] / l, e[o + 2] / l];
+	};
+	const axes = ["x", "y", "z"];
+	const cx = n(C, 0), cy = n(C, 4), cz = n(C, 8);
+	const pick = (c, exclude) => {
+		let best = "x", bd = -1;
+		for (let k = 0; k < 3; k++) {
+			const a = axes[k];
+			if (a === exclude) continue;
+			const b = n(B, k * 4);
+			const d = Math.abs(b[0] * c[0] + b[1] * c[1] + b[2] * c[2]);
+			if (d > bd) { bd = d; best = a; }
+		}
+		return best;
+	};
+	let ax = pick(cx);
+	let az = pick(cz);
+	if (ax === az) {
+		const ay = pick(cy);
+		ax = pick(cx, ay);
+		az = pick(cz, ax === ay ? ay : ax);
+		if (az === ay) az = axes.find(a => a !== ax && a !== ay) || az;
+	}
+	return { x: ax, z: az };
+}
+
+function spkmodCAVisible(o, stop) {
+	let hitStop = false;
+	for (let x = o; x; x = x.parent) {
+		if (x === stop) { hitStop = true; break; }
+		if (!x.visible) return false;
+	}
+	return stop ? hitStop : true;
+}
+
+function spkmodCARead(e, scene) {
+	const S = spkmodCA, names = new Set();
+	let sprites = 0;
+	const walk = root => root.traverse(o => {
+		if (S.visible && !spkmodCAVisible(o, scene)) return;
+		if (o.isSprite) sprites++;
+		else if (o.isMesh && o.name) names.add(o.name);
+	});
+	walk(e.cont);
+	for (const b of (e.bub || [])) walk(b);
+	return { names, sprites };
+}
+
+function spkmodCAInside(o, r) {
+	for (let x = o; x; x = x.parent) {
+		if (x === r) return true;
+	}
+	return false;
+}
+
+function spkmodCARelease(e) {
+	if (!e || e.rel) return;
+	e.rel = true;
+	if (e.pel) {
+		e.pel.scale[e.ap.x] = e.p0.x;
+		e.pel.scale[e.ap.z] = e.p0.z;
+		e.pel.updateMatrix();
+	}
+	if (e.head) {
+		e.head.matrixAutoUpdate = true;
+		e.head.updateMatrix();
+	}
+}
+
+function spkmodCAReleaseAll() {
+	const S = spkmodCA;
+	for (const e of S.list) spkmodCARelease(e);
+	S.list = [];
+	S.bubbles = [];
+	S.tScan = 0;
+}
+
+function spkmodCASync(scene) {
+	const S = spkmodCA, now = performance.now();
+	const conts = spkmodCAContainers();
+	if (conts.length === 0) {
+		if (S.list.length > 0 || S.bubbles.length > 0) spkmodCAReleaseAll();
+		return;
+	}
+	if (now - S.tScan > 1000) {
+		S.tScan = now;
+		S.bubbles = [];
+		const byRoot = new Map();
+		scene.traverse(o => {
+			if (o.isMesh && o.geometry && o.geometry.type === "ShapeGeometry" && o.parent && o.parent.parent && o.parent.parent.parent) {
+				const r = o.parent.parent.parent;
+				let entry = byRoot.get(r);
+				if (!entry) {
+					entry = { root: r, shapes: [] };
+					byRoot.set(r, entry);
+					S.bubbles.push(entry);
+				}
+				entry.shapes.push(o);
+			}
+		});
+	}
+	const own = new Map();
+	const hasBubbleSet = new Set();
+	for (const b of S.bubbles) {
+		const root = b.root;
+		if (!spkmodCAInside(root, scene)) continue;
+		const bVis = !S.visible || b.shapes.some(sh => spkmodCAVisible(sh, scene));
+		let nested = false;
+		for (const c of conts) {
+			if (spkmodCAInside(root, c)) {
+				nested = true;
+				if (bVis) hasBubbleSet.add(c);
+				break;
+			}
+			if (spkmodCAInside(c, root)) {
+				nested = true;
+				break;
+			}
+		}
+		if (nested) continue;
+		let best = null, bd = 1.2;
+		const a = root.matrixWorld.elements;
+		for (const c of conts) {
+			const m = c.matrixWorld.elements;
+			const d = Math.hypot(a[12] - m[12], a[14] - m[14]);
+			if (d < bd) { bd = d; best = c; }
+		}
+		if (best) {
+			if (!own.has(best)) own.set(best, []);
+			own.get(best).push(root);
+			if (bVis) hasBubbleSet.add(best);
+		}
+	}
+	const keep = [];
+	for (const cont of conts) {
+		let e = S.list.find(x => x.cont === cont);
+		if (!e) {
+			const B = [];
+			cont.traverse(o => { if (o.isBone) B.push(o); });
+			const pel = B.find(b => S.pelvis.test(b.name)) || B.find(b => S.spine.test(b.name));
+			const head = B.find(b => S.head.test(b.name) && !/nub/i.test(b.name));
+			if (!pel || !head || pel === head || !head.parent) continue;
+			cont.updateMatrixWorld(true);
+			const ap = spkmodCAAxes(pel, cont);
+			const px = pel.scale[ap.x], pz = pel.scale[ap.z];
+			if (!px || !pz || !isFinite(px) || !isFinite(pz)) continue;
+			e = { cont, pel, head, ap, p0: { x: px, z: pz }, M: head.matrix.constructor, want: false, rel: true, seen: null, decided: false, born: now, bubbleSeenAt: null };
+		}
+		if (!e.decided) {
+			cont.updateMatrixWorld(true);
+			e.bub = own.get(cont) || [];
+			const r = spkmodCARead(e, scene);
+			e.seen = r;
+			const hit = S.need.every(n => r.names.has(n)) && r.sprites >= S.sprites;
+			if (hit) {
+				e.decided = true;
+				e.want = true;
+				if (S.log) console.log("[SpeakiMod] customer decided: WIDE", [...r.names].filter(n => !/^(Mesh_|geometry_|Cap|Rotor|world)/.test(n)).join("+"), "sprites", r.sprites);
+			} else {
+				const hasBubbleOrOrder = hasBubbleSet.has(cont) || S.need.some(n => r.names.has(n));
+				if (hasBubbleOrOrder) {
+					if (e.bubbleSeenAt === null) e.bubbleSeenAt = now;
+					if (now - e.bubbleSeenAt > S.window) {
+						e.decided = true;
+						e.want = false;
+						if (S.log) console.log("[SpeakiMod] customer decided: normal", [...r.names].filter(n => !/^(Mesh_|geometry_|Cap|Rotor|world)/.test(n)).join("+"), "sprites", r.sprites);
+					}
+				}
+			}
+		}
+		keep.push(e);
+	}
+	for (const e of S.list) {
+		if (keep.indexOf(e) < 0) spkmodCARelease(e);
+	}
+	S.list = keep;
+}
+
+function spkmodCAApply() {
+	const S = spkmodCA;
+	for (const e of S.list) {
+		if (!S.on || !e.want || e.ap.x === e.ap.z) {
+			spkmodCARelease(e);
+			continue;
+		}
+		const pel = e.pel, head = e.head, neck = head.parent;
+		if (!pel || !head || !neck) continue;
+		if (!_spkmodCAMatH1 || _spkmodCAMatH1.constructor !== e.M) {
+			_spkmodCAMatH1 = new e.M();
+			_spkmodCAMatInv = new e.M();
+		}
+		e.rel = false;
+		head.matrixAutoUpdate = true;
+		pel.scale[e.ap.x] = e.p0.x;
+		pel.scale[e.ap.z] = e.p0.z;
+		pel.updateMatrix();
+		e.cont.updateMatrixWorld(true);
+		_spkmodCAMatH1.copy(head.matrixWorld);
+
+		pel.scale[e.ap.x] = e.p0.x * S.fx;
+		pel.scale[e.ap.z] = e.p0.z * S.fz;
+		pel.updateMatrix();
+		e.cont.updateMatrixWorld(true);
+
+		const ne = neck.matrixWorld;
+		if (typeof ne.determinant === "function" && Math.abs(ne.determinant()) < 1e-10) {
+			continue;
+		}
+		const he = head.matrixWorld.elements;
+		_spkmodCAMatH1.elements[12] = he[12];
+		_spkmodCAMatH1.elements[13] = he[13];
+		_spkmodCAMatH1.elements[14] = he[14];
+		head.matrix.copy(_spkmodCAMatInv.copy(ne).invert().multiply(_spkmodCAMatH1));
+		head.matrixAutoUpdate = false;
+		head.updateMatrixWorld(true);
+	}
+}
+
+function spkmodEnsureBurgerFatSceneHook() {
+	const gs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
+	const scene = gs && gs.scene;
+	if (!scene) return false;
+	if (scene.__spkmodCAHooked) return true;
+	scene.__spkmodCAHooked = true;
+	const prevBefore = scene.onBeforeRender;
+	scene.onBeforeRender = function(renderer, sc, camera, ...rest) {
+		if (typeof prevBefore === "function") {
+			try { prevBefore.call(this, renderer, sc, camera, ...rest); } catch (_) {}
+		}
+		const curGs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
+		const S = spkmodCA;
+		if (!curGs || sc !== curGs.scene || (!S.on && S.list.length === 0)) return;
+		try {
+			if (!S.on) {
+				spkmodCAReleaseAll();
+				return;
+			}
+			const now = performance.now();
+			// Skip order-bubble sync during shader overrideMaterial normal pass (which hides sprites)
+			if (!sc.overrideMaterial && now - S.t >= S.every) {
+				S.t = now;
+				spkmodCASync(sc);
+			}
+			spkmodCAApply();
+		} catch (_) {}
+	};
+	return true;
+}
+
+window.spkmodSetBurgerFatCustomersEnabled = function(nextEnabled, silentToast = false) {
+	const enabled = !!nextEnabled;
+	if (typeof window !== "undefined") {
+		window.spkmodBurgerFatCustomersEnabled = enabled;
+		if (window.localStorage) {
+			try {
+				localStorage.setItem("spkmod-burger-fat-customers", enabled ? "true" : "false");
+			} catch (_) {}
+		}
+	}
+	spkmodCA.on = enabled;
+	if (typeof lunPanelElements !== "undefined" && lunPanelElements && lunPanelElements.burgerFatCustomersToggleInput) {
+		lunPanelElements.burgerFatCustomersToggleInput.checked = enabled;
+	}
+	if (enabled) {
+		spkmodCA.t = 0;
+		spkmodCA.tScan = 0;
+		spkmodEnsureBurgerFatSceneHook();
+	} else {
+		spkmodCAReleaseAll();
+	}
+	if (!silentToast && typeof chatLog === "function") {
+		const msg = enabled
+			? (typeof tCustom === "function" ? tCustom("burgerFatCustomersEnabledToast", "🍔 Fat Burger Shop Customers enabled.") : "🍔 Fat Burger Shop Customers enabled.")
+			: (typeof tCustom === "function" ? tCustom("burgerFatCustomersDisabledToast", "🍔 Fat Burger Shop Customers disabled.") : "🍔 Fat Burger Shop Customers disabled.");
+		chatLog(msg);
+	}
+	return enabled;
+};
+
+function spkmodCustomerAuto(on, fx, fz) {
+	if (fx) {
+		spkmodCA.fx = fx;
+		spkmodCA.fz = fz || fx;
+	}
+	window.spkmodSetBurgerFatCustomersEnabled(!!on, true);
+}
+if (typeof window !== "undefined") window.spkmodCustomerAuto = spkmodCustomerAuto;
+
+spkmodEnsureBurgerFatSceneHook();
+
 

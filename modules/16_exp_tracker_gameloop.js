@@ -88,6 +88,9 @@ if (typeof spkmodI18nRenderers !== 'undefined') {
 function tick() {
 	if (window.__spkmodPauseTick) return;
 	if (lunTickCount % 20 === 0) spkmodAvatarController.sync();
+	if (lunTickCount % 20 === 0 && typeof spkmodEnsureBurgerFatSceneHook === "function") {
+		spkmodEnsureBurgerFatSceneHook();
+	}
 	if (!window.__gameStateHooked && typeof gameState !== "undefined" && gameState) {
 		if (typeof hookGameStateOnce === "function") {
 			hookGameStateOnce();
