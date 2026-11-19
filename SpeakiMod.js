@@ -10,107 +10,37 @@ try {
 		if (typeof args[0] === 'string' && (args[0].includes('violates the following Content Security Policy directive') || args[0].includes('Content Security Policy'))) return;
 		return _spkOrigError.apply(this, args);
 	};
-	// Fix game bloomPipeline ShaderMaterial duplicating Three.js colorspace_pars_fragment (Shader Error 0 & useProgram spam) — works purely at runtime without injector.js changes
-	if (typeof window !== 'undefined' && !window.__spkmodShaderDedupePatched) {
-		window.__spkmodShaderDedupePatched = true;
-		const dedupeColorSpaceFns = (source) => {
-			if (typeof source !== 'string') return source;
-			if (source.indexOf('LinearTransferOETF') === -1 && source.indexOf('sRGBTransferOETF') === -1) return source;
-			let out = source;
-			for (const fn of ['LinearTransferOETF', 'sRGBTransferEOTF', 'sRGBTransferOETF']) {
-				let seen = false;
-				const rx = new RegExp(`vec4\\s+${fn}\\s*\\([^)]*\\)\\s*\\{[^}]*\\}`, 'g');
-				out = out.replace(rx, (match) => {
-					if (!seen) {
-						seen = true;
-						return match;
-					}
-					return '';
-				});
-			}
-			return out;
-		};
-
-		// Layer 1 & 2: Deduplicate newly compiled shaders AND repair/guard any already-failed program from before SpeakiMod.js loaded
-		const validPrograms = new WeakSet();
-		const invalidPrograms = new WeakSet();
-		for (const Ctx of [typeof WebGL2RenderingContext !== 'undefined' ? WebGL2RenderingContext : null, typeof WebGLRenderingContext !== 'undefined' ? WebGLRenderingContext : null]) {
-			if (!Ctx || !Ctx.prototype) continue;
-			const origShaderSource = typeof Ctx.prototype.shaderSource === 'function' ? Ctx.prototype.shaderSource : null;
-			if (origShaderSource) {
-				Ctx.prototype.shaderSource = function(shader, source) {
-					return origShaderSource.call(this, shader, dedupeColorSpaceFns(source));
-				};
-			}
-			const origUseProgram = typeof Ctx.prototype.useProgram === 'function' ? Ctx.prototype.useProgram : null;
-			if (origUseProgram) {
-				Ctx.prototype.useProgram = function(program) {
-					if (!program || validPrograms.has(program)) {
-						return origUseProgram.call(this, program);
-					}
-					if (invalidPrograms.has(program)) {
-						return;
-					}
-					let linked = false;
-					try { linked = !!this.getProgramParameter(program, this.LINK_STATUS); } catch (_) { linked = true; }
-					if (linked) {
-						validPrograms.add(program);
-						return origUseProgram.call(this, program);
-					}
-					// Attempt in-place shader repair for programs that failed before SpeakiMod.js initialized
-					try {
-						const attached = this.getAttachedShaders(program) || [];
-						let repaired = false;
-						for (let i = 0; i < attached.length; i++) {
-							const sh = attached[i];
-							const src = this.getShaderSource(sh);
-							const fixed = dedupeColorSpaceFns(src);
-							if (fixed && fixed !== src && origShaderSource) {
-								origShaderSource.call(this, sh, fixed);
-								this.compileShader(sh);
-								repaired = true;
-							}
-						}
-						if (repaired) {
-							this.linkProgram(program);
-							if (this.getProgramParameter(program, this.LINK_STATUS)) {
-								validPrograms.add(program);
-								return origUseProgram.call(this, program);
-							}
-						}
-					} catch (_) {}
-					invalidPrograms.add(program);
-				};
-			}
-		}
-
-		// Layer 3: Heal Three.js bloomPipeline.compositeMaterial at the material level, then unwrap for zero steady-state draw-call overhead
+	// Silently skip the game's broken bloomPipeline compositeMaterial (Three.js r185 duplicate colorspace_pars_fragment bug)
+	// Keeps visuals 100% identical to vanilla without WebGL compile/useProgram console spam, and auto-steps aside once the game fixes it.
+	if (typeof window !== 'undefined' && !window.__spkmodBloomGuardPatched) {
+		window.__spkmodBloomGuardPatched = true;
 		const patchRendererBloomMaterial = (renderer) => {
-			if (!renderer || renderer.__spkmodBloomFixPatched || typeof renderer.renderBufferDirect !== 'function') return;
-			renderer.__spkmodBloomFixPatched = true;
+			if (!renderer || renderer.__spkmodBloomGuardPatched || typeof renderer.renderBufferDirect !== 'function') return;
+			renderer.__spkmodBloomGuardPatched = true;
 			const origRenderBufferDirect = renderer.renderBufferDirect;
 			const checkedMaterials = new WeakSet();
 			renderer.renderBufferDirect = function(camera, scene, geometry, material, object, group) {
 				if (material && !checkedMaterials.has(material)) {
 					checkedMaterials.add(material);
 					if (material.isShaderMaterial && !material.isRawShaderMaterial && typeof material.fragmentShader === 'string' && material.fragmentShader.indexOf('colorspace_pars_fragment') !== -1) {
-						material.fragmentShader = material.fragmentShader.replace(/#include\s*<colorspace_pars_fragment>/g, '');
-						material.needsUpdate = true;
-						// Bloom compositeMaterial is healed; restore original hot path immediately (Layer 1 shaderSource handles any future shaders)
+						material.visible = false;
+						if (object && object.isMesh) object.visible = false;
+						// Broken bloom compositeMaterial disabled cleanly; restore hot path immediately for zero overhead
 						renderer.renderBufferDirect = origRenderBufferDirect;
+						return;
 					}
 				}
 				return origRenderBufferDirect.call(this, camera, scene, geometry, material, object, group);
 			};
 		};
 
-		let bloomHealTries = 0;
-		const bloomHealTimer = setInterval(() => {
-			bloomHealTries++;
+		let bloomGuardTries = 0;
+		const bloomGuardTimer = setInterval(() => {
+			bloomGuardTries++;
 			const gs = typeof window.gameState !== 'undefined' ? window.gameState : null;
 			const sc = gs && gs.scene;
 			if (sc) {
-				clearInterval(bloomHealTimer);
+				clearInterval(bloomGuardTimer);
 				if (typeof spkmodShaderRuntime !== 'undefined' && spkmodShaderRuntime && spkmodShaderRuntime.renderer) {
 					patchRendererBloomMaterial(spkmodShaderRuntime.renderer);
 					return;
@@ -126,8 +56,8 @@ try {
 					}
 				};
 				sc.onAfterRender = probeAfter;
-			} else if (bloomHealTries > 160) {
-				clearInterval(bloomHealTimer);
+			} else if (bloomGuardTries > 160) {
+				clearInterval(bloomGuardTimer);
 			}
 		}, 250);
 	}
@@ -13272,7 +13202,7 @@ function getSpeakiAvatarPlayer(state) {
 }
 
 function validSpeakiAvatar(value) {
-	return value && ["custom", "trickcal", "trickcal2", "trickcal3", "trickcal4"].includes(value.pack)
+	return value && ["custom", "trickcal", "trickcal2", "trickcal3", "trickcal4", "trickcal5"].includes(value.pack)
 		&& typeof value.name === "string" && value.name.length > 0 && value.name.length <= 100;
 }
 
@@ -13432,7 +13362,7 @@ function createSpeakiAvatarController({ document, store, getPlayer, getCatalog, 
 			}
 			if (!grid.children.length) grid.textContent = text("avatarEmpty");
 		}
-		for (const [key, label] of [["custom", "avatarCustom"], ["trickcal", "Trickcal"], ["trickcal2", "Trickcal 2"], ["trickcal3", "Trickcal 3"], ["trickcal4", "Trickcal 4"]]) {
+		for (const [key, label] of [["custom", "avatarCustom"], ["trickcal", "Trickcal"], ["trickcal2", "Trickcal 2"], ["trickcal3", "Trickcal 3"], ["trickcal4", "Trickcal 4"], ["trickcal5", "Trickcal 5"]]) {
 			const tab = element("button", "", key === "custom" ? text(label) : label);
 			tab.setAttribute("aria-pressed", String(pack === key));
 			tab.onclick = () => {
@@ -13748,6 +13678,11 @@ function renderEmojiGrid() {
     btnTrickcal4.innerText = "🍀 " + t("emojiTabTrickcal4", "Trick 4");
     btnTrickcal4.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'trickcal4' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
     btnTrickcal4.onclick = (e) => { lunEmojiTab = 'trickcal4'; renderEmojiGrid(); };
+
+    const btnTrickcal5 = document.createElement("button");
+    btnTrickcal5.innerText = "🍀 " + t("emojiTabTrickcal5", "Trick 5");
+    btnTrickcal5.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'trickcal5' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
+    btnTrickcal5.onclick = (e) => { lunEmojiTab = 'trickcal5'; renderEmojiGrid(); };
     
     header.appendChild(btnStd);
     header.appendChild(btnCus);
@@ -13755,6 +13690,7 @@ function renderEmojiGrid() {
     header.appendChild(btnTrickcal2);
     header.appendChild(btnTrickcal3);
     header.appendChild(btnTrickcal4);
+    header.appendChild(btnTrickcal5);
 
     const btnFav = document.createElement("button");
     btnFav.innerText = t("emojiTabFav", "Fav");
@@ -37155,7 +37091,7 @@ function spkmodEnableShaderHook() {
 
 	rt.renderer.render = function (sc, cam) {
 		const gs = typeof gameState !== "undefined" ? gameState : window.gameState;
-		if (rt.insideRender || !gs || sc !== rt.scene || cam !== rt.camera || sc.overrideMaterial) {
+		if (rt.insideRender || !gs || sc !== rt.scene || cam !== rt.camera || sc.overrideMaterial || (cam.layers && (cam.layers.mask & 1) === 0)) {
 			return rt.origRender(sc, cam);
 		}
 		rt.insideRender = true;

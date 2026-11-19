@@ -820,7 +820,7 @@ function spkmodEnableShaderHook() {
 
 	rt.renderer.render = function (sc, cam) {
 		const gs = typeof gameState !== "undefined" ? gameState : window.gameState;
-		if (rt.insideRender || !gs || sc !== rt.scene || cam !== rt.camera || sc.overrideMaterial) {
+		if (rt.insideRender || !gs || sc !== rt.scene || cam !== rt.camera || sc.overrideMaterial || (cam.layers && (cam.layers.mask & 1) === 0)) {
 			return rt.origRender(sc, cam);
 		}
 		rt.insideRender = true;

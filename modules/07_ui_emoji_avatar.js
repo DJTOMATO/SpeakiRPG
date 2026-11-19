@@ -289,7 +289,7 @@ function getSpeakiAvatarPlayer(state) {
 }
 
 function validSpeakiAvatar(value) {
-	return value && ["custom", "trickcal", "trickcal2", "trickcal3", "trickcal4"].includes(value.pack)
+	return value && ["custom", "trickcal", "trickcal2", "trickcal3", "trickcal4", "trickcal5"].includes(value.pack)
 		&& typeof value.name === "string" && value.name.length > 0 && value.name.length <= 100;
 }
 
@@ -449,7 +449,7 @@ function createSpeakiAvatarController({ document, store, getPlayer, getCatalog, 
 			}
 			if (!grid.children.length) grid.textContent = text("avatarEmpty");
 		}
-		for (const [key, label] of [["custom", "avatarCustom"], ["trickcal", "Trickcal"], ["trickcal2", "Trickcal 2"], ["trickcal3", "Trickcal 3"], ["trickcal4", "Trickcal 4"]]) {
+		for (const [key, label] of [["custom", "avatarCustom"], ["trickcal", "Trickcal"], ["trickcal2", "Trickcal 2"], ["trickcal3", "Trickcal 3"], ["trickcal4", "Trickcal 4"], ["trickcal5", "Trickcal 5"]]) {
 			const tab = element("button", "", key === "custom" ? text(label) : label);
 			tab.setAttribute("aria-pressed", String(pack === key));
 			tab.onclick = () => {
@@ -765,6 +765,11 @@ function renderEmojiGrid() {
     btnTrickcal4.innerText = "🍀 " + t("emojiTabTrickcal4", "Trick 4");
     btnTrickcal4.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'trickcal4' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
     btnTrickcal4.onclick = (e) => { lunEmojiTab = 'trickcal4'; renderEmojiGrid(); };
+
+    const btnTrickcal5 = document.createElement("button");
+    btnTrickcal5.innerText = "🍀 " + t("emojiTabTrickcal5", "Trick 5");
+    btnTrickcal5.style.cssText = `flex: 1; padding: 4px; cursor: pointer; border-radius: 4px; background: ${lunEmojiTab === 'trickcal5' ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: none; color: #fff;`;
+    btnTrickcal5.onclick = (e) => { lunEmojiTab = 'trickcal5'; renderEmojiGrid(); };
     
     header.appendChild(btnStd);
     header.appendChild(btnCus);
@@ -772,6 +777,7 @@ function renderEmojiGrid() {
     header.appendChild(btnTrickcal2);
     header.appendChild(btnTrickcal3);
     header.appendChild(btnTrickcal4);
+    header.appendChild(btnTrickcal5);
 
     const btnFav = document.createElement("button");
     btnFav.innerText = t("emojiTabFav", "Fav");
