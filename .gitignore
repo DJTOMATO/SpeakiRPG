@@ -24,6 +24,7 @@ update_docs.py
 .github/tools
 /tools
 /tools/modules
+/tests
 s3kzJMhDNRpi.fbx
 dance2.fbx
 dance3.fbx

@@ -2228,7 +2228,11 @@ var lunPanelElements = {
 	fontPresetSelect: null,
 	customFontContainer: null,
 	customFontInputLabel: null,
-	customFontInput: null
+	customFontInput: null,
+	wheelZoomToggleLabel: null,
+	wheelZoomToggleInput: null,
+	maxZoomLabel: null,
+	maxZoomInput: null
 };
 var lunMenuFoldingLevel = 0;
 
@@ -2588,6 +2592,31 @@ const lunKnownBotPrefixSet = new Set(lunKnownBotNames.map(name => name.toLowerCa
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
 var lunFirstPersonPitch = parseFloat((window.localStorage && localStorage.getItem("spkmod-fp-pitch")) || "0.5");
+const LUN_DEFAULT_MAX_ZOOM = 90;
+const LUN_MAX_ZOOM_LIMIT = 1000;
+var lunWheelZoomEnabled = (window.localStorage && localStorage.getItem("spkmod-wheel-zoom-enabled")) !== "false";
+function parseLunMaxZoom(raw, fallback = LUN_DEFAULT_MAX_ZOOM) {
+	const n = parseFloat(raw);
+	if (!Number.isFinite(n)) return fallback;
+	const minZoom = typeof window.LUN_MIN_ZOOM === "number" ? window.LUN_MIN_ZOOM : 3;
+	return Math.round(Math.min(LUN_MAX_ZOOM_LIMIT, Math.max(minZoom, n)) * 100) / 100;
+}
+var lunMaxZoom = parseLunMaxZoom(window.localStorage && localStorage.getItem("spkmod-max-zoom"), LUN_DEFAULT_MAX_ZOOM);
+window.LUN_MAX_ZOOM = lunMaxZoom;
+
+function setWheelZoomEnabled(enabled) {
+	lunWheelZoomEnabled = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-wheel-zoom-enabled", lunWheelZoomEnabled ? "true" : "false");
+	if (lunPanelElements.wheelZoomToggleInput) lunPanelElements.wheelZoomToggleInput.checked = lunWheelZoomEnabled;
+}
+
+function setMaxZoom(value) {
+	lunMaxZoom = parseLunMaxZoom(value, LUN_DEFAULT_MAX_ZOOM);
+	window.LUN_MAX_ZOOM = lunMaxZoom;
+	if (window.localStorage) localStorage.setItem("spkmod-max-zoom", String(lunMaxZoom));
+	if (lunPanelElements.maxZoomInput) lunPanelElements.maxZoomInput.value = String(lunMaxZoom);
+	return lunMaxZoom;
+}
 var lunFollowTargetName = null;
 
 var lunGmChatHighlightEnabled = (window.localStorage && localStorage.getItem("spkmod-gmchat-enabled")) === "true";
@@ -4862,6 +4891,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-hud-locked",
 	"spkmod-lang",
 	"spkmod-low-hp-warning",
+	"spkmod-max-zoom",
 	"spkmod-mention-enabled",
 	"spkmod-mention-ping",
 	"spkmod-mute-minimized",
@@ -4913,6 +4943,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-translate-engine",
 	"spkmod-ui-scale",
 	"spkmod-uiscale",
+	"spkmod-wheel-zoom-enabled",
 	"spkmod-window-pos"
 ]);
 
@@ -9642,7 +9673,7 @@ document.body.appendChild(
 				// Zoom step cycle helper (5-10-15-20-30-40-50-60-70-80-90-5)
 				window.LUN_ZOOM_STEPS = [5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90];
 				window.LUN_MIN_ZOOM = 3;
-				window.LUN_MAX_ZOOM = 90;
+				window.LUN_MAX_ZOOM = typeof lunMaxZoom === "number" ? lunMaxZoom : 90;
 				window.lunZoomIndex = -1;
 
 				window.cycleCameraZoom = function() {
@@ -10643,6 +10674,57 @@ document.body.appendChild(
 						lunFirstPersonPitch = parseFloat(e.target.value); 
 						if (window.localStorage) localStorage.setItem("spkmod-fp-pitch", lunFirstPersonPitch); 
 					}})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.wheelZoomToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: tCustom("wheelZoomToggleLabel", "Extended Mouse Wheel Zoom"),
+						title: tCustom("wheelZoomToggleDesc", "Allow scrolling the mouse wheel to zoom out beyond the game's default limit")
+					}),
+					lunPanelElements.wheelZoomToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunWheelZoomEnabled,
+						title: tCustom("wheelZoomToggleDesc", "Allow scrolling the mouse wheel to zoom out beyond the game's default limit"),
+						onchange: e => setWheelZoomEnabled(e.target.checked)
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.maxZoomLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: tCustom("maxZoomLabel", "Max Wheel Zoom"),
+						title: tCustom("maxZoomDesc", "Maximum camera zoom distance when scrolling the mouse wheel (default: 90)")
+					}),
+					lunPanelElements.maxZoomInput = buildElement("input", {
+						type: "text",
+						inputMode: "decimal",
+						value: String(lunMaxZoom),
+						placeholder: "90",
+						title: tCustom("maxZoomDesc", "Maximum camera zoom distance when scrolling the mouse wheel (default: 90)"),
+						style: "width: 52px; text-align: right; background: #222; color: #fff; border: 1px solid #444; border-radius: 3px; font-size: 11px; padding: 2px 4px;",
+						oninput: e => {
+							const raw = e.target.value.trim();
+							if (!raw) return;
+							const parsed = parseFloat(raw);
+							const minZoom = typeof window.LUN_MIN_ZOOM === "number" ? window.LUN_MIN_ZOOM : 3;
+							if (Number.isFinite(parsed) && parsed >= minZoom) {
+								lunMaxZoom = parseLunMaxZoom(parsed, LUN_DEFAULT_MAX_ZOOM);
+								window.LUN_MAX_ZOOM = lunMaxZoom;
+								if (window.localStorage) localStorage.setItem("spkmod-max-zoom", String(lunMaxZoom));
+							}
+						},
+						onchange: e => {
+							setMaxZoom(e.target.value);
+						},
+						onblur: e => {
+							setMaxZoom(e.target.value);
+						},
+						onkeydown: e => {
+							if (e.key === "Enter") {
+								setMaxZoom(e.target.value);
+								e.target.blur();
+							}
+						}
+					})
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.lowHpLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("lowHpWarningToggleLabel") }),
@@ -27186,6 +27268,20 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.hideKnownBotsLabel) setText(lunPanelElements.hideKnownBotsLabel, t("hideKnownBotsToggleLabel"));
 	if (lunPanelElements.chatTimestampLabel) setText(lunPanelElements.chatTimestampLabel, t("chatTimestampToggleLabel"));
 	if (lunPanelElements.fpPitchLabel) setText(lunPanelElements.fpPitchLabel, t("firstPersonPitchLabel"));
+	if (lunPanelElements.wheelZoomToggleLabel) {
+		setText(lunPanelElements.wheelZoomToggleLabel, tCustom("wheelZoomToggleLabel", "Extended Mouse Wheel Zoom"));
+		lunPanelElements.wheelZoomToggleLabel.title = tCustom("wheelZoomToggleDesc", "Allow scrolling the mouse wheel to zoom out beyond the game's default limit");
+	}
+	if (lunPanelElements.wheelZoomToggleInput) {
+		lunPanelElements.wheelZoomToggleInput.title = tCustom("wheelZoomToggleDesc", "Allow scrolling the mouse wheel to zoom out beyond the game's default limit");
+	}
+	if (lunPanelElements.maxZoomLabel) {
+		setText(lunPanelElements.maxZoomLabel, tCustom("maxZoomLabel", "Max Wheel Zoom"));
+		lunPanelElements.maxZoomLabel.title = tCustom("maxZoomDesc", "Maximum camera zoom distance when scrolling the mouse wheel (default: 90)");
+	}
+	if (lunPanelElements.maxZoomInput) {
+		lunPanelElements.maxZoomInput.title = tCustom("maxZoomDesc", "Maximum camera zoom distance when scrolling the mouse wheel (default: 90)");
+	}
 	if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t(lunFirstPersonActive ? "firstPersonOn" : "firstPersonOff"));
 	if (lunPanelElements.trueFirstPersonBtn) setText(lunPanelElements.trueFirstPersonBtn, t(lunTrueFirstPersonActive ? "trueFirstPersonOn" : "trueFirstPersonOff"));
 	if (lunPanelElements.speedometerToggleLabel) setText(lunPanelElements.speedometerToggleLabel, t("speedometerToggleLabel"));
@@ -30801,6 +30897,11 @@ function hookGameStateOnce() {
 		gameState.cameraController.applyInput = function(input) {
 			if (!input || !input.zoomDeltaY) {
 				return origApplyInput(input);
+			}
+			if (typeof lunWheelZoomEnabled !== "undefined" && !lunWheelZoomEnabled) {
+				const res = origApplyInput(input);
+				if (typeof window.updateZoomButtonText === "function") window.updateZoomButtonText();
+				return res;
 			}
 			// Let the game handle yaw/pitch without its hardcoded 3..12 zoom clamp
 			if (input.yawDeltaPx || input.pitchDeltaPx) {
@@ -39070,9 +39171,10 @@ function spkmodGetPetsEnabledToastText() {
 }
 
 // ============================================================================
-// 1. MULTI-LANGUAGE UI STRINGS & SPEECH BUBBLES (LOADED FROM translations.json)
-//    - Localized strings live in translations.json under petUi, petSpeech, petNames
-//    - Compact English-only fallbacks are used only until translations.json loads
+// 1. MULTI-LANGUAGE UI STRINGS (translations.json) & PET SPEECH (assets/pet_speech.json)
+//    - Pet UI labels & names live in translations.json under petUi, petNames
+//    - Pet speech phrases & combinations live in assets/pet_speech.json
+//    - Compact English-only fallbacks are used only until remote JSON loads
 // ============================================================================
 const SPKMOD_PET_UI_FALLBACK_EN = {
 	petsBtnTooltip: "Pet Manager (Alt+P)",
@@ -39124,6 +39226,9 @@ const SPKMOD_PET_UI_FALLBACK_EN = {
 	showcaseSpawnedToast: "🐾 Spawned {0} showcase pets around you! Call spkmodPets.clearShowcase() to remove."
 };
 
+const SPKMOD_PET_SPEECH_URL = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/pet_speech.json";
+const SPKMOD_PET_SPEECH_CACHE_KEY = "spkmod-pet-speech-cache";
+
 const SPKMOD_PET_SPEECH_FALLBACK_EN = {
 	fixed: [
 		"Boing boing! Where are we going next?",
@@ -39134,6 +39239,83 @@ const SPKMOD_PET_SPEECH_FALLBACK_EN = {
 	cores: ["let's go explore the next map", "I'm having the best time following you"],
 	suffixes: ["~ ♪", "!", "!! ✨"]
 };
+
+function spkmodNormalizePetSpeechData(raw) {
+	if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+	const cleanList = (arr) => Array.isArray(arr)
+		? arr.filter(item => typeof item === "string" && item.trim().length > 0)
+		: [];
+	const out = {};
+	for (const [langKey, entry] of Object.entries(raw)) {
+		if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+		const fixed = cleanList(entry.fixed);
+		const prefixes = cleanList(entry.prefixes);
+		const cores = cleanList(entry.cores);
+		const suffixes = cleanList(entry.suffixes);
+		const byVoiceType = {};
+		if (entry.byVoiceType && typeof entry.byVoiceType === "object" && !Array.isArray(entry.byVoiceType)) {
+			for (const [vt, lines] of Object.entries(entry.byVoiceType)) {
+				const cleaned = cleanList(lines);
+				if (cleaned.length > 0) byVoiceType[vt] = cleaned;
+			}
+		}
+		if (fixed.length > 0 || (prefixes.length > 0 && cores.length > 0)) {
+			out[langKey] = {
+				fixed,
+				prefixes,
+				cores,
+				suffixes,
+				...(Object.keys(byVoiceType).length > 0 ? { byVoiceType } : {})
+			};
+		}
+	}
+	return Object.keys(out).length > 0 ? out : null;
+}
+
+var spkmodPetSpeechData = (function() {
+	try {
+		if (typeof window !== "undefined" && window.localStorage) {
+			const cached = localStorage.getItem(SPKMOD_PET_SPEECH_CACHE_KEY);
+			if (cached) {
+				const normalized = spkmodNormalizePetSpeechData(JSON.parse(cached));
+				if (normalized) return normalized;
+			}
+		}
+	} catch (_) {}
+	return {};
+})();
+
+async function fetchRemotePetSpeech() {
+	try {
+		if (typeof fetch !== "function") return null;
+		const res = await fetch(SPKMOD_PET_SPEECH_URL + "?t=" + Date.now(), { cache: "no-store" });
+		if (res && res.ok) {
+			const data = await res.json();
+			const normalized = spkmodNormalizePetSpeechData(data);
+			if (normalized) {
+				spkmodPetSpeechData = normalized;
+				if (typeof window !== "undefined") {
+					window.spkmodPetSpeechData = spkmodPetSpeechData;
+				}
+				if (typeof window !== "undefined" && window.localStorage) {
+					try {
+						localStorage.setItem(SPKMOD_PET_SPEECH_CACHE_KEY, JSON.stringify(normalized));
+					} catch (_) {}
+				}
+				console.log("[SpeakiMod+ Pets] Pet speech texts synchronized with GitHub (assets/pet_speech.json).");
+				return normalized;
+			}
+		}
+	} catch (e) {
+		console.warn("[SpeakiMod+ Pets] Failed to load assets/pet_speech.json from GitHub:", e);
+	}
+	return null;
+}
+if (typeof window !== "undefined") {
+	window.spkmodPetSpeechData = spkmodPetSpeechData;
+	window.fetchRemotePetSpeech = fetchRemotePetSpeech;
+}
+fetchRemotePetSpeech();
 
 function spkmodGetActiveLang() {
 	const raw = (typeof spkmodLang !== "undefined" && spkmodLang) ? spkmodLang : "en";
@@ -39157,27 +39339,79 @@ function spkmodGetPetUiText(key, ...args) {
 }
 window.spkmodGetPetUiText = spkmodGetPetUiText;
 
-function spkmodPickRandom(arr) {
+function spkmodPickRandom(arr, avoid) {
 	if (!Array.isArray(arr) || arr.length === 0) return "";
+	if (avoid !== undefined && arr.length > 1) {
+		for (let i = 0; i < 4; i++) {
+			const candidate = arr[Math.floor(Math.random() * arr.length)];
+			if (candidate !== avoid) return candidate;
+		}
+	}
 	return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function spkmodResolvePetSpeechDict(lang) {
+	const aliases = lang === "zh" ? ["zh", "zh-CN", "zh-TW"]
+		: lang === "es" ? ["es", "es-419"]
+		: [lang];
+	const primary = (typeof window !== "undefined" && window.spkmodPetSpeechData) || spkmodPetSpeechData;
+	if (primary && typeof primary === "object") {
+		for (const key of aliases) {
+			if (primary[key]) return primary[key];
+		}
+		if (primary.en) return primary.en;
+	}
+	// Backwards-compatible fallback if an older cached translations.json still contains petSpeech
+	const tr = typeof spkmodTranslations !== "undefined" ? spkmodTranslations : null;
+	if (tr) {
+		for (const key of aliases) {
+			if (tr[key] && tr[key].petSpeech) return tr[key].petSpeech;
+		}
+		if (tr.en && tr.en.petSpeech) return tr.en.petSpeech;
+	}
+	return SPKMOD_PET_SPEECH_FALLBACK_EN;
+}
+
+let _spkmodLastPetSpeechText = "";
+
 function spkmodGeneratePetSpeech(pet) {
 	const lang = spkmodGetActiveLang();
-	const tr = typeof spkmodTranslations !== "undefined" ? spkmodTranslations : null;
-	const dict = (tr && tr[lang] && tr[lang].petSpeech)
-		|| (tr && tr.en && tr.en.petSpeech)
-		|| SPKMOD_PET_SPEECH_FALLBACK_EN;
-	// 50% chance to use one of the hand-crafted fixed phrases,
-	// 50% chance to dynamically mix Prefix + Core + Suffix so it feels organic and endless!
-	if (Math.random() < 0.5 && Array.isArray(dict.fixed) && dict.fixed.length > 0) {
-		return spkmodPickRandom(dict.fixed);
+	const dict = spkmodResolvePetSpeechDict(lang);
+	const voiceType = pet && typeof pet.voiceType === "string" ? pet.voiceType : "";
+	const voiceLines = (voiceType && dict.byVoiceType && Array.isArray(dict.byVoiceType[voiceType]))
+		? dict.byVoiceType[voiceType]
+		: null;
+	const hasFixed = Array.isArray(dict.fixed) && dict.fixed.length > 0;
+	const hasCombo = Array.isArray(dict.prefixes) && dict.prefixes.length > 0
+		&& Array.isArray(dict.cores) && dict.cores.length > 0;
+
+	const roll = Math.random();
+	let result = "";
+	// ~18% pet voiceType-specific line (when available),
+	// ~42% hand-crafted fixed phrase,
+	// ~40% dynamic Prefix + Core + Suffix combination
+	if (voiceLines && voiceLines.length > 0 && roll < 0.18) {
+		result = spkmodPickRandom(voiceLines, _spkmodLastPetSpeechText);
+	} else if (hasFixed && (roll < 0.60 || !hasCombo)) {
+		result = spkmodPickRandom(dict.fixed, _spkmodLastPetSpeechText);
+	} else if (hasCombo) {
+		const sep = (lang === "ja" || lang === "zh-CN" || lang === "zh-TW" || lang === "zh") ? "" : " ";
+		for (let attempt = 0; attempt < 3; attempt++) {
+			const prefix = spkmodPickRandom(dict.prefixes);
+			const core = spkmodPickRandom(dict.cores);
+			const suffix = (Array.isArray(dict.suffixes) && dict.suffixes.length > 0)
+				? spkmodPickRandom(dict.suffixes)
+				: "";
+			result = `${prefix}${sep}${core}${suffix}`;
+			if (result !== _spkmodLastPetSpeechText) break;
+		}
+	} else if (hasFixed) {
+		result = spkmodPickRandom(dict.fixed, _spkmodLastPetSpeechText);
+	} else if (voiceLines && voiceLines.length > 0) {
+		result = spkmodPickRandom(voiceLines, _spkmodLastPetSpeechText);
 	}
-	const prefix = spkmodPickRandom(dict.prefixes);
-	const core = spkmodPickRandom(dict.cores);
-	const suffix = spkmodPickRandom(dict.suffixes);
-	const sep = (lang === "ja" || lang === "zh-CN" || lang === "zh-TW") ? "" : " ";
-	return `${prefix}${sep}${core}${suffix}`;
+	if (result) _spkmodLastPetSpeechText = result;
+	return result;
 }
 window.spkmodGeneratePetSpeech = spkmodGeneratePetSpeech;
 
@@ -43251,6 +43485,8 @@ window.spkmodPets = {
 		rejectBackoffRemainingMs: Math.max(0, _spkmodChatRejectBackoffUntilMs - Date.now()),
 		chatMinLevelGate: _spkmodChatMinLevelGate
 	}),
+	reloadSpeech: () => fetchRemotePetSpeech(),
+	generateSpeech: (pet) => spkmodGeneratePetSpeech(pet || spkmodLocalPetInstance?.pet),
 	list: () => {
 		console.table(SPKMOD_PET_CATALOG.map(p => ({
 			Level: p.level,
