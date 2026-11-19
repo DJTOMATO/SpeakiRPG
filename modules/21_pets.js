@@ -1056,14 +1056,38 @@ async function spkmodInstantiatePetVisual(pet, instance) {
 
 		const spinningParts = [];
 		const wheels = [];
+		const spinningSet = new Set();
+		const wheelSet = new Set();
+		const hasAncestorIn = (obj, set) => {
+			let p = obj.parent;
+			while (p) {
+				if (set.has(p)) return true;
+				p = p.parent;
+			}
+			return false;
+		};
 
 		cloned.traverse(node => {
 			if (!node) return;
 			const nName = (node.name || "").toLowerCase();
-			if (nName.includes("rotor") || nName.includes("turret_ventral") || nName.includes("radar")) {
+			if (
+				(nName.includes("rotor") || nName.includes("turret_ventral") || nName.includes("radar")) &&
+				!nName.includes("_barrel") &&
+				!nName.includes("_mesh") &&
+				!hasAncestorIn(node, spinningSet)
+			) {
+				spinningSet.add(node);
 				spinningParts.push(node);
 			}
-			if (nName.includes("wheel_fl") || nName.includes("wheel_fr") || nName.includes("wheel_rl") || nName.includes("wheel_rr")) {
+			if (
+				(
+					nName.includes("wheel_fl") || nName.includes("wheel_fr") || nName.includes("wheel_rl") || nName.includes("wheel_rr") ||
+					(nName.startsWith("wheel_") && !nName.includes("steering"))
+				) &&
+				!nName.includes("_mesh") &&
+				!hasAncestorIn(node, wheelSet)
+			) {
+				wheelSet.add(node);
 				wheels.push(node);
 			}
 			if (node.isMesh) {
@@ -2011,9 +2035,9 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 	const moveSpeedMps = dt > 0 ? frameMoved / dt : 0;
 	const isMoving = moveSpeedMps > 0.22;
 
-	// Spin wheels if vehicle pet
+	// Spin wheels if vehicle pet (scale angular velocity by wheel radius when resized)
 	if (inst.wheels && inst.wheels.length > 0 && frameMoved > 0.0005) {
-		const wheelAngle = frameMoved / 0.14;
+		const wheelAngle = frameMoved / Math.max(0.05, 0.14 * ownerScale);
 		for (const w of inst.wheels) {
 			w.rotation.x += wheelAngle;
 		}
