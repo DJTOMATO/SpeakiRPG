@@ -1400,7 +1400,7 @@ function spkmodIsPlayerInCinemaSeats(playerPos) {
 
 	// Seats bounding box expanded by 10m on each side around amphitheater seat coordinates:
 	// Base points: (83.72, 42.44), (89.28, 42.27), (89.28, 24.83), (83.66, 24.31)
-	return playerPos.x >= 78.3 && playerPos.x <= 99.6 &&
+	return playerPos.x >= 81.3 && playerPos.x <= 99.6 &&
 	       playerPos.z >= 14.0 && playerPos.z <= 52.8;
 }
 window.spkmodIsPlayerInCinemaSeats = spkmodIsPlayerInCinemaSeats;
