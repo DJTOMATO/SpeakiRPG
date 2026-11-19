@@ -1026,6 +1026,13 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.petsSystemToggleInput) {
 		lunPanelElements.petsSystemToggleInput.title = t("petsSystemToggleDesc") || "Enable or disable the 3D Pet Companion system, HUD button, hotkeys, and pet sync";
 	}
+	if (lunPanelElements.carSystemToggleLabel) {
+		setText(lunPanelElements.carSystemToggleLabel, "🚗 " + (t("carSystemToggleLabel") || "Enable Cars (Display & Sync)"));
+		lunPanelElements.carSystemToggleLabel.title = t("carSystemToggleDesc") || "Enable or disable 3D car display, HUD button, and multiplayer car sync";
+	}
+	if (lunPanelElements.carSystemToggleInput) {
+		lunPanelElements.carSystemToggleInput.title = t("carSystemToggleDesc") || "Enable or disable 3D car display, HUD button, and multiplayer car sync";
+	}
 	if (lunPanelElements.exportSettingsBtn) setText(lunPanelElements.exportSettingsBtn, t("exportSettingsBtn"));
 	if (lunPanelElements.importSettingsBtn) setText(lunPanelElements.importSettingsBtn, t("importSettingsBtn"));
 	if (lunPanelElements.resetPositionsBtn) setText(lunPanelElements.resetPositionsBtn, "🔄 " + (t("resetPositionsBtn") || "Reset Window Positions (F3)"));

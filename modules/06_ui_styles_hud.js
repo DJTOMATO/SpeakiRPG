@@ -1387,7 +1387,7 @@ document.body.appendChild(
 				}),
 				lunPanelElements.burgerCarBtn = buildElement("button", {
 					id: "spkmod-burgercar-btn",
-					className: "spkmod-panel-btn",
+					className: "spkmod-panel-btn" + (window.spkmodCarSystemEnabled === false ? " hidden" : ""),
 					innerText: typeof getBurgerCarBtnLabel === "function" ? getBurgerCarBtnLabel() : "Car: OFF",
 					value: "",
 					onclick: e => {
@@ -2825,6 +2825,29 @@ document.body.appendChild(
 								window.spkmodPetsSystemEnabled = !!e.target.checked;
 								if (window.localStorage) localStorage.setItem("spkmod-pet-enabled", e.target.checked ? "true" : "false");
 								if (lunPanelElements.petsBtn) lunPanelElements.petsBtn.classList.toggle("hidden", !e.target.checked);
+							}
+						}
+					})
+				]),
+
+				// Car System Display & Sync Master Toggle (under Pets)
+				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 4px;" }, [
+					lunPanelElements.carSystemToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;",
+						innerText: "🚗 " + (t("carSystemToggleLabel") || "Enable Cars (Display & Sync)"),
+						title: t("carSystemToggleDesc") || "Enable or disable 3D car display, HUD button, and multiplayer car sync"
+					}),
+					lunPanelElements.carSystemToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: (window.spkmodCarSystemEnabled !== false),
+						title: t("carSystemToggleDesc") || "Enable or disable 3D car display, HUD button, and multiplayer car sync",
+						onchange: e => {
+							if (typeof window.spkmodSetCarSystemEnabled === "function") {
+								window.spkmodSetCarSystemEnabled(e.target.checked);
+							} else {
+								window.spkmodCarSystemEnabled = !!e.target.checked;
+								if (window.localStorage) localStorage.setItem("spkmod-car-enabled", e.target.checked ? "true" : "false");
+								if (lunPanelElements.burgerCarBtn) lunPanelElements.burgerCarBtn.classList.toggle("hidden", !e.target.checked);
 							}
 						}
 					})

@@ -1089,6 +1089,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-outgoing-source-lang",
 	"spkmod-panel-left",
 	"spkmod-party-highlight-enabled",
+	"spkmod-car-enabled",
 	"spkmod-pet-enabled",
 	"spkmod-pet-equipped",
 	"spkmod-pet-my-sfx",

@@ -204,6 +204,33 @@ let _lunBurgerCarState = null;
 let _lunBurgerCarLastColorIdx = -1;
 let _lunBurgerCarKeyHooked = false;
 
+function spkmodIsCarSystemEnabled() {
+	return window.spkmodCarSystemEnabled !== false;
+}
+
+function spkmodGetCarEnabledToastText() {
+	return (typeof t === "function" && t("carSystemEnabledToast")) || "🚗 Cars display & sync enabled.";
+}
+
+function spkmodGetCarDisabledToastText() {
+	return (typeof t === "function" && t("carSystemDisabledToast")) || "🚗 Cars display & sync is disabled. Enable it in Settings (under Pets).";
+}
+
+function spkmodSyncCarSystemUIState() {
+	const enabled = spkmodIsCarSystemEnabled();
+	if (typeof lunPanelElements !== "undefined" && lunPanelElements) {
+		if (lunPanelElements.carSystemToggleInput) {
+			lunPanelElements.carSystemToggleInput.checked = enabled;
+		}
+		if (lunPanelElements.burgerCarBtn) {
+			lunPanelElements.burgerCarBtn.classList.toggle("hidden", !enabled);
+			if (typeof getBurgerCarBtnLabel === "function") {
+				setText(lunPanelElements.burgerCarBtn, getBurgerCarBtnLabel());
+			}
+		}
+	}
+}
+
 function getBurgerCarBtnLabel() {
 	const idx = window.BurgerCarMode || 0;
 	return t(LUN_BURGER_CAR_KEYS[idx]) || LUN_BURGER_CAR_FALLBACKS[idx];
@@ -390,6 +417,10 @@ function spkmodCreateBurgerCarInstance(scene, modelName, colorHex) {
 }
 
 async function spkmodSpawnBurgerCar(modeIdx, forcedColorIdx) {
+	if (!spkmodIsCarSystemEnabled()) {
+		spkmodRemoveBurgerCar();
+		return;
+	}
 	const modelName = LUN_BURGER_CAR_MODES[modeIdx];
 	if (!modelName) {
 		spkmodRemoveBurgerCar();
@@ -402,7 +433,7 @@ async function spkmodSpawnBurgerCar(modeIdx, forcedColorIdx) {
 	const colorHex = LUN_BURGER_CAR_COLORS[colorIdx];
 
 	const scene = await spkmodLoadBurgerVehiclesScene();
-	if (!scene || window.BurgerCarMode !== modeIdx) return;
+	if (!scene || !spkmodIsCarSystemEnabled() || window.BurgerCarMode !== modeIdx) return;
 	if (typeof gameState === "undefined" || !gameState?.playerContainer) return;
 
 	const inst = spkmodCreateBurgerCarInstance(scene, modelName, colorHex);
@@ -533,6 +564,9 @@ function spkmodGetLocalCarSyncToken() {
 }
 
 function spkmodComputeCarBroadcastWaitMs(now, entry) {
+	if (!spkmodIsCarSystemEnabled()) {
+		return Infinity;
+	}
 	if (typeof gameState === "undefined" || !gameState || typeof gameState.trySendChat !== "function" || gameState.zoneId == null) {
 		return SPKMOD_CAR_CHAT_RECHECK_MS;
 	}
@@ -600,6 +634,10 @@ function spkmodScheduleQueuedCarBroadcastFlush() {
 }
 
 function spkmodFlushQueuedCarBroadcast() {
+	if (!spkmodIsCarSystemEnabled()) {
+		_lunCarQueuedBroadcast = null;
+		return;
+	}
 	const entry = _lunCarQueuedBroadcast;
 	if (!entry) return;
 
@@ -642,6 +680,7 @@ function spkmodFlushQueuedCarBroadcast() {
 }
 
 function spkmodSendCarChatTrigger(token, opts = {}) {
+	if (!spkmodIsCarSystemEnabled()) return;
 	const priority = opts.priority || "explicit";
 	const delayMs = Math.max(0, Number(opts.delayMs) || 0);
 	const forceResend = opts.forceResend !== undefined ? !!opts.forceResend : (priority === "explicit");
@@ -663,7 +702,7 @@ function spkmodSendCarChatTrigger(token, opts = {}) {
 }
 
 function spkmodScheduleZoneCarBroadcast(delayMs = 2200, reason = "zone") {
-	if (!window.BurgerCarMode) return;
+	if (!spkmodIsCarSystemEnabled() || !window.BurgerCarMode) return;
 	if (reason === "remote_join" && _lunCarQueuedBroadcast) return;
 	spkmodSendCarChatTrigger(spkmodGetLocalCarSyncToken(), {
 		priority: "passive",
@@ -774,6 +813,7 @@ function spkmodEnsureRemoteCarsLoop() {
 }
 
 async function spkmodSpawnOrUpdateRemoteCar(playerId, playerName, modeIdx, colorIdx) {
+	if (!spkmodIsCarSystemEnabled()) return;
 	const ownerKey = (playerId != null && playerId !== "")
 		? String(playerId)
 		: `name:${(playerName || "").trim().toLowerCase()}`;
@@ -811,7 +851,7 @@ async function spkmodSpawnOrUpdateRemoteCar(playerId, playerName, modeIdx, color
 	if (_spkmodRemoteCarInFlight.get(ownerKey) === carToken) {
 		_spkmodRemoteCarInFlight.delete(ownerKey);
 	}
-	if (!scene || _spkmodRemoteCarSeq.get(ownerKey) !== mySeq) return;
+	if (!scene || !spkmodIsCarSystemEnabled() || _spkmodRemoteCarSeq.get(ownerKey) !== mySeq) return;
 
 	let cachedKey = null;
 	let cachedRp = null;
@@ -900,6 +940,7 @@ async function spkmodSpawnOrUpdateRemoteCar(playerId, playerName, modeIdx, color
 }
 
 window.spkmodHandleIncomingCarTrigger = function(playerId, playerName, rawMsg) {
+	if (!spkmodIsCarSystemEnabled()) return;
 	if (typeof rawMsg !== "string") return;
 	const trimmed = rawMsg.trim();
 	const myId = typeof gameState !== "undefined" ? gameState?.myPlayerId : null;
@@ -923,6 +964,7 @@ window.spkmodHandleIncomingCarTrigger = function(playerId, playerName, rawMsg) {
 if (!window.__spkmodCarSyncWatcherInstalled) {
 	window.__spkmodCarSyncWatcherInstalled = true;
 	setInterval(() => {
+		if (!spkmodIsCarSystemEnabled()) return;
 		if (typeof gameState === "undefined" || !gameState) return;
 		// 1. Detect zone change -> clear stale remote cars & broadcast local active car
 		if (gameState.zoneId != null && gameState.zoneId !== _lunCarLastObservedZoneId) {
@@ -969,7 +1011,60 @@ if (!window.__spkmodCarSyncWatcherInstalled) {
 	}, 900);
 }
 
+window.spkmodSetCarSystemEnabled = function(nextEnabled, silentToast = false) {
+	const enabled = !!nextEnabled;
+	window.spkmodCarSystemEnabled = enabled;
+	if (typeof window !== "undefined" && window.localStorage) {
+		try {
+			localStorage.setItem("spkmod-car-enabled", enabled ? "true" : "false");
+		} catch (_) {}
+	}
+
+	if (!enabled) {
+		_lunCarQueuedBroadcast = null;
+		_lunCarNeedsZoneSync = false;
+		if (_lunCarPendingBroadcastTimer) {
+			clearTimeout(_lunCarPendingBroadcastTimer);
+			_lunCarPendingBroadcastTimer = null;
+		}
+		if (_spkmodRemoteCarRafId) {
+			cancelAnimationFrame(_spkmodRemoteCarRafId);
+			_spkmodRemoteCarRafId = null;
+		}
+		for (const entry of spkmodRemoteCarInstances.values()) {
+			spkmodDisposeRemoteCarEntry(entry);
+		}
+		spkmodRemoteCarInstances.clear();
+		spkmodPendingRemoteCarsById.clear();
+		spkmodPendingRemoteCarsByName.clear();
+		_spkmodRemoteCarInFlight.clear();
+		_spkmodRemoteCarSeq.clear();
+
+		window.BurgerCarMode = 0;
+		spkmodRemoveBurgerCar();
+		if (typeof window.spkmodResetCarsEveryone === "function") {
+			window.spkmodResetCarsEveryone(true, false);
+		}
+	} else {
+		_lunCarLastObservedZoneId = null;
+		_lunCarLastObservedRemoteCount = 0;
+	}
+
+	spkmodSyncCarSystemUIState();
+
+	if (!silentToast && typeof chatLog === "function") {
+		chatLog(enabled ? spkmodGetCarEnabledToastText() : spkmodGetCarDisabledToastText());
+	}
+	return enabled;
+};
+
 function cycleBurgerCar(btn) {
+	if (!spkmodIsCarSystemEnabled()) {
+		if (typeof chatLog === "function") {
+			chatLog(spkmodGetCarDisabledToastText());
+		}
+		return;
+	}
 	spkmodEnsureBurgerCarKeyHooks();
 	if (typeof window.spkmodResetCarsEveryone === "function") {
 		window.spkmodResetCarsEveryone(true, false);
@@ -1080,6 +1175,12 @@ window.spkmodResetCarsEveryone = function(silent = false, clearLocalCar = true) 
 };
 
 window.spkmodRandomCarsEveryone = async function() {
+	if (!spkmodIsCarSystemEnabled()) {
+		if (typeof chatLog === "function") {
+			chatLog(spkmodGetCarDisabledToastText());
+		}
+		return;
+	}
 	window.spkmodResetCarsEveryone(true, true);
 	const gen = ++_lunEveryoneCarsGen;
 	const scene = await spkmodLoadBurgerVehiclesScene();

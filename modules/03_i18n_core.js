@@ -551,6 +551,8 @@ var lunPanelElements = {
 	muteMinimizedToggleInput: null,
 	petsSystemToggleLabel: null,
 	petsSystemToggleInput: null,
+	carSystemToggleLabel: null,
+	carSystemToggleInput: null,
 	separatePanelLabel: null,
 	separatePanelToggleInput: null,
 	hidePlayerLevelsLabel: null,
