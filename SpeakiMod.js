@@ -38674,16 +38674,16 @@ window.spkmodGeneratePetSpeech = spkmodGeneratePetSpeech;
 // ============================================================================
 // 3. SOUND EFFECTS CATALOG BY PET VOICE TYPE & PURE-JS SYNTH VOICES
 // ============================================================================
-// All Speaki voice clips (shortJoayo, touched, Joayo1/2/3, Yes, spea, surprised,
-// LowSpea) are replaced by lightweight per-pet Web Audio synthesized noises
-// ("synth:voice*"), while thematic game SFX are preserved.
+// All Speaki voice clips and generic UI/system SFX (mountEnter, reward, levelup,
+// boost, portal, questClaim) are replaced by lightweight per-pet Web Audio
+// synthesized tones ("synth:voice*"), while thematic game SFX are preserved.
 const SPKMOD_PET_SFX_POOLS = {
 	food: [
 		"synth:voice",
 		"synth:voice2",
+		"synth:voice3",
 		"/audio/sfx/burger_shop/trayPlace.mp3",
-		"/audio/sfx/burger_shop/counterBell.mp3",
-		"/audio/sfx/reward.mp3"
+		"/audio/sfx/burger_shop/counterBell.mp3"
 	],
 	slime: [
 		"synth:voice",
@@ -38694,13 +38694,13 @@ const SPKMOD_PET_SFX_POOLS = {
 	fairy: [
 		"synth:voice",
 		"synth:voice2",
-		"/audio/sfx/questClaim.mp3",
-		"/audio/sfx/reward.mp3"
+		"synth:voice3",
+		"synth:voice4"
 	],
 	ghost: [
 		"synth:voice",
 		"synth:voice2",
-		"/audio/sfx/portal.mp3"
+		"synth:voice3"
 	],
 	beast: [
 		"synth:voice",
@@ -38716,10 +38716,10 @@ const SPKMOD_PET_SFX_POOLS = {
 	],
 	vehicle: [
 		"synth:voice",
+		"synth:voice2",
+		"synth:voice3",
 		"/audio/sfx/burger_shop/carHorn.mp3",
-		"/audio/sfx/burger_shop/carHornDouble.mp3",
-		"/audio/sfx/racing/boost.mp3",
-		"/audio/sfx/mountEnter.mp3"
+		"/audio/sfx/burger_shop/carHornDouble.mp3"
 	],
 	drone: [
 		"synth:voice",
@@ -38729,10 +38729,10 @@ const SPKMOD_PET_SFX_POOLS = {
 	],
 	boss: [
 		"synth:voice",
+		"synth:voice2",
 		"/audio/sfx/raid7/r7_core_pulse.mp3",
 		"/audio/sfx/raid6/r6_roar.mp3",
-		"/audio/sfx/raid8/r8_rune_bolt.mp3",
-		"/audio/sfx/levelup.mp3"
+		"/audio/sfx/raid8/r8_rune_bolt.mp3"
 	],
 	npc: [
 		"synth:voice",
@@ -39806,7 +39806,7 @@ function spkmodPlayPetSynthVoice(pet, token, volume, pitchMul) {
 	const now = ctx.currentTime + 0.006;
 	const profile = spkmodGetPetSynthProfile(pet);
 	const vType = (pet && pet.voiceType) || "slime";
-	const variant = token === "synth:voice3" ? 2 : (token === "synth:voice2" ? 1 : 0);
+	const variant = token === "synth:voice4" ? 3 : (token === "synth:voice3" ? 2 : (token === "synth:voice2" ? 1 : 0));
 
 	// Base register per voice type (Hz)
 	const baseHzMap = {
@@ -39909,11 +39909,16 @@ function spkmodPlayPetSynthVoice(pet, token, volume, pitchMul) {
 	let endAt = now + 0.35;
 
 	if (vType === "food") {
-		// Cute crisp pop / kitchen sparkle-plop
-		const fA = noteHz(variant === 1 ? 2 : 0);
+		// Cute crisp pop / kitchen sparkle-plop / playful double-ding
+		const fA = noteHz(variant === 2 ? 3 : (variant === 1 ? 2 : 0));
 		const fB = noteHz(profile.motif[1] || 3);
-		endAt = Math.max(endAt, spawnTone({ wave: "sine", f0: fA * 0.72, f1: fA * 1.18, dur: 0.085 * sp, gain: 0.85 }));
-		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fB, f1: fB * 1.04, delay: 0.075 * sp, dur: 0.13 * sp, gain: 0.55 }));
+		if (variant === 2) {
+			endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA, f1: fA * 1.03, dur: 0.08 * sp, gain: 0.72 }));
+			endAt = Math.max(endAt, spawnTone({ wave: "sine", f0: fB * 1.25, f1: fB * 1.28, delay: 0.08 * sp, dur: 0.14 * sp, gain: 0.62 }));
+		} else {
+			endAt = Math.max(endAt, spawnTone({ wave: "sine", f0: fA * 0.72, f1: fA * 1.18, dur: 0.085 * sp, gain: 0.85 }));
+			endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fB, f1: fB * 1.04, delay: 0.075 * sp, dur: 0.13 * sp, gain: 0.55 }));
+		}
 	} else if (vType === "slime") {
 		// Squishy bubbly boing-bloop
 		const fA = noteHz(variant === 1 ? 1 : 0);
@@ -39923,35 +39928,61 @@ function spkmodPlayPetSynthVoice(pet, token, volume, pitchMul) {
 			endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fB * 0.78, f1: fB * 1.24, delay: 0.11 * sp, dur: 0.10 * sp, gain: 0.55 }));
 		}
 	} else if (vType === "fairy") {
-		// Sparkling crystal chime arpeggio
-		const steps = variant === 1 ? [0, 3, 5] : profile.motif;
+		// Sparkling crystal chime arpeggios & fluttering twinkles
+		const steps = variant === 3
+			? [4, 2, 5]
+			: (variant === 2 ? [5, 3, 1, 4] : (variant === 1 ? [0, 3, 5] : profile.motif));
+		const stepGap = variant === 2 ? 0.05 : 0.062;
 		steps.forEach((st, idx) => {
 			const f = noteHz(st);
 			endAt = Math.max(endAt, spawnTone({
 				wave: idx % 2 === 0 ? "sine" : "triangle",
 				f0: f,
-				f1: f * 1.015,
-				delay: idx * 0.062 * sp,
-				dur: 0.19 * sp,
+				f1: f * (variant === 3 ? 1.04 : 1.015),
+				delay: idx * stepGap * sp,
+				dur: (variant === 3 ? 0.15 : 0.19) * sp,
 				atk: 0.008,
-				gain: 0.62 - idx * 0.1
+				gain: Math.max(0.28, 0.62 - idx * 0.09)
 			}));
 		});
 	} else if (vType === "ghost") {
-		// Cute spooky wisp warble with gentle LFO vibrato
+		// Cute spooky wisp warble / floating spectral shimmer
 		const fA = noteHz(variant === 1 ? 2 : 0);
 		const fB = noteHz(variant === 1 ? 0 : 2);
-		endAt = Math.max(endAt, spawnTone({
-			wave: "sine",
-			f0: fA,
-			fMid: fB * 1.08,
-			f1: fA * 0.92,
-			dur: 0.28 * sp,
-			atk: 0.035,
-			vibHz: 11 + profile.semitoneIdx,
-			vibDepth: 14,
-			gain: 0.8
-		}));
+		if (variant === 2) {
+			endAt = Math.max(endAt, spawnTone({
+				wave: "sine",
+				f0: fA * 0.85,
+				fMid: fB * 1.22,
+				f1: fA * 1.05,
+				dur: 0.24 * sp,
+				atk: 0.03,
+				vibHz: 14 + profile.semitoneIdx,
+				vibDepth: 18,
+				gain: 0.68
+			}));
+			endAt = Math.max(endAt, spawnTone({
+				wave: "triangle",
+				f0: fB * 1.48,
+				f1: fA * 1.32,
+				delay: 0.07 * sp,
+				dur: 0.20 * sp,
+				atk: 0.025,
+				gain: 0.36
+			}));
+		} else {
+			endAt = Math.max(endAt, spawnTone({
+				wave: "sine",
+				f0: fA,
+				fMid: fB * 1.08,
+				f1: fA * 0.92,
+				dur: 0.28 * sp,
+				atk: 0.035,
+				vibHz: 11 + profile.semitoneIdx,
+				vibDepth: 14,
+				gain: 0.8
+			}));
+		}
 	} else if (vType === "npc") {
 		// Animal-Crossing-style melodic voice chirp unique to each chibi NPC
 		const seq = variant === 2
@@ -39982,10 +40013,20 @@ function spkmodPlayPetSynthVoice(pet, token, volume, pitchMul) {
 		endAt = Math.max(endAt, spawnTone({ wave: "sawtooth", f0: fA * 0.85, f1: fA * 1.25, dur: 0.095 * sp, gain: 0.55 }));
 		endAt = Math.max(endAt, spawnTone({ wave: "sawtooth", f0: fA * 0.92, f1: fA * 1.34, delay: 0.11 * sp, dur: 0.095 * sp, gain: 0.52 }));
 	} else if (vType === "vehicle") {
-		// Cute miniature two-tone car toot
+		// Cute miniature car toot / engine rev-chirp / playful double-beep
 		const fA = noteHz(0);
-		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA, f1: fA * 1.01, dur: 0.11 * sp, gain: 0.65 }));
-		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 1.25, f1: fA * 1.26, dur: 0.11 * sp, gain: 0.5 }));
+		if (variant === 1) {
+			// Mini rev-up purr
+			endAt = Math.max(endAt, spawnTone({ wave: "sawtooth", f0: fA * 0.55, fMid: fA * 1.08, f1: fA * 0.78, dur: 0.22 * sp, atk: 0.015, gain: 0.52 }));
+			endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 1.1, f1: fA * 1.45, delay: 0.06 * sp, dur: 0.14 * sp, gain: 0.36 }));
+		} else if (variant === 2) {
+			// Quick double mini-beep
+			endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 1.12, f1: fA * 1.14, dur: 0.075 * sp, gain: 0.62 }));
+			endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 1.4, f1: fA * 1.42, delay: 0.095 * sp, dur: 0.09 * sp, gain: 0.62 }));
+		} else {
+			endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA, f1: fA * 1.01, dur: 0.11 * sp, gain: 0.65 }));
+			endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 1.25, f1: fA * 1.26, dur: 0.11 * sp, gain: 0.5 }));
+		}
 	} else if (vType === "drone") {
 		// Sci-fi R2-style bleep-boop
 		const fA = noteHz(profile.motif[0] || 0);
@@ -39993,10 +40034,15 @@ function spkmodPlayPetSynthVoice(pet, token, volume, pitchMul) {
 		endAt = Math.max(endAt, spawnTone({ wave: "square", f0: fA, f1: fB, dur: 0.07 * sp, atk: 0.005, gain: 0.42 }));
 		endAt = Math.max(endAt, spawnTone({ wave: "sine", f0: fB * 1.15, f1: fA * 0.95, delay: 0.075 * sp, dur: 0.085 * sp, atk: 0.005, gain: 0.55 }));
 	} else {
-		// Boss: deep resonant mini-boss harmonic chime/pulse
+		// Boss: deep resonant mini-boss pulse / rising harmonic surge
 		const fA = noteHz(0);
-		endAt = Math.max(endAt, spawnTone({ wave: "sawtooth", f0: fA * 1.06, f1: fA * 0.78, dur: 0.24 * sp, atk: 0.02, gain: 0.55 }));
-		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 1.5, f1: fA * 1.18, dur: 0.22 * sp, atk: 0.02, gain: 0.42 }));
+		if (variant === 1) {
+			endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 0.85, fMid: fA * 1.25, f1: fA * 1.5, dur: 0.24 * sp, atk: 0.02, gain: 0.56 }));
+			endAt = Math.max(endAt, spawnTone({ wave: "sawtooth", f0: fA * 0.5, f1: fA * 0.75, delay: 0.03 * sp, dur: 0.22 * sp, atk: 0.02, gain: 0.44 }));
+		} else {
+			endAt = Math.max(endAt, spawnTone({ wave: "sawtooth", f0: fA * 1.06, f1: fA * 0.78, dur: 0.24 * sp, atk: 0.02, gain: 0.55 }));
+			endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 1.5, f1: fA * 1.18, dur: 0.22 * sp, atk: 0.02, gain: 0.42 }));
+		}
 	}
 
 	const cleanupDelayMs = Math.max(120, Math.ceil((endAt - ctx.currentTime) * 1000) + 60);
