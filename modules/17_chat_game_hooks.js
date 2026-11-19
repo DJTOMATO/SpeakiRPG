@@ -233,6 +233,30 @@ function hookGameStateOnce() {
 		gameState.cameraController.__speakiObstaclesHooked = true;
 	}
 
+	if (gameState.cameraController && typeof gameState.cameraController.applyInput === "function" && !gameState.cameraController.__speakiZoomHooked) {
+		const origApplyInput = gameState.cameraController.applyInput.bind(gameState.cameraController);
+		gameState.cameraController.applyInput = function(input) {
+			if (!input || !input.zoomDeltaY) {
+				return origApplyInput(input);
+			}
+			// Let the game handle yaw/pitch without its hardcoded 3..12 zoom clamp
+			if (input.yawDeltaPx || input.pitchDeltaPx) {
+				origApplyInput({ ...input, zoomDeltaY: 0 });
+			}
+			if (lunFirstPersonActive || lunTrueFirstPersonActive) return;
+
+			const minZoom = typeof window.LUN_MIN_ZOOM === "number" ? window.LUN_MIN_ZOOM : 3;
+			const maxZoom = typeof window.LUN_MAX_ZOOM === "number" ? window.LUN_MAX_ZOOM : 90;
+			const cur = Number.isFinite(this.cameraZoomDistance) ? this.cameraZoomDistance : 12;
+			const zoomScale = cur > 12 ? Math.max(1, cur / 12) : 1;
+			const next = cur + input.zoomDeltaY * 0.01 * zoomScale;
+			const upperBound = input.zoomDeltaY < 0 ? Math.max(maxZoom, cur) : maxZoom;
+			this.cameraZoomDistance = Math.min(upperBound, Math.max(minZoom, next));
+			if (typeof window.updateZoomButtonText === "function") window.updateZoomButtonText();
+		};
+		gameState.cameraController.__speakiZoomHooked = true;
+	}
+
 	if (typeof gameState.trySendChat === "function" && !gameState.__speakiTrySendChatHooked) {
 		const origTrySendChat = gameState.trySendChat.bind(gameState);
 		const notifyPlayerChatSend = (payload, kind = "send") => {

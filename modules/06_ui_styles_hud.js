@@ -1636,6 +1636,8 @@ document.body.appendChild(
 			(function() {
 				// Zoom step cycle helper (5-10-15-20-30-40-50-60-70-80-90-5)
 				window.LUN_ZOOM_STEPS = [5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90];
+				window.LUN_MIN_ZOOM = 3;
+				window.LUN_MAX_ZOOM = 90;
 				window.lunZoomIndex = -1;
 
 				window.cycleCameraZoom = function() {

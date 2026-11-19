@@ -1398,10 +1398,10 @@ function spkmodIsPlayerInCinemaSeats(playerPos) {
 	const curZone = spkmodGetExactCinemaZone();
 	if (curZone !== 1) return false;
 
-	// Seats bounding box expanded by 10m on each side around amphitheater seat coordinates:
-	// Base points: (83.72, 42.44), (89.28, 42.27), (89.28, 24.83), (83.66, 24.31)
-	return playerPos.x >= 76.66 && playerPos.x <= 99.28 &&
-		   playerPos.z >= 25.0 && playerPos.z <= 52.8;
+	// Tight bounding box matching measured cinema area corners (+0.5m rounding cushion):
+	// Corners: (79, 43), (79, 24), (89, 25), (89, 42)
+	return playerPos.x >= 78.5 && playerPos.x <= 89.5 &&
+		   playerPos.z >= 23.5 && playerPos.z <= 43.5;
 }
 window.spkmodIsPlayerInCinemaSeats = spkmodIsPlayerInCinemaSeats;
 

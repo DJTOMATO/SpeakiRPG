@@ -9625,6 +9625,8 @@ document.body.appendChild(
 			(function() {
 				// Zoom step cycle helper (5-10-15-20-30-40-50-60-70-80-90-5)
 				window.LUN_ZOOM_STEPS = [5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90];
+				window.LUN_MIN_ZOOM = 3;
+				window.LUN_MAX_ZOOM = 90;
 				window.lunZoomIndex = -1;
 
 				window.cycleCameraZoom = function() {
@@ -17604,13 +17606,19 @@ function executeGamepadAction(actionName) {
 			break;
 		case "zoomIn":
 			if (gameState.cameraController) {
-				gameState.cameraController.cameraZoomDistance = Math.max(3, (gameState.cameraController.cameraZoomDistance || 12) - 1);
+				const minZoom = typeof window.LUN_MIN_ZOOM === "number" ? window.LUN_MIN_ZOOM : 3;
+				const cur = gameState.cameraController.cameraZoomDistance || 12;
+				const step = cur > 12 ? Math.max(1, cur / 12) : 1;
+				gameState.cameraController.cameraZoomDistance = Math.max(minZoom, cur - step);
 				if (typeof updateZoomButtonText === "function") updateZoomButtonText();
 			}
 			break;
 		case "zoomOut":
 			if (gameState.cameraController) {
-				gameState.cameraController.cameraZoomDistance = Math.min(18, (gameState.cameraController.cameraZoomDistance || 12) + 1);
+				const maxZoom = typeof window.LUN_MAX_ZOOM === "number" ? window.LUN_MAX_ZOOM : 90;
+				const cur = gameState.cameraController.cameraZoomDistance || 12;
+				const step = cur > 12 ? Math.max(1, cur / 12) : 1;
+				gameState.cameraController.cameraZoomDistance = Math.min(maxZoom, cur + step);
 				if (typeof updateZoomButtonText === "function") updateZoomButtonText();
 			}
 			break;
@@ -30281,6 +30289,30 @@ function hookGameStateOnce() {
 		gameState.cameraController.__speakiObstaclesHooked = true;
 	}
 
+	if (gameState.cameraController && typeof gameState.cameraController.applyInput === "function" && !gameState.cameraController.__speakiZoomHooked) {
+		const origApplyInput = gameState.cameraController.applyInput.bind(gameState.cameraController);
+		gameState.cameraController.applyInput = function(input) {
+			if (!input || !input.zoomDeltaY) {
+				return origApplyInput(input);
+			}
+			// Let the game handle yaw/pitch without its hardcoded 3..12 zoom clamp
+			if (input.yawDeltaPx || input.pitchDeltaPx) {
+				origApplyInput({ ...input, zoomDeltaY: 0 });
+			}
+			if (lunFirstPersonActive || lunTrueFirstPersonActive) return;
+
+			const minZoom = typeof window.LUN_MIN_ZOOM === "number" ? window.LUN_MIN_ZOOM : 3;
+			const maxZoom = typeof window.LUN_MAX_ZOOM === "number" ? window.LUN_MAX_ZOOM : 90;
+			const cur = Number.isFinite(this.cameraZoomDistance) ? this.cameraZoomDistance : 12;
+			const zoomScale = cur > 12 ? Math.max(1, cur / 12) : 1;
+			const next = cur + input.zoomDeltaY * 0.01 * zoomScale;
+			const upperBound = input.zoomDeltaY < 0 ? Math.max(maxZoom, cur) : maxZoom;
+			this.cameraZoomDistance = Math.min(upperBound, Math.max(minZoom, next));
+			if (typeof window.updateZoomButtonText === "function") window.updateZoomButtonText();
+		};
+		gameState.cameraController.__speakiZoomHooked = true;
+	}
+
 	if (typeof gameState.trySendChat === "function" && !gameState.__speakiTrySendChatHooked) {
 		const origTrySendChat = gameState.trySendChat.bind(gameState);
 		const notifyPlayerChatSend = (payload, kind = "send") => {
@@ -34400,10 +34432,10 @@ function spkmodIsPlayerInCinemaSeats(playerPos) {
 	const curZone = spkmodGetExactCinemaZone();
 	if (curZone !== 1) return false;
 
-	// Seats bounding box expanded by 10m on each side around amphitheater seat coordinates:
-	// Base points: (83.72, 42.44), (89.28, 42.27), (89.28, 24.83), (83.66, 24.31)
-	return playerPos.x >= 76.66 && playerPos.x <= 99.28 &&
-		   playerPos.z >= 25.0 && playerPos.z <= 52.8;
+	// Tight bounding box matching measured cinema area corners (+0.5m rounding cushion):
+	// Corners: (79, 43), (79, 24), (89, 25), (89, 42)
+	return playerPos.x >= 78.5 && playerPos.x <= 89.5 &&
+		   playerPos.z >= 23.5 && playerPos.z <= 43.5;
 }
 window.spkmodIsPlayerInCinemaSeats = spkmodIsPlayerInCinemaSeats;
 

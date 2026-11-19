@@ -1757,13 +1757,19 @@ function executeGamepadAction(actionName) {
 			break;
 		case "zoomIn":
 			if (gameState.cameraController) {
-				gameState.cameraController.cameraZoomDistance = Math.max(3, (gameState.cameraController.cameraZoomDistance || 12) - 1);
+				const minZoom = typeof window.LUN_MIN_ZOOM === "number" ? window.LUN_MIN_ZOOM : 3;
+				const cur = gameState.cameraController.cameraZoomDistance || 12;
+				const step = cur > 12 ? Math.max(1, cur / 12) : 1;
+				gameState.cameraController.cameraZoomDistance = Math.max(minZoom, cur - step);
 				if (typeof updateZoomButtonText === "function") updateZoomButtonText();
 			}
 			break;
 		case "zoomOut":
 			if (gameState.cameraController) {
-				gameState.cameraController.cameraZoomDistance = Math.min(18, (gameState.cameraController.cameraZoomDistance || 12) + 1);
+				const maxZoom = typeof window.LUN_MAX_ZOOM === "number" ? window.LUN_MAX_ZOOM : 90;
+				const cur = gameState.cameraController.cameraZoomDistance || 12;
+				const step = cur > 12 ? Math.max(1, cur / 12) : 1;
+				gameState.cameraController.cameraZoomDistance = Math.min(maxZoom, cur + step);
 				if (typeof updateZoomButtonText === "function") updateZoomButtonText();
 			}
 			break;
