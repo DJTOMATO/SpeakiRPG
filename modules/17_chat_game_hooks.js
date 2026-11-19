@@ -235,8 +235,24 @@ function hookGameStateOnce() {
 
 	if (typeof gameState.trySendChat === "function" && !gameState.__speakiTrySendChatHooked) {
 		const origTrySendChat = gameState.trySendChat.bind(gameState);
+		const notifyPlayerChatSend = (payload, kind = "send") => {
+			const pTrim = (typeof payload === "string") ? payload.trim() : "";
+			if (pTrim && !/^:pet_[a-zA-Z0-9_-]+:$/i.test(pTrim)) {
+				if (kind === "send") window.__spkmodLastPlayerChatSentMs = Date.now();
+				if (typeof window.spkmodNotifyUserChatActivity === "function") {
+					window.spkmodNotifyUserChatActivity(kind);
+				}
+			}
+		};
+		const sendToServer = (payload) => {
+			notifyPlayerChatSend(payload);
+			return origTrySendChat(payload);
+		};
 		gameState.trySendChat = (msg) => {
 			const trimmedMsg = (msg || "").trim();
+			if (/^:pet_[a-zA-Z0-9_-]+:$/i.test(trimmedMsg)) {
+				return origTrySendChat(trimmedMsg);
+			}
 			const lowerTrimmedMsg = trimmedMsg.toLowerCase();
 			const isAniTrigger = trimmedMsg.startsWith("!ani") || trimmedMsg.startsWith("/ani") || trimmedMsg.startsWith(":av") || trimmedMsg.startsWith(":ani") || lowerTrimmedMsg === "!video" || lowerTrimmedMsg.startsWith("!video ") || lowerTrimmedMsg === "/video" || lowerTrimmedMsg.startsWith("/video ");
 			if (isAniTrigger) {
@@ -246,7 +262,7 @@ function hookGameStateOnce() {
 					return;
 				}
 				// VIP: send through to server so all players receive it
-				return origTrySendChat(msg);
+				return sendToServer(msg);
 			}
 
 			if (msg && (msg.startsWith("!") || msg.startsWith("/"))) {
@@ -297,6 +313,47 @@ function hookGameStateOnce() {
 					case "pat":
 						triggerPetSequence();
 						break;
+					case "pets":
+					case "petmanager":
+						if (window.spkmodPetsSystemEnabled === false) {
+							chatLog(t("petsSystemDisabledToast") || "🐾 Pets System is disabled. Enable it in Settings (under Cinema).");
+						} else if (typeof window.spkmodTogglePetsModal === "function") {
+							window.spkmodTogglePetsModal();
+						}
+						break;
+					case "petequip":
+						if (window.spkmodPetsSystemEnabled === false) {
+							chatLog(t("petsSystemDisabledToast") || "🐾 Pets System is disabled. Enable it in Settings (under Cinema).");
+						} else if (window.spkmodPets && typeof window.spkmodPets.equip === "function") {
+							window.spkmodPets.equip(cmd[1]);
+						}
+						break;
+					case "pettalk":
+						if (window.spkmodPetsSystemEnabled === false) {
+							chatLog(t("petsSystemDisabledToast") || "🐾 Pets System is disabled. Enable it in Settings (under Cinema).");
+						} else if (window.spkmodPets && typeof window.spkmodPets.talk === "function") {
+							window.spkmodPets.talk(cmd.slice(1).join(" ") || undefined);
+						}
+						break;
+					case "petdance":
+						if (window.spkmodPetsSystemEnabled === false) {
+							chatLog(t("petsSystemDisabledToast") || "🐾 Pets System is disabled. Enable it in Settings (under Cinema).");
+						} else if (window.spkmodPets && typeof window.spkmodPets.dance === "function") {
+							window.spkmodPets.dance(parseFloat(cmd[1]) || 8);
+						}
+						break;
+					case "petunlock": {
+						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
+							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
+						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
+							chatLog("❌ You do not have permission to use !petunlock.");
+						} else if (window.spkmodPetsSystemEnabled === false) {
+							chatLog(t("petsSystemDisabledToast") || "🐾 Pets System is disabled. Enable it in Settings (under Cinema).");
+						} else if (window.spkmodPets && typeof window.spkmodPets.unlockAll === "function") {
+							window.spkmodPets.unlockAll();
+						}
+						break;
+					}
 					case "joayo":
 					case "chowayo":
 						if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
@@ -579,28 +636,42 @@ function hookGameStateOnce() {
 						if (!sourceText) return;
 						const sourceLang = getEffectiveSourceLang(sourceText);
 						if (sourceLang === targetLang) {
-							return origTrySendChat(sourceText);
+							return sendToServer(sourceText);
 						}
+						// Mark chat activity immediately so queued pet triggers wait while translation is in-flight
+						notifyPlayerChatSend(sourceText, "typing");
 						translateChatText(sourceText, sourceLang, targetLang).then(translated => {
 							if (translated && translated.trim()) {
-								origTrySendChat(translated.trim());
+								sendToServer(translated.trim());
 							} else {
 								chatLog(t("outgoingTranslateFailed", sourceText));
-								origTrySendChat(sourceText);
+								sendToServer(sourceText);
 							}
 						}).catch(err => {
 							console.warn("[SpeakiMod+] Outgoing translation error:", err);
 							chatLog(t("outgoingTranslateFailed", sourceText));
-							origTrySendChat(sourceText);
+							sendToServer(sourceText);
 						});
 						return;
 					}
 				}
 			}
 
-			return origTrySendChat(msg);
+			return sendToServer(msg);
 		};
 		gameState.__speakiTrySendChatHooked = true;
+	}
+
+	if (typeof gameState.handleChatRejected === "function" && !gameState.__speakiChatRejectedHooked) {
+		const origHandleChatRejected = gameState.handleChatRejected.bind(gameState);
+		gameState.handleChatRejected = (e) => {
+			const suppressSystemMsg = typeof window.spkmodOnChatRejected === "function"
+				? window.spkmodOnChatRejected(e)
+				: false;
+			if (suppressSystemMsg) return;
+			return origHandleChatRejected(e);
+		};
+		gameState.__speakiChatRejectedHooked = true;
 	}
 
 	if (gameState.chatBox && typeof gameState.chatBox.append === "function" && !gameState.chatBox.__speakiAppendHooked) {
@@ -614,6 +685,19 @@ function hookGameStateOnce() {
 			// Intercept Anniversary event commands
 			const rawMsg = (msg || "").trim();
 			const lowerRawMsg = rawMsg.toLowerCase();
+			if (/^:pet_[a-zA-Z0-9_-]+:$/i.test(rawMsg)) {
+				if (typeof window.spkmodHandleIncomingPetTrigger === "function") {
+					window.spkmodHandleIncomingPetTrigger(id, name, rawMsg);
+				}
+				return;
+			}
+			// Backup user-chat activity detection in case local chat bypassed trySendChat (e.g. minigame chat)
+			if (rawMsg && id != null && id !== -1337 && id !== -1338 && gameState?.myPlayerId != null && String(id) === String(gameState.myPlayerId)) {
+				window.__spkmodLastPlayerChatSentMs = Date.now();
+				if (typeof window.spkmodNotifyUserChatActivity === "function") {
+					window.spkmodNotifyUserChatActivity("echo");
+				}
+			}
 			const isAniCommand = rawMsg.startsWith("!ani") || rawMsg.startsWith("/ani") || rawMsg.startsWith(":av") || rawMsg.startsWith(":ani") || lowerRawMsg === "!video" || lowerRawMsg.startsWith("!video ") || lowerRawMsg === "/video" || lowerRawMsg.startsWith("/video ");
 			if (isAniCommand) {
 				const isSenderVip = spkmodIsVipUser(name);
@@ -654,7 +738,7 @@ function hookGameStateOnce() {
 						bodyText.classList.add("spkmod-gmdt-line");
 					}
 
-					const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}), ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}), ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {})};
+					const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}), ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}), ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {}), ...(typeof lunTrickcal5Emojis !== "undefined" ? lunTrickcal5Emojis : {})};
 					if (Object.keys(spkmodAllEmojis).length > 0) {
 						let html = bodyText.innerHTML;
 						let changed = false;
@@ -765,7 +849,7 @@ function appendColoredChatLine(id, name, text, customColor) {
 			}
 		}
 
-		const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}), ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}), ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {})};
+		const spkmodAllEmojis = {...(typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : {}), ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}), ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}), ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}), ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {}), ...(typeof lunTrickcal5Emojis !== "undefined" ? lunTrickcal5Emojis : {})};
 		if (Object.keys(spkmodAllEmojis).length > 0) {
 			let html = bodyText.innerHTML;
 			let changed = false;
@@ -1678,7 +1762,8 @@ window.addEventListener("keydown", e => {
 			lunHudElements.statsModal,
 			lunHudElements.jukeboxModal,
 			lunHudElements.customCssModal,
-			lunHudElements.resourcePackModal
+			lunHudElements.resourcePackModal,
+			lunHudElements.petsModal
 		].filter(m => m && !m.classList.contains("hidden"));
 
 		if (candidateModals.length > 0) {
@@ -1831,7 +1916,7 @@ document.addEventListener("keydown", (e) => {
             let hasCustomEmoji = false;
             for (const match of matches) {
                 const name = match.slice(1, -1);
-                if (lunCustomEmojis[name] || (typeof lunTrickcalEmojis !== 'undefined' && lunTrickcalEmojis[name]) || (typeof lunTrickcal2Emojis !== 'undefined' && lunTrickcal2Emojis[name]) || (typeof lunTrickcal3Emojis !== 'undefined' && lunTrickcal3Emojis[name]) || (typeof lunTrickcal4Emojis !== 'undefined' && lunTrickcal4Emojis[name])) {
+                if (lunCustomEmojis[name] || (typeof lunTrickcalEmojis !== 'undefined' && lunTrickcalEmojis[name]) || (typeof lunTrickcal2Emojis !== 'undefined' && lunTrickcal2Emojis[name]) || (typeof lunTrickcal3Emojis !== 'undefined' && lunTrickcal3Emojis[name]) || (typeof lunTrickcal4Emojis !== 'undefined' && lunTrickcal4Emojis[name]) || (typeof lunTrickcal5Emojis !== 'undefined' && lunTrickcal5Emojis[name])) {
                     hasCustomEmoji = true;
                     break;
                 }
@@ -1863,6 +1948,11 @@ document.addEventListener("keydown", (e) => {
                     }
                     if (typeof lunTrickcal4Emojis !== 'undefined') {
                         for (const name of Object.keys(lunTrickcal4Emojis)) {
+                            val = val.split(`:${name}:`).join("");
+                        }
+                    }
+                    if (typeof lunTrickcal5Emojis !== 'undefined') {
+                        for (const name of Object.keys(lunTrickcal5Emojis)) {
                             val = val.split(`:${name}:`).join("");
                         }
                     }

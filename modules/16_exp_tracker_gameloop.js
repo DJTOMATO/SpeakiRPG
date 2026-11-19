@@ -194,7 +194,17 @@ function tick() {
 
 	if (gameState.chatBubbles && typeof gameState.chatBubbles.show === "function" && !gameState.chatBubbles.__speakiHooked) {
 		var hkChatBubblesShow = gameState.chatBubbles.show.bind(gameState.chatBubbles);
+		window.__spkmodOrigChatBubblesShow = hkChatBubblesShow;
 		gameState.chatBubbles.show = (e, t, n) => {
+			if (typeof n === "string" && /^:pet_[a-zA-Z0-9_-]+:$/i.test(n.trim())) {
+				if (typeof window.spkmodHandleIncomingPetTrigger === "function") {
+					window.spkmodHandleIncomingPetTrigger(e, null, n.trim());
+				}
+				return;
+			}
+			if (typeof e === "string" && e.startsWith("spkmod_pet_bubble_")) {
+				return hkChatBubblesShow(e, t, filterName(n));
+			}
 			if (lunHideAllOtherPlayers) {
 				const isLocal = (e === gameState.playerContainer || e === gameState.localAvatar || e === gameState.myPlayerId);
 				const isWhitelisted = typeof isSolitudeWhitelistedBubbleSource === "function" && isSolitudeWhitelistedBubbleSource(e);
@@ -206,6 +216,19 @@ function tick() {
 		};
 		gameState.chatBubbles.__speakiHooked = true; // 
 		console.log("[SpeakiMod+] Successfully hooked chatBubbles.show!");
+	}
+	for (const hostName of ["miningHost", "speakovHost"]) {
+		const host = gameState[hostName];
+		if (host && typeof host.applyChatBubble === "function" && !host.__speakiPetBubbleHooked) {
+			const origApply = host.applyChatBubble.bind(host);
+			host.applyChatBubble = (playerId, text) => {
+				if (typeof text === "string" && /^:pet_[a-zA-Z0-9_-]+:$/i.test(text.trim())) {
+					return;
+				}
+				return origApply(playerId, text);
+			};
+			host.__speakiPetBubbleHooked = true;
+		}
 	}
 	var playerExp = gameState.myStat.exp;
 	if (typeof playerExp !== "number" || isNaN(playerExp)) return;

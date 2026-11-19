@@ -173,6 +173,20 @@ MODULE_SPECS = [
             "var SPKMOD_CINEMA_DEFAULT_CONFIG = window.SPKMOD_CINEMA_DEFAULT_CONFIG",
             "var spkmodCinemaConfig = window.spkmodCinemaConfig"
         ]
+    },
+    {
+        "name": "20_shaders.js",
+        "anchors": [
+            "// ============================================================================\n// 3D WebGL Shaders Engine (Post-Processing, Shadows & Atmosphere)",
+            "const SPKMOD_SHADER_PRESETS = {"
+        ]
+    },
+    {
+        "name": "21_pets.js",
+        "anchors": [
+            "// ============================================================================\n// IN-GAME 3D PET COMPANION SYSTEM & PET MANAGER (100 LEVELS PROGRESSION)",
+            "const SPKMOD_PET_STORAGE_KEYS = {"
+        ]
     }
 ]
 

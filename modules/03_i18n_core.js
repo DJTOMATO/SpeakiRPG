@@ -549,6 +549,8 @@ var lunPanelElements = {
 	discordRpcToggleInput: null,
 	muteMinimizedLabel: null,
 	muteMinimizedToggleInput: null,
+	petsSystemToggleLabel: null,
+	petsSystemToggleInput: null,
 	separatePanelLabel: null,
 	separatePanelToggleInput: null,
 	hidePlayerLevelsLabel: null,

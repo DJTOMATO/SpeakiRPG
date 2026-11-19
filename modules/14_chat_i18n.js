@@ -1019,6 +1019,13 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.customFontInputLabel) setText(lunPanelElements.customFontInputLabel, t("customFontInputLabel") || "Font:");
 	if (lunPanelElements.customFontInput) lunPanelElements.customFontInput.placeholder = t("customFontPlaceholder") || "Meiryo, Yu Mincho...";
 	if (lunPanelElements.accentColorLabel) setText(lunPanelElements.accentColorLabel, t("accentColorLabel"));
+	if (lunPanelElements.petsSystemToggleLabel) {
+		setText(lunPanelElements.petsSystemToggleLabel, "🐾 " + (t("petsSystemToggleLabel") || "Enable Pets System"));
+		lunPanelElements.petsSystemToggleLabel.title = t("petsSystemToggleDesc") || "Enable or disable the 3D Pet Companion system, HUD button, hotkeys, and pet sync";
+	}
+	if (lunPanelElements.petsSystemToggleInput) {
+		lunPanelElements.petsSystemToggleInput.title = t("petsSystemToggleDesc") || "Enable or disable the 3D Pet Companion system, HUD button, hotkeys, and pet sync";
+	}
 	if (lunPanelElements.exportSettingsBtn) setText(lunPanelElements.exportSettingsBtn, t("exportSettingsBtn"));
 	if (lunPanelElements.importSettingsBtn) setText(lunPanelElements.importSettingsBtn, t("importSettingsBtn"));
 	if (lunPanelElements.resetPositionsBtn) setText(lunPanelElements.resetPositionsBtn, "🔄 " + (t("resetPositionsBtn") || "Reset Window Positions (F3)"));

@@ -10,6 +10,121 @@ try {
 		if (typeof args[0] === 'string' && (args[0].includes('violates the following Content Security Policy directive') || args[0].includes('Content Security Policy'))) return;
 		return _spkOrigError.apply(this, args);
 	};
+	// Fix game bloomPipeline ShaderMaterial duplicating Three.js colorspace_pars_fragment (Shader Error 0 & useProgram spam) — works purely at runtime without injector.js changes
+	if (typeof window !== 'undefined' && !window.__spkmodShaderDedupePatched) {
+		window.__spkmodShaderDedupePatched = true;
+		const dedupeColorSpaceFns = (source) => {
+			if (typeof source !== 'string') return source;
+			if (source.indexOf('LinearTransferOETF') === -1 && source.indexOf('sRGBTransferOETF') === -1) return source;
+			let out = source;
+			for (const fn of ['LinearTransferOETF', 'sRGBTransferEOTF', 'sRGBTransferOETF']) {
+				let seen = false;
+				const rx = new RegExp(`vec4\\s+${fn}\\s*\\([^)]*\\)\\s*\\{[^}]*\\}`, 'g');
+				out = out.replace(rx, (match) => {
+					if (!seen) {
+						seen = true;
+						return match;
+					}
+					return '';
+				});
+			}
+			return out;
+		};
+
+		// Layer 1 & 2: Deduplicate newly compiled shaders AND repair/guard any already-failed program from before SpeakiMod.js loaded
+		const validPrograms = new WeakSet();
+		const invalidPrograms = new WeakSet();
+		for (const Ctx of [typeof WebGL2RenderingContext !== 'undefined' ? WebGL2RenderingContext : null, typeof WebGLRenderingContext !== 'undefined' ? WebGLRenderingContext : null]) {
+			if (!Ctx || !Ctx.prototype) continue;
+			const origShaderSource = typeof Ctx.prototype.shaderSource === 'function' ? Ctx.prototype.shaderSource : null;
+			if (origShaderSource) {
+				Ctx.prototype.shaderSource = function(shader, source) {
+					return origShaderSource.call(this, shader, dedupeColorSpaceFns(source));
+				};
+			}
+			const origUseProgram = typeof Ctx.prototype.useProgram === 'function' ? Ctx.prototype.useProgram : null;
+			if (origUseProgram) {
+				Ctx.prototype.useProgram = function(program) {
+					if (!program || validPrograms.has(program)) {
+						return origUseProgram.call(this, program);
+					}
+					if (invalidPrograms.has(program)) {
+						return;
+					}
+					let linked = false;
+					try { linked = !!this.getProgramParameter(program, this.LINK_STATUS); } catch (_) { linked = true; }
+					if (linked) {
+						validPrograms.add(program);
+						return origUseProgram.call(this, program);
+					}
+					// Attempt in-place shader repair for programs that failed before SpeakiMod.js initialized
+					try {
+						const attached = this.getAttachedShaders(program) || [];
+						let repaired = false;
+						for (let i = 0; i < attached.length; i++) {
+							const sh = attached[i];
+							const src = this.getShaderSource(sh);
+							const fixed = dedupeColorSpaceFns(src);
+							if (fixed && fixed !== src && origShaderSource) {
+								origShaderSource.call(this, sh, fixed);
+								this.compileShader(sh);
+								repaired = true;
+							}
+						}
+						if (repaired) {
+							this.linkProgram(program);
+							if (this.getProgramParameter(program, this.LINK_STATUS)) {
+								validPrograms.add(program);
+								return origUseProgram.call(this, program);
+							}
+						}
+					} catch (_) {}
+					invalidPrograms.add(program);
+				};
+			}
+		}
+
+		// Layer 3: Heal Three.js bloomPipeline.compositeMaterial at the material level so Three.js rebuilds a fresh WebGLProgram with all uniforms/attributes bound
+		const patchRendererBloomMaterial = (renderer) => {
+			if (!renderer || renderer.__spkmodBloomFixPatched || typeof renderer.renderBufferDirect !== 'function') return;
+			renderer.__spkmodBloomFixPatched = true;
+			const origRenderBufferDirect = renderer.renderBufferDirect;
+			renderer.renderBufferDirect = function(camera, scene, geometry, material, object, group) {
+				if (material && material.isShaderMaterial && !material.isRawShaderMaterial && typeof material.fragmentShader === 'string' && material.fragmentShader.indexOf('colorspace_pars_fragment') !== -1) {
+					material.fragmentShader = material.fragmentShader.replace(/#include\s*<colorspace_pars_fragment>/g, '');
+					material.needsUpdate = true;
+				}
+				return origRenderBufferDirect.apply(this, arguments);
+			};
+		};
+
+		let bloomHealTries = 0;
+		const bloomHealTimer = setInterval(() => {
+			bloomHealTries++;
+			const gs = typeof window.gameState !== 'undefined' ? window.gameState : null;
+			const sc = gs && gs.scene;
+			if (sc) {
+				clearInterval(bloomHealTimer);
+				if (typeof spkmodShaderRuntime !== 'undefined' && spkmodShaderRuntime && spkmodShaderRuntime.renderer) {
+					patchRendererBloomMaterial(spkmodShaderRuntime.renderer);
+					return;
+				}
+				const prevAfter = sc.onAfterRender;
+				const probeAfter = function(r) {
+					if (typeof prevAfter === 'function') {
+						try { prevAfter.apply(this, arguments); } catch (_) {}
+					}
+					if (r && typeof r.renderBufferDirect === 'function') {
+						if (sc.onAfterRender === probeAfter) sc.onAfterRender = prevAfter;
+						patchRendererBloomMaterial(r);
+					}
+				};
+				sc.onAfterRender = probeAfter;
+			} else if (bloomHealTries > 160) {
+				clearInterval(bloomHealTimer);
+			}
+		}, 250);
+	}
 	if (typeof GPU !== 'undefined' && GPU.prototype && typeof GPU.prototype.requestAdapter === 'function' && /Win/i.test(navigator.platform || navigator.userAgent || '')) {
 		const _spkOrigRequestAdapter = GPU.prototype.requestAdapter;
 		GPU.prototype.requestAdapter = function(options) {
@@ -615,6 +730,11 @@ if (typeof window !== "undefined" && window.localStorage) {
 	} catch (_) {}
 }
 var spkmodCinemaConfig = window.spkmodCinemaConfig;
+
+// 3D Pet Companion System Master Toggle (ON by default; persisted in localStorage)
+window.spkmodPetsSystemEnabled = (typeof window !== "undefined" && window.localStorage)
+	? localStorage.getItem("spkmod-pet-enabled") !== "false"
+	: true;
 
 
 

@@ -72,6 +72,9 @@ loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/
 var lunTrickcal4Emojis = {};
 loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/emojis5.txt", lunTrickcal4Emojis);
 
+var lunTrickcal5Emojis = {};
+loadEmojiCatalogFile("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/emojis6.txt", lunTrickcal5Emojis);
+
 function renderSpkmodInlineEmojis(text, imgStyle) {
     if (!text || typeof text !== "string") return "";
     const escaped = text
@@ -86,7 +89,8 @@ function renderSpkmodInlineEmojis(text, imgStyle) {
         ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}),
         ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}),
         ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}),
-        ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {})
+        ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {}),
+        ...(typeof lunTrickcal5Emojis !== "undefined" ? lunTrickcal5Emojis : {})
     };
     const styleAttr = imgStyle || "height: 1.35em; width: 1.35em; object-fit: contain; vertical-align: middle; margin-right: 2px; display: inline-block; pointer-events: none; user-select: none;";
     return escaped.replace(/:([a-zA-Z0-9_+-]+):/g, (match, ename) => {
@@ -230,6 +234,12 @@ function updateHudIconTooltips() {
         setSpkmodRichTooltip(lunPanelElements.questsBtn, "📋 " + (t("questsBtnTooltip") || "Quests Checklist"));
     }
 
+    // 12b. Pets button
+    if (lunPanelElements.petsBtn) {
+        const petTip = (typeof window.spkmodGetPetUiText === "function" ? window.spkmodGetPetUiText("petsBtnTooltip") : null) || "Pet Manager (Alt+P)";
+        setSpkmodRichTooltip(lunPanelElements.petsBtn, "🐾 " + petTip);
+    }
+
     // 13. Jukebox button
     if (lunPanelElements.jukeboxBtn) {
         const tip = (typeof getJukeboxText === "function" ? getJukeboxText("jukeboxBtnTooltip") : t("jukeboxBtnTooltip")) || "Monatium Radio Station (Alt+M)";
@@ -252,7 +262,8 @@ function parseCustomEmojisToHtml(html) {
         ...(typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : {}),
         ...(typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : {}),
         ...(typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : {}),
-        ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {})
+        ...(typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : {}),
+        ...(typeof lunTrickcal5Emojis !== "undefined" ? lunTrickcal5Emojis : {})
     };
     if (Object.keys(spkmodAllEmojis).length === 0) return html;
     for (const [ename, eurl] of Object.entries(spkmodAllEmojis)) {
@@ -536,7 +547,7 @@ const spkmodAvatarController = createSpeakiAvatarController({
 	document,
 	store: spkmodAvatarStore,
 	getPlayer: () => getSpeakiAvatarPlayer(window.gameState),
-	getCatalog: () => ({ custom: lunCustomEmojis, trickcal: lunTrickcalEmojis, trickcal2: lunTrickcal2Emojis, trickcal3: lunTrickcal3Emojis, trickcal4: lunTrickcal4Emojis }),
+	getCatalog: () => ({ custom: lunCustomEmojis, trickcal: lunTrickcalEmojis, trickcal2: lunTrickcal2Emojis, trickcal3: lunTrickcal3Emojis, trickcal4: lunTrickcal4Emojis, trickcal5: lunTrickcal5Emojis }),
 	translate: key => t(key)
 });
 
@@ -819,6 +830,7 @@ function renderEmojiGrid() {
                 else if (typeof lunTrickcal2Emojis !== 'undefined' && lunTrickcal2Emojis[id]) { isCustom = true; url = lunTrickcal2Emojis[id]; }
                 else if (typeof lunTrickcal3Emojis !== 'undefined' && lunTrickcal3Emojis[id]) { isCustom = true; url = lunTrickcal3Emojis[id]; }
                 else if (typeof lunTrickcal4Emojis !== 'undefined' && lunTrickcal4Emojis[id]) { isCustom = true; url = lunTrickcal4Emojis[id]; }
+                else if (typeof lunTrickcal5Emojis !== 'undefined' && lunTrickcal5Emojis[id]) { isCustom = true; url = lunTrickcal5Emojis[id]; }
                 else if (typeof lunCustomEmojis !== 'undefined' && lunCustomEmojis[id]) { isCustom = true; url = lunCustomEmojis[id]; }
                 
                 const btn = document.createElement("button");
@@ -875,7 +887,7 @@ function renderEmojiGrid() {
             grid.appendChild(btn);
         });
     } else {
-        const targetEmojis = lunEmojiTab === 'trickcal' ? lunTrickcalEmojis : (lunEmojiTab === 'trickcal2' ? lunTrickcal2Emojis : (lunEmojiTab === 'trickcal3' ? lunTrickcal3Emojis : (lunEmojiTab === 'trickcal4' ? lunTrickcal4Emojis : lunCustomEmojis)));
+        const targetEmojis = lunEmojiTab === 'trickcal' ? lunTrickcalEmojis : (lunEmojiTab === 'trickcal2' ? lunTrickcal2Emojis : (lunEmojiTab === 'trickcal3' ? lunTrickcal3Emojis : (lunEmojiTab === 'trickcal4' ? lunTrickcal4Emojis : (lunEmojiTab === 'trickcal5' ? lunTrickcal5Emojis : lunCustomEmojis))));
         Object.entries(targetEmojis).forEach(([name, url]) => {
             const btn = document.createElement("button");
             btn.title = `:${name}:`;

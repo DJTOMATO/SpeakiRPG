@@ -792,6 +792,9 @@ function positionModalNicely(modal) {
 	} else if (modal.id === "spkmod-cinema-modal") {
 		targetW = isMobile ? Math.min(380, window.innerWidth - 20) : 400;
 		targetH = isMobile ? Math.min(500, window.innerHeight - 30) : 560;
+	} else if (modal.id === "spkmod-pets-modal") {
+		targetW = isMobile ? Math.min(780, window.innerWidth - 20) : Math.min(900, window.innerWidth - 40);
+		targetH = isMobile ? Math.min(520, window.innerHeight - 30) : Math.min(640, window.innerHeight - 40);
 	} else {
 		targetW = modal.offsetWidth || 380;
 		targetH = modal.offsetHeight || 300;
@@ -823,6 +826,7 @@ function positionModalNicely(modal) {
 	if (isMobile || modal === lunHudElements.bbsModal || modal.id === "spkmod-bbs-modal" ||
 		modal === lunHudElements.customCssModal || modal.id === "spkmod-css-modal" ||
 		modal === lunHudElements.resourcePackModal || modal.id === "spkmod-resource-pack-modal" ||
+		modal === lunHudElements.petsModal || modal.id === "spkmod-pets-modal" ||
 		modal.id === "spkmod-cinema-modal") {
 		const safeLeft = Math.max(10, Math.min(window.innerWidth - targetW - 10, (modal.id === "spkmod-cinema-modal" && !isMobile) ? (window.innerWidth - targetW - 25) : Math.round((window.innerWidth - targetW) / 2)));
 		const safeTop = Math.max(15, Math.min(window.innerHeight - targetH - 10, Math.round((window.innerHeight - targetH) / 2)));
@@ -937,6 +941,7 @@ function resetWindowPositions() {
 		lunHudElements.infoModal,
 		lunHudElements.customCssModal,
 		lunHudElements.resourcePackModal,
+		lunHudElements.petsModal || document.getElementById("spkmod-pets-modal"),
 		typeof lunEmojiPickerPanel !== "undefined" ? lunEmojiPickerPanel : null,
 		typeof mapModalElements !== "undefined" ? mapModalElements.modalWindow : null,
 		typeof spkmodCinemaModalEl !== "undefined" ? spkmodCinemaModalEl : null
@@ -987,7 +992,8 @@ function resetWindowPositions() {
 		lunHudElements.hotkeysModal,
 		lunHudElements.infoModal,
 		lunHudElements.customCssModal,
-		lunHudElements.resourcePackModal
+		lunHudElements.resourcePackModal,
+		lunHudElements.petsModal || document.getElementById("spkmod-pets-modal")
 	];
 
 	otherOpenModals.forEach(m => {
@@ -1054,6 +1060,13 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-outgoing-source-lang",
 	"spkmod-panel-left",
 	"spkmod-party-highlight-enabled",
+	"spkmod-pet-enabled",
+	"spkmod-pet-equipped",
+	"spkmod-pet-my-sfx",
+	"spkmod-pet-other-sfx",
+	"spkmod-pet-share-chat",
+	"spkmod-pet-show-remote",
+	"spkmod-pet-speech-bubbles",
 	"spkmod-pos-spkmod-bbs-modal",
 	"spkmod-pos-spkmod-effects-modal",
 	"spkmod-pos-spkmod-edits-modal",
@@ -1065,6 +1078,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-pos-spkmod-map-modal",
 	"spkmod-pos-spkmod-panel",
 	"spkmod-pos-spkmod-patchnotes-modal",
+	"spkmod-pos-spkmod-pets-modal",
 	"spkmod-pos-spkmod-quests-modal",
 	"spkmod-pos-spkmod-settings-modal",
 	"spkmod-pos-spkmod-stats-modal",

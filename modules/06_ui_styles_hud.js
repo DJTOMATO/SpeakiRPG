@@ -2206,6 +2206,16 @@ document.body.appendChild(
 						if (typeof toggleQuestsModal === "function") toggleQuestsModal();
 					}
 				}),
+				lunPanelElements.petsBtn = buildElement("button", {
+					id: "spkmod-pets-btn",
+					className: "spkmod-panel-btn" + (window.spkmodPetsSystemEnabled === false ? " hidden" : ""),
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer; position: relative;",
+					innerText: "🐾",
+					title: "Pet Manager (Alt+P)",
+					onclick: _ => {
+						if (typeof window.spkmodTogglePetsModal === "function") window.spkmodTogglePetsModal();
+					}
+				}),
 				lunPanelElements.jukeboxBtn = buildElement("button", {
 					id: "spkmod-jukebox-btn",
 					className: "spkmod-panel-btn",
@@ -2790,6 +2800,29 @@ document.body.appendChild(
 						onclick: () => {
 							if (typeof window.spkmodToggleCinemaModal === "function") {
 								window.spkmodToggleCinemaModal(true);
+							}
+						}
+					})
+				]),
+
+				// Pets System Master Toggle (under Cinema)
+				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.12);" }, [
+					lunPanelElements.petsSystemToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;",
+						innerText: "🐾 " + (t("petsSystemToggleLabel") || "Enable Pets System"),
+						title: t("petsSystemToggleDesc") || "Enable or disable the 3D Pet Companion system, HUD button, hotkeys, and pet sync"
+					}),
+					lunPanelElements.petsSystemToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: (window.spkmodPetsSystemEnabled !== false),
+						title: t("petsSystemToggleDesc") || "Enable or disable the 3D Pet Companion system, HUD button, hotkeys, and pet sync",
+						onchange: e => {
+							if (typeof window.spkmodSetPetsSystemEnabled === "function") {
+								window.spkmodSetPetsSystemEnabled(e.target.checked);
+							} else {
+								window.spkmodPetsSystemEnabled = !!e.target.checked;
+								if (window.localStorage) localStorage.setItem("spkmod-pet-enabled", e.target.checked ? "true" : "false");
+								if (lunPanelElements.petsBtn) lunPanelElements.petsBtn.classList.toggle("hidden", !e.target.checked);
 							}
 						}
 					})
