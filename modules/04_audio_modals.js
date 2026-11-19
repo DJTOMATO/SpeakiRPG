@@ -1081,6 +1081,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-hud-locked",
 	"spkmod-lang",
 	"spkmod-low-hp-warning",
+	"spkmod-max-zoom",
 	"spkmod-mention-enabled",
 	"spkmod-mention-ping",
 	"spkmod-mute-minimized",
@@ -1132,6 +1133,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-translate-engine",
 	"spkmod-ui-scale",
 	"spkmod-uiscale",
+	"spkmod-wheel-zoom-enabled",
 	"spkmod-window-pos"
 ]);
 

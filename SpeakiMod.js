@@ -2593,7 +2593,7 @@ var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spk
 var lunViewClip = false;
 var lunFirstPersonPitch = parseFloat((window.localStorage && localStorage.getItem("spkmod-fp-pitch")) || "0.5");
 const LUN_DEFAULT_MAX_ZOOM = 90;
-const LUN_MAX_ZOOM_LIMIT = 1000;
+const LUN_MAX_ZOOM_LIMIT = 90;
 var lunWheelZoomEnabled = (window.localStorage && localStorage.getItem("spkmod-wheel-zoom-enabled")) !== "false";
 function parseLunMaxZoom(raw, fallback = LUN_DEFAULT_MAX_ZOOM) {
 	const n = parseFloat(raw);

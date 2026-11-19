@@ -239,6 +239,11 @@ function hookGameStateOnce() {
 			if (!input || !input.zoomDeltaY) {
 				return origApplyInput(input);
 			}
+			if (typeof lunWheelZoomEnabled !== "undefined" && !lunWheelZoomEnabled) {
+				const res = origApplyInput(input);
+				if (typeof window.updateZoomButtonText === "function") window.updateZoomButtonText();
+				return res;
+			}
 			// Let the game handle yaw/pitch without its hardcoded 3..12 zoom clamp
 			if (input.yawDeltaPx || input.pitchDeltaPx) {
 				origApplyInput({ ...input, zoomDeltaY: 0 });

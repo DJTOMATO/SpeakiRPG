@@ -575,7 +575,11 @@ var lunPanelElements = {
 	fontPresetSelect: null,
 	customFontContainer: null,
 	customFontInputLabel: null,
-	customFontInput: null
+	customFontInput: null,
+	wheelZoomToggleLabel: null,
+	wheelZoomToggleInput: null,
+	maxZoomLabel: null,
+	maxZoomInput: null
 };
 var lunMenuFoldingLevel = 0;
 
@@ -935,6 +939,31 @@ const lunKnownBotPrefixSet = new Set(lunKnownBotNames.map(name => name.toLowerCa
 var lunHideKnownBotsEnabled = !(window.localStorage && localStorage.getItem("spkmod-hide-known-bots") === "false");
 var lunViewClip = false;
 var lunFirstPersonPitch = parseFloat((window.localStorage && localStorage.getItem("spkmod-fp-pitch")) || "0.5");
+const LUN_DEFAULT_MAX_ZOOM = 90;
+const LUN_MAX_ZOOM_LIMIT = 90;
+var lunWheelZoomEnabled = (window.localStorage && localStorage.getItem("spkmod-wheel-zoom-enabled")) !== "false";
+function parseLunMaxZoom(raw, fallback = LUN_DEFAULT_MAX_ZOOM) {
+	const n = parseFloat(raw);
+	if (!Number.isFinite(n)) return fallback;
+	const minZoom = typeof window.LUN_MIN_ZOOM === "number" ? window.LUN_MIN_ZOOM : 3;
+	return Math.round(Math.min(LUN_MAX_ZOOM_LIMIT, Math.max(minZoom, n)) * 100) / 100;
+}
+var lunMaxZoom = parseLunMaxZoom(window.localStorage && localStorage.getItem("spkmod-max-zoom"), LUN_DEFAULT_MAX_ZOOM);
+window.LUN_MAX_ZOOM = lunMaxZoom;
+
+function setWheelZoomEnabled(enabled) {
+	lunWheelZoomEnabled = !!enabled;
+	if (window.localStorage) localStorage.setItem("spkmod-wheel-zoom-enabled", lunWheelZoomEnabled ? "true" : "false");
+	if (lunPanelElements.wheelZoomToggleInput) lunPanelElements.wheelZoomToggleInput.checked = lunWheelZoomEnabled;
+}
+
+function setMaxZoom(value) {
+	lunMaxZoom = parseLunMaxZoom(value, LUN_DEFAULT_MAX_ZOOM);
+	window.LUN_MAX_ZOOM = lunMaxZoom;
+	if (window.localStorage) localStorage.setItem("spkmod-max-zoom", String(lunMaxZoom));
+	if (lunPanelElements.maxZoomInput) lunPanelElements.maxZoomInput.value = String(lunMaxZoom);
+	return lunMaxZoom;
+}
 var lunFollowTargetName = null;
 
 var lunGmChatHighlightEnabled = (window.localStorage && localStorage.getItem("spkmod-gmchat-enabled")) === "true";

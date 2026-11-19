@@ -1637,7 +1637,7 @@ document.body.appendChild(
 				// Zoom step cycle helper (5-10-15-20-30-40-50-60-70-80-90-5)
 				window.LUN_ZOOM_STEPS = [5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90];
 				window.LUN_MIN_ZOOM = 3;
-				window.LUN_MAX_ZOOM = 90;
+				window.LUN_MAX_ZOOM = typeof lunMaxZoom === "number" ? lunMaxZoom : 90;
 				window.lunZoomIndex = -1;
 
 				window.cycleCameraZoom = function() {
@@ -2638,6 +2638,57 @@ document.body.appendChild(
 						lunFirstPersonPitch = parseFloat(e.target.value); 
 						if (window.localStorage) localStorage.setItem("spkmod-fp-pitch", lunFirstPersonPitch); 
 					}})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.wheelZoomToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: tCustom("wheelZoomToggleLabel", "Extended Mouse Wheel Zoom"),
+						title: tCustom("wheelZoomToggleDesc", "Allow scrolling the mouse wheel to zoom out beyond the game's default limit")
+					}),
+					lunPanelElements.wheelZoomToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: lunWheelZoomEnabled,
+						title: tCustom("wheelZoomToggleDesc", "Allow scrolling the mouse wheel to zoom out beyond the game's default limit"),
+						onchange: e => setWheelZoomEnabled(e.target.checked)
+					})
+				]),
+				buildElement("div", { className: "spkmod-panel-cat" }, [
+					lunPanelElements.maxZoomLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; user-select: none; flex: 1;",
+						innerText: tCustom("maxZoomLabel", "Max Wheel Zoom"),
+						title: tCustom("maxZoomDesc", "Maximum camera zoom distance when scrolling the mouse wheel (default: 90)")
+					}),
+					lunPanelElements.maxZoomInput = buildElement("input", {
+						type: "text",
+						inputMode: "decimal",
+						value: String(lunMaxZoom),
+						placeholder: "90",
+						title: tCustom("maxZoomDesc", "Maximum camera zoom distance when scrolling the mouse wheel (default: 90)"),
+						style: "width: 52px; text-align: right; background: #222; color: #fff; border: 1px solid #444; border-radius: 3px; font-size: 11px; padding: 2px 4px;",
+						oninput: e => {
+							const raw = e.target.value.trim();
+							if (!raw) return;
+							const parsed = parseFloat(raw);
+							const minZoom = typeof window.LUN_MIN_ZOOM === "number" ? window.LUN_MIN_ZOOM : 3;
+							if (Number.isFinite(parsed) && parsed >= minZoom) {
+								lunMaxZoom = parseLunMaxZoom(parsed, LUN_DEFAULT_MAX_ZOOM);
+								window.LUN_MAX_ZOOM = lunMaxZoom;
+								if (window.localStorage) localStorage.setItem("spkmod-max-zoom", String(lunMaxZoom));
+							}
+						},
+						onchange: e => {
+							setMaxZoom(e.target.value);
+						},
+						onblur: e => {
+							setMaxZoom(e.target.value);
+						},
+						onkeydown: e => {
+							if (e.key === "Enter") {
+								setMaxZoom(e.target.value);
+								e.target.blur();
+							}
+						}
+					})
 				]),
 				buildElement("div", { className: "spkmod-panel-cat" }, [
 					lunPanelElements.lowHpLabel = buildElement("span", { style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;", innerText: t("lowHpWarningToggleLabel") }),

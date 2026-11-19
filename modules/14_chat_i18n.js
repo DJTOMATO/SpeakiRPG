@@ -886,6 +886,20 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.hideKnownBotsLabel) setText(lunPanelElements.hideKnownBotsLabel, t("hideKnownBotsToggleLabel"));
 	if (lunPanelElements.chatTimestampLabel) setText(lunPanelElements.chatTimestampLabel, t("chatTimestampToggleLabel"));
 	if (lunPanelElements.fpPitchLabel) setText(lunPanelElements.fpPitchLabel, t("firstPersonPitchLabel"));
+	if (lunPanelElements.wheelZoomToggleLabel) {
+		setText(lunPanelElements.wheelZoomToggleLabel, tCustom("wheelZoomToggleLabel", "Extended Mouse Wheel Zoom"));
+		lunPanelElements.wheelZoomToggleLabel.title = tCustom("wheelZoomToggleDesc", "Allow scrolling the mouse wheel to zoom out beyond the game's default limit");
+	}
+	if (lunPanelElements.wheelZoomToggleInput) {
+		lunPanelElements.wheelZoomToggleInput.title = tCustom("wheelZoomToggleDesc", "Allow scrolling the mouse wheel to zoom out beyond the game's default limit");
+	}
+	if (lunPanelElements.maxZoomLabel) {
+		setText(lunPanelElements.maxZoomLabel, tCustom("maxZoomLabel", "Max Wheel Zoom"));
+		lunPanelElements.maxZoomLabel.title = tCustom("maxZoomDesc", "Maximum camera zoom distance when scrolling the mouse wheel (default: 90)");
+	}
+	if (lunPanelElements.maxZoomInput) {
+		lunPanelElements.maxZoomInput.title = tCustom("maxZoomDesc", "Maximum camera zoom distance when scrolling the mouse wheel (default: 90)");
+	}
 	if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t(lunFirstPersonActive ? "firstPersonOn" : "firstPersonOff"));
 	if (lunPanelElements.trueFirstPersonBtn) setText(lunPanelElements.trueFirstPersonBtn, t(lunTrueFirstPersonActive ? "trueFirstPersonOn" : "trueFirstPersonOff"));
 	if (lunPanelElements.speedometerToggleLabel) setText(lunPanelElements.speedometerToggleLabel, t("speedometerToggleLabel"));
