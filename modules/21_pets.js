@@ -164,64 +164,72 @@ function spkmodGeneratePetSpeech(pet) {
 window.spkmodGeneratePetSpeech = spkmodGeneratePetSpeech;
 
 // ============================================================================
-// 3. SOUND EFFECTS CATALOG BY PET VOICE TYPE
+// 3. SOUND EFFECTS CATALOG BY PET VOICE TYPE & PURE-JS SYNTH VOICES
 // ============================================================================
+// All Speaki voice clips (shortJoayo, touched, Joayo1/2/3, Yes, spea, surprised,
+// LowSpea) are replaced by lightweight per-pet Web Audio synthesized noises
+// ("synth:voice*"), while thematic game SFX are preserved.
 const SPKMOD_PET_SFX_POOLS = {
 	food: [
+		"synth:voice",
+		"synth:voice2",
 		"/audio/sfx/burger_shop/trayPlace.mp3",
 		"/audio/sfx/burger_shop/counterBell.mp3",
-		"/audio/voice/speaki/shortJoayo.mp3",
 		"/audio/sfx/reward.mp3"
 	],
 	slime: [
-		"/audio/voice/speaki/spea.mp3",
-		"/audio/voice/speaki/shortJoayo.mp3",
+		"synth:voice",
+		"synth:voice2",
 		"/audio/sfx/jumpTakeoff.mp3",
 		"/audio/sfx/snowball_run/hitPoof.mp3"
 	],
 	fairy: [
-		"/audio/voice/speaki/touched.mp3",
-		"/audio/voice/speaki/Joayo1.mp3",
+		"synth:voice",
+		"synth:voice2",
 		"/audio/sfx/questClaim.mp3",
 		"/audio/sfx/reward.mp3"
 	],
 	ghost: [
-		"/audio/voice/speaki/surprised.mp3",
-		"/audio/voice/speaki/LowSpea.mp3",
+		"synth:voice",
+		"synth:voice2",
 		"/audio/sfx/portal.mp3"
 	],
 	beast: [
+		"synth:voice",
 		"/audio/sfx/raid6/r6_piglet.mp3",
 		"/audio/sfx/raid6/r6_sniff.mp3",
 		"/audio/sfx/jumpTakeoff.mp3"
 	],
 	piglet: [
+		"synth:voice",
 		"/audio/sfx/raid6/r6_piglet.mp3",
 		"/audio/sfx/raid6/r6_snort.mp3",
 		"/audio/sfx/raid6/r6_sniff.mp3"
 	],
 	vehicle: [
+		"synth:voice",
 		"/audio/sfx/burger_shop/carHorn.mp3",
 		"/audio/sfx/burger_shop/carHornDouble.mp3",
 		"/audio/sfx/racing/boost.mp3",
 		"/audio/sfx/mountEnter.mp3"
 	],
 	drone: [
+		"synth:voice",
 		"/audio/sfx/droneFire1.mp3",
 		"/audio/sfx/droneFire2.mp3",
 		"/audio/sfx/mining/switchToggle.mp3"
 	],
 	boss: [
+		"synth:voice",
 		"/audio/sfx/raid7/r7_core_pulse.mp3",
 		"/audio/sfx/raid6/r6_roar.mp3",
 		"/audio/sfx/raid8/r8_rune_bolt.mp3",
 		"/audio/sfx/levelup.mp3"
 	],
 	npc: [
-		"/audio/voice/speaki/Joayo2.mp3",
-		"/audio/voice/speaki/Joayo3.mp3",
-		"/audio/voice/speaki/Yes.mp3",
-		"/audio/voice/speaki/spea.mp3"
+		"synth:voice",
+		"synth:voice2",
+		"synth:voice3"
 	]
 };
 
@@ -1197,34 +1205,346 @@ function spkmodGetOwnerVisualScale(inst) {
 	return clamped / 1000;
 }
 
+let _spkmodPetAudioCtx = null;
+const _spkmodPetSynthProfileCache = new Map();
+const SPKMOD_PENTATONIC_SEMITONES = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21];
+
+function spkmodGetPetAudioContext() {
+	try {
+		if (!_spkmodPetAudioCtx) {
+			const AudioCtx = window.AudioContext || window.webkitAudioContext;
+			if (!AudioCtx) return null;
+			_spkmodPetAudioCtx = new AudioCtx();
+		}
+		if (_spkmodPetAudioCtx.state === "suspended") {
+			_spkmodPetAudioCtx.resume().catch(() => {});
+		}
+		return _spkmodPetAudioCtx;
+	} catch (_) {
+		return null;
+	}
+}
+
+function spkmodGetPetSynthProfile(pet) {
+	const key = `${pet?.id || "slime"}#${pet?.level || 0}`;
+	const cached = _spkmodPetSynthProfileCache.get(key);
+	if (cached) return cached;
+
+	// Deterministic FNV-1a + xorshift32 hash unique to each pet
+	let h = 2166136261 >>> 0;
+	for (let i = 0; i < key.length; i++) {
+		h ^= key.charCodeAt(i);
+		h = Math.imul(h, 16777619) >>> 0;
+	}
+	const nextRand = () => {
+		h ^= (h << 13) >>> 0;
+		h ^= (h >>> 17) >>> 0;
+		h ^= (h << 5) >>> 0;
+		return (h >>> 0) / 4294967296;
+	};
+
+	const r0 = nextRand();
+	const r1 = nextRand();
+	const r2 = nextRand();
+	const r3 = nextRand();
+	const r4 = nextRand();
+
+	const motifs = [
+		[0, 2],
+		[0, 3],
+		[2, 0],
+		[0, 2, 4],
+		[0, 4, 2],
+		[3, 1, 2],
+		[0, 1, 3],
+		[2, 4, 3]
+	];
+
+	const profile = {
+		semitoneIdx: Math.floor(r0 * 6),
+		detuneCents: (r1 - 0.5) * 32,
+		motif: motifs[Math.floor(r2 * motifs.length)],
+		brightness: 0.78 + r3 * 0.52,
+		tempo: 0.84 + r4 * 0.36,
+		altWave: r1 > 0.5
+	};
+
+	// Bespoke personality tweaks for special chibi NPC pets
+	if (pet?.id === "chibi_kommy") {
+		profile.semitoneIdx = 1;
+		profile.motif = [2, 1, 0];
+		profile.brightness = 0.72;
+		profile.tempo = 0.76;
+	} else if (pet?.id === "chibi_master") {
+		profile.semitoneIdx = 0;
+		profile.motif = [0, 3];
+		profile.brightness = 0.85;
+		profile.tempo = 0.88;
+	} else if (pet?.id === "chibi_ner") {
+		profile.semitoneIdx = 4;
+		profile.motif = [0, 2, 4];
+		profile.brightness = 1.25;
+		profile.tempo = 1.15;
+	}
+
+	_spkmodPetSynthProfileCache.set(key, profile);
+	return profile;
+}
+
+function spkmodPlayPetSynthVoice(pet, token, volume, pitchMul) {
+	const ctx = spkmodGetPetAudioContext();
+	if (!ctx || volume <= 0.001) return;
+
+	const now = ctx.currentTime + 0.006;
+	const profile = spkmodGetPetSynthProfile(pet);
+	const vType = (pet && pet.voiceType) || "slime";
+	const variant = token === "synth:voice3" ? 2 : (token === "synth:voice2" ? 1 : 0);
+
+	// Base register per voice type (Hz)
+	const baseHzMap = {
+		food: 480,
+		slime: 340,
+		fairy: 760,
+		ghost: 410,
+		beast: 310,
+		piglet: 230,
+		vehicle: 290,
+		drone: 620,
+		boss: 145,
+		npc: 440
+	};
+	const baseHz = (baseHzMap[vType] || 380) * Math.pow(2, SPKMOD_PENTATONIC_SEMITONES[profile.semitoneIdx] / 12);
+	const pScale = (typeof pitchMul === "number" && isFinite(pitchMul) && pitchMul > 0) ? pitchMul : 1;
+
+	const master = ctx.createGain();
+	const filter = ctx.createBiquadFilter();
+	filter.type = "lowpass";
+	const baseCutoffMap = {
+		food: 2400,
+		slime: 1700,
+		fairy: 4200,
+		ghost: 1450,
+		beast: 1550,
+		piglet: 1200,
+		vehicle: 1850,
+		drone: 3400,
+		boss: 950,
+		npc: 2500
+	};
+	filter.frequency.setValueAtTime(
+		Math.max(450, Math.min(7500, (baseCutoffMap[vType] || 2200) * profile.brightness)),
+		now
+	);
+	filter.Q.setValueAtTime(vType === "slime" || vType === "ghost" ? 3.2 : 1.1, now);
+
+	// Calibrate oscillator loudness to match recorded game SFX volume cleanly
+	const masterGain = Math.max(0.004, Math.min(0.45, volume * 0.62));
+	master.gain.setValueAtTime(masterGain, now);
+	filter.connect(master);
+	master.connect(ctx.destination);
+
+	const noteHz = (stepOffset) => {
+		const idx = Math.max(0, Math.min(SPKMOD_PENTATONIC_SEMITONES.length - 1, profile.semitoneIdx + stepOffset));
+		const semiDelta = SPKMOD_PENTATONIC_SEMITONES[idx] - SPKMOD_PENTATONIC_SEMITONES[profile.semitoneIdx];
+		return Math.max(65, Math.min(3600, baseHz * Math.pow(2, semiDelta / 12) * pScale));
+	};
+
+	const spawnTone = (opts) => {
+		const t0 = now + (opts.delay || 0);
+		const dur = Math.max(0.04, opts.dur || 0.12);
+		const osc = ctx.createOscillator();
+		const env = ctx.createGain();
+		osc.type = opts.wave || "sine";
+		osc.detune.setValueAtTime(profile.detuneCents + (opts.detune || 0), t0);
+
+		const fStart = Math.max(55, Math.min(4200, opts.f0));
+		const fEnd = Math.max(55, Math.min(4200, opts.f1 ?? opts.f0));
+		osc.frequency.setValueAtTime(fStart, t0);
+		if (opts.fMid != null) {
+			osc.frequency.exponentialRampToValueAtTime(Math.max(55, Math.min(4200, opts.fMid)), t0 + dur * 0.45);
+			osc.frequency.exponentialRampToValueAtTime(fEnd, t0 + dur);
+		} else if (Math.abs(fEnd - fStart) > 0.5) {
+			osc.frequency.exponentialRampToValueAtTime(fEnd, t0 + dur);
+		}
+
+		let lfo = null;
+		let lfoGain = null;
+		if (opts.vibHz && opts.vibDepth) {
+			lfo = ctx.createOscillator();
+			lfoGain = ctx.createGain();
+			lfo.frequency.setValueAtTime(opts.vibHz, t0);
+			lfoGain.gain.setValueAtTime(opts.vibDepth, t0);
+			lfo.connect(lfoGain);
+			lfoGain.connect(osc.frequency);
+			lfo.start(t0);
+			lfo.stop(t0 + dur + 0.03);
+		}
+
+		const peak = Math.max(0.01, opts.gain ?? 0.85);
+		const atk = Math.min(dur * 0.35, opts.atk ?? 0.012);
+		env.gain.setValueAtTime(0.0001, t0);
+		env.gain.linearRampToValueAtTime(peak, t0 + atk);
+		env.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+		osc.connect(env);
+		env.connect(filter);
+		osc.start(t0);
+		osc.stop(t0 + dur + 0.025);
+		osc.onended = () => {
+			try { osc.disconnect(); env.disconnect(); } catch (_) {}
+			if (lfo) { try { lfo.disconnect(); lfoGain.disconnect(); } catch (_) {} }
+		};
+		return t0 + dur + 0.05;
+	};
+
+	const sp = 1 / profile.tempo;
+	let endAt = now + 0.35;
+
+	if (vType === "food") {
+		// Cute crisp pop / kitchen sparkle-plop
+		const fA = noteHz(variant === 1 ? 2 : 0);
+		const fB = noteHz(profile.motif[1] || 3);
+		endAt = Math.max(endAt, spawnTone({ wave: "sine", f0: fA * 0.72, f1: fA * 1.18, dur: 0.085 * sp, gain: 0.85 }));
+		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fB, f1: fB * 1.04, delay: 0.075 * sp, dur: 0.13 * sp, gain: 0.55 }));
+	} else if (vType === "slime") {
+		// Squishy bubbly boing-bloop
+		const fA = noteHz(variant === 1 ? 1 : 0);
+		const fB = noteHz((profile.motif[1] || 2) + variant);
+		endAt = Math.max(endAt, spawnTone({ wave: "sine", f0: fA * 0.62, fMid: fA * 1.32, f1: fA * 0.94, dur: 0.14 * sp, gain: 0.9 }));
+		if (variant === 1 || profile.motif.length >= 3) {
+			endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fB * 0.78, f1: fB * 1.24, delay: 0.11 * sp, dur: 0.10 * sp, gain: 0.55 }));
+		}
+	} else if (vType === "fairy") {
+		// Sparkling crystal chime arpeggio
+		const steps = variant === 1 ? [0, 3, 5] : profile.motif;
+		steps.forEach((st, idx) => {
+			const f = noteHz(st);
+			endAt = Math.max(endAt, spawnTone({
+				wave: idx % 2 === 0 ? "sine" : "triangle",
+				f0: f,
+				f1: f * 1.015,
+				delay: idx * 0.062 * sp,
+				dur: 0.19 * sp,
+				atk: 0.008,
+				gain: 0.62 - idx * 0.1
+			}));
+		});
+	} else if (vType === "ghost") {
+		// Cute spooky wisp warble with gentle LFO vibrato
+		const fA = noteHz(variant === 1 ? 2 : 0);
+		const fB = noteHz(variant === 1 ? 0 : 2);
+		endAt = Math.max(endAt, spawnTone({
+			wave: "sine",
+			f0: fA,
+			fMid: fB * 1.08,
+			f1: fA * 0.92,
+			dur: 0.28 * sp,
+			atk: 0.035,
+			vibHz: 11 + profile.semitoneIdx,
+			vibDepth: 14,
+			gain: 0.8
+		}));
+	} else if (vType === "npc") {
+		// Animal-Crossing-style melodic voice chirp unique to each chibi NPC
+		const seq = variant === 2
+			? [profile.motif[0], (profile.motif[1] || 2) + 1]
+			: (variant === 1 ? [...profile.motif].reverse() : profile.motif);
+		const wave = pet?.id === "chibi_kommy" ? "sine" : (profile.altWave ? "triangle" : "sine");
+		seq.forEach((st, idx) => {
+			const f = noteHz(st);
+			const bend = pet?.id === "chibi_kommy" ? 0.90 : (idx === seq.length - 1 ? 1.12 : 1.04);
+			endAt = Math.max(endAt, spawnTone({
+				wave,
+				f0: f,
+				f1: f * bend,
+				delay: idx * 0.088 * sp,
+				dur: 0.11 * sp,
+				atk: 0.014,
+				gain: 0.78
+			}));
+		});
+	} else if (vType === "beast") {
+		// Playful critter yip / purr-chirp
+		const fA = noteHz(0);
+		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 0.88, fMid: fA * 1.38, f1: fA * 0.82, dur: 0.13 * sp, gain: 0.85 }));
+		endAt = Math.max(endAt, spawnTone({ wave: "sine", f0: fA * 1.1, f1: fA * 1.45, delay: 0.10 * sp, dur: 0.08 * sp, gain: 0.48 }));
+	} else if (vType === "piglet") {
+		// Bouncy mini double-oink
+		const fA = noteHz(0);
+		endAt = Math.max(endAt, spawnTone({ wave: "sawtooth", f0: fA * 0.85, f1: fA * 1.25, dur: 0.095 * sp, gain: 0.55 }));
+		endAt = Math.max(endAt, spawnTone({ wave: "sawtooth", f0: fA * 0.92, f1: fA * 1.34, delay: 0.11 * sp, dur: 0.095 * sp, gain: 0.52 }));
+	} else if (vType === "vehicle") {
+		// Cute miniature two-tone car toot
+		const fA = noteHz(0);
+		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA, f1: fA * 1.01, dur: 0.11 * sp, gain: 0.65 }));
+		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 1.25, f1: fA * 1.26, dur: 0.11 * sp, gain: 0.5 }));
+	} else if (vType === "drone") {
+		// Sci-fi R2-style bleep-boop
+		const fA = noteHz(profile.motif[0] || 0);
+		const fB = noteHz((profile.motif[1] || 3) + 2);
+		endAt = Math.max(endAt, spawnTone({ wave: "square", f0: fA, f1: fB, dur: 0.07 * sp, atk: 0.005, gain: 0.42 }));
+		endAt = Math.max(endAt, spawnTone({ wave: "sine", f0: fB * 1.15, f1: fA * 0.95, delay: 0.075 * sp, dur: 0.085 * sp, atk: 0.005, gain: 0.55 }));
+	} else {
+		// Boss: deep resonant mini-boss harmonic chime/pulse
+		const fA = noteHz(0);
+		endAt = Math.max(endAt, spawnTone({ wave: "sawtooth", f0: fA * 1.06, f1: fA * 0.78, dur: 0.24 * sp, atk: 0.02, gain: 0.55 }));
+		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 1.5, f1: fA * 1.18, dur: 0.22 * sp, atk: 0.02, gain: 0.42 }));
+	}
+
+	const cleanupDelayMs = Math.max(120, Math.ceil((endAt - ctx.currentTime) * 1000) + 60);
+	setTimeout(() => {
+		try { filter.disconnect(); master.disconnect(); } catch (_) {}
+	}, cleanupDelayMs);
+}
+
 function spkmodPlayPetSfx(pet, isLocalOwner, worldPos, scaleMul) {
 	if (!spkmodIsPetsSystemEnabled() || !pet) return;
 	if (typeof isGameMuted === "function" && isGameMuted()) return;
 	if (isLocalOwner && !window.spkmodPetSettings.mySfx) return;
 	if (!isLocalOwner && !window.spkmodPetSettings.otherSfx) return;
 
-	let volume = 0.42;
+	// Respect the game's Sound Effects (SFX) volume slider (0..1)
+	const sfxVol = typeof window.spkmodGetEffectiveSfxVolume === "function"
+		? window.spkmodGetEffectiveSfxVolume()
+		: 0.5;
+	if (sfxVol <= 0.001) return;
+
+	let volume = sfxVol * 0.45;
 	if (!isLocalOwner && worldPos && gameState?.playerContainer?.position) {
 		const myPos = gameState.playerContainer.position;
 		const dist = Math.hypot(worldPos.x - myPos.x, worldPos.z - myPos.z);
 		if (dist > 18) return;
-		volume = Math.max(0.05, 0.35 * (1 - dist / 18));
+		volume = sfxVol * Math.max(0.04, 0.35 * (1 - dist / 18));
 	}
+	volume = Math.max(0, Math.min(1, volume));
+	if (volume <= 0.001) return;
 
 	const pool = SPKMOD_PET_SFX_POOLS[pet.voiceType] || SPKMOD_PET_SFX_POOLS.slime;
 	const sfxUrl = spkmodPickRandom(pool);
 	if (!sfxUrl) return;
+
+	const effScale = (typeof scaleMul === "number" && isFinite(scaleMul) && scaleMul > 0)
+		? scaleMul
+		: (isLocalOwner ? spkmodGetOwnerVisualScale({ isLocal: true }) : 1);
+	const pitchMul = Math.abs(effScale - 1) > 0.03
+		? Math.max(0.65, Math.min(1.6, 1 / Math.pow(effScale, 0.45)))
+		: 1;
+
+	if (sfxUrl.startsWith("synth:")) {
+		try {
+			spkmodPlayPetSynthVoice(pet, sfxUrl, volume, pitchMul);
+		} catch (_) {}
+		return;
+	}
+
 	try {
 		const audio = new Audio(sfxUrl);
 		audio.volume = volume;
-		const effScale = (typeof scaleMul === "number" && isFinite(scaleMul) && scaleMul > 0)
-			? scaleMul
-			: (isLocalOwner ? spkmodGetOwnerVisualScale({ isLocal: true }) : 1);
-		if (Math.abs(effScale - 1) > 0.03) {
+		if (pitchMul !== 1) {
 			if ("preservesPitch" in audio) audio.preservesPitch = false;
 			if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = false;
 			if ("webkitPreservesPitch" in audio) audio.webkitPreservesPitch = false;
-			audio.playbackRate = Math.max(0.65, Math.min(1.6, 1 / Math.pow(effScale, 0.45)));
+			audio.playbackRate = pitchMul;
 		}
 		audio.play().catch(() => {});
 	} catch (_) {}
@@ -2391,7 +2711,8 @@ function spkmodComputePetBroadcastWaitMs(now, entry) {
 	if (typeof gameState === "undefined" || !gameState || typeof gameState.trySendChat !== "function" || gameState.zoneId == null) {
 		return SPKMOD_PET_CHAT_RECHECK_MS;
 	}
-	if (_spkmodChatMinLevelGate > 0 && spkmodGetPlayerLevel() < _spkmodChatMinLevelGate) {
+	const effectiveLevelGate = Math.max(_spkmodChatMinLevelGate, window.__spkmodChatMinLevelGate || 0);
+	if (effectiveLevelGate > 0 && spkmodGetPlayerLevel() < effectiveLevelGate) {
 		return Infinity;
 	}
 	// Never send hidden :pet_...: chat packets inside Mining/Speakov minigames or when alone in a zone
@@ -2405,14 +2726,16 @@ function spkmodComputePetBroadcastWaitMs(now, entry) {
 	if (entry && entry.earliestAtMs > now) {
 		waitMs = Math.max(waitMs, entry.earliestAtMs - now);
 	}
-	if (_spkmodChatRejectBackoffUntilMs > now) {
-		waitMs = Math.max(waitMs, _spkmodChatRejectBackoffUntilMs - now);
+	const effectiveBackoff = Math.max(_spkmodChatRejectBackoffUntilMs, window.__spkmodChatRejectBackoffUntilMs || 0);
+	if (effectiveBackoff > now) {
+		waitMs = Math.max(waitMs, effectiveBackoff - now);
 	}
 	if (spkmodIsUserTypingInChat()) {
 		waitMs = Math.max(waitMs, SPKMOD_PET_CHAT_RECHECK_MS);
 	}
-	if (_spkmodLastUserChatTypingMs > 0) {
-		const typingClearAt = _spkmodLastUserChatTypingMs + SPKMOD_PET_CHAT_AFTER_TYPING_MS;
+	const lastTyping = Math.max(_spkmodLastUserChatTypingMs, window.__spkmodLastUserChatTypingMs || 0);
+	if (lastTyping > 0) {
+		const typingClearAt = lastTyping + SPKMOD_PET_CHAT_AFTER_TYPING_MS;
 		if (typingClearAt > now) {
 			waitMs = Math.max(waitMs, typingClearAt - now);
 		}
@@ -2430,6 +2753,13 @@ function spkmodComputePetBroadcastWaitMs(now, entry) {
 		}
 	}
 
+	const lastGlobalHidden = window.__spkmodLastHiddenSyncBroadcastMs || 0;
+	if (lastGlobalHidden > 0) {
+		const globalGapClearAt = lastGlobalHidden + SPKMOD_PET_CHAT_MIN_GAP_MS;
+		if (globalGapClearAt > now) {
+			waitMs = Math.max(waitMs, globalGapClearAt - now);
+		}
+	}
 	if (_spkmodLastBroadcastAtMs > 0) {
 		const isRemoteJoinPassive = entry && entry.reason === "remote_join";
 		const minGap = isRemoteJoinPassive ? SPKMOD_PET_CHAT_PASSIVE_INTERVAL_MS : SPKMOD_PET_CHAT_MIN_GAP_MS;
@@ -2498,6 +2828,7 @@ function spkmodFlushQueuedPetBroadcast() {
 	}
 
 	_spkmodLastBroadcastAtMs = now;
+	window.__spkmodLastHiddenSyncBroadcastMs = now;
 	_spkmodLastBroadcastPetId = normalizedId;
 	_spkmodLastBroadcastZoneId = curZoneId;
 	_spkmodChatRejectStrikeCount = 0;
@@ -2512,7 +2843,6 @@ function spkmodFlushQueuedPetBroadcast() {
 }
 
 window.spkmodNotifyUserChatActivity = function(kind = "send") {
-	if (!spkmodIsPetsSystemEnabled()) return;
 	const now = Date.now();
 	if (kind === "send") {
 		_spkmodLastUserChatSentMs = now;
@@ -2528,16 +2858,19 @@ window.spkmodNotifyUserChatActivity = function(kind = "send") {
 		}
 	} else {
 		_spkmodLastUserChatTypingMs = now;
+		window.__spkmodLastUserChatTypingMs = now;
 	}
 
-	// Immediately defer any queued pet broadcast so it yields to the player's chat
-	if (_spkmodQueuedPetBroadcast) {
+	// Immediately defer any queued pet or car broadcast so it yields to the player's chat
+	if (spkmodIsPetsSystemEnabled() && _spkmodQueuedPetBroadcast) {
 		spkmodScheduleQueuedBroadcastFlush();
+	}
+	if (typeof window.spkmodNotifyCarUserChatActivity === "function") {
+		window.spkmodNotifyCarUserChatActivity(kind);
 	}
 };
 
 window.spkmodOnChatRejected = function(event) {
-	if (!spkmodIsPetsSystemEnabled()) return false;
 	const now = Date.now();
 	const rawCode = event?.reasonCode;
 	const isNewbieGate = rawCode === 1 || rawCode === "CHAT_REJECT_NEWBIE_GATE";
@@ -2547,6 +2880,7 @@ window.spkmodOnChatRejected = function(event) {
 
 	if (isNewbieGate) {
 		_spkmodChatMinLevelGate = Math.max(_spkmodChatMinLevelGate, Number(event?.minLevel) || 999);
+		window.__spkmodChatMinLevelGate = Math.max(window.__spkmodChatMinLevelGate || 0, _spkmodChatMinLevelGate);
 		_spkmodQueuedPetBroadcast = null;
 		if (_spkmodPendingBroadcastTimer) {
 			clearTimeout(_spkmodPendingBroadcastTimer);
@@ -2554,22 +2888,29 @@ window.spkmodOnChatRejected = function(event) {
 		}
 	} else if (isMuted || isDisabled || isUnlinked) {
 		_spkmodChatRejectBackoffUntilMs = Math.max(_spkmodChatRejectBackoffUntilMs, now + 60000);
+		window.__spkmodChatRejectBackoffUntilMs = Math.max(window.__spkmodChatRejectBackoffUntilMs || 0, _spkmodChatRejectBackoffUntilMs);
 		if (_spkmodQueuedPetBroadcast && _spkmodQueuedPetBroadcast.priority === "passive") {
 			_spkmodQueuedPetBroadcast = null;
 		}
-		spkmodScheduleQueuedBroadcastFlush();
+		if (spkmodIsPetsSystemEnabled()) spkmodScheduleQueuedBroadcastFlush();
 	} else {
 		_spkmodChatRejectStrikeCount = Math.min(3, _spkmodChatRejectStrikeCount + 1);
 		const backoffMs = Math.min(30000, 10000 * _spkmodChatRejectStrikeCount);
 		_spkmodChatRejectBackoffUntilMs = Math.max(_spkmodChatRejectBackoffUntilMs, now + backoffMs);
-		spkmodScheduleQueuedBroadcastFlush();
+		window.__spkmodChatRejectBackoffUntilMs = Math.max(window.__spkmodChatRejectBackoffUntilMs || 0, _spkmodChatRejectBackoffUntilMs);
+		if (spkmodIsPetsSystemEnabled()) spkmodScheduleQueuedBroadcastFlush();
 	}
 
-	// Suppress confusing system chat error ONLY if caused solely by a background pet sync packet
+	if (typeof window.spkmodOnCarChatRejected === "function") {
+		window.spkmodOnCarChatRejected(event);
+	}
+
+	// Suppress confusing system chat error ONLY if caused solely by a background pet/car sync packet
 	const lastUserSent = Math.max(_spkmodLastUserChatSentMs, window.__spkmodLastPlayerChatSentMs || 0);
-	const causedByPetPacket = (_spkmodLastBroadcastAtMs > 0 && now - _spkmodLastBroadcastAtMs <= 2500)
+	const lastHiddenSync = Math.max(_spkmodLastBroadcastAtMs, window.__spkmodLastHiddenSyncBroadcastMs || 0);
+	const causedByHiddenPacket = (lastHiddenSync > 0 && now - lastHiddenSync <= 2500)
 		&& (now - lastUserSent > 4000);
-	return causedByPetPacket;
+	return causedByHiddenPacket;
 };
 
 if (!window.__spkmodPetChatInputTrackersInstalled) {
@@ -2587,8 +2928,11 @@ if (!window.__spkmodPetChatInputTrackersInstalled) {
 		}
 	}, true);
 	document.addEventListener("focusout", (e) => {
-		if (isChatInputTarget(e.target) && _spkmodQueuedPetBroadcast) {
-			spkmodScheduleQueuedBroadcastFlush();
+		if (isChatInputTarget(e.target)) {
+			if (_spkmodQueuedPetBroadcast) spkmodScheduleQueuedBroadcastFlush();
+			if (typeof window.spkmodNotifyCarUserChatActivity === "function") {
+				window.spkmodNotifyCarUserChatActivity("focusout");
+			}
 		}
 	}, true);
 }

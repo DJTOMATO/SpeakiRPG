@@ -237,7 +237,7 @@ function hookGameStateOnce() {
 		const origTrySendChat = gameState.trySendChat.bind(gameState);
 		const notifyPlayerChatSend = (payload, kind = "send") => {
 			const pTrim = (typeof payload === "string") ? payload.trim() : "";
-			if (pTrim && !/^:pet_[a-zA-Z0-9_-]+:$/i.test(pTrim)) {
+			if (pTrim && !/^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(pTrim)) {
 				if (kind === "send") window.__spkmodLastPlayerChatSentMs = Date.now();
 				if (typeof window.spkmodNotifyUserChatActivity === "function") {
 					window.spkmodNotifyUserChatActivity(kind);
@@ -250,7 +250,7 @@ function hookGameStateOnce() {
 		};
 		gameState.trySendChat = (msg) => {
 			const trimmedMsg = (msg || "").trim();
-			if (/^:pet_[a-zA-Z0-9_-]+:$/i.test(trimmedMsg)) {
+			if (/^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(trimmedMsg)) {
 				return origTrySendChat(trimmedMsg);
 			}
 			const lowerTrimmedMsg = trimmedMsg.toLowerCase();
@@ -688,6 +688,12 @@ function hookGameStateOnce() {
 			if (/^:pet_[a-zA-Z0-9_-]+:$/i.test(rawMsg)) {
 				if (typeof window.spkmodHandleIncomingPetTrigger === "function") {
 					window.spkmodHandleIncomingPetTrigger(id, name, rawMsg);
+				}
+				return;
+			}
+			if (/^:car_[a-zA-Z0-9_-]+:$/i.test(rawMsg)) {
+				if (typeof window.spkmodHandleIncomingCarTrigger === "function") {
+					window.spkmodHandleIncomingCarTrigger(id, name, rawMsg);
 				}
 				return;
 			}

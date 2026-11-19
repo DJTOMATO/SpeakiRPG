@@ -3968,6 +3968,35 @@ window.spkmodMute = function(muted) {
 window.toggleGameMute = toggleGameMute;
 window.setGameMuted = setGameMuted;
 window.isGameMuted = isGameMuted;
+
+function spkmodGetEffectiveSfxVolume() {
+	if (typeof isGameMuted === "function" && isGameMuted()) return 0;
+	try {
+		if (typeof window.getGameSettings === "function") {
+			const gs = window.getGameSettings();
+			if (gs) {
+				if (gs.muteAll) return 0;
+				if (typeof gs.sfxVolume === "number" && Number.isFinite(gs.sfxVolume)) {
+					return Math.max(0, Math.min(1, gs.sfxVolume / 100));
+				}
+			}
+		}
+	} catch (_) {}
+	try {
+		const raw = window.localStorage && localStorage.getItem("sr1_settings");
+		if (raw) {
+			const parsed = JSON.parse(raw);
+			if (parsed) {
+				if (parsed.muteAll) return 0;
+				if (typeof parsed.sfxVolume === "number" && Number.isFinite(parsed.sfxVolume)) {
+					return Math.max(0, Math.min(1, parsed.sfxVolume / 100));
+				}
+			}
+		}
+	} catch (_) {}
+	return 0.5;
+}
+window.spkmodGetEffectiveSfxVolume = spkmodGetEffectiveSfxVolume;
 window.testMute = function() {
 	const cb = findGameMuteCheckbox();
 	const listener = findGameAudioListener();
@@ -13014,6 +13043,469 @@ function renderSpkmodInlineEmojis(text, imgStyle) {
 }
 window.renderSpkmodInlineEmojis = renderSpkmodInlineEmojis;
 
+// ============================================================================
+// 3D OVERHEAD CHAT BUBBLE EMOTE RENDERER (:t_* / :spk_* -> CanvasTexture)
+// ============================================================================
+const _spkmodBubbleImgCache = new Map(); // url -> { img, ok }
+const _spkmodBubbleImgInFlight = new Map(); // url -> Promise<{ img, ok }>
+const _spkmodBubbleSeqByManager = new WeakMap(); // chatBubblesObj -> Map<entityId, seq>
+const SPKMOD_BUBBLE_IMG_CACHE_MAX = 120;
+const SPKMOD_BUBBLE_EMOTE_CODE_RE = /^(?:t|spk)_[a-z0-9_-]+$/i;
+const SPKMOD_BUBBLE_EMOTE_SCAN_RE = /:(?:t|spk)_[a-z0-9_-]+:/i;
+
+function spkmodResolveBubbleEmoteUrl(code) {
+    if (!code || !SPKMOD_BUBBLE_EMOTE_CODE_RE.test(code)) return null;
+    const catalogs = [
+        { t_280: "https://i.imgur.com/tCrOOr5.png", SPK_88: "https://i.imgur.com/6H1r2Vz.gif" },
+        typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : null,
+        typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : null,
+        typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : null,
+        typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : null,
+        typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : null,
+        typeof lunTrickcal5Emojis !== "undefined" ? lunTrickcal5Emojis : null
+    ];
+    const lower = code.toLowerCase();
+    const upper = code.toUpperCase();
+    for (let i = 0; i < catalogs.length; i++) {
+        const cat = catalogs[i];
+        if (!cat) continue;
+        const hit = cat[code] || cat[lower] || cat[upper];
+        if (typeof hit === "string" && hit.length > 0) return hit;
+    }
+    return null;
+}
+
+function spkmodParseBubbleEmoteTokens(text) {
+    if (typeof text !== "string" || !SPKMOD_BUBBLE_EMOTE_SCAN_RE.test(text)) {
+        return { hasEmote: false, emoteOnly: false, tokens: [] };
+    }
+    const tokens = [];
+    const rx = /:([a-zA-Z0-9_-]+):/g;
+    let lastIdx = 0;
+    let hasEmote = false;
+    let hasNonWsText = false;
+    let match;
+    while ((match = rx.exec(text)) !== null) {
+        if (match.index > lastIdx) {
+            const seg = text.slice(lastIdx, match.index);
+            if (seg.trim().length > 0) hasNonWsText = true;
+            tokens.push({ type: "text", text: seg });
+        }
+        const code = match[1];
+        const url = spkmodResolveBubbleEmoteUrl(code);
+        if (url) {
+            hasEmote = true;
+            tokens.push({ type: "emote", code, url });
+        } else {
+            hasNonWsText = true;
+            tokens.push({ type: "text", text: match[0] });
+        }
+        lastIdx = rx.lastIndex;
+    }
+    if (lastIdx < text.length) {
+        const tail = text.slice(lastIdx);
+        if (tail.trim().length > 0) hasNonWsText = true;
+        tokens.push({ type: "text", text: tail });
+    }
+    return { hasEmote, emoteOnly: hasEmote && !hasNonWsText, tokens };
+}
+
+function spkmodCacheBubbleImg(url, entry) {
+    if (_spkmodBubbleImgCache.has(url)) _spkmodBubbleImgCache.delete(url);
+    _spkmodBubbleImgCache.set(url, entry);
+    if (_spkmodBubbleImgCache.size > SPKMOD_BUBBLE_IMG_CACHE_MAX) {
+        const oldestKey = _spkmodBubbleImgCache.keys().next().value;
+        if (oldestKey !== undefined) _spkmodBubbleImgCache.delete(oldestKey);
+    }
+}
+
+function spkmodLoadBubbleEmoteImage(url) {
+    const cached = _spkmodBubbleImgCache.get(url);
+    if (cached) {
+        // Refresh LRU position
+        _spkmodBubbleImgCache.delete(url);
+        _spkmodBubbleImgCache.set(url, cached);
+        return Promise.resolve(cached);
+    }
+    const existing = _spkmodBubbleImgInFlight.get(url);
+    if (existing) return existing;
+
+    const p = new Promise((resolve) => {
+        let settled = false;
+        const finish = (entry) => {
+            if (settled) return;
+            settled = true;
+            _spkmodBubbleImgInFlight.delete(url);
+            if (entry.ok) spkmodCacheBubbleImg(url, entry);
+            resolve(entry);
+        };
+        const timer = setTimeout(() => finish({ img: null, ok: false }), 1600);
+        try {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.referrerPolicy = "no-referrer";
+            img.onload = () => {
+                clearTimeout(timer);
+                const valid = (img.naturalWidth || img.width) > 0 && (img.naturalHeight || img.height) > 0;
+                finish({ img: valid ? img : null, ok: valid });
+            };
+            img.onerror = () => {
+                clearTimeout(timer);
+                finish({ img: null, ok: false });
+            };
+            img.src = url;
+        } catch (_) {
+            clearTimeout(timer);
+            finish({ img: null, ok: false });
+        }
+    });
+    _spkmodBubbleImgInFlight.set(url, p);
+    return p;
+}
+
+function spkmodDrawBubbleShape(ctx, w, boxH) {
+    const r = 16;
+    const mid = w / 2;
+    const tailHalfW = 11;
+    const tailH = 14;
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.lineTo(w - r, 0);
+    ctx.arcTo(w, 0, w, r, r);
+    ctx.lineTo(w, boxH - r);
+    ctx.arcTo(w, boxH, w - r, boxH, r);
+    ctx.lineTo(mid + tailHalfW, boxH);
+    ctx.lineTo(mid, boxH + tailH);
+    ctx.lineTo(mid - tailHalfW, boxH);
+    ctx.lineTo(r, boxH);
+    ctx.arcTo(0, boxH, 0, boxH - r, r);
+    ctx.lineTo(0, r);
+    ctx.arcTo(0, 0, r, 0, r);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.18)";
+    ctx.stroke();
+}
+
+function spkmodDrawImageContainRounded(ctx, img, x, y, boxW, boxH, radius) {
+    const nw = img.naturalWidth || img.width || 1;
+    const nh = img.naturalHeight || img.height || 1;
+    const scale = Math.min(boxW / nw, boxH / nh);
+    const dw = nw * scale;
+    const dh = nh * scale;
+    const dx = x + (boxW - dw) * 0.5;
+    const dy = y + (boxH - dh) * 0.5;
+    ctx.save();
+    if (radius > 0) {
+        const rr = Math.min(radius, dw * 0.5, dh * 0.5);
+        ctx.beginPath();
+        ctx.moveTo(dx + rr, dy);
+        ctx.lineTo(dx + dw - rr, dy);
+        ctx.arcTo(dx + dw, dy, dx + dw, dy + rr, rr);
+        ctx.lineTo(dx + dw, dy + dh - rr);
+        ctx.arcTo(dx + dw, dy + dh, dx + dw - rr, dy + dh, rr);
+        ctx.lineTo(dx + rr, dy + dh);
+        ctx.arcTo(dx, dy + dh, dx, dy + dh - rr, rr);
+        ctx.lineTo(dx, dy + rr);
+        ctx.arcTo(dx, dy, dx + rr, dy, rr);
+        ctx.closePath();
+        ctx.clip();
+    }
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.restore();
+}
+
+function spkmodGetBubbleFontFamily() {
+    try {
+        if (typeof document !== "undefined" && document.body) {
+            const fam = getComputedStyle(document.body).fontFamily;
+            if (fam && fam.trim()) return fam;
+        }
+    } catch (_) {}
+    return "sans-serif";
+}
+
+function spkmodRenderEmoteChatBubbleCanvas(parsed, loadedMap) {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    const fontFamily = spkmodGetBubbleFontFamily();
+    const fontStr = `bold 32px ${fontFamily}`;
+    const tailH = 14;
+    const maxContentW = 360;
+
+    if (parsed.emoteOnly) {
+        const emotes = parsed.tokens.filter(tk => tk.type === "emote");
+        const count = emotes.length;
+        const size = count === 1 ? 128 : 92;
+        const gap = 10;
+        const padX = 16;
+        const padY = 14;
+        const perRow = Math.max(1, Math.min(3, count));
+        const rows = [];
+        for (let i = 0; i < count; i += perRow) {
+            rows.push(emotes.slice(i, i + perRow));
+        }
+        let maxRowW = 0;
+        for (const row of rows) {
+            const rw = row.length * size + Math.max(0, row.length - 1) * gap;
+            if (rw > maxRowW) maxRowW = rw;
+        }
+        const boxW = Math.ceil(Math.max(maxRowW, 44) + padX * 2);
+        const contentH = rows.length * size + Math.max(0, rows.length - 1) * gap;
+        const boxH = Math.ceil(contentH + padY * 2);
+
+        canvas.width = boxW;
+        canvas.height = boxH + tailH;
+        spkmodDrawBubbleShape(ctx, boxW, boxH);
+
+        ctx.font = fontStr;
+        ctx.fillStyle = "#1b1b1b";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        for (let r = 0; r < rows.length; r++) {
+            const row = rows[r];
+            const rw = row.length * size + Math.max(0, row.length - 1) * gap;
+            let curX = (boxW - rw) * 0.5;
+            const curY = padY + r * (size + gap);
+            for (let c = 0; c < row.length; c++) {
+                const em = row[c];
+                const loaded = loadedMap.get(em.url);
+                if (loaded && loaded.ok && loaded.img) {
+                    spkmodDrawImageContainRounded(ctx, loaded.img, curX, curY, size, size, 10);
+                } else {
+                    ctx.fillText(`:${em.code}:`, curX + size * 0.5, curY + size * 0.5, size);
+                }
+                curX += size + gap;
+            }
+        }
+        return canvas;
+    }
+
+    // Mixed text + inline emotes layout (matches game's bold 32px word/CJK wrapping)
+    ctx.font = fontStr;
+    const inlineSize = 44;
+    const inlinePad = 3;
+    const padX = 20;
+    const padY = 14;
+    const spaceW = ctx.measureText(" ").width;
+
+    // Flatten tokens into wrappable atoms (words + emote boxes)
+    const atoms = [];
+    for (const tk of parsed.tokens) {
+        if (tk.type === "emote") {
+            const loaded = loadedMap.get(tk.url);
+            if (loaded && loaded.ok && loaded.img) {
+                atoms.push({ type: "emote", img: loaded.img, width: inlineSize + inlinePad * 2 });
+            } else {
+                const fallback = `:${tk.code}:`;
+                atoms.push({ type: "word", text: fallback, width: ctx.measureText(fallback).width });
+            }
+        } else {
+            const parts = tk.text.split(/(\s+)/);
+            for (const part of parts) {
+                if (!part) continue;
+                if (/^\s+$/.test(part)) {
+                    atoms.push({ type: "space", width: spaceW });
+                } else {
+                    atoms.push({ type: "word", text: part, width: ctx.measureText(part).width });
+                }
+            }
+        }
+    }
+
+    const lines = [];
+    let curLine = { items: [], width: 0, hasEmote: false };
+    const pushLine = () => {
+        // Trim trailing whitespace atoms on line wrap
+        while (curLine.items.length > 0 && curLine.items[curLine.items.length - 1].type === "space") {
+            const popped = curLine.items.pop();
+            curLine.width -= popped.width;
+        }
+        if (curLine.items.length > 0) lines.push(curLine);
+        curLine = { items: [], width: 0, hasEmote: false };
+    };
+
+    for (const atom of atoms) {
+        if (atom.type === "space") {
+            if (curLine.items.length === 0) continue;
+            if (curLine.items[curLine.items.length - 1].type === "space") continue;
+            if (curLine.width + atom.width <= maxContentW) {
+                curLine.items.push(atom);
+                curLine.width += atom.width;
+            }
+            continue;
+        }
+        if (atom.type === "word" && atom.width > maxContentW) {
+            if (curLine.items.length > 0) pushLine();
+            let chunk = "";
+            for (const ch of atom.text) {
+                const next = chunk + ch;
+                if (ctx.measureText(next).width > maxContentW && chunk !== "") {
+                    const cw = ctx.measureText(chunk).width;
+                    curLine.items.push({ type: "word", text: chunk, width: cw });
+                    curLine.width += cw;
+                    pushLine();
+                    chunk = ch;
+                } else {
+                    chunk = next;
+                }
+            }
+            if (chunk !== "") {
+                const cw = ctx.measureText(chunk).width;
+                curLine.items.push({ type: "word", text: chunk, width: cw });
+                curLine.width += cw;
+            }
+            continue;
+        }
+        if (curLine.items.length > 0 && curLine.width + atom.width > maxContentW) {
+            pushLine();
+        }
+        curLine.items.push(atom);
+        curLine.width += atom.width;
+        if (atom.type === "emote") curLine.hasEmote = true;
+    }
+    pushLine();
+    if (lines.length === 0) return null;
+
+    let maxLineW = 0;
+    let totalH = 0;
+    for (const ln of lines) {
+        ln.height = ln.hasEmote ? 48 : 42;
+        if (ln.width > maxLineW) maxLineW = ln.width;
+        totalH += ln.height;
+    }
+
+    const boxW = Math.ceil(Math.max(Math.min(maxLineW, maxContentW), 44) + padX * 2);
+    const boxH = Math.ceil(totalH + padY * 2);
+    canvas.width = boxW;
+    canvas.height = boxH + tailH;
+
+    spkmodDrawBubbleShape(ctx, boxW, boxH);
+
+    ctx.font = fontStr;
+    ctx.fillStyle = "#1b1b1b";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+
+    let curY = padY;
+    for (const ln of lines) {
+        let curX = (boxW - ln.width) * 0.5;
+        const midY = curY + ln.height * 0.5;
+        for (const item of ln.items) {
+            if (item.type === "emote") {
+                spkmodDrawImageContainRounded(ctx, item.img, curX + inlinePad, midY - inlineSize * 0.5, inlineSize, inlineSize, 6);
+                curX += item.width;
+            } else if (item.type === "word") {
+                ctx.fillText(item.text, curX, midY);
+                curX += item.width;
+            } else {
+                curX += item.width;
+            }
+        }
+        curY += ln.height;
+    }
+    return canvas;
+}
+
+function spkmodBumpBubbleSeq(chatBubblesObj, entityId) {
+    if (!chatBubblesObj) return 0;
+    let map = _spkmodBubbleSeqByManager.get(chatBubblesObj);
+    if (!map) {
+        map = new Map();
+        _spkmodBubbleSeqByManager.set(chatBubblesObj, map);
+    }
+    const next = (map.get(entityId) || 0) + 1;
+    map.set(entityId, next);
+    return next;
+}
+
+function spkmodIsBubbleSeqCurrent(chatBubblesObj, entityId, seq) {
+    const map = _spkmodBubbleSeqByManager.get(chatBubblesObj);
+    return !!map && map.get(entityId) === seq;
+}
+
+function spkmodShowEmoteChatBubble(chatBubblesObj, origShow, entityId, container, text) {
+    const seq = spkmodBumpBubbleSeq(chatBubblesObj, entityId);
+    const parsed = spkmodParseBubbleEmoteTokens(text);
+    if (!parsed.hasEmote) {
+        return origShow(entityId, container, text);
+    }
+
+    const uniqueUrls = [];
+    const seen = new Set();
+    for (const tk of parsed.tokens) {
+        if (tk.type === "emote" && !seen.has(tk.url)) {
+            seen.add(tk.url);
+            uniqueUrls.push(tk.url);
+        }
+    }
+
+    const applyCustomBubble = (loadedMap) => {
+        if (!spkmodIsBubbleSeqCurrent(chatBubblesObj, entityId, seq)) return;
+        if (!container || !container.parent) return;
+
+        let anyImgOk = false;
+        for (const v of loadedMap.values()) {
+            if (v && v.ok && v.img) { anyImgOk = true; break; }
+        }
+        if (!anyImgOk) {
+            return origShow(entityId, container, text);
+        }
+
+        const customCanvas = spkmodRenderEmoteChatBubbleCanvas(parsed, loadedMap);
+        if (!customCanvas) {
+            return origShow(entityId, container, text);
+        }
+
+        // Let the game create its native Sprite/SpriteMaterial/CanvasTexture at exact rle height,
+        // then swap the canvas synchronously BEFORE WebGL uploads the texture on the next frame!
+        origShow(entityId, container, " ");
+        const entry = chatBubblesObj?.bubbles?.get?.(entityId);
+        if (entry && entry.sprite && entry.material && entry.material.map) {
+            const baseHeadY = entry.sprite.position.y - entry.sprite.scale.y * 0.5;
+            const worldW = customCanvas.width * 0.005;
+            const worldH = customCanvas.height * 0.005;
+            entry.material.map.image = customCanvas;
+            entry.material.map.needsUpdate = true;
+            entry.sprite.scale.set(worldW, worldH, 1);
+            entry.sprite.position.set(0, baseHeadY + worldH * 0.5, 0);
+        }
+    };
+
+    // Fast synchronous path if all emote images are already cached
+    let allCached = true;
+    const loadedMap = new Map();
+    for (const url of uniqueUrls) {
+        const cached = _spkmodBubbleImgCache.get(url);
+        if (cached) {
+            loadedMap.set(url, cached);
+        } else {
+            allCached = false;
+        }
+    }
+    if (allCached) {
+        return applyCustomBubble(loadedMap);
+    }
+
+    // Async fetch path (first time seeing an emote; cancels cleanly if player chats again)
+    Promise.all(uniqueUrls.map(u => spkmodLoadBubbleEmoteImage(u).then(res => [u, res]))).then(pairs => {
+        const map = new Map(pairs);
+        applyCustomBubble(map);
+    }).catch(() => {
+        if (spkmodIsBubbleSeqCurrent(chatBubblesObj, entityId, seq) && container && container.parent) {
+            origShow(entityId, container, text);
+        }
+    });
+}
+window.spkmodShowEmoteChatBubble = spkmodShowEmoteChatBubble;
+
 function spkmodIsTouchOrMobile() {
     if (typeof spkmodIsMobile === "function" && spkmodIsMobile()) return true;
     if (typeof window.speakiMobile !== "undefined") return true;
@@ -15551,6 +16043,8 @@ function cycleBurgerSkin(btn) {
 }
 
 window.BurgerCarMode = 0; // 0 = Off, 1 = Sedan, 2 = Van
+window.BurgerCarColorIdx = 0;
+const SPKMOD_BURGER_CAR_SCALE = 1.22;
 let _lunBurgerCarGltfScene = null;
 let _lunBurgerCarLoadingPromise = null;
 let _lunBurgerCarState = null;
@@ -15562,21 +16056,77 @@ function getBurgerCarBtnLabel() {
 	return t(LUN_BURGER_CAR_KEYS[idx]) || LUN_BURGER_CAR_FALLBACKS[idx];
 }
 
-function spkmodPickNextBurgerCarColor() {
+function spkmodPickNextBurgerCarColorIdx() {
 	const len = LUN_BURGER_CAR_COLORS.length;
 	let next = Math.floor(Math.random() * len);
 	if (len > 1 && next === _lunBurgerCarLastColorIdx) {
 		next = (next + 1 + Math.floor(Math.random() * (len - 1))) % len;
 	}
 	_lunBurgerCarLastColorIdx = next;
-	return LUN_BURGER_CAR_COLORS[next];
+	return next;
+}
+
+function spkmodPickNextBurgerCarColor() {
+	return LUN_BURGER_CAR_COLORS[spkmodPickNextBurgerCarColorIdx()];
 }
 
 function spkmodPlayBurgerCarAudio(sfxPath) {
 	try {
+		const sfxVol = typeof window.spkmodGetEffectiveSfxVolume === "function"
+			? window.spkmodGetEffectiveSfxVolume()
+			: ((typeof isGameMuted === "function" && isGameMuted()) ? 0 : 0.5);
+		if (sfxVol <= 0.001) return;
 		const audio = new Audio(sfxPath);
-		audio.volume = 0.65;
+		audio.volume = Math.max(0, Math.min(1, sfxVol * 0.65));
 		audio.play().catch(() => {});
+	} catch (_) {}
+}
+
+function spkmodHasActiveNativeMount(container, playerId) {
+	try {
+		const entries = typeof gameState !== "undefined" ? gameState?.mountVisuals?.entries : null;
+		if (!entries) return false;
+		if (playerId != null && playerId !== "") {
+			if (entries.has(playerId) || entries.has(Number(playerId)) || entries.has(String(playerId))) {
+				return true;
+			}
+		}
+		if (container) {
+			for (const entry of entries.values()) {
+				if (entry && entry.cartGroup && entry.cartGroup.parent === container) {
+					return true;
+				}
+			}
+		}
+	} catch (_) {}
+	return false;
+}
+
+function spkmodSetNativeCartVisible(container, playerId, visible) {
+	try {
+		const entries = typeof gameState !== "undefined" ? gameState?.mountVisuals?.entries : null;
+		if (!entries) return;
+		const visited = new Set();
+		const applyEntry = (entry) => {
+			if (!entry || !entry.cartGroup || visited.has(entry.cartGroup)) return;
+			visited.add(entry.cartGroup);
+			entry.cartGroup.visible = !!visible;
+			entry.cartGroup.__spkmodHiddenByCar = !visible;
+		};
+		if (playerId != null && playerId !== "") {
+			const keys = [playerId, Number(playerId), String(playerId)];
+			for (const k of keys) {
+				const e = entries.get(k);
+				if (e) applyEntry(e);
+			}
+		}
+		if (container) {
+			for (const entry of entries.values()) {
+				if (entry && entry.cartGroup && entry.cartGroup.parent === container) {
+					applyEntry(entry);
+				}
+			}
+		}
 	} catch (_) {}
 }
 
@@ -15639,12 +16189,18 @@ function spkmodRemoveBurgerCar() {
 		_lunBurgerCarState = null;
 	}
 	if (typeof gameState !== "undefined" && gameState) {
-		if (gameState.localAvatarPose?.position) {
-			gameState.localAvatarPose.position.y = 0;
-		}
-		const ctrl = spkmodGetLocalAnimController();
-		if (ctrl && typeof ctrl.exitMountPose === "function") {
-			ctrl.exitMountPose();
+		const pc = gameState.playerContainer;
+		const myId = gameState.myPlayerId;
+		spkmodSetNativeCartVisible(pc, myId, true);
+		const stillMounted = spkmodHasActiveNativeMount(pc, myId);
+		if (!stillMounted) {
+			if (gameState.localAvatarPose?.position) {
+				gameState.localAvatarPose.position.set(0, 0, 0);
+			}
+			const ctrl = spkmodGetLocalAnimController();
+			if (ctrl && typeof ctrl.exitMountPose === "function") {
+				ctrl.exitMountPose();
+			}
 		}
 	}
 }
@@ -15654,6 +16210,7 @@ function spkmodCreateBurgerCarInstance(scene, modelName, colorHex) {
 	if (!prefab) return null;
 
 	const carObj = prefab.clone(true);
+	carObj.scale.multiplyScalar(SPKMOD_BURGER_CAR_SCALE);
 	carObj.traverse(node => {
 		if (node.isMesh && node.material) {
 			const mats = Array.isArray(node.material) ? node.material : [node.material];
@@ -15670,8 +16227,8 @@ function spkmodCreateBurgerCarInstance(scene, modelName, colorHex) {
 	});
 
 	const isVan = modelName === "Vehicle_Van";
-	const wheelRadius = isVan ? 0.34 : 0.36;
-	const seatOffsetY = isVan ? 1.35 : 1.05;
+	const wheelRadius = (isVan ? 0.34 : 0.36) * SPKMOD_BURGER_CAR_SCALE;
+	const seatOffsetY = isVan ? 1.72 : 1.30;
 	const wheels = ["FL", "FR", "RL", "RR"]
 		.map(suffix => carObj.getObjectByName(`${modelName}_Wheel_${suffix}`))
 		.filter(Boolean);
@@ -15679,25 +16236,33 @@ function spkmodCreateBurgerCarInstance(scene, modelName, colorHex) {
 	return { carObj, wheelRadius, seatOffsetY, wheels };
 }
 
-async function spkmodSpawnBurgerCar(modeIdx) {
+async function spkmodSpawnBurgerCar(modeIdx, forcedColorIdx) {
 	const modelName = LUN_BURGER_CAR_MODES[modeIdx];
 	if (!modelName) {
 		spkmodRemoveBurgerCar();
 		return;
 	}
+	const colorIdx = (typeof forcedColorIdx === "number" && forcedColorIdx >= 0 && forcedColorIdx < LUN_BURGER_CAR_COLORS.length)
+		? forcedColorIdx
+		: spkmodPickNextBurgerCarColorIdx();
+	window.BurgerCarColorIdx = colorIdx;
+	const colorHex = LUN_BURGER_CAR_COLORS[colorIdx];
+
 	const scene = await spkmodLoadBurgerVehiclesScene();
 	if (!scene || window.BurgerCarMode !== modeIdx) return;
 	if (typeof gameState === "undefined" || !gameState?.playerContainer) return;
 
-	const inst = spkmodCreateBurgerCarInstance(scene, modelName, spkmodPickNextBurgerCarColor());
+	const inst = spkmodCreateBurgerCarInstance(scene, modelName, colorHex);
 	if (!inst) return;
 
 	spkmodRemoveBurgerCar();
 	const { carObj, wheelRadius, seatOffsetY, wheels } = inst;
+	carObj.name = "spkmod_local_car";
 
 	gameState.playerContainer.add(carObj);
+	spkmodSetNativeCartVisible(gameState.playerContainer, gameState.myPlayerId, false);
 	if (gameState.localAvatarPose?.position) {
-		gameState.localAvatarPose.position.y = seatOffsetY;
+		gameState.localAvatarPose.position.set(0, seatOffsetY, 0);
 	}
 	const ctrl = spkmodGetLocalAnimController();
 	if (ctrl && typeof ctrl.enterMountPose === "function") {
@@ -15720,8 +16285,9 @@ async function spkmodSpawnBurgerCar(modeIdx) {
 		if (typeof gameState !== "undefined" && gameState?.playerContainer) {
 			const pc = gameState.playerContainer;
 			if (state.root.parent !== pc) pc.add(state.root);
+			spkmodSetNativeCartVisible(pc, gameState.myPlayerId, false);
 			if (gameState.localAvatarPose?.position) {
-				gameState.localAvatarPose.position.y = state.seatOffsetY;
+				gameState.localAvatarPose.position.set(0, state.seatOffsetY, 0);
 			}
 			const c = spkmodGetLocalAnimController();
 			if (c && !c.mountSitPlaying && typeof c.enterMountPose === "function") {
@@ -15742,20 +16308,545 @@ async function spkmodSpawnBurgerCar(modeIdx) {
 	state.rafId = requestAnimationFrame(tick);
 }
 
+// ============================================================================
+// MULTIPLAYER CAR CHAT-TRIGGER SYNC (:car_<mode>_<colorIdx>: / :car_none:)
+// ============================================================================
+const SPKMOD_CAR_CHAT_MIN_GAP_MS = 1600;
+const SPKMOD_CAR_CHAT_EQUIP_DEBOUNCE_MS = 1100;
+const SPKMOD_CAR_CHAT_AFTER_USER_MSG_MS = 2200;
+const SPKMOD_CAR_CHAT_AFTER_TYPING_MS = 2000;
+const SPKMOD_CAR_CHAT_PASSIVE_INTERVAL_MS = 20000;
+const SPKMOD_CAR_CHAT_RECHECK_MS = 600;
+
+let _lunCarLastBroadcastAtMs = 0;
+let _lunCarLastBroadcastToken = null;
+let _lunCarLastBroadcastZoneId = null;
+let _lunCarLastObservedZoneId = null;
+let _lunCarLastObservedRemoteCount = 0;
+let _lunCarNeedsZoneSync = false;
+let _lunCarQueuedBroadcast = null; // { token, priority, earliestAtMs, forceResend, reason }
+let _lunCarPendingBroadcastTimer = null;
+
+const spkmodRemoteCarInstances = new Map(); // ownerKey -> entry
+const spkmodPendingRemoteCarsById = new Map(); // String(id) -> { modeIdx, colorIdx, playerId, playerName }
+const spkmodPendingRemoteCarsByName = new Map(); // lowerName -> { modeIdx, colorIdx, playerId, playerName }
+const _spkmodRemoteCarSeq = new Map();
+const _spkmodRemoteCarInFlight = new Map();
+let _spkmodRemoteCarRafId = null;
+
+function spkmodCarIsInIsolatedMinigame() {
+	if (typeof gameState === "undefined" || !gameState) return false;
+	try {
+		if (gameState.miningHost?.isActive?.()) return true;
+		if (gameState.speakovHost?.isActive?.()) return true;
+	} catch (_) {}
+	return false;
+}
+
+function spkmodCarGetRemoteCount() {
+	return (typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.size) || 0;
+}
+
+function spkmodCarIsUserTyping() {
+	try {
+		if (typeof gameState !== "undefined" && gameState?.chatBox?.isTouchExpanded === true) return true;
+		const inputEl = (typeof gameState !== "undefined" && gameState?.chatBox?.inputEl)
+			|| document.querySelector(".sr-chatbox__input, .sr-chatbox input, input[placeholder*='chat']");
+		if (inputEl) {
+			if (document.activeElement === inputEl) return true;
+			if (typeof inputEl.value === "string" && inputEl.value.trim().length > 0) return true;
+		}
+		if (document.activeElement && document.activeElement.closest && document.activeElement.closest(".sr-chatbox")) {
+			return true;
+		}
+	} catch (_) {}
+	return false;
+}
+
+function spkmodCarGetPlayerLevel() {
+	try {
+		if (typeof gameState !== "undefined" && gameState?.myStat?.level != null) {
+			return Number(gameState.myStat.level) || 1;
+		}
+	} catch (_) {}
+	return 1;
+}
+
+function spkmodGetLocalCarSyncToken() {
+	const mode = window.BurgerCarMode || 0;
+	if (!mode || !LUN_BURGER_CAR_MODES[mode]) return "none";
+	const cIdx = Math.max(0, Math.min(LUN_BURGER_CAR_COLORS.length - 1, Number(window.BurgerCarColorIdx) || 0));
+	return `${mode}_${cIdx}`;
+}
+
+function spkmodComputeCarBroadcastWaitMs(now, entry) {
+	if (typeof gameState === "undefined" || !gameState || typeof gameState.trySendChat !== "function" || gameState.zoneId == null) {
+		return SPKMOD_CAR_CHAT_RECHECK_MS;
+	}
+	const levelGate = window.__spkmodChatMinLevelGate || 0;
+	if (levelGate > 0 && spkmodCarGetPlayerLevel() < levelGate) {
+		return Infinity;
+	}
+	if (spkmodCarIsInIsolatedMinigame() || spkmodCarGetRemoteCount() === 0) {
+		if (window.BurgerCarMode > 0) _lunCarNeedsZoneSync = true;
+		return Infinity;
+	}
+
+	let waitMs = 0;
+	if (entry && entry.earliestAtMs > now) {
+		waitMs = Math.max(waitMs, entry.earliestAtMs - now);
+	}
+	const sharedBackoff = window.__spkmodChatRejectBackoffUntilMs || 0;
+	if (sharedBackoff > now) {
+		waitMs = Math.max(waitMs, sharedBackoff - now);
+	}
+	if (spkmodCarIsUserTyping()) {
+		waitMs = Math.max(waitMs, SPKMOD_CAR_CHAT_RECHECK_MS);
+	}
+	const lastTyping = window.__spkmodLastUserChatTypingMs || 0;
+	if (lastTyping > 0) {
+		const typingClearAt = lastTyping + SPKMOD_CAR_CHAT_AFTER_TYPING_MS;
+		if (typingClearAt > now) waitMs = Math.max(waitMs, typingClearAt - now);
+	}
+	const lastUserSent = window.__spkmodLastPlayerChatSentMs || 0;
+	if (lastUserSent > 0) {
+		const sendClearAt = lastUserSent + SPKMOD_CAR_CHAT_AFTER_USER_MSG_MS;
+		if (sendClearAt > now) waitMs = Math.max(waitMs, sendClearAt - now);
+	}
+	const lastGlobalHidden = window.__spkmodLastHiddenSyncBroadcastMs || 0;
+	if (lastGlobalHidden > 0) {
+		const globalGapClearAt = lastGlobalHidden + SPKMOD_CAR_CHAT_MIN_GAP_MS;
+		if (globalGapClearAt > now) waitMs = Math.max(waitMs, globalGapClearAt - now);
+	}
+	if (_lunCarLastBroadcastAtMs > 0) {
+		const isRemoteJoinPassive = entry && entry.reason === "remote_join";
+		const minGap = isRemoteJoinPassive ? SPKMOD_CAR_CHAT_PASSIVE_INTERVAL_MS : SPKMOD_CAR_CHAT_MIN_GAP_MS;
+		const gapClearAt = _lunCarLastBroadcastAtMs + minGap;
+		if (gapClearAt > now) waitMs = Math.max(waitMs, gapClearAt - now);
+	}
+	return waitMs;
+}
+
+function spkmodScheduleQueuedCarBroadcastFlush() {
+	if (_lunCarPendingBroadcastTimer) {
+		clearTimeout(_lunCarPendingBroadcastTimer);
+		_lunCarPendingBroadcastTimer = null;
+	}
+	if (!_lunCarQueuedBroadcast) return;
+
+	const now = Date.now();
+	const waitMs = spkmodComputeCarBroadcastWaitMs(now, _lunCarQueuedBroadcast);
+	if (!isFinite(waitMs)) {
+		_lunCarQueuedBroadcast = null;
+		return;
+	}
+	_lunCarPendingBroadcastTimer = setTimeout(() => {
+		_lunCarPendingBroadcastTimer = null;
+		spkmodFlushQueuedCarBroadcast();
+	}, Math.max(0, Math.ceil(waitMs)));
+}
+
+function spkmodFlushQueuedCarBroadcast() {
+	const entry = _lunCarQueuedBroadcast;
+	if (!entry) return;
+
+	const now = Date.now();
+	const waitMs = spkmodComputeCarBroadcastWaitMs(now, entry);
+	if (!isFinite(waitMs)) {
+		_lunCarQueuedBroadcast = null;
+		return;
+	}
+	if (waitMs > 25) {
+		spkmodScheduleQueuedCarBroadcastFlush();
+		return;
+	}
+
+	const effectiveToken = entry.priority === "passive"
+		? spkmodGetLocalCarSyncToken()
+		: (entry.token || "none");
+
+	_lunCarQueuedBroadcast = null;
+
+	if (entry.priority === "passive" && effectiveToken === "none") return;
+
+	const curZoneId = gameState?.zoneId ?? null;
+	if (!entry.forceResend && _lunCarLastBroadcastAtMs > 0 && _lunCarLastBroadcastToken === effectiveToken && _lunCarLastBroadcastZoneId === curZoneId) {
+		return;
+	}
+
+	_lunCarLastBroadcastAtMs = now;
+	window.__spkmodLastHiddenSyncBroadcastMs = now;
+	_lunCarLastBroadcastToken = effectiveToken;
+	_lunCarLastBroadcastZoneId = curZoneId;
+	_lunCarNeedsZoneSync = false;
+
+	const code = effectiveToken !== "none" ? `:car_${effectiveToken}:` : `:car_none:`;
+	try {
+		gameState.trySendChat(code);
+	} catch (err) {
+		console.warn("[SpeakiMod+ Cars] Failed to broadcast car chat trigger:", err);
+	}
+}
+
+function spkmodSendCarChatTrigger(token, opts = {}) {
+	const priority = opts.priority || "explicit";
+	const delayMs = Math.max(0, Number(opts.delayMs) || 0);
+	const forceResend = opts.forceResend !== undefined ? !!opts.forceResend : (priority === "explicit");
+	const reason = opts.reason || priority;
+	const normalized = (!token || token === "none" || token === "off") ? "none" : String(token);
+
+	if (priority === "passive" && _lunCarQueuedBroadcast && _lunCarQueuedBroadcast.priority === "explicit") {
+		return;
+	}
+	const prevForce = _lunCarQueuedBroadcast ? !!_lunCarQueuedBroadcast.forceResend : false;
+	_lunCarQueuedBroadcast = {
+		token: normalized,
+		priority,
+		earliestAtMs: Date.now() + delayMs,
+		forceResend: forceResend || prevForce,
+		reason
+	};
+	spkmodScheduleQueuedCarBroadcastFlush();
+}
+
+function spkmodScheduleZoneCarBroadcast(delayMs = 2200, reason = "zone") {
+	if (!window.BurgerCarMode) return;
+	if (reason === "remote_join" && _lunCarQueuedBroadcast) return;
+	spkmodSendCarChatTrigger(spkmodGetLocalCarSyncToken(), {
+		priority: "passive",
+		delayMs,
+		forceResend: true,
+		reason
+	});
+}
+
+window.spkmodNotifyCarUserChatActivity = function() {
+	if (_lunCarQueuedBroadcast) {
+		spkmodScheduleQueuedCarBroadcastFlush();
+	}
+};
+
+window.spkmodOnCarChatRejected = function(event) {
+	const rawCode = event?.reasonCode;
+	const isNewbieGate = rawCode === 1 || rawCode === "CHAT_REJECT_NEWBIE_GATE";
+	const isMutedOrDisabled = rawCode === 2 || rawCode === "CHAT_REJECT_DISABLED"
+		|| rawCode === 3 || rawCode === "CHAT_REJECT_UNLINKED"
+		|| rawCode === 4 || rawCode === "CHAT_REJECT_MUTED";
+	if (isNewbieGate) {
+		_lunCarQueuedBroadcast = null;
+		if (_lunCarPendingBroadcastTimer) {
+			clearTimeout(_lunCarPendingBroadcastTimer);
+			_lunCarPendingBroadcastTimer = null;
+		}
+		return;
+	}
+	if (isMutedOrDisabled && _lunCarQueuedBroadcast && _lunCarQueuedBroadcast.priority === "passive") {
+		_lunCarQueuedBroadcast = null;
+	}
+	if (_lunCarQueuedBroadcast) {
+		spkmodScheduleQueuedCarBroadcastFlush();
+	}
+};
+
+function spkmodDisposeRemoteCarEntry(entry) {
+	if (!entry) return;
+	if (entry.root && entry.root.parent) {
+		entry.root.parent.remove(entry.root);
+	}
+	const rp = entry.resolveRp ? entry.resolveRp() : null;
+	const container = rp?.container || entry.lastContainer;
+	const rpId = entry.lastRpKey ?? entry.playerId;
+	if (container) {
+		spkmodSetNativeCartVisible(container, rpId, true);
+		const stillMounted = spkmodHasActiveNativeMount(container, rpId);
+		if (!stillMounted) {
+			const posePos = rp?.avatarPose?.position || rp?.avatar?.root?.position || entry.lastPosePos;
+			if (posePos) posePos.set(0, 0, 0);
+			const ctrl = rp?.avatar?.animationController || rp?.container?.controller || entry.lastCtrl;
+			if (ctrl && typeof ctrl.exitMountPose === "function") {
+				try { ctrl.exitMountPose(); } catch (_) {}
+			}
+		}
+	}
+}
+
+function spkmodEnsureRemoteCarsLoop() {
+	if (_spkmodRemoteCarRafId || spkmodRemoteCarInstances.size === 0) return;
+	const tick = () => {
+		_spkmodRemoteCarRafId = null;
+		if (spkmodRemoteCarInstances.size === 0) return;
+		if (!document.hidden && typeof gameState !== "undefined" && gameState) {
+			for (const [ownerKey, entry] of spkmodRemoteCarInstances) {
+				const rp = entry.resolveRp();
+				const container = rp?.container || null;
+				if (!container) {
+					spkmodDisposeRemoteCarEntry(entry);
+					spkmodRemoteCarInstances.delete(ownerKey);
+					continue;
+				}
+				entry.lastContainer = container;
+				if (entry.root.parent !== container) {
+					container.add(entry.root);
+				}
+				const rpId = entry.lastRpKey ?? entry.playerId;
+				spkmodSetNativeCartVisible(container, rpId, false);
+				const posePos = rp.avatarPose?.position || rp.avatar?.root?.position || null;
+				entry.lastPosePos = posePos;
+				if (posePos) {
+					posePos.set(0, entry.seatOffsetY, 0);
+				}
+				const ctrl = rp.avatar?.animationController || rp.container?.controller || null;
+				entry.lastCtrl = ctrl;
+				if (ctrl && !ctrl.mountSitPlaying && typeof ctrl.enterMountPose === "function") {
+					try { ctrl.enterMountPose("sit"); } catch (_) {}
+				}
+				if (container.position) {
+					const dx = container.position.x - entry.lastX;
+					const dz = container.position.z - entry.lastZ;
+					const dist = Math.hypot(dx, dz);
+					if (dist > 0.0001) {
+						const angle = dist / entry.wheelRadius;
+						for (const w of entry.wheels) w.rotation.x += angle;
+						entry.lastX = container.position.x;
+						entry.lastZ = container.position.z;
+					}
+				}
+			}
+		}
+		if (spkmodRemoteCarInstances.size > 0) {
+			_spkmodRemoteCarRafId = requestAnimationFrame(tick);
+		}
+	};
+	_spkmodRemoteCarRafId = requestAnimationFrame(tick);
+}
+
+async function spkmodSpawnOrUpdateRemoteCar(playerId, playerName, modeIdx, colorIdx) {
+	const ownerKey = (playerId != null && playerId !== "")
+		? String(playerId)
+		: `name:${(playerName || "").trim().toLowerCase()}`;
+	const lowerName = (playerName || "").trim().toLowerCase();
+
+	if (!modeIdx || !LUN_BURGER_CAR_MODES[modeIdx]) {
+		_spkmodRemoteCarSeq.set(ownerKey, (_spkmodRemoteCarSeq.get(ownerKey) || 0) + 1);
+		_spkmodRemoteCarInFlight.delete(ownerKey);
+		const existing = spkmodRemoteCarInstances.get(ownerKey);
+		if (existing) {
+			spkmodDisposeRemoteCarEntry(existing);
+			spkmodRemoteCarInstances.delete(ownerKey);
+		}
+		if (playerId != null && playerId !== "") spkmodPendingRemoteCarsById.delete(String(playerId));
+		if (lowerName) spkmodPendingRemoteCarsByName.delete(lowerName);
+		return;
+	}
+
+	const safeColorIdx = Math.max(0, Math.min(LUN_BURGER_CAR_COLORS.length - 1, Number(colorIdx) || 0));
+	const carToken = `${modeIdx}_${safeColorIdx}`;
+	const pendingPayload = { modeIdx, colorIdx: safeColorIdx, playerId, playerName };
+	if (playerId != null && playerId !== "") spkmodPendingRemoteCarsById.set(String(playerId), pendingPayload);
+	if (lowerName) spkmodPendingRemoteCarsByName.set(lowerName, pendingPayload);
+
+	const existing = spkmodRemoteCarInstances.get(ownerKey);
+	if ((existing && existing.modeIdx === modeIdx && existing.colorIdx === safeColorIdx) || _spkmodRemoteCarInFlight.get(ownerKey) === carToken) {
+		return;
+	}
+
+	const mySeq = (_spkmodRemoteCarSeq.get(ownerKey) || 0) + 1;
+	_spkmodRemoteCarSeq.set(ownerKey, mySeq);
+	_spkmodRemoteCarInFlight.set(ownerKey, carToken);
+
+	const scene = await spkmodLoadBurgerVehiclesScene();
+	if (_spkmodRemoteCarInFlight.get(ownerKey) === carToken) {
+		_spkmodRemoteCarInFlight.delete(ownerKey);
+	}
+	if (!scene || _spkmodRemoteCarSeq.get(ownerKey) !== mySeq) return;
+
+	let cachedKey = null;
+	let cachedRp = null;
+	const resolveRp = () => {
+		if (typeof gameState === "undefined" || !gameState?.remotePlayers?.remotePlayers) return null;
+		const rMap = gameState.remotePlayers.remotePlayers;
+		if (cachedRp && cachedKey !== null && rMap.get(cachedKey) === cachedRp) {
+			return cachedRp;
+		}
+		cachedRp = null;
+		cachedKey = null;
+		if (playerId != null && playerId !== "") {
+			for (const k of [playerId, Number(playerId), String(playerId)]) {
+				const found = rMap.get(k);
+				if (found) {
+					cachedKey = k;
+					cachedRp = found;
+					return found;
+				}
+			}
+		}
+		if (lowerName) {
+			for (const [k, rp] of rMap) {
+				const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim().toLowerCase();
+				if (rName && rName === lowerName) {
+					cachedKey = k;
+					cachedRp = rp;
+					return rp;
+				}
+			}
+		}
+		return null;
+	};
+
+	const rp = resolveRp();
+	if (!rp || !rp.container) return; // stays in pending map until remote player spawns
+
+	const modelName = LUN_BURGER_CAR_MODES[modeIdx];
+	const inst = spkmodCreateBurgerCarInstance(scene, modelName, LUN_BURGER_CAR_COLORS[safeColorIdx]);
+	if (!inst || _spkmodRemoteCarSeq.get(ownerKey) !== mySeq) return;
+
+	const prev = spkmodRemoteCarInstances.get(ownerKey);
+	if (prev) {
+		spkmodDisposeRemoteCarEntry(prev);
+		spkmodRemoteCarInstances.delete(ownerKey);
+	}
+	if (Array.isArray(rp.container.children)) {
+		for (let i = rp.container.children.length - 1; i >= 0; i--) {
+			const ch = rp.container.children[i];
+			if (ch && typeof ch.name === "string" && ch.name.startsWith("spkmod_remote_car_")) {
+				rp.container.remove(ch);
+			}
+		}
+	}
+
+	const { carObj, wheelRadius, seatOffsetY, wheels } = inst;
+	carObj.name = "spkmod_remote_car_" + ownerKey;
+	rp.container.add(carObj);
+	spkmodSetNativeCartVisible(rp.container, cachedKey ?? playerId, false);
+	const posePos = rp.avatarPose?.position || rp.avatar?.root?.position || null;
+	if (posePos) posePos.set(0, seatOffsetY, 0);
+	const ctrl = rp.avatar?.animationController || rp.container?.controller || null;
+	if (ctrl && typeof ctrl.enterMountPose === "function") {
+		try { ctrl.enterMountPose("sit"); } catch (_) {}
+	}
+
+	spkmodRemoteCarInstances.set(ownerKey, {
+		ownerKey,
+		playerId,
+		playerName,
+		modeIdx,
+		colorIdx: safeColorIdx,
+		root: carObj,
+		wheels,
+		wheelRadius,
+		seatOffsetY,
+		resolveRp,
+		lastRpKey: cachedKey ?? playerId,
+		lastContainer: rp.container,
+		lastPosePos: posePos,
+		lastCtrl: ctrl,
+		lastX: rp.container.position ? rp.container.position.x : 0,
+		lastZ: rp.container.position ? rp.container.position.z : 0
+	});
+	spkmodEnsureRemoteCarsLoop();
+}
+
+window.spkmodHandleIncomingCarTrigger = function(playerId, playerName, rawMsg) {
+	if (typeof rawMsg !== "string") return;
+	const trimmed = rawMsg.trim();
+	const myId = typeof gameState !== "undefined" ? gameState?.myPlayerId : null;
+	const myName = (typeof gameState !== "undefined" && (gameState?.myPlayerName || gameState?.myStat?.name)) || "";
+	const isSelf = (myId != null && playerId != null && String(playerId) === String(myId))
+		|| (myName && playerName && myName.trim().toLowerCase() === playerName.trim().toLowerCase());
+	if (isSelf) return;
+
+	if (/^:car_(?:none|off):$/i.test(trimmed)) {
+		spkmodSpawnOrUpdateRemoteCar(playerId, playerName, 0, 0);
+		return;
+	}
+	const m = trimmed.match(/^:car_([12])_(\d+):$/i);
+	if (!m) return;
+	const modeIdx = parseInt(m[1], 10);
+	const colorIdx = parseInt(m[2], 10);
+	spkmodSpawnOrUpdateRemoteCar(playerId, playerName, modeIdx, colorIdx);
+};
+
+// Lightweight zone-change / remote-join / pending remote-car watcher
+if (!window.__spkmodCarSyncWatcherInstalled) {
+	window.__spkmodCarSyncWatcherInstalled = true;
+	setInterval(() => {
+		if (typeof gameState === "undefined" || !gameState) return;
+		// 1. Detect zone change -> clear stale remote cars & broadcast local active car
+		if (gameState.zoneId != null && gameState.zoneId !== _lunCarLastObservedZoneId) {
+			_lunCarLastObservedZoneId = gameState.zoneId;
+			for (const entry of spkmodRemoteCarInstances.values()) {
+				spkmodDisposeRemoteCarEntry(entry);
+			}
+			spkmodRemoteCarInstances.clear();
+			spkmodPendingRemoteCarsById.clear();
+			spkmodPendingRemoteCarsByName.clear();
+			_spkmodRemoteCarInFlight.clear();
+			if (window.BurgerCarMode > 0) {
+				_lunCarNeedsZoneSync = true;
+				spkmodScheduleZoneCarBroadcast(2200, "zone");
+			}
+		}
+		// 2. Sync local car when another player enters the zone
+		const rCount = spkmodCarGetRemoteCount();
+		if (rCount > 0 && !spkmodCarIsInIsolatedMinigame() && window.BurgerCarMode > 0) {
+			if (_lunCarNeedsZoneSync && !_lunCarQueuedBroadcast) {
+				_lunCarNeedsZoneSync = false;
+				spkmodScheduleZoneCarBroadcast(2200, "zone");
+			} else if (rCount > _lunCarLastObservedRemoteCount) {
+				if (!_lunCarQueuedBroadcast && Date.now() - _lunCarLastBroadcastAtMs > SPKMOD_CAR_CHAT_PASSIVE_INTERVAL_MS) {
+					spkmodScheduleZoneCarBroadcast(3200, "remote_join");
+				}
+			}
+		}
+		_lunCarLastObservedRemoteCount = rCount;
+
+		// 3. Attach pending remote cars once remote player models finish spawning
+		const rMap = gameState.remotePlayers?.remotePlayers;
+		if (rMap && rMap.size > 0 && (spkmodPendingRemoteCarsById.size > 0 || spkmodPendingRemoteCarsByName.size > 0)) {
+			for (const [k, rp] of rMap) {
+				if (!rp || !rp.container) continue;
+				const idKey = String(k);
+				const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim().toLowerCase();
+				const pending = spkmodPendingRemoteCarsById.get(idKey) || (rName ? spkmodPendingRemoteCarsByName.get(rName) : null);
+				if (pending && !spkmodRemoteCarInstances.has(idKey)) {
+					spkmodSpawnOrUpdateRemoteCar(k, rp?.info?.name || pending.playerName, pending.modeIdx, pending.colorIdx);
+				}
+			}
+		}
+	}, 900);
+}
+
 function cycleBurgerCar(btn) {
 	spkmodEnsureBurgerCarKeyHooks();
 	if (typeof window.spkmodResetCarsEveryone === "function") {
 		window.spkmodResetCarsEveryone(true, false);
 	}
-	window.BurgerCarMode = ((window.BurgerCarMode || 0) + 1) % LUN_BURGER_CAR_MODES.length;
+	const prevMode = window.BurgerCarMode || 0;
+	window.BurgerCarMode = (prevMode + 1) % LUN_BURGER_CAR_MODES.length;
 	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.burgerCarBtn);
 	if (targetBtn) {
 		setText(targetBtn, getBurgerCarBtnLabel());
 	}
 	if (window.BurgerCarMode === 0) {
 		spkmodRemoveBurgerCar();
+		if (prevMode > 0) {
+			spkmodSendCarChatTrigger("none", {
+				priority: "explicit",
+				delayMs: SPKMOD_CAR_CHAT_EQUIP_DEBOUNCE_MS,
+				forceResend: false,
+				reason: "unequip"
+			});
+		}
 	} else {
-		spkmodSpawnBurgerCar(window.BurgerCarMode);
+		const colorIdx = spkmodPickNextBurgerCarColorIdx();
+		window.BurgerCarColorIdx = colorIdx;
+		spkmodSpawnBurgerCar(window.BurgerCarMode, colorIdx);
+		spkmodSendCarChatTrigger(`${window.BurgerCarMode}_${colorIdx}`, {
+			priority: "explicit",
+			delayMs: SPKMOD_CAR_CHAT_EQUIP_DEBOUNCE_MS,
+			forceResend: true,
+			reason: "equip"
+		});
 	}
 }
 
@@ -15770,11 +16861,14 @@ window.spkmodResetCarsEveryone = function(silent = false, clearLocalCar = true) 
 			if (entry.root && entry.root.parent) {
 				entry.root.parent.remove(entry.root);
 			}
-			if (entry.posePos) {
-				entry.posePos.y = entry.origY;
-			}
-			if (entry.ctrl && typeof entry.ctrl.exitMountPose === "function") {
-				try { entry.ctrl.exitMountPose(); } catch (_) {}
+			spkmodSetNativeCartVisible(entry.container, entry.playerId, true);
+			if (!spkmodHasActiveNativeMount(entry.container, entry.playerId)) {
+				if (entry.posePos) {
+					entry.posePos.set(0, entry.origY || 0, 0);
+				}
+				if (entry.ctrl && typeof entry.ctrl.exitMountPose === "function") {
+					try { entry.ctrl.exitMountPose(); } catch (_) {}
+				}
 			}
 		}
 		_lunEveryoneCarsState = null;
@@ -15793,22 +16887,35 @@ window.spkmodResetCarsEveryone = function(silent = false, clearLocalCar = true) 
 	if (typeof gameState !== "undefined" && gameState) {
 		sweepContainer(gameState.playerContainer);
 		if (gameState.remotePlayers?.remotePlayers) {
-			for (const rp of gameState.remotePlayers.remotePlayers.values()) {
+			for (const [k, rp] of gameState.remotePlayers.remotePlayers) {
 				sweepContainer(rp?.container);
-				if (rp?.avatar?.root?.position && rp.avatar.root.position.y !== 0) {
-					rp.avatar.root.position.y = 0;
-				}
-				const ctrl = rp?.avatar?.animationController || rp?.container?.controller;
-				if (ctrl && typeof ctrl.exitMountPose === "function") {
-					try { ctrl.exitMountPose(); } catch (_) {}
+				if (!spkmodRemoteCarInstances.has(String(k))) {
+					spkmodSetNativeCartVisible(rp?.container, k, true);
+					if (!spkmodHasActiveNativeMount(rp?.container, k)) {
+						const posePos = rp?.avatarPose?.position || rp?.avatar?.root?.position;
+						if (posePos && posePos.y !== 0) posePos.set(0, 0, 0);
+						const ctrl = rp?.avatar?.animationController || rp?.container?.controller;
+						if (ctrl && typeof ctrl.exitMountPose === "function") {
+							try { ctrl.exitMountPose(); } catch (_) {}
+						}
+					}
 				}
 			}
 		}
 	}
 
 	if (clearLocalCar) {
+		const hadLocal = (window.BurgerCarMode || 0) > 0;
 		window.BurgerCarMode = 0;
 		spkmodRemoveBurgerCar();
+		if (hadLocal) {
+			spkmodSendCarChatTrigger("none", {
+				priority: "explicit",
+				delayMs: SPKMOD_CAR_CHAT_EQUIP_DEBOUNCE_MS,
+				forceResend: false,
+				reason: "reset"
+			});
+		}
 		if (typeof lunPanelElements !== "undefined" && lunPanelElements.burgerCarBtn && typeof getBurgerCarBtnLabel === "function") {
 			setText(lunPanelElements.burgerCarBtn, getBurgerCarBtnLabel());
 		}
@@ -15830,7 +16937,7 @@ window.spkmodRandomCarsEveryone = async function() {
 	if (!modelNames.length || !LUN_BURGER_CAR_COLORS.length) return;
 
 	const entries = [];
-	const attachCar = (container, posePos, ctrl) => {
+	const attachCar = (container, posePos, ctrl, playerId) => {
 		if (!container) return;
 		const modelName = modelNames[Math.floor(Math.random() * modelNames.length)];
 		const colorHex = LUN_BURGER_CAR_COLORS[Math.floor(Math.random() * LUN_BURGER_CAR_COLORS.length)];
@@ -15840,15 +16947,17 @@ window.spkmodRandomCarsEveryone = async function() {
 		const { carObj, wheelRadius, seatOffsetY, wheels } = inst;
 		carObj.name = "spkmod_everyone_car";
 		container.add(carObj);
+		spkmodSetNativeCartVisible(container, playerId, false);
 
 		const origY = posePos ? posePos.y : 0;
-		if (posePos) posePos.y = seatOffsetY;
+		if (posePos) posePos.set(0, seatOffsetY, 0);
 		if (ctrl && typeof ctrl.enterMountPose === "function") {
 			try { ctrl.enterMountPose("sit"); } catch (_) {}
 		}
 
 		entries.push({
 			container,
+			playerId,
 			posePos,
 			ctrl,
 			root: carObj,
@@ -15865,17 +16974,20 @@ window.spkmodRandomCarsEveryone = async function() {
 		attachCar(
 			gameState.playerContainer,
 			gameState.localAvatarPose?.position || null,
-			spkmodGetLocalAnimController()
+			spkmodGetLocalAnimController(),
+			gameState.myPlayerId
 		);
 	}
 
 	if (gameState.remotePlayers?.remotePlayers) {
-		for (const rp of gameState.remotePlayers.remotePlayers.values()) {
+		for (const [k, rp] of gameState.remotePlayers.remotePlayers) {
 			if (!rp || !rp.container) continue;
+			if (spkmodRemoteCarInstances.has(String(k))) continue;
 			attachCar(
 				rp.container,
-				rp.avatar?.root?.position || null,
-				rp.avatar?.animationController || rp.container?.controller || null
+				rp.avatarPose?.position || rp.avatar?.root?.position || null,
+				rp.avatar?.animationController || rp.container?.controller || null,
+				k
 			);
 		}
 	}
@@ -15892,8 +17004,9 @@ window.spkmodRandomCarsEveryone = async function() {
 			if (entry.root.parent !== entry.container) {
 				entry.container.add(entry.root);
 			}
+			spkmodSetNativeCartVisible(entry.container, entry.playerId, false);
 			if (entry.posePos) {
-				entry.posePos.y = entry.seatOffsetY;
+				entry.posePos.set(0, entry.seatOffsetY, 0);
 			}
 			if (entry.ctrl && !entry.ctrl.mountSitPlaying && typeof entry.ctrl.enterMountPose === "function") {
 				try { entry.ctrl.enterMountPose("sit"); } catch (_) {}
@@ -28046,6 +29159,12 @@ function tick() {
 				}
 				return;
 			}
+			if (typeof n === "string" && /^:car_[a-zA-Z0-9_-]+:$/i.test(n.trim())) {
+				if (typeof window.spkmodHandleIncomingCarTrigger === "function") {
+					window.spkmodHandleIncomingCarTrigger(e, null, n.trim());
+				}
+				return;
+			}
 			if (typeof e === "string" && e.startsWith("spkmod_pet_bubble_")) {
 				return hkChatBubblesShow(e, t, filterName(n));
 			}
@@ -28056,7 +29175,11 @@ function tick() {
 			}
 			if (lunHideKnownBotsEnabled && isKnownBotBubbleSource(e)) return;
 			if (typeof isBlockedUserBubbleSource === 'function' && isBlockedUserBubbleSource(e)) return;
-			return hkChatBubblesShow(e, t, filterName(n));
+			const filteredText = filterName(n);
+			if (typeof window.spkmodShowEmoteChatBubble === "function") {
+				return window.spkmodShowEmoteChatBubble(gameState.chatBubbles, hkChatBubblesShow, e, t, filteredText);
+			}
+			return hkChatBubblesShow(e, t, filteredText);
 		};
 		gameState.chatBubbles.__speakiHooked = true; // 
 		console.log("[SpeakiMod+] Successfully hooked chatBubbles.show!");
@@ -28066,12 +29189,24 @@ function tick() {
 		if (host && typeof host.applyChatBubble === "function" && !host.__speakiPetBubbleHooked) {
 			const origApply = host.applyChatBubble.bind(host);
 			host.applyChatBubble = (playerId, text) => {
-				if (typeof text === "string" && /^:pet_[a-zA-Z0-9_-]+:$/i.test(text.trim())) {
+				if (typeof text === "string" && /^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(text.trim())) {
 					return;
 				}
 				return origApply(playerId, text);
 			};
 			host.__speakiPetBubbleHooked = true;
+		}
+		if (host && host.chatBubbles && typeof host.chatBubbles.show === "function" && !host.chatBubbles.__speakiEmoteHooked) {
+			const origHostShow = host.chatBubbles.show.bind(host.chatBubbles);
+			host.chatBubbles.show = (e, t, n) => {
+				if (typeof n === "string" && /^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(n.trim())) return;
+				const filteredText = filterName(n);
+				if (typeof window.spkmodShowEmoteChatBubble === "function") {
+					return window.spkmodShowEmoteChatBubble(host.chatBubbles, origHostShow, e, t, filteredText);
+				}
+				return origHostShow(e, t, filteredText);
+			};
+			host.chatBubbles.__speakiEmoteHooked = true;
 		}
 	}
 	var playerExp = gameState.myStat.exp;
@@ -29150,7 +30285,7 @@ function hookGameStateOnce() {
 		const origTrySendChat = gameState.trySendChat.bind(gameState);
 		const notifyPlayerChatSend = (payload, kind = "send") => {
 			const pTrim = (typeof payload === "string") ? payload.trim() : "";
-			if (pTrim && !/^:pet_[a-zA-Z0-9_-]+:$/i.test(pTrim)) {
+			if (pTrim && !/^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(pTrim)) {
 				if (kind === "send") window.__spkmodLastPlayerChatSentMs = Date.now();
 				if (typeof window.spkmodNotifyUserChatActivity === "function") {
 					window.spkmodNotifyUserChatActivity(kind);
@@ -29163,7 +30298,7 @@ function hookGameStateOnce() {
 		};
 		gameState.trySendChat = (msg) => {
 			const trimmedMsg = (msg || "").trim();
-			if (/^:pet_[a-zA-Z0-9_-]+:$/i.test(trimmedMsg)) {
+			if (/^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(trimmedMsg)) {
 				return origTrySendChat(trimmedMsg);
 			}
 			const lowerTrimmedMsg = trimmedMsg.toLowerCase();
@@ -29601,6 +30736,12 @@ function hookGameStateOnce() {
 			if (/^:pet_[a-zA-Z0-9_-]+:$/i.test(rawMsg)) {
 				if (typeof window.spkmodHandleIncomingPetTrigger === "function") {
 					window.spkmodHandleIncomingPetTrigger(id, name, rawMsg);
+				}
+				return;
+			}
+			if (/^:car_[a-zA-Z0-9_-]+:$/i.test(rawMsg)) {
+				if (typeof window.spkmodHandleIncomingCarTrigger === "function") {
+					window.spkmodHandleIncomingCarTrigger(id, name, rawMsg);
 				}
 				return;
 			}
@@ -33261,8 +34402,8 @@ function spkmodIsPlayerInCinemaSeats(playerPos) {
 
 	// Seats bounding box expanded by 10m on each side around amphitheater seat coordinates:
 	// Base points: (83.72, 42.44), (89.28, 42.27), (89.28, 24.83), (83.66, 24.31)
-	return playerPos.x >= 73.66 && playerPos.x <= 99.28 &&
-		   playerPos.z >= 20.0 && playerPos.z <= 52.8;
+	return playerPos.x >= 76.66 && playerPos.x <= 99.28 &&
+		   playerPos.z >= 25.0 && playerPos.z <= 52.8;
 }
 window.spkmodIsPlayerInCinemaSeats = spkmodIsPlayerInCinemaSeats;
 
@@ -37499,64 +38640,72 @@ function spkmodGeneratePetSpeech(pet) {
 window.spkmodGeneratePetSpeech = spkmodGeneratePetSpeech;
 
 // ============================================================================
-// 3. SOUND EFFECTS CATALOG BY PET VOICE TYPE
+// 3. SOUND EFFECTS CATALOG BY PET VOICE TYPE & PURE-JS SYNTH VOICES
 // ============================================================================
+// All Speaki voice clips (shortJoayo, touched, Joayo1/2/3, Yes, spea, surprised,
+// LowSpea) are replaced by lightweight per-pet Web Audio synthesized noises
+// ("synth:voice*"), while thematic game SFX are preserved.
 const SPKMOD_PET_SFX_POOLS = {
 	food: [
+		"synth:voice",
+		"synth:voice2",
 		"/audio/sfx/burger_shop/trayPlace.mp3",
 		"/audio/sfx/burger_shop/counterBell.mp3",
-		"/audio/voice/speaki/shortJoayo.mp3",
 		"/audio/sfx/reward.mp3"
 	],
 	slime: [
-		"/audio/voice/speaki/spea.mp3",
-		"/audio/voice/speaki/shortJoayo.mp3",
+		"synth:voice",
+		"synth:voice2",
 		"/audio/sfx/jumpTakeoff.mp3",
 		"/audio/sfx/snowball_run/hitPoof.mp3"
 	],
 	fairy: [
-		"/audio/voice/speaki/touched.mp3",
-		"/audio/voice/speaki/Joayo1.mp3",
+		"synth:voice",
+		"synth:voice2",
 		"/audio/sfx/questClaim.mp3",
 		"/audio/sfx/reward.mp3"
 	],
 	ghost: [
-		"/audio/voice/speaki/surprised.mp3",
-		"/audio/voice/speaki/LowSpea.mp3",
+		"synth:voice",
+		"synth:voice2",
 		"/audio/sfx/portal.mp3"
 	],
 	beast: [
+		"synth:voice",
 		"/audio/sfx/raid6/r6_piglet.mp3",
 		"/audio/sfx/raid6/r6_sniff.mp3",
 		"/audio/sfx/jumpTakeoff.mp3"
 	],
 	piglet: [
+		"synth:voice",
 		"/audio/sfx/raid6/r6_piglet.mp3",
 		"/audio/sfx/raid6/r6_snort.mp3",
 		"/audio/sfx/raid6/r6_sniff.mp3"
 	],
 	vehicle: [
+		"synth:voice",
 		"/audio/sfx/burger_shop/carHorn.mp3",
 		"/audio/sfx/burger_shop/carHornDouble.mp3",
 		"/audio/sfx/racing/boost.mp3",
 		"/audio/sfx/mountEnter.mp3"
 	],
 	drone: [
+		"synth:voice",
 		"/audio/sfx/droneFire1.mp3",
 		"/audio/sfx/droneFire2.mp3",
 		"/audio/sfx/mining/switchToggle.mp3"
 	],
 	boss: [
+		"synth:voice",
 		"/audio/sfx/raid7/r7_core_pulse.mp3",
 		"/audio/sfx/raid6/r6_roar.mp3",
 		"/audio/sfx/raid8/r8_rune_bolt.mp3",
 		"/audio/sfx/levelup.mp3"
 	],
 	npc: [
-		"/audio/voice/speaki/Joayo2.mp3",
-		"/audio/voice/speaki/Joayo3.mp3",
-		"/audio/voice/speaki/Yes.mp3",
-		"/audio/voice/speaki/spea.mp3"
+		"synth:voice",
+		"synth:voice2",
+		"synth:voice3"
 	]
 };
 
@@ -38532,34 +39681,346 @@ function spkmodGetOwnerVisualScale(inst) {
 	return clamped / 1000;
 }
 
+let _spkmodPetAudioCtx = null;
+const _spkmodPetSynthProfileCache = new Map();
+const SPKMOD_PENTATONIC_SEMITONES = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21];
+
+function spkmodGetPetAudioContext() {
+	try {
+		if (!_spkmodPetAudioCtx) {
+			const AudioCtx = window.AudioContext || window.webkitAudioContext;
+			if (!AudioCtx) return null;
+			_spkmodPetAudioCtx = new AudioCtx();
+		}
+		if (_spkmodPetAudioCtx.state === "suspended") {
+			_spkmodPetAudioCtx.resume().catch(() => {});
+		}
+		return _spkmodPetAudioCtx;
+	} catch (_) {
+		return null;
+	}
+}
+
+function spkmodGetPetSynthProfile(pet) {
+	const key = `${pet?.id || "slime"}#${pet?.level || 0}`;
+	const cached = _spkmodPetSynthProfileCache.get(key);
+	if (cached) return cached;
+
+	// Deterministic FNV-1a + xorshift32 hash unique to each pet
+	let h = 2166136261 >>> 0;
+	for (let i = 0; i < key.length; i++) {
+		h ^= key.charCodeAt(i);
+		h = Math.imul(h, 16777619) >>> 0;
+	}
+	const nextRand = () => {
+		h ^= (h << 13) >>> 0;
+		h ^= (h >>> 17) >>> 0;
+		h ^= (h << 5) >>> 0;
+		return (h >>> 0) / 4294967296;
+	};
+
+	const r0 = nextRand();
+	const r1 = nextRand();
+	const r2 = nextRand();
+	const r3 = nextRand();
+	const r4 = nextRand();
+
+	const motifs = [
+		[0, 2],
+		[0, 3],
+		[2, 0],
+		[0, 2, 4],
+		[0, 4, 2],
+		[3, 1, 2],
+		[0, 1, 3],
+		[2, 4, 3]
+	];
+
+	const profile = {
+		semitoneIdx: Math.floor(r0 * 6),
+		detuneCents: (r1 - 0.5) * 32,
+		motif: motifs[Math.floor(r2 * motifs.length)],
+		brightness: 0.78 + r3 * 0.52,
+		tempo: 0.84 + r4 * 0.36,
+		altWave: r1 > 0.5
+	};
+
+	// Bespoke personality tweaks for special chibi NPC pets
+	if (pet?.id === "chibi_kommy") {
+		profile.semitoneIdx = 1;
+		profile.motif = [2, 1, 0];
+		profile.brightness = 0.72;
+		profile.tempo = 0.76;
+	} else if (pet?.id === "chibi_master") {
+		profile.semitoneIdx = 0;
+		profile.motif = [0, 3];
+		profile.brightness = 0.85;
+		profile.tempo = 0.88;
+	} else if (pet?.id === "chibi_ner") {
+		profile.semitoneIdx = 4;
+		profile.motif = [0, 2, 4];
+		profile.brightness = 1.25;
+		profile.tempo = 1.15;
+	}
+
+	_spkmodPetSynthProfileCache.set(key, profile);
+	return profile;
+}
+
+function spkmodPlayPetSynthVoice(pet, token, volume, pitchMul) {
+	const ctx = spkmodGetPetAudioContext();
+	if (!ctx || volume <= 0.001) return;
+
+	const now = ctx.currentTime + 0.006;
+	const profile = spkmodGetPetSynthProfile(pet);
+	const vType = (pet && pet.voiceType) || "slime";
+	const variant = token === "synth:voice3" ? 2 : (token === "synth:voice2" ? 1 : 0);
+
+	// Base register per voice type (Hz)
+	const baseHzMap = {
+		food: 480,
+		slime: 340,
+		fairy: 760,
+		ghost: 410,
+		beast: 310,
+		piglet: 230,
+		vehicle: 290,
+		drone: 620,
+		boss: 145,
+		npc: 440
+	};
+	const baseHz = (baseHzMap[vType] || 380) * Math.pow(2, SPKMOD_PENTATONIC_SEMITONES[profile.semitoneIdx] / 12);
+	const pScale = (typeof pitchMul === "number" && isFinite(pitchMul) && pitchMul > 0) ? pitchMul : 1;
+
+	const master = ctx.createGain();
+	const filter = ctx.createBiquadFilter();
+	filter.type = "lowpass";
+	const baseCutoffMap = {
+		food: 2400,
+		slime: 1700,
+		fairy: 4200,
+		ghost: 1450,
+		beast: 1550,
+		piglet: 1200,
+		vehicle: 1850,
+		drone: 3400,
+		boss: 950,
+		npc: 2500
+	};
+	filter.frequency.setValueAtTime(
+		Math.max(450, Math.min(7500, (baseCutoffMap[vType] || 2200) * profile.brightness)),
+		now
+	);
+	filter.Q.setValueAtTime(vType === "slime" || vType === "ghost" ? 3.2 : 1.1, now);
+
+	// Calibrate oscillator loudness to match recorded game SFX volume cleanly
+	const masterGain = Math.max(0.004, Math.min(0.45, volume * 0.62));
+	master.gain.setValueAtTime(masterGain, now);
+	filter.connect(master);
+	master.connect(ctx.destination);
+
+	const noteHz = (stepOffset) => {
+		const idx = Math.max(0, Math.min(SPKMOD_PENTATONIC_SEMITONES.length - 1, profile.semitoneIdx + stepOffset));
+		const semiDelta = SPKMOD_PENTATONIC_SEMITONES[idx] - SPKMOD_PENTATONIC_SEMITONES[profile.semitoneIdx];
+		return Math.max(65, Math.min(3600, baseHz * Math.pow(2, semiDelta / 12) * pScale));
+	};
+
+	const spawnTone = (opts) => {
+		const t0 = now + (opts.delay || 0);
+		const dur = Math.max(0.04, opts.dur || 0.12);
+		const osc = ctx.createOscillator();
+		const env = ctx.createGain();
+		osc.type = opts.wave || "sine";
+		osc.detune.setValueAtTime(profile.detuneCents + (opts.detune || 0), t0);
+
+		const fStart = Math.max(55, Math.min(4200, opts.f0));
+		const fEnd = Math.max(55, Math.min(4200, opts.f1 ?? opts.f0));
+		osc.frequency.setValueAtTime(fStart, t0);
+		if (opts.fMid != null) {
+			osc.frequency.exponentialRampToValueAtTime(Math.max(55, Math.min(4200, opts.fMid)), t0 + dur * 0.45);
+			osc.frequency.exponentialRampToValueAtTime(fEnd, t0 + dur);
+		} else if (Math.abs(fEnd - fStart) > 0.5) {
+			osc.frequency.exponentialRampToValueAtTime(fEnd, t0 + dur);
+		}
+
+		let lfo = null;
+		let lfoGain = null;
+		if (opts.vibHz && opts.vibDepth) {
+			lfo = ctx.createOscillator();
+			lfoGain = ctx.createGain();
+			lfo.frequency.setValueAtTime(opts.vibHz, t0);
+			lfoGain.gain.setValueAtTime(opts.vibDepth, t0);
+			lfo.connect(lfoGain);
+			lfoGain.connect(osc.frequency);
+			lfo.start(t0);
+			lfo.stop(t0 + dur + 0.03);
+		}
+
+		const peak = Math.max(0.01, opts.gain ?? 0.85);
+		const atk = Math.min(dur * 0.35, opts.atk ?? 0.012);
+		env.gain.setValueAtTime(0.0001, t0);
+		env.gain.linearRampToValueAtTime(peak, t0 + atk);
+		env.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+		osc.connect(env);
+		env.connect(filter);
+		osc.start(t0);
+		osc.stop(t0 + dur + 0.025);
+		osc.onended = () => {
+			try { osc.disconnect(); env.disconnect(); } catch (_) {}
+			if (lfo) { try { lfo.disconnect(); lfoGain.disconnect(); } catch (_) {} }
+		};
+		return t0 + dur + 0.05;
+	};
+
+	const sp = 1 / profile.tempo;
+	let endAt = now + 0.35;
+
+	if (vType === "food") {
+		// Cute crisp pop / kitchen sparkle-plop
+		const fA = noteHz(variant === 1 ? 2 : 0);
+		const fB = noteHz(profile.motif[1] || 3);
+		endAt = Math.max(endAt, spawnTone({ wave: "sine", f0: fA * 0.72, f1: fA * 1.18, dur: 0.085 * sp, gain: 0.85 }));
+		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fB, f1: fB * 1.04, delay: 0.075 * sp, dur: 0.13 * sp, gain: 0.55 }));
+	} else if (vType === "slime") {
+		// Squishy bubbly boing-bloop
+		const fA = noteHz(variant === 1 ? 1 : 0);
+		const fB = noteHz((profile.motif[1] || 2) + variant);
+		endAt = Math.max(endAt, spawnTone({ wave: "sine", f0: fA * 0.62, fMid: fA * 1.32, f1: fA * 0.94, dur: 0.14 * sp, gain: 0.9 }));
+		if (variant === 1 || profile.motif.length >= 3) {
+			endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fB * 0.78, f1: fB * 1.24, delay: 0.11 * sp, dur: 0.10 * sp, gain: 0.55 }));
+		}
+	} else if (vType === "fairy") {
+		// Sparkling crystal chime arpeggio
+		const steps = variant === 1 ? [0, 3, 5] : profile.motif;
+		steps.forEach((st, idx) => {
+			const f = noteHz(st);
+			endAt = Math.max(endAt, spawnTone({
+				wave: idx % 2 === 0 ? "sine" : "triangle",
+				f0: f,
+				f1: f * 1.015,
+				delay: idx * 0.062 * sp,
+				dur: 0.19 * sp,
+				atk: 0.008,
+				gain: 0.62 - idx * 0.1
+			}));
+		});
+	} else if (vType === "ghost") {
+		// Cute spooky wisp warble with gentle LFO vibrato
+		const fA = noteHz(variant === 1 ? 2 : 0);
+		const fB = noteHz(variant === 1 ? 0 : 2);
+		endAt = Math.max(endAt, spawnTone({
+			wave: "sine",
+			f0: fA,
+			fMid: fB * 1.08,
+			f1: fA * 0.92,
+			dur: 0.28 * sp,
+			atk: 0.035,
+			vibHz: 11 + profile.semitoneIdx,
+			vibDepth: 14,
+			gain: 0.8
+		}));
+	} else if (vType === "npc") {
+		// Animal-Crossing-style melodic voice chirp unique to each chibi NPC
+		const seq = variant === 2
+			? [profile.motif[0], (profile.motif[1] || 2) + 1]
+			: (variant === 1 ? [...profile.motif].reverse() : profile.motif);
+		const wave = pet?.id === "chibi_kommy" ? "sine" : (profile.altWave ? "triangle" : "sine");
+		seq.forEach((st, idx) => {
+			const f = noteHz(st);
+			const bend = pet?.id === "chibi_kommy" ? 0.90 : (idx === seq.length - 1 ? 1.12 : 1.04);
+			endAt = Math.max(endAt, spawnTone({
+				wave,
+				f0: f,
+				f1: f * bend,
+				delay: idx * 0.088 * sp,
+				dur: 0.11 * sp,
+				atk: 0.014,
+				gain: 0.78
+			}));
+		});
+	} else if (vType === "beast") {
+		// Playful critter yip / purr-chirp
+		const fA = noteHz(0);
+		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 0.88, fMid: fA * 1.38, f1: fA * 0.82, dur: 0.13 * sp, gain: 0.85 }));
+		endAt = Math.max(endAt, spawnTone({ wave: "sine", f0: fA * 1.1, f1: fA * 1.45, delay: 0.10 * sp, dur: 0.08 * sp, gain: 0.48 }));
+	} else if (vType === "piglet") {
+		// Bouncy mini double-oink
+		const fA = noteHz(0);
+		endAt = Math.max(endAt, spawnTone({ wave: "sawtooth", f0: fA * 0.85, f1: fA * 1.25, dur: 0.095 * sp, gain: 0.55 }));
+		endAt = Math.max(endAt, spawnTone({ wave: "sawtooth", f0: fA * 0.92, f1: fA * 1.34, delay: 0.11 * sp, dur: 0.095 * sp, gain: 0.52 }));
+	} else if (vType === "vehicle") {
+		// Cute miniature two-tone car toot
+		const fA = noteHz(0);
+		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA, f1: fA * 1.01, dur: 0.11 * sp, gain: 0.65 }));
+		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 1.25, f1: fA * 1.26, dur: 0.11 * sp, gain: 0.5 }));
+	} else if (vType === "drone") {
+		// Sci-fi R2-style bleep-boop
+		const fA = noteHz(profile.motif[0] || 0);
+		const fB = noteHz((profile.motif[1] || 3) + 2);
+		endAt = Math.max(endAt, spawnTone({ wave: "square", f0: fA, f1: fB, dur: 0.07 * sp, atk: 0.005, gain: 0.42 }));
+		endAt = Math.max(endAt, spawnTone({ wave: "sine", f0: fB * 1.15, f1: fA * 0.95, delay: 0.075 * sp, dur: 0.085 * sp, atk: 0.005, gain: 0.55 }));
+	} else {
+		// Boss: deep resonant mini-boss harmonic chime/pulse
+		const fA = noteHz(0);
+		endAt = Math.max(endAt, spawnTone({ wave: "sawtooth", f0: fA * 1.06, f1: fA * 0.78, dur: 0.24 * sp, atk: 0.02, gain: 0.55 }));
+		endAt = Math.max(endAt, spawnTone({ wave: "triangle", f0: fA * 1.5, f1: fA * 1.18, dur: 0.22 * sp, atk: 0.02, gain: 0.42 }));
+	}
+
+	const cleanupDelayMs = Math.max(120, Math.ceil((endAt - ctx.currentTime) * 1000) + 60);
+	setTimeout(() => {
+		try { filter.disconnect(); master.disconnect(); } catch (_) {}
+	}, cleanupDelayMs);
+}
+
 function spkmodPlayPetSfx(pet, isLocalOwner, worldPos, scaleMul) {
 	if (!spkmodIsPetsSystemEnabled() || !pet) return;
 	if (typeof isGameMuted === "function" && isGameMuted()) return;
 	if (isLocalOwner && !window.spkmodPetSettings.mySfx) return;
 	if (!isLocalOwner && !window.spkmodPetSettings.otherSfx) return;
 
-	let volume = 0.42;
+	// Respect the game's Sound Effects (SFX) volume slider (0..1)
+	const sfxVol = typeof window.spkmodGetEffectiveSfxVolume === "function"
+		? window.spkmodGetEffectiveSfxVolume()
+		: 0.5;
+	if (sfxVol <= 0.001) return;
+
+	let volume = sfxVol * 0.45;
 	if (!isLocalOwner && worldPos && gameState?.playerContainer?.position) {
 		const myPos = gameState.playerContainer.position;
 		const dist = Math.hypot(worldPos.x - myPos.x, worldPos.z - myPos.z);
 		if (dist > 18) return;
-		volume = Math.max(0.05, 0.35 * (1 - dist / 18));
+		volume = sfxVol * Math.max(0.04, 0.35 * (1 - dist / 18));
 	}
+	volume = Math.max(0, Math.min(1, volume));
+	if (volume <= 0.001) return;
 
 	const pool = SPKMOD_PET_SFX_POOLS[pet.voiceType] || SPKMOD_PET_SFX_POOLS.slime;
 	const sfxUrl = spkmodPickRandom(pool);
 	if (!sfxUrl) return;
+
+	const effScale = (typeof scaleMul === "number" && isFinite(scaleMul) && scaleMul > 0)
+		? scaleMul
+		: (isLocalOwner ? spkmodGetOwnerVisualScale({ isLocal: true }) : 1);
+	const pitchMul = Math.abs(effScale - 1) > 0.03
+		? Math.max(0.65, Math.min(1.6, 1 / Math.pow(effScale, 0.45)))
+		: 1;
+
+	if (sfxUrl.startsWith("synth:")) {
+		try {
+			spkmodPlayPetSynthVoice(pet, sfxUrl, volume, pitchMul);
+		} catch (_) {}
+		return;
+	}
+
 	try {
 		const audio = new Audio(sfxUrl);
 		audio.volume = volume;
-		const effScale = (typeof scaleMul === "number" && isFinite(scaleMul) && scaleMul > 0)
-			? scaleMul
-			: (isLocalOwner ? spkmodGetOwnerVisualScale({ isLocal: true }) : 1);
-		if (Math.abs(effScale - 1) > 0.03) {
+		if (pitchMul !== 1) {
 			if ("preservesPitch" in audio) audio.preservesPitch = false;
 			if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = false;
 			if ("webkitPreservesPitch" in audio) audio.webkitPreservesPitch = false;
-			audio.playbackRate = Math.max(0.65, Math.min(1.6, 1 / Math.pow(effScale, 0.45)));
+			audio.playbackRate = pitchMul;
 		}
 		audio.play().catch(() => {});
 	} catch (_) {}
@@ -39726,7 +41187,8 @@ function spkmodComputePetBroadcastWaitMs(now, entry) {
 	if (typeof gameState === "undefined" || !gameState || typeof gameState.trySendChat !== "function" || gameState.zoneId == null) {
 		return SPKMOD_PET_CHAT_RECHECK_MS;
 	}
-	if (_spkmodChatMinLevelGate > 0 && spkmodGetPlayerLevel() < _spkmodChatMinLevelGate) {
+	const effectiveLevelGate = Math.max(_spkmodChatMinLevelGate, window.__spkmodChatMinLevelGate || 0);
+	if (effectiveLevelGate > 0 && spkmodGetPlayerLevel() < effectiveLevelGate) {
 		return Infinity;
 	}
 	// Never send hidden :pet_...: chat packets inside Mining/Speakov minigames or when alone in a zone
@@ -39740,14 +41202,16 @@ function spkmodComputePetBroadcastWaitMs(now, entry) {
 	if (entry && entry.earliestAtMs > now) {
 		waitMs = Math.max(waitMs, entry.earliestAtMs - now);
 	}
-	if (_spkmodChatRejectBackoffUntilMs > now) {
-		waitMs = Math.max(waitMs, _spkmodChatRejectBackoffUntilMs - now);
+	const effectiveBackoff = Math.max(_spkmodChatRejectBackoffUntilMs, window.__spkmodChatRejectBackoffUntilMs || 0);
+	if (effectiveBackoff > now) {
+		waitMs = Math.max(waitMs, effectiveBackoff - now);
 	}
 	if (spkmodIsUserTypingInChat()) {
 		waitMs = Math.max(waitMs, SPKMOD_PET_CHAT_RECHECK_MS);
 	}
-	if (_spkmodLastUserChatTypingMs > 0) {
-		const typingClearAt = _spkmodLastUserChatTypingMs + SPKMOD_PET_CHAT_AFTER_TYPING_MS;
+	const lastTyping = Math.max(_spkmodLastUserChatTypingMs, window.__spkmodLastUserChatTypingMs || 0);
+	if (lastTyping > 0) {
+		const typingClearAt = lastTyping + SPKMOD_PET_CHAT_AFTER_TYPING_MS;
 		if (typingClearAt > now) {
 			waitMs = Math.max(waitMs, typingClearAt - now);
 		}
@@ -39765,6 +41229,13 @@ function spkmodComputePetBroadcastWaitMs(now, entry) {
 		}
 	}
 
+	const lastGlobalHidden = window.__spkmodLastHiddenSyncBroadcastMs || 0;
+	if (lastGlobalHidden > 0) {
+		const globalGapClearAt = lastGlobalHidden + SPKMOD_PET_CHAT_MIN_GAP_MS;
+		if (globalGapClearAt > now) {
+			waitMs = Math.max(waitMs, globalGapClearAt - now);
+		}
+	}
 	if (_spkmodLastBroadcastAtMs > 0) {
 		const isRemoteJoinPassive = entry && entry.reason === "remote_join";
 		const minGap = isRemoteJoinPassive ? SPKMOD_PET_CHAT_PASSIVE_INTERVAL_MS : SPKMOD_PET_CHAT_MIN_GAP_MS;
@@ -39833,6 +41304,7 @@ function spkmodFlushQueuedPetBroadcast() {
 	}
 
 	_spkmodLastBroadcastAtMs = now;
+	window.__spkmodLastHiddenSyncBroadcastMs = now;
 	_spkmodLastBroadcastPetId = normalizedId;
 	_spkmodLastBroadcastZoneId = curZoneId;
 	_spkmodChatRejectStrikeCount = 0;
@@ -39847,7 +41319,6 @@ function spkmodFlushQueuedPetBroadcast() {
 }
 
 window.spkmodNotifyUserChatActivity = function(kind = "send") {
-	if (!spkmodIsPetsSystemEnabled()) return;
 	const now = Date.now();
 	if (kind === "send") {
 		_spkmodLastUserChatSentMs = now;
@@ -39863,16 +41334,19 @@ window.spkmodNotifyUserChatActivity = function(kind = "send") {
 		}
 	} else {
 		_spkmodLastUserChatTypingMs = now;
+		window.__spkmodLastUserChatTypingMs = now;
 	}
 
-	// Immediately defer any queued pet broadcast so it yields to the player's chat
-	if (_spkmodQueuedPetBroadcast) {
+	// Immediately defer any queued pet or car broadcast so it yields to the player's chat
+	if (spkmodIsPetsSystemEnabled() && _spkmodQueuedPetBroadcast) {
 		spkmodScheduleQueuedBroadcastFlush();
+	}
+	if (typeof window.spkmodNotifyCarUserChatActivity === "function") {
+		window.spkmodNotifyCarUserChatActivity(kind);
 	}
 };
 
 window.spkmodOnChatRejected = function(event) {
-	if (!spkmodIsPetsSystemEnabled()) return false;
 	const now = Date.now();
 	const rawCode = event?.reasonCode;
 	const isNewbieGate = rawCode === 1 || rawCode === "CHAT_REJECT_NEWBIE_GATE";
@@ -39882,6 +41356,7 @@ window.spkmodOnChatRejected = function(event) {
 
 	if (isNewbieGate) {
 		_spkmodChatMinLevelGate = Math.max(_spkmodChatMinLevelGate, Number(event?.minLevel) || 999);
+		window.__spkmodChatMinLevelGate = Math.max(window.__spkmodChatMinLevelGate || 0, _spkmodChatMinLevelGate);
 		_spkmodQueuedPetBroadcast = null;
 		if (_spkmodPendingBroadcastTimer) {
 			clearTimeout(_spkmodPendingBroadcastTimer);
@@ -39889,22 +41364,29 @@ window.spkmodOnChatRejected = function(event) {
 		}
 	} else if (isMuted || isDisabled || isUnlinked) {
 		_spkmodChatRejectBackoffUntilMs = Math.max(_spkmodChatRejectBackoffUntilMs, now + 60000);
+		window.__spkmodChatRejectBackoffUntilMs = Math.max(window.__spkmodChatRejectBackoffUntilMs || 0, _spkmodChatRejectBackoffUntilMs);
 		if (_spkmodQueuedPetBroadcast && _spkmodQueuedPetBroadcast.priority === "passive") {
 			_spkmodQueuedPetBroadcast = null;
 		}
-		spkmodScheduleQueuedBroadcastFlush();
+		if (spkmodIsPetsSystemEnabled()) spkmodScheduleQueuedBroadcastFlush();
 	} else {
 		_spkmodChatRejectStrikeCount = Math.min(3, _spkmodChatRejectStrikeCount + 1);
 		const backoffMs = Math.min(30000, 10000 * _spkmodChatRejectStrikeCount);
 		_spkmodChatRejectBackoffUntilMs = Math.max(_spkmodChatRejectBackoffUntilMs, now + backoffMs);
-		spkmodScheduleQueuedBroadcastFlush();
+		window.__spkmodChatRejectBackoffUntilMs = Math.max(window.__spkmodChatRejectBackoffUntilMs || 0, _spkmodChatRejectBackoffUntilMs);
+		if (spkmodIsPetsSystemEnabled()) spkmodScheduleQueuedBroadcastFlush();
 	}
 
-	// Suppress confusing system chat error ONLY if caused solely by a background pet sync packet
+	if (typeof window.spkmodOnCarChatRejected === "function") {
+		window.spkmodOnCarChatRejected(event);
+	}
+
+	// Suppress confusing system chat error ONLY if caused solely by a background pet/car sync packet
 	const lastUserSent = Math.max(_spkmodLastUserChatSentMs, window.__spkmodLastPlayerChatSentMs || 0);
-	const causedByPetPacket = (_spkmodLastBroadcastAtMs > 0 && now - _spkmodLastBroadcastAtMs <= 2500)
+	const lastHiddenSync = Math.max(_spkmodLastBroadcastAtMs, window.__spkmodLastHiddenSyncBroadcastMs || 0);
+	const causedByHiddenPacket = (lastHiddenSync > 0 && now - lastHiddenSync <= 2500)
 		&& (now - lastUserSent > 4000);
-	return causedByPetPacket;
+	return causedByHiddenPacket;
 };
 
 if (!window.__spkmodPetChatInputTrackersInstalled) {
@@ -39922,8 +41404,11 @@ if (!window.__spkmodPetChatInputTrackersInstalled) {
 		}
 	}, true);
 	document.addEventListener("focusout", (e) => {
-		if (isChatInputTarget(e.target) && _spkmodQueuedPetBroadcast) {
-			spkmodScheduleQueuedBroadcastFlush();
+		if (isChatInputTarget(e.target)) {
+			if (_spkmodQueuedPetBroadcast) spkmodScheduleQueuedBroadcastFlush();
+			if (typeof window.spkmodNotifyCarUserChatActivity === "function") {
+				window.spkmodNotifyCarUserChatActivity("focusout");
+			}
 		}
 	}, true);
 }

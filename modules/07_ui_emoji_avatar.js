@@ -101,6 +101,469 @@ function renderSpkmodInlineEmojis(text, imgStyle) {
 }
 window.renderSpkmodInlineEmojis = renderSpkmodInlineEmojis;
 
+// ============================================================================
+// 3D OVERHEAD CHAT BUBBLE EMOTE RENDERER (:t_* / :spk_* -> CanvasTexture)
+// ============================================================================
+const _spkmodBubbleImgCache = new Map(); // url -> { img, ok }
+const _spkmodBubbleImgInFlight = new Map(); // url -> Promise<{ img, ok }>
+const _spkmodBubbleSeqByManager = new WeakMap(); // chatBubblesObj -> Map<entityId, seq>
+const SPKMOD_BUBBLE_IMG_CACHE_MAX = 120;
+const SPKMOD_BUBBLE_EMOTE_CODE_RE = /^(?:t|spk)_[a-z0-9_-]+$/i;
+const SPKMOD_BUBBLE_EMOTE_SCAN_RE = /:(?:t|spk)_[a-z0-9_-]+:/i;
+
+function spkmodResolveBubbleEmoteUrl(code) {
+    if (!code || !SPKMOD_BUBBLE_EMOTE_CODE_RE.test(code)) return null;
+    const catalogs = [
+        { t_280: "https://i.imgur.com/tCrOOr5.png", SPK_88: "https://i.imgur.com/6H1r2Vz.gif" },
+        typeof lunCustomEmojis !== "undefined" ? lunCustomEmojis : null,
+        typeof lunTrickcalEmojis !== "undefined" ? lunTrickcalEmojis : null,
+        typeof lunTrickcal2Emojis !== "undefined" ? lunTrickcal2Emojis : null,
+        typeof lunTrickcal3Emojis !== "undefined" ? lunTrickcal3Emojis : null,
+        typeof lunTrickcal4Emojis !== "undefined" ? lunTrickcal4Emojis : null,
+        typeof lunTrickcal5Emojis !== "undefined" ? lunTrickcal5Emojis : null
+    ];
+    const lower = code.toLowerCase();
+    const upper = code.toUpperCase();
+    for (let i = 0; i < catalogs.length; i++) {
+        const cat = catalogs[i];
+        if (!cat) continue;
+        const hit = cat[code] || cat[lower] || cat[upper];
+        if (typeof hit === "string" && hit.length > 0) return hit;
+    }
+    return null;
+}
+
+function spkmodParseBubbleEmoteTokens(text) {
+    if (typeof text !== "string" || !SPKMOD_BUBBLE_EMOTE_SCAN_RE.test(text)) {
+        return { hasEmote: false, emoteOnly: false, tokens: [] };
+    }
+    const tokens = [];
+    const rx = /:([a-zA-Z0-9_-]+):/g;
+    let lastIdx = 0;
+    let hasEmote = false;
+    let hasNonWsText = false;
+    let match;
+    while ((match = rx.exec(text)) !== null) {
+        if (match.index > lastIdx) {
+            const seg = text.slice(lastIdx, match.index);
+            if (seg.trim().length > 0) hasNonWsText = true;
+            tokens.push({ type: "text", text: seg });
+        }
+        const code = match[1];
+        const url = spkmodResolveBubbleEmoteUrl(code);
+        if (url) {
+            hasEmote = true;
+            tokens.push({ type: "emote", code, url });
+        } else {
+            hasNonWsText = true;
+            tokens.push({ type: "text", text: match[0] });
+        }
+        lastIdx = rx.lastIndex;
+    }
+    if (lastIdx < text.length) {
+        const tail = text.slice(lastIdx);
+        if (tail.trim().length > 0) hasNonWsText = true;
+        tokens.push({ type: "text", text: tail });
+    }
+    return { hasEmote, emoteOnly: hasEmote && !hasNonWsText, tokens };
+}
+
+function spkmodCacheBubbleImg(url, entry) {
+    if (_spkmodBubbleImgCache.has(url)) _spkmodBubbleImgCache.delete(url);
+    _spkmodBubbleImgCache.set(url, entry);
+    if (_spkmodBubbleImgCache.size > SPKMOD_BUBBLE_IMG_CACHE_MAX) {
+        const oldestKey = _spkmodBubbleImgCache.keys().next().value;
+        if (oldestKey !== undefined) _spkmodBubbleImgCache.delete(oldestKey);
+    }
+}
+
+function spkmodLoadBubbleEmoteImage(url) {
+    const cached = _spkmodBubbleImgCache.get(url);
+    if (cached) {
+        // Refresh LRU position
+        _spkmodBubbleImgCache.delete(url);
+        _spkmodBubbleImgCache.set(url, cached);
+        return Promise.resolve(cached);
+    }
+    const existing = _spkmodBubbleImgInFlight.get(url);
+    if (existing) return existing;
+
+    const p = new Promise((resolve) => {
+        let settled = false;
+        const finish = (entry) => {
+            if (settled) return;
+            settled = true;
+            _spkmodBubbleImgInFlight.delete(url);
+            if (entry.ok) spkmodCacheBubbleImg(url, entry);
+            resolve(entry);
+        };
+        const timer = setTimeout(() => finish({ img: null, ok: false }), 1600);
+        try {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.referrerPolicy = "no-referrer";
+            img.onload = () => {
+                clearTimeout(timer);
+                const valid = (img.naturalWidth || img.width) > 0 && (img.naturalHeight || img.height) > 0;
+                finish({ img: valid ? img : null, ok: valid });
+            };
+            img.onerror = () => {
+                clearTimeout(timer);
+                finish({ img: null, ok: false });
+            };
+            img.src = url;
+        } catch (_) {
+            clearTimeout(timer);
+            finish({ img: null, ok: false });
+        }
+    });
+    _spkmodBubbleImgInFlight.set(url, p);
+    return p;
+}
+
+function spkmodDrawBubbleShape(ctx, w, boxH) {
+    const r = 16;
+    const mid = w / 2;
+    const tailHalfW = 11;
+    const tailH = 14;
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.lineTo(w - r, 0);
+    ctx.arcTo(w, 0, w, r, r);
+    ctx.lineTo(w, boxH - r);
+    ctx.arcTo(w, boxH, w - r, boxH, r);
+    ctx.lineTo(mid + tailHalfW, boxH);
+    ctx.lineTo(mid, boxH + tailH);
+    ctx.lineTo(mid - tailHalfW, boxH);
+    ctx.lineTo(r, boxH);
+    ctx.arcTo(0, boxH, 0, boxH - r, r);
+    ctx.lineTo(0, r);
+    ctx.arcTo(0, 0, r, 0, r);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.18)";
+    ctx.stroke();
+}
+
+function spkmodDrawImageContainRounded(ctx, img, x, y, boxW, boxH, radius) {
+    const nw = img.naturalWidth || img.width || 1;
+    const nh = img.naturalHeight || img.height || 1;
+    const scale = Math.min(boxW / nw, boxH / nh);
+    const dw = nw * scale;
+    const dh = nh * scale;
+    const dx = x + (boxW - dw) * 0.5;
+    const dy = y + (boxH - dh) * 0.5;
+    ctx.save();
+    if (radius > 0) {
+        const rr = Math.min(radius, dw * 0.5, dh * 0.5);
+        ctx.beginPath();
+        ctx.moveTo(dx + rr, dy);
+        ctx.lineTo(dx + dw - rr, dy);
+        ctx.arcTo(dx + dw, dy, dx + dw, dy + rr, rr);
+        ctx.lineTo(dx + dw, dy + dh - rr);
+        ctx.arcTo(dx + dw, dy + dh, dx + dw - rr, dy + dh, rr);
+        ctx.lineTo(dx + rr, dy + dh);
+        ctx.arcTo(dx, dy + dh, dx, dy + dh - rr, rr);
+        ctx.lineTo(dx, dy + rr);
+        ctx.arcTo(dx, dy, dx + rr, dy, rr);
+        ctx.closePath();
+        ctx.clip();
+    }
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.restore();
+}
+
+function spkmodGetBubbleFontFamily() {
+    try {
+        if (typeof document !== "undefined" && document.body) {
+            const fam = getComputedStyle(document.body).fontFamily;
+            if (fam && fam.trim()) return fam;
+        }
+    } catch (_) {}
+    return "sans-serif";
+}
+
+function spkmodRenderEmoteChatBubbleCanvas(parsed, loadedMap) {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    const fontFamily = spkmodGetBubbleFontFamily();
+    const fontStr = `bold 32px ${fontFamily}`;
+    const tailH = 14;
+    const maxContentW = 360;
+
+    if (parsed.emoteOnly) {
+        const emotes = parsed.tokens.filter(tk => tk.type === "emote");
+        const count = emotes.length;
+        const size = count === 1 ? 128 : 92;
+        const gap = 10;
+        const padX = 16;
+        const padY = 14;
+        const perRow = Math.max(1, Math.min(3, count));
+        const rows = [];
+        for (let i = 0; i < count; i += perRow) {
+            rows.push(emotes.slice(i, i + perRow));
+        }
+        let maxRowW = 0;
+        for (const row of rows) {
+            const rw = row.length * size + Math.max(0, row.length - 1) * gap;
+            if (rw > maxRowW) maxRowW = rw;
+        }
+        const boxW = Math.ceil(Math.max(maxRowW, 44) + padX * 2);
+        const contentH = rows.length * size + Math.max(0, rows.length - 1) * gap;
+        const boxH = Math.ceil(contentH + padY * 2);
+
+        canvas.width = boxW;
+        canvas.height = boxH + tailH;
+        spkmodDrawBubbleShape(ctx, boxW, boxH);
+
+        ctx.font = fontStr;
+        ctx.fillStyle = "#1b1b1b";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        for (let r = 0; r < rows.length; r++) {
+            const row = rows[r];
+            const rw = row.length * size + Math.max(0, row.length - 1) * gap;
+            let curX = (boxW - rw) * 0.5;
+            const curY = padY + r * (size + gap);
+            for (let c = 0; c < row.length; c++) {
+                const em = row[c];
+                const loaded = loadedMap.get(em.url);
+                if (loaded && loaded.ok && loaded.img) {
+                    spkmodDrawImageContainRounded(ctx, loaded.img, curX, curY, size, size, 10);
+                } else {
+                    ctx.fillText(`:${em.code}:`, curX + size * 0.5, curY + size * 0.5, size);
+                }
+                curX += size + gap;
+            }
+        }
+        return canvas;
+    }
+
+    // Mixed text + inline emotes layout (matches game's bold 32px word/CJK wrapping)
+    ctx.font = fontStr;
+    const inlineSize = 44;
+    const inlinePad = 3;
+    const padX = 20;
+    const padY = 14;
+    const spaceW = ctx.measureText(" ").width;
+
+    // Flatten tokens into wrappable atoms (words + emote boxes)
+    const atoms = [];
+    for (const tk of parsed.tokens) {
+        if (tk.type === "emote") {
+            const loaded = loadedMap.get(tk.url);
+            if (loaded && loaded.ok && loaded.img) {
+                atoms.push({ type: "emote", img: loaded.img, width: inlineSize + inlinePad * 2 });
+            } else {
+                const fallback = `:${tk.code}:`;
+                atoms.push({ type: "word", text: fallback, width: ctx.measureText(fallback).width });
+            }
+        } else {
+            const parts = tk.text.split(/(\s+)/);
+            for (const part of parts) {
+                if (!part) continue;
+                if (/^\s+$/.test(part)) {
+                    atoms.push({ type: "space", width: spaceW });
+                } else {
+                    atoms.push({ type: "word", text: part, width: ctx.measureText(part).width });
+                }
+            }
+        }
+    }
+
+    const lines = [];
+    let curLine = { items: [], width: 0, hasEmote: false };
+    const pushLine = () => {
+        // Trim trailing whitespace atoms on line wrap
+        while (curLine.items.length > 0 && curLine.items[curLine.items.length - 1].type === "space") {
+            const popped = curLine.items.pop();
+            curLine.width -= popped.width;
+        }
+        if (curLine.items.length > 0) lines.push(curLine);
+        curLine = { items: [], width: 0, hasEmote: false };
+    };
+
+    for (const atom of atoms) {
+        if (atom.type === "space") {
+            if (curLine.items.length === 0) continue;
+            if (curLine.items[curLine.items.length - 1].type === "space") continue;
+            if (curLine.width + atom.width <= maxContentW) {
+                curLine.items.push(atom);
+                curLine.width += atom.width;
+            }
+            continue;
+        }
+        if (atom.type === "word" && atom.width > maxContentW) {
+            if (curLine.items.length > 0) pushLine();
+            let chunk = "";
+            for (const ch of atom.text) {
+                const next = chunk + ch;
+                if (ctx.measureText(next).width > maxContentW && chunk !== "") {
+                    const cw = ctx.measureText(chunk).width;
+                    curLine.items.push({ type: "word", text: chunk, width: cw });
+                    curLine.width += cw;
+                    pushLine();
+                    chunk = ch;
+                } else {
+                    chunk = next;
+                }
+            }
+            if (chunk !== "") {
+                const cw = ctx.measureText(chunk).width;
+                curLine.items.push({ type: "word", text: chunk, width: cw });
+                curLine.width += cw;
+            }
+            continue;
+        }
+        if (curLine.items.length > 0 && curLine.width + atom.width > maxContentW) {
+            pushLine();
+        }
+        curLine.items.push(atom);
+        curLine.width += atom.width;
+        if (atom.type === "emote") curLine.hasEmote = true;
+    }
+    pushLine();
+    if (lines.length === 0) return null;
+
+    let maxLineW = 0;
+    let totalH = 0;
+    for (const ln of lines) {
+        ln.height = ln.hasEmote ? 48 : 42;
+        if (ln.width > maxLineW) maxLineW = ln.width;
+        totalH += ln.height;
+    }
+
+    const boxW = Math.ceil(Math.max(Math.min(maxLineW, maxContentW), 44) + padX * 2);
+    const boxH = Math.ceil(totalH + padY * 2);
+    canvas.width = boxW;
+    canvas.height = boxH + tailH;
+
+    spkmodDrawBubbleShape(ctx, boxW, boxH);
+
+    ctx.font = fontStr;
+    ctx.fillStyle = "#1b1b1b";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+
+    let curY = padY;
+    for (const ln of lines) {
+        let curX = (boxW - ln.width) * 0.5;
+        const midY = curY + ln.height * 0.5;
+        for (const item of ln.items) {
+            if (item.type === "emote") {
+                spkmodDrawImageContainRounded(ctx, item.img, curX + inlinePad, midY - inlineSize * 0.5, inlineSize, inlineSize, 6);
+                curX += item.width;
+            } else if (item.type === "word") {
+                ctx.fillText(item.text, curX, midY);
+                curX += item.width;
+            } else {
+                curX += item.width;
+            }
+        }
+        curY += ln.height;
+    }
+    return canvas;
+}
+
+function spkmodBumpBubbleSeq(chatBubblesObj, entityId) {
+    if (!chatBubblesObj) return 0;
+    let map = _spkmodBubbleSeqByManager.get(chatBubblesObj);
+    if (!map) {
+        map = new Map();
+        _spkmodBubbleSeqByManager.set(chatBubblesObj, map);
+    }
+    const next = (map.get(entityId) || 0) + 1;
+    map.set(entityId, next);
+    return next;
+}
+
+function spkmodIsBubbleSeqCurrent(chatBubblesObj, entityId, seq) {
+    const map = _spkmodBubbleSeqByManager.get(chatBubblesObj);
+    return !!map && map.get(entityId) === seq;
+}
+
+function spkmodShowEmoteChatBubble(chatBubblesObj, origShow, entityId, container, text) {
+    const seq = spkmodBumpBubbleSeq(chatBubblesObj, entityId);
+    const parsed = spkmodParseBubbleEmoteTokens(text);
+    if (!parsed.hasEmote) {
+        return origShow(entityId, container, text);
+    }
+
+    const uniqueUrls = [];
+    const seen = new Set();
+    for (const tk of parsed.tokens) {
+        if (tk.type === "emote" && !seen.has(tk.url)) {
+            seen.add(tk.url);
+            uniqueUrls.push(tk.url);
+        }
+    }
+
+    const applyCustomBubble = (loadedMap) => {
+        if (!spkmodIsBubbleSeqCurrent(chatBubblesObj, entityId, seq)) return;
+        if (!container || !container.parent) return;
+
+        let anyImgOk = false;
+        for (const v of loadedMap.values()) {
+            if (v && v.ok && v.img) { anyImgOk = true; break; }
+        }
+        if (!anyImgOk) {
+            return origShow(entityId, container, text);
+        }
+
+        const customCanvas = spkmodRenderEmoteChatBubbleCanvas(parsed, loadedMap);
+        if (!customCanvas) {
+            return origShow(entityId, container, text);
+        }
+
+        // Let the game create its native Sprite/SpriteMaterial/CanvasTexture at exact rle height,
+        // then swap the canvas synchronously BEFORE WebGL uploads the texture on the next frame!
+        origShow(entityId, container, " ");
+        const entry = chatBubblesObj?.bubbles?.get?.(entityId);
+        if (entry && entry.sprite && entry.material && entry.material.map) {
+            const baseHeadY = entry.sprite.position.y - entry.sprite.scale.y * 0.5;
+            const worldW = customCanvas.width * 0.005;
+            const worldH = customCanvas.height * 0.005;
+            entry.material.map.image = customCanvas;
+            entry.material.map.needsUpdate = true;
+            entry.sprite.scale.set(worldW, worldH, 1);
+            entry.sprite.position.set(0, baseHeadY + worldH * 0.5, 0);
+        }
+    };
+
+    // Fast synchronous path if all emote images are already cached
+    let allCached = true;
+    const loadedMap = new Map();
+    for (const url of uniqueUrls) {
+        const cached = _spkmodBubbleImgCache.get(url);
+        if (cached) {
+            loadedMap.set(url, cached);
+        } else {
+            allCached = false;
+        }
+    }
+    if (allCached) {
+        return applyCustomBubble(loadedMap);
+    }
+
+    // Async fetch path (first time seeing an emote; cancels cleanly if player chats again)
+    Promise.all(uniqueUrls.map(u => spkmodLoadBubbleEmoteImage(u).then(res => [u, res]))).then(pairs => {
+        const map = new Map(pairs);
+        applyCustomBubble(map);
+    }).catch(() => {
+        if (spkmodIsBubbleSeqCurrent(chatBubblesObj, entityId, seq) && container && container.parent) {
+            origShow(entityId, container, text);
+        }
+    });
+}
+window.spkmodShowEmoteChatBubble = spkmodShowEmoteChatBubble;
+
 function spkmodIsTouchOrMobile() {
     if (typeof spkmodIsMobile === "function" && spkmodIsMobile()) return true;
     if (typeof window.speakiMobile !== "undefined") return true;

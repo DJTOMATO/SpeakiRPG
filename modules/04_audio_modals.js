@@ -201,6 +201,35 @@ window.spkmodMute = function(muted) {
 window.toggleGameMute = toggleGameMute;
 window.setGameMuted = setGameMuted;
 window.isGameMuted = isGameMuted;
+
+function spkmodGetEffectiveSfxVolume() {
+	if (typeof isGameMuted === "function" && isGameMuted()) return 0;
+	try {
+		if (typeof window.getGameSettings === "function") {
+			const gs = window.getGameSettings();
+			if (gs) {
+				if (gs.muteAll) return 0;
+				if (typeof gs.sfxVolume === "number" && Number.isFinite(gs.sfxVolume)) {
+					return Math.max(0, Math.min(1, gs.sfxVolume / 100));
+				}
+			}
+		}
+	} catch (_) {}
+	try {
+		const raw = window.localStorage && localStorage.getItem("sr1_settings");
+		if (raw) {
+			const parsed = JSON.parse(raw);
+			if (parsed) {
+				if (parsed.muteAll) return 0;
+				if (typeof parsed.sfxVolume === "number" && Number.isFinite(parsed.sfxVolume)) {
+					return Math.max(0, Math.min(1, parsed.sfxVolume / 100));
+				}
+			}
+		}
+	} catch (_) {}
+	return 0.5;
+}
+window.spkmodGetEffectiveSfxVolume = spkmodGetEffectiveSfxVolume;
 window.testMute = function() {
 	const cb = findGameMuteCheckbox();
 	const listener = findGameAudioListener();

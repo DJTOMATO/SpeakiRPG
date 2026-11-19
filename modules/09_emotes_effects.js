@@ -196,6 +196,8 @@ function cycleBurgerSkin(btn) {
 }
 
 window.BurgerCarMode = 0; // 0 = Off, 1 = Sedan, 2 = Van
+window.BurgerCarColorIdx = 0;
+const SPKMOD_BURGER_CAR_SCALE = 1.22;
 let _lunBurgerCarGltfScene = null;
 let _lunBurgerCarLoadingPromise = null;
 let _lunBurgerCarState = null;
@@ -207,21 +209,77 @@ function getBurgerCarBtnLabel() {
 	return t(LUN_BURGER_CAR_KEYS[idx]) || LUN_BURGER_CAR_FALLBACKS[idx];
 }
 
-function spkmodPickNextBurgerCarColor() {
+function spkmodPickNextBurgerCarColorIdx() {
 	const len = LUN_BURGER_CAR_COLORS.length;
 	let next = Math.floor(Math.random() * len);
 	if (len > 1 && next === _lunBurgerCarLastColorIdx) {
 		next = (next + 1 + Math.floor(Math.random() * (len - 1))) % len;
 	}
 	_lunBurgerCarLastColorIdx = next;
-	return LUN_BURGER_CAR_COLORS[next];
+	return next;
+}
+
+function spkmodPickNextBurgerCarColor() {
+	return LUN_BURGER_CAR_COLORS[spkmodPickNextBurgerCarColorIdx()];
 }
 
 function spkmodPlayBurgerCarAudio(sfxPath) {
 	try {
+		const sfxVol = typeof window.spkmodGetEffectiveSfxVolume === "function"
+			? window.spkmodGetEffectiveSfxVolume()
+			: ((typeof isGameMuted === "function" && isGameMuted()) ? 0 : 0.5);
+		if (sfxVol <= 0.001) return;
 		const audio = new Audio(sfxPath);
-		audio.volume = 0.65;
+		audio.volume = Math.max(0, Math.min(1, sfxVol * 0.65));
 		audio.play().catch(() => {});
+	} catch (_) {}
+}
+
+function spkmodHasActiveNativeMount(container, playerId) {
+	try {
+		const entries = typeof gameState !== "undefined" ? gameState?.mountVisuals?.entries : null;
+		if (!entries) return false;
+		if (playerId != null && playerId !== "") {
+			if (entries.has(playerId) || entries.has(Number(playerId)) || entries.has(String(playerId))) {
+				return true;
+			}
+		}
+		if (container) {
+			for (const entry of entries.values()) {
+				if (entry && entry.cartGroup && entry.cartGroup.parent === container) {
+					return true;
+				}
+			}
+		}
+	} catch (_) {}
+	return false;
+}
+
+function spkmodSetNativeCartVisible(container, playerId, visible) {
+	try {
+		const entries = typeof gameState !== "undefined" ? gameState?.mountVisuals?.entries : null;
+		if (!entries) return;
+		const visited = new Set();
+		const applyEntry = (entry) => {
+			if (!entry || !entry.cartGroup || visited.has(entry.cartGroup)) return;
+			visited.add(entry.cartGroup);
+			entry.cartGroup.visible = !!visible;
+			entry.cartGroup.__spkmodHiddenByCar = !visible;
+		};
+		if (playerId != null && playerId !== "") {
+			const keys = [playerId, Number(playerId), String(playerId)];
+			for (const k of keys) {
+				const e = entries.get(k);
+				if (e) applyEntry(e);
+			}
+		}
+		if (container) {
+			for (const entry of entries.values()) {
+				if (entry && entry.cartGroup && entry.cartGroup.parent === container) {
+					applyEntry(entry);
+				}
+			}
+		}
 	} catch (_) {}
 }
 
@@ -284,12 +342,18 @@ function spkmodRemoveBurgerCar() {
 		_lunBurgerCarState = null;
 	}
 	if (typeof gameState !== "undefined" && gameState) {
-		if (gameState.localAvatarPose?.position) {
-			gameState.localAvatarPose.position.y = 0;
-		}
-		const ctrl = spkmodGetLocalAnimController();
-		if (ctrl && typeof ctrl.exitMountPose === "function") {
-			ctrl.exitMountPose();
+		const pc = gameState.playerContainer;
+		const myId = gameState.myPlayerId;
+		spkmodSetNativeCartVisible(pc, myId, true);
+		const stillMounted = spkmodHasActiveNativeMount(pc, myId);
+		if (!stillMounted) {
+			if (gameState.localAvatarPose?.position) {
+				gameState.localAvatarPose.position.set(0, 0, 0);
+			}
+			const ctrl = spkmodGetLocalAnimController();
+			if (ctrl && typeof ctrl.exitMountPose === "function") {
+				ctrl.exitMountPose();
+			}
 		}
 	}
 }
@@ -299,6 +363,7 @@ function spkmodCreateBurgerCarInstance(scene, modelName, colorHex) {
 	if (!prefab) return null;
 
 	const carObj = prefab.clone(true);
+	carObj.scale.multiplyScalar(SPKMOD_BURGER_CAR_SCALE);
 	carObj.traverse(node => {
 		if (node.isMesh && node.material) {
 			const mats = Array.isArray(node.material) ? node.material : [node.material];
@@ -315,8 +380,8 @@ function spkmodCreateBurgerCarInstance(scene, modelName, colorHex) {
 	});
 
 	const isVan = modelName === "Vehicle_Van";
-	const wheelRadius = isVan ? 0.34 : 0.36;
-	const seatOffsetY = isVan ? 1.35 : 1.05;
+	const wheelRadius = (isVan ? 0.34 : 0.36) * SPKMOD_BURGER_CAR_SCALE;
+	const seatOffsetY = isVan ? 1.72 : 1.30;
 	const wheels = ["FL", "FR", "RL", "RR"]
 		.map(suffix => carObj.getObjectByName(`${modelName}_Wheel_${suffix}`))
 		.filter(Boolean);
@@ -324,25 +389,33 @@ function spkmodCreateBurgerCarInstance(scene, modelName, colorHex) {
 	return { carObj, wheelRadius, seatOffsetY, wheels };
 }
 
-async function spkmodSpawnBurgerCar(modeIdx) {
+async function spkmodSpawnBurgerCar(modeIdx, forcedColorIdx) {
 	const modelName = LUN_BURGER_CAR_MODES[modeIdx];
 	if (!modelName) {
 		spkmodRemoveBurgerCar();
 		return;
 	}
+	const colorIdx = (typeof forcedColorIdx === "number" && forcedColorIdx >= 0 && forcedColorIdx < LUN_BURGER_CAR_COLORS.length)
+		? forcedColorIdx
+		: spkmodPickNextBurgerCarColorIdx();
+	window.BurgerCarColorIdx = colorIdx;
+	const colorHex = LUN_BURGER_CAR_COLORS[colorIdx];
+
 	const scene = await spkmodLoadBurgerVehiclesScene();
 	if (!scene || window.BurgerCarMode !== modeIdx) return;
 	if (typeof gameState === "undefined" || !gameState?.playerContainer) return;
 
-	const inst = spkmodCreateBurgerCarInstance(scene, modelName, spkmodPickNextBurgerCarColor());
+	const inst = spkmodCreateBurgerCarInstance(scene, modelName, colorHex);
 	if (!inst) return;
 
 	spkmodRemoveBurgerCar();
 	const { carObj, wheelRadius, seatOffsetY, wheels } = inst;
+	carObj.name = "spkmod_local_car";
 
 	gameState.playerContainer.add(carObj);
+	spkmodSetNativeCartVisible(gameState.playerContainer, gameState.myPlayerId, false);
 	if (gameState.localAvatarPose?.position) {
-		gameState.localAvatarPose.position.y = seatOffsetY;
+		gameState.localAvatarPose.position.set(0, seatOffsetY, 0);
 	}
 	const ctrl = spkmodGetLocalAnimController();
 	if (ctrl && typeof ctrl.enterMountPose === "function") {
@@ -365,8 +438,9 @@ async function spkmodSpawnBurgerCar(modeIdx) {
 		if (typeof gameState !== "undefined" && gameState?.playerContainer) {
 			const pc = gameState.playerContainer;
 			if (state.root.parent !== pc) pc.add(state.root);
+			spkmodSetNativeCartVisible(pc, gameState.myPlayerId, false);
 			if (gameState.localAvatarPose?.position) {
-				gameState.localAvatarPose.position.y = state.seatOffsetY;
+				gameState.localAvatarPose.position.set(0, state.seatOffsetY, 0);
 			}
 			const c = spkmodGetLocalAnimController();
 			if (c && !c.mountSitPlaying && typeof c.enterMountPose === "function") {
@@ -387,20 +461,545 @@ async function spkmodSpawnBurgerCar(modeIdx) {
 	state.rafId = requestAnimationFrame(tick);
 }
 
+// ============================================================================
+// MULTIPLAYER CAR CHAT-TRIGGER SYNC (:car_<mode>_<colorIdx>: / :car_none:)
+// ============================================================================
+const SPKMOD_CAR_CHAT_MIN_GAP_MS = 1600;
+const SPKMOD_CAR_CHAT_EQUIP_DEBOUNCE_MS = 1100;
+const SPKMOD_CAR_CHAT_AFTER_USER_MSG_MS = 2200;
+const SPKMOD_CAR_CHAT_AFTER_TYPING_MS = 2000;
+const SPKMOD_CAR_CHAT_PASSIVE_INTERVAL_MS = 20000;
+const SPKMOD_CAR_CHAT_RECHECK_MS = 600;
+
+let _lunCarLastBroadcastAtMs = 0;
+let _lunCarLastBroadcastToken = null;
+let _lunCarLastBroadcastZoneId = null;
+let _lunCarLastObservedZoneId = null;
+let _lunCarLastObservedRemoteCount = 0;
+let _lunCarNeedsZoneSync = false;
+let _lunCarQueuedBroadcast = null; // { token, priority, earliestAtMs, forceResend, reason }
+let _lunCarPendingBroadcastTimer = null;
+
+const spkmodRemoteCarInstances = new Map(); // ownerKey -> entry
+const spkmodPendingRemoteCarsById = new Map(); // String(id) -> { modeIdx, colorIdx, playerId, playerName }
+const spkmodPendingRemoteCarsByName = new Map(); // lowerName -> { modeIdx, colorIdx, playerId, playerName }
+const _spkmodRemoteCarSeq = new Map();
+const _spkmodRemoteCarInFlight = new Map();
+let _spkmodRemoteCarRafId = null;
+
+function spkmodCarIsInIsolatedMinigame() {
+	if (typeof gameState === "undefined" || !gameState) return false;
+	try {
+		if (gameState.miningHost?.isActive?.()) return true;
+		if (gameState.speakovHost?.isActive?.()) return true;
+	} catch (_) {}
+	return false;
+}
+
+function spkmodCarGetRemoteCount() {
+	return (typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.size) || 0;
+}
+
+function spkmodCarIsUserTyping() {
+	try {
+		if (typeof gameState !== "undefined" && gameState?.chatBox?.isTouchExpanded === true) return true;
+		const inputEl = (typeof gameState !== "undefined" && gameState?.chatBox?.inputEl)
+			|| document.querySelector(".sr-chatbox__input, .sr-chatbox input, input[placeholder*='chat']");
+		if (inputEl) {
+			if (document.activeElement === inputEl) return true;
+			if (typeof inputEl.value === "string" && inputEl.value.trim().length > 0) return true;
+		}
+		if (document.activeElement && document.activeElement.closest && document.activeElement.closest(".sr-chatbox")) {
+			return true;
+		}
+	} catch (_) {}
+	return false;
+}
+
+function spkmodCarGetPlayerLevel() {
+	try {
+		if (typeof gameState !== "undefined" && gameState?.myStat?.level != null) {
+			return Number(gameState.myStat.level) || 1;
+		}
+	} catch (_) {}
+	return 1;
+}
+
+function spkmodGetLocalCarSyncToken() {
+	const mode = window.BurgerCarMode || 0;
+	if (!mode || !LUN_BURGER_CAR_MODES[mode]) return "none";
+	const cIdx = Math.max(0, Math.min(LUN_BURGER_CAR_COLORS.length - 1, Number(window.BurgerCarColorIdx) || 0));
+	return `${mode}_${cIdx}`;
+}
+
+function spkmodComputeCarBroadcastWaitMs(now, entry) {
+	if (typeof gameState === "undefined" || !gameState || typeof gameState.trySendChat !== "function" || gameState.zoneId == null) {
+		return SPKMOD_CAR_CHAT_RECHECK_MS;
+	}
+	const levelGate = window.__spkmodChatMinLevelGate || 0;
+	if (levelGate > 0 && spkmodCarGetPlayerLevel() < levelGate) {
+		return Infinity;
+	}
+	if (spkmodCarIsInIsolatedMinigame() || spkmodCarGetRemoteCount() === 0) {
+		if (window.BurgerCarMode > 0) _lunCarNeedsZoneSync = true;
+		return Infinity;
+	}
+
+	let waitMs = 0;
+	if (entry && entry.earliestAtMs > now) {
+		waitMs = Math.max(waitMs, entry.earliestAtMs - now);
+	}
+	const sharedBackoff = window.__spkmodChatRejectBackoffUntilMs || 0;
+	if (sharedBackoff > now) {
+		waitMs = Math.max(waitMs, sharedBackoff - now);
+	}
+	if (spkmodCarIsUserTyping()) {
+		waitMs = Math.max(waitMs, SPKMOD_CAR_CHAT_RECHECK_MS);
+	}
+	const lastTyping = window.__spkmodLastUserChatTypingMs || 0;
+	if (lastTyping > 0) {
+		const typingClearAt = lastTyping + SPKMOD_CAR_CHAT_AFTER_TYPING_MS;
+		if (typingClearAt > now) waitMs = Math.max(waitMs, typingClearAt - now);
+	}
+	const lastUserSent = window.__spkmodLastPlayerChatSentMs || 0;
+	if (lastUserSent > 0) {
+		const sendClearAt = lastUserSent + SPKMOD_CAR_CHAT_AFTER_USER_MSG_MS;
+		if (sendClearAt > now) waitMs = Math.max(waitMs, sendClearAt - now);
+	}
+	const lastGlobalHidden = window.__spkmodLastHiddenSyncBroadcastMs || 0;
+	if (lastGlobalHidden > 0) {
+		const globalGapClearAt = lastGlobalHidden + SPKMOD_CAR_CHAT_MIN_GAP_MS;
+		if (globalGapClearAt > now) waitMs = Math.max(waitMs, globalGapClearAt - now);
+	}
+	if (_lunCarLastBroadcastAtMs > 0) {
+		const isRemoteJoinPassive = entry && entry.reason === "remote_join";
+		const minGap = isRemoteJoinPassive ? SPKMOD_CAR_CHAT_PASSIVE_INTERVAL_MS : SPKMOD_CAR_CHAT_MIN_GAP_MS;
+		const gapClearAt = _lunCarLastBroadcastAtMs + minGap;
+		if (gapClearAt > now) waitMs = Math.max(waitMs, gapClearAt - now);
+	}
+	return waitMs;
+}
+
+function spkmodScheduleQueuedCarBroadcastFlush() {
+	if (_lunCarPendingBroadcastTimer) {
+		clearTimeout(_lunCarPendingBroadcastTimer);
+		_lunCarPendingBroadcastTimer = null;
+	}
+	if (!_lunCarQueuedBroadcast) return;
+
+	const now = Date.now();
+	const waitMs = spkmodComputeCarBroadcastWaitMs(now, _lunCarQueuedBroadcast);
+	if (!isFinite(waitMs)) {
+		_lunCarQueuedBroadcast = null;
+		return;
+	}
+	_lunCarPendingBroadcastTimer = setTimeout(() => {
+		_lunCarPendingBroadcastTimer = null;
+		spkmodFlushQueuedCarBroadcast();
+	}, Math.max(0, Math.ceil(waitMs)));
+}
+
+function spkmodFlushQueuedCarBroadcast() {
+	const entry = _lunCarQueuedBroadcast;
+	if (!entry) return;
+
+	const now = Date.now();
+	const waitMs = spkmodComputeCarBroadcastWaitMs(now, entry);
+	if (!isFinite(waitMs)) {
+		_lunCarQueuedBroadcast = null;
+		return;
+	}
+	if (waitMs > 25) {
+		spkmodScheduleQueuedCarBroadcastFlush();
+		return;
+	}
+
+	const effectiveToken = entry.priority === "passive"
+		? spkmodGetLocalCarSyncToken()
+		: (entry.token || "none");
+
+	_lunCarQueuedBroadcast = null;
+
+	if (entry.priority === "passive" && effectiveToken === "none") return;
+
+	const curZoneId = gameState?.zoneId ?? null;
+	if (!entry.forceResend && _lunCarLastBroadcastAtMs > 0 && _lunCarLastBroadcastToken === effectiveToken && _lunCarLastBroadcastZoneId === curZoneId) {
+		return;
+	}
+
+	_lunCarLastBroadcastAtMs = now;
+	window.__spkmodLastHiddenSyncBroadcastMs = now;
+	_lunCarLastBroadcastToken = effectiveToken;
+	_lunCarLastBroadcastZoneId = curZoneId;
+	_lunCarNeedsZoneSync = false;
+
+	const code = effectiveToken !== "none" ? `:car_${effectiveToken}:` : `:car_none:`;
+	try {
+		gameState.trySendChat(code);
+	} catch (err) {
+		console.warn("[SpeakiMod+ Cars] Failed to broadcast car chat trigger:", err);
+	}
+}
+
+function spkmodSendCarChatTrigger(token, opts = {}) {
+	const priority = opts.priority || "explicit";
+	const delayMs = Math.max(0, Number(opts.delayMs) || 0);
+	const forceResend = opts.forceResend !== undefined ? !!opts.forceResend : (priority === "explicit");
+	const reason = opts.reason || priority;
+	const normalized = (!token || token === "none" || token === "off") ? "none" : String(token);
+
+	if (priority === "passive" && _lunCarQueuedBroadcast && _lunCarQueuedBroadcast.priority === "explicit") {
+		return;
+	}
+	const prevForce = _lunCarQueuedBroadcast ? !!_lunCarQueuedBroadcast.forceResend : false;
+	_lunCarQueuedBroadcast = {
+		token: normalized,
+		priority,
+		earliestAtMs: Date.now() + delayMs,
+		forceResend: forceResend || prevForce,
+		reason
+	};
+	spkmodScheduleQueuedCarBroadcastFlush();
+}
+
+function spkmodScheduleZoneCarBroadcast(delayMs = 2200, reason = "zone") {
+	if (!window.BurgerCarMode) return;
+	if (reason === "remote_join" && _lunCarQueuedBroadcast) return;
+	spkmodSendCarChatTrigger(spkmodGetLocalCarSyncToken(), {
+		priority: "passive",
+		delayMs,
+		forceResend: true,
+		reason
+	});
+}
+
+window.spkmodNotifyCarUserChatActivity = function() {
+	if (_lunCarQueuedBroadcast) {
+		spkmodScheduleQueuedCarBroadcastFlush();
+	}
+};
+
+window.spkmodOnCarChatRejected = function(event) {
+	const rawCode = event?.reasonCode;
+	const isNewbieGate = rawCode === 1 || rawCode === "CHAT_REJECT_NEWBIE_GATE";
+	const isMutedOrDisabled = rawCode === 2 || rawCode === "CHAT_REJECT_DISABLED"
+		|| rawCode === 3 || rawCode === "CHAT_REJECT_UNLINKED"
+		|| rawCode === 4 || rawCode === "CHAT_REJECT_MUTED";
+	if (isNewbieGate) {
+		_lunCarQueuedBroadcast = null;
+		if (_lunCarPendingBroadcastTimer) {
+			clearTimeout(_lunCarPendingBroadcastTimer);
+			_lunCarPendingBroadcastTimer = null;
+		}
+		return;
+	}
+	if (isMutedOrDisabled && _lunCarQueuedBroadcast && _lunCarQueuedBroadcast.priority === "passive") {
+		_lunCarQueuedBroadcast = null;
+	}
+	if (_lunCarQueuedBroadcast) {
+		spkmodScheduleQueuedCarBroadcastFlush();
+	}
+};
+
+function spkmodDisposeRemoteCarEntry(entry) {
+	if (!entry) return;
+	if (entry.root && entry.root.parent) {
+		entry.root.parent.remove(entry.root);
+	}
+	const rp = entry.resolveRp ? entry.resolveRp() : null;
+	const container = rp?.container || entry.lastContainer;
+	const rpId = entry.lastRpKey ?? entry.playerId;
+	if (container) {
+		spkmodSetNativeCartVisible(container, rpId, true);
+		const stillMounted = spkmodHasActiveNativeMount(container, rpId);
+		if (!stillMounted) {
+			const posePos = rp?.avatarPose?.position || rp?.avatar?.root?.position || entry.lastPosePos;
+			if (posePos) posePos.set(0, 0, 0);
+			const ctrl = rp?.avatar?.animationController || rp?.container?.controller || entry.lastCtrl;
+			if (ctrl && typeof ctrl.exitMountPose === "function") {
+				try { ctrl.exitMountPose(); } catch (_) {}
+			}
+		}
+	}
+}
+
+function spkmodEnsureRemoteCarsLoop() {
+	if (_spkmodRemoteCarRafId || spkmodRemoteCarInstances.size === 0) return;
+	const tick = () => {
+		_spkmodRemoteCarRafId = null;
+		if (spkmodRemoteCarInstances.size === 0) return;
+		if (!document.hidden && typeof gameState !== "undefined" && gameState) {
+			for (const [ownerKey, entry] of spkmodRemoteCarInstances) {
+				const rp = entry.resolveRp();
+				const container = rp?.container || null;
+				if (!container) {
+					spkmodDisposeRemoteCarEntry(entry);
+					spkmodRemoteCarInstances.delete(ownerKey);
+					continue;
+				}
+				entry.lastContainer = container;
+				if (entry.root.parent !== container) {
+					container.add(entry.root);
+				}
+				const rpId = entry.lastRpKey ?? entry.playerId;
+				spkmodSetNativeCartVisible(container, rpId, false);
+				const posePos = rp.avatarPose?.position || rp.avatar?.root?.position || null;
+				entry.lastPosePos = posePos;
+				if (posePos) {
+					posePos.set(0, entry.seatOffsetY, 0);
+				}
+				const ctrl = rp.avatar?.animationController || rp.container?.controller || null;
+				entry.lastCtrl = ctrl;
+				if (ctrl && !ctrl.mountSitPlaying && typeof ctrl.enterMountPose === "function") {
+					try { ctrl.enterMountPose("sit"); } catch (_) {}
+				}
+				if (container.position) {
+					const dx = container.position.x - entry.lastX;
+					const dz = container.position.z - entry.lastZ;
+					const dist = Math.hypot(dx, dz);
+					if (dist > 0.0001) {
+						const angle = dist / entry.wheelRadius;
+						for (const w of entry.wheels) w.rotation.x += angle;
+						entry.lastX = container.position.x;
+						entry.lastZ = container.position.z;
+					}
+				}
+			}
+		}
+		if (spkmodRemoteCarInstances.size > 0) {
+			_spkmodRemoteCarRafId = requestAnimationFrame(tick);
+		}
+	};
+	_spkmodRemoteCarRafId = requestAnimationFrame(tick);
+}
+
+async function spkmodSpawnOrUpdateRemoteCar(playerId, playerName, modeIdx, colorIdx) {
+	const ownerKey = (playerId != null && playerId !== "")
+		? String(playerId)
+		: `name:${(playerName || "").trim().toLowerCase()}`;
+	const lowerName = (playerName || "").trim().toLowerCase();
+
+	if (!modeIdx || !LUN_BURGER_CAR_MODES[modeIdx]) {
+		_spkmodRemoteCarSeq.set(ownerKey, (_spkmodRemoteCarSeq.get(ownerKey) || 0) + 1);
+		_spkmodRemoteCarInFlight.delete(ownerKey);
+		const existing = spkmodRemoteCarInstances.get(ownerKey);
+		if (existing) {
+			spkmodDisposeRemoteCarEntry(existing);
+			spkmodRemoteCarInstances.delete(ownerKey);
+		}
+		if (playerId != null && playerId !== "") spkmodPendingRemoteCarsById.delete(String(playerId));
+		if (lowerName) spkmodPendingRemoteCarsByName.delete(lowerName);
+		return;
+	}
+
+	const safeColorIdx = Math.max(0, Math.min(LUN_BURGER_CAR_COLORS.length - 1, Number(colorIdx) || 0));
+	const carToken = `${modeIdx}_${safeColorIdx}`;
+	const pendingPayload = { modeIdx, colorIdx: safeColorIdx, playerId, playerName };
+	if (playerId != null && playerId !== "") spkmodPendingRemoteCarsById.set(String(playerId), pendingPayload);
+	if (lowerName) spkmodPendingRemoteCarsByName.set(lowerName, pendingPayload);
+
+	const existing = spkmodRemoteCarInstances.get(ownerKey);
+	if ((existing && existing.modeIdx === modeIdx && existing.colorIdx === safeColorIdx) || _spkmodRemoteCarInFlight.get(ownerKey) === carToken) {
+		return;
+	}
+
+	const mySeq = (_spkmodRemoteCarSeq.get(ownerKey) || 0) + 1;
+	_spkmodRemoteCarSeq.set(ownerKey, mySeq);
+	_spkmodRemoteCarInFlight.set(ownerKey, carToken);
+
+	const scene = await spkmodLoadBurgerVehiclesScene();
+	if (_spkmodRemoteCarInFlight.get(ownerKey) === carToken) {
+		_spkmodRemoteCarInFlight.delete(ownerKey);
+	}
+	if (!scene || _spkmodRemoteCarSeq.get(ownerKey) !== mySeq) return;
+
+	let cachedKey = null;
+	let cachedRp = null;
+	const resolveRp = () => {
+		if (typeof gameState === "undefined" || !gameState?.remotePlayers?.remotePlayers) return null;
+		const rMap = gameState.remotePlayers.remotePlayers;
+		if (cachedRp && cachedKey !== null && rMap.get(cachedKey) === cachedRp) {
+			return cachedRp;
+		}
+		cachedRp = null;
+		cachedKey = null;
+		if (playerId != null && playerId !== "") {
+			for (const k of [playerId, Number(playerId), String(playerId)]) {
+				const found = rMap.get(k);
+				if (found) {
+					cachedKey = k;
+					cachedRp = found;
+					return found;
+				}
+			}
+		}
+		if (lowerName) {
+			for (const [k, rp] of rMap) {
+				const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim().toLowerCase();
+				if (rName && rName === lowerName) {
+					cachedKey = k;
+					cachedRp = rp;
+					return rp;
+				}
+			}
+		}
+		return null;
+	};
+
+	const rp = resolveRp();
+	if (!rp || !rp.container) return; // stays in pending map until remote player spawns
+
+	const modelName = LUN_BURGER_CAR_MODES[modeIdx];
+	const inst = spkmodCreateBurgerCarInstance(scene, modelName, LUN_BURGER_CAR_COLORS[safeColorIdx]);
+	if (!inst || _spkmodRemoteCarSeq.get(ownerKey) !== mySeq) return;
+
+	const prev = spkmodRemoteCarInstances.get(ownerKey);
+	if (prev) {
+		spkmodDisposeRemoteCarEntry(prev);
+		spkmodRemoteCarInstances.delete(ownerKey);
+	}
+	if (Array.isArray(rp.container.children)) {
+		for (let i = rp.container.children.length - 1; i >= 0; i--) {
+			const ch = rp.container.children[i];
+			if (ch && typeof ch.name === "string" && ch.name.startsWith("spkmod_remote_car_")) {
+				rp.container.remove(ch);
+			}
+		}
+	}
+
+	const { carObj, wheelRadius, seatOffsetY, wheels } = inst;
+	carObj.name = "spkmod_remote_car_" + ownerKey;
+	rp.container.add(carObj);
+	spkmodSetNativeCartVisible(rp.container, cachedKey ?? playerId, false);
+	const posePos = rp.avatarPose?.position || rp.avatar?.root?.position || null;
+	if (posePos) posePos.set(0, seatOffsetY, 0);
+	const ctrl = rp.avatar?.animationController || rp.container?.controller || null;
+	if (ctrl && typeof ctrl.enterMountPose === "function") {
+		try { ctrl.enterMountPose("sit"); } catch (_) {}
+	}
+
+	spkmodRemoteCarInstances.set(ownerKey, {
+		ownerKey,
+		playerId,
+		playerName,
+		modeIdx,
+		colorIdx: safeColorIdx,
+		root: carObj,
+		wheels,
+		wheelRadius,
+		seatOffsetY,
+		resolveRp,
+		lastRpKey: cachedKey ?? playerId,
+		lastContainer: rp.container,
+		lastPosePos: posePos,
+		lastCtrl: ctrl,
+		lastX: rp.container.position ? rp.container.position.x : 0,
+		lastZ: rp.container.position ? rp.container.position.z : 0
+	});
+	spkmodEnsureRemoteCarsLoop();
+}
+
+window.spkmodHandleIncomingCarTrigger = function(playerId, playerName, rawMsg) {
+	if (typeof rawMsg !== "string") return;
+	const trimmed = rawMsg.trim();
+	const myId = typeof gameState !== "undefined" ? gameState?.myPlayerId : null;
+	const myName = (typeof gameState !== "undefined" && (gameState?.myPlayerName || gameState?.myStat?.name)) || "";
+	const isSelf = (myId != null && playerId != null && String(playerId) === String(myId))
+		|| (myName && playerName && myName.trim().toLowerCase() === playerName.trim().toLowerCase());
+	if (isSelf) return;
+
+	if (/^:car_(?:none|off):$/i.test(trimmed)) {
+		spkmodSpawnOrUpdateRemoteCar(playerId, playerName, 0, 0);
+		return;
+	}
+	const m = trimmed.match(/^:car_([12])_(\d+):$/i);
+	if (!m) return;
+	const modeIdx = parseInt(m[1], 10);
+	const colorIdx = parseInt(m[2], 10);
+	spkmodSpawnOrUpdateRemoteCar(playerId, playerName, modeIdx, colorIdx);
+};
+
+// Lightweight zone-change / remote-join / pending remote-car watcher
+if (!window.__spkmodCarSyncWatcherInstalled) {
+	window.__spkmodCarSyncWatcherInstalled = true;
+	setInterval(() => {
+		if (typeof gameState === "undefined" || !gameState) return;
+		// 1. Detect zone change -> clear stale remote cars & broadcast local active car
+		if (gameState.zoneId != null && gameState.zoneId !== _lunCarLastObservedZoneId) {
+			_lunCarLastObservedZoneId = gameState.zoneId;
+			for (const entry of spkmodRemoteCarInstances.values()) {
+				spkmodDisposeRemoteCarEntry(entry);
+			}
+			spkmodRemoteCarInstances.clear();
+			spkmodPendingRemoteCarsById.clear();
+			spkmodPendingRemoteCarsByName.clear();
+			_spkmodRemoteCarInFlight.clear();
+			if (window.BurgerCarMode > 0) {
+				_lunCarNeedsZoneSync = true;
+				spkmodScheduleZoneCarBroadcast(2200, "zone");
+			}
+		}
+		// 2. Sync local car when another player enters the zone
+		const rCount = spkmodCarGetRemoteCount();
+		if (rCount > 0 && !spkmodCarIsInIsolatedMinigame() && window.BurgerCarMode > 0) {
+			if (_lunCarNeedsZoneSync && !_lunCarQueuedBroadcast) {
+				_lunCarNeedsZoneSync = false;
+				spkmodScheduleZoneCarBroadcast(2200, "zone");
+			} else if (rCount > _lunCarLastObservedRemoteCount) {
+				if (!_lunCarQueuedBroadcast && Date.now() - _lunCarLastBroadcastAtMs > SPKMOD_CAR_CHAT_PASSIVE_INTERVAL_MS) {
+					spkmodScheduleZoneCarBroadcast(3200, "remote_join");
+				}
+			}
+		}
+		_lunCarLastObservedRemoteCount = rCount;
+
+		// 3. Attach pending remote cars once remote player models finish spawning
+		const rMap = gameState.remotePlayers?.remotePlayers;
+		if (rMap && rMap.size > 0 && (spkmodPendingRemoteCarsById.size > 0 || spkmodPendingRemoteCarsByName.size > 0)) {
+			for (const [k, rp] of rMap) {
+				if (!rp || !rp.container) continue;
+				const idKey = String(k);
+				const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim().toLowerCase();
+				const pending = spkmodPendingRemoteCarsById.get(idKey) || (rName ? spkmodPendingRemoteCarsByName.get(rName) : null);
+				if (pending && !spkmodRemoteCarInstances.has(idKey)) {
+					spkmodSpawnOrUpdateRemoteCar(k, rp?.info?.name || pending.playerName, pending.modeIdx, pending.colorIdx);
+				}
+			}
+		}
+	}, 900);
+}
+
 function cycleBurgerCar(btn) {
 	spkmodEnsureBurgerCarKeyHooks();
 	if (typeof window.spkmodResetCarsEveryone === "function") {
 		window.spkmodResetCarsEveryone(true, false);
 	}
-	window.BurgerCarMode = ((window.BurgerCarMode || 0) + 1) % LUN_BURGER_CAR_MODES.length;
+	const prevMode = window.BurgerCarMode || 0;
+	window.BurgerCarMode = (prevMode + 1) % LUN_BURGER_CAR_MODES.length;
 	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.burgerCarBtn);
 	if (targetBtn) {
 		setText(targetBtn, getBurgerCarBtnLabel());
 	}
 	if (window.BurgerCarMode === 0) {
 		spkmodRemoveBurgerCar();
+		if (prevMode > 0) {
+			spkmodSendCarChatTrigger("none", {
+				priority: "explicit",
+				delayMs: SPKMOD_CAR_CHAT_EQUIP_DEBOUNCE_MS,
+				forceResend: false,
+				reason: "unequip"
+			});
+		}
 	} else {
-		spkmodSpawnBurgerCar(window.BurgerCarMode);
+		const colorIdx = spkmodPickNextBurgerCarColorIdx();
+		window.BurgerCarColorIdx = colorIdx;
+		spkmodSpawnBurgerCar(window.BurgerCarMode, colorIdx);
+		spkmodSendCarChatTrigger(`${window.BurgerCarMode}_${colorIdx}`, {
+			priority: "explicit",
+			delayMs: SPKMOD_CAR_CHAT_EQUIP_DEBOUNCE_MS,
+			forceResend: true,
+			reason: "equip"
+		});
 	}
 }
 
@@ -415,11 +1014,14 @@ window.spkmodResetCarsEveryone = function(silent = false, clearLocalCar = true) 
 			if (entry.root && entry.root.parent) {
 				entry.root.parent.remove(entry.root);
 			}
-			if (entry.posePos) {
-				entry.posePos.y = entry.origY;
-			}
-			if (entry.ctrl && typeof entry.ctrl.exitMountPose === "function") {
-				try { entry.ctrl.exitMountPose(); } catch (_) {}
+			spkmodSetNativeCartVisible(entry.container, entry.playerId, true);
+			if (!spkmodHasActiveNativeMount(entry.container, entry.playerId)) {
+				if (entry.posePos) {
+					entry.posePos.set(0, entry.origY || 0, 0);
+				}
+				if (entry.ctrl && typeof entry.ctrl.exitMountPose === "function") {
+					try { entry.ctrl.exitMountPose(); } catch (_) {}
+				}
 			}
 		}
 		_lunEveryoneCarsState = null;
@@ -438,22 +1040,35 @@ window.spkmodResetCarsEveryone = function(silent = false, clearLocalCar = true) 
 	if (typeof gameState !== "undefined" && gameState) {
 		sweepContainer(gameState.playerContainer);
 		if (gameState.remotePlayers?.remotePlayers) {
-			for (const rp of gameState.remotePlayers.remotePlayers.values()) {
+			for (const [k, rp] of gameState.remotePlayers.remotePlayers) {
 				sweepContainer(rp?.container);
-				if (rp?.avatar?.root?.position && rp.avatar.root.position.y !== 0) {
-					rp.avatar.root.position.y = 0;
-				}
-				const ctrl = rp?.avatar?.animationController || rp?.container?.controller;
-				if (ctrl && typeof ctrl.exitMountPose === "function") {
-					try { ctrl.exitMountPose(); } catch (_) {}
+				if (!spkmodRemoteCarInstances.has(String(k))) {
+					spkmodSetNativeCartVisible(rp?.container, k, true);
+					if (!spkmodHasActiveNativeMount(rp?.container, k)) {
+						const posePos = rp?.avatarPose?.position || rp?.avatar?.root?.position;
+						if (posePos && posePos.y !== 0) posePos.set(0, 0, 0);
+						const ctrl = rp?.avatar?.animationController || rp?.container?.controller;
+						if (ctrl && typeof ctrl.exitMountPose === "function") {
+							try { ctrl.exitMountPose(); } catch (_) {}
+						}
+					}
 				}
 			}
 		}
 	}
 
 	if (clearLocalCar) {
+		const hadLocal = (window.BurgerCarMode || 0) > 0;
 		window.BurgerCarMode = 0;
 		spkmodRemoveBurgerCar();
+		if (hadLocal) {
+			spkmodSendCarChatTrigger("none", {
+				priority: "explicit",
+				delayMs: SPKMOD_CAR_CHAT_EQUIP_DEBOUNCE_MS,
+				forceResend: false,
+				reason: "reset"
+			});
+		}
 		if (typeof lunPanelElements !== "undefined" && lunPanelElements.burgerCarBtn && typeof getBurgerCarBtnLabel === "function") {
 			setText(lunPanelElements.burgerCarBtn, getBurgerCarBtnLabel());
 		}
@@ -475,7 +1090,7 @@ window.spkmodRandomCarsEveryone = async function() {
 	if (!modelNames.length || !LUN_BURGER_CAR_COLORS.length) return;
 
 	const entries = [];
-	const attachCar = (container, posePos, ctrl) => {
+	const attachCar = (container, posePos, ctrl, playerId) => {
 		if (!container) return;
 		const modelName = modelNames[Math.floor(Math.random() * modelNames.length)];
 		const colorHex = LUN_BURGER_CAR_COLORS[Math.floor(Math.random() * LUN_BURGER_CAR_COLORS.length)];
@@ -485,15 +1100,17 @@ window.spkmodRandomCarsEveryone = async function() {
 		const { carObj, wheelRadius, seatOffsetY, wheels } = inst;
 		carObj.name = "spkmod_everyone_car";
 		container.add(carObj);
+		spkmodSetNativeCartVisible(container, playerId, false);
 
 		const origY = posePos ? posePos.y : 0;
-		if (posePos) posePos.y = seatOffsetY;
+		if (posePos) posePos.set(0, seatOffsetY, 0);
 		if (ctrl && typeof ctrl.enterMountPose === "function") {
 			try { ctrl.enterMountPose("sit"); } catch (_) {}
 		}
 
 		entries.push({
 			container,
+			playerId,
 			posePos,
 			ctrl,
 			root: carObj,
@@ -510,17 +1127,20 @@ window.spkmodRandomCarsEveryone = async function() {
 		attachCar(
 			gameState.playerContainer,
 			gameState.localAvatarPose?.position || null,
-			spkmodGetLocalAnimController()
+			spkmodGetLocalAnimController(),
+			gameState.myPlayerId
 		);
 	}
 
 	if (gameState.remotePlayers?.remotePlayers) {
-		for (const rp of gameState.remotePlayers.remotePlayers.values()) {
+		for (const [k, rp] of gameState.remotePlayers.remotePlayers) {
 			if (!rp || !rp.container) continue;
+			if (spkmodRemoteCarInstances.has(String(k))) continue;
 			attachCar(
 				rp.container,
-				rp.avatar?.root?.position || null,
-				rp.avatar?.animationController || rp.container?.controller || null
+				rp.avatarPose?.position || rp.avatar?.root?.position || null,
+				rp.avatar?.animationController || rp.container?.controller || null,
+				k
 			);
 		}
 	}
@@ -537,8 +1157,9 @@ window.spkmodRandomCarsEveryone = async function() {
 			if (entry.root.parent !== entry.container) {
 				entry.container.add(entry.root);
 			}
+			spkmodSetNativeCartVisible(entry.container, entry.playerId, false);
 			if (entry.posePos) {
-				entry.posePos.y = entry.seatOffsetY;
+				entry.posePos.set(0, entry.seatOffsetY, 0);
 			}
 			if (entry.ctrl && !entry.ctrl.mountSitPlaying && typeof entry.ctrl.enterMountPose === "function") {
 				try { entry.ctrl.enterMountPose("sit"); } catch (_) {}

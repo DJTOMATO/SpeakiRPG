@@ -202,6 +202,12 @@ function tick() {
 				}
 				return;
 			}
+			if (typeof n === "string" && /^:car_[a-zA-Z0-9_-]+:$/i.test(n.trim())) {
+				if (typeof window.spkmodHandleIncomingCarTrigger === "function") {
+					window.spkmodHandleIncomingCarTrigger(e, null, n.trim());
+				}
+				return;
+			}
 			if (typeof e === "string" && e.startsWith("spkmod_pet_bubble_")) {
 				return hkChatBubblesShow(e, t, filterName(n));
 			}
@@ -212,7 +218,11 @@ function tick() {
 			}
 			if (lunHideKnownBotsEnabled && isKnownBotBubbleSource(e)) return;
 			if (typeof isBlockedUserBubbleSource === 'function' && isBlockedUserBubbleSource(e)) return;
-			return hkChatBubblesShow(e, t, filterName(n));
+			const filteredText = filterName(n);
+			if (typeof window.spkmodShowEmoteChatBubble === "function") {
+				return window.spkmodShowEmoteChatBubble(gameState.chatBubbles, hkChatBubblesShow, e, t, filteredText);
+			}
+			return hkChatBubblesShow(e, t, filteredText);
 		};
 		gameState.chatBubbles.__speakiHooked = true; // 
 		console.log("[SpeakiMod+] Successfully hooked chatBubbles.show!");
@@ -222,12 +232,24 @@ function tick() {
 		if (host && typeof host.applyChatBubble === "function" && !host.__speakiPetBubbleHooked) {
 			const origApply = host.applyChatBubble.bind(host);
 			host.applyChatBubble = (playerId, text) => {
-				if (typeof text === "string" && /^:pet_[a-zA-Z0-9_-]+:$/i.test(text.trim())) {
+				if (typeof text === "string" && /^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(text.trim())) {
 					return;
 				}
 				return origApply(playerId, text);
 			};
 			host.__speakiPetBubbleHooked = true;
+		}
+		if (host && host.chatBubbles && typeof host.chatBubbles.show === "function" && !host.chatBubbles.__speakiEmoteHooked) {
+			const origHostShow = host.chatBubbles.show.bind(host.chatBubbles);
+			host.chatBubbles.show = (e, t, n) => {
+				if (typeof n === "string" && /^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(n.trim())) return;
+				const filteredText = filterName(n);
+				if (typeof window.spkmodShowEmoteChatBubble === "function") {
+					return window.spkmodShowEmoteChatBubble(host.chatBubbles, origHostShow, e, t, filteredText);
+				}
+				return origHostShow(e, t, filteredText);
+			};
+			host.chatBubbles.__speakiEmoteHooked = true;
 		}
 	}
 	var playerExp = gameState.myStat.exp;
