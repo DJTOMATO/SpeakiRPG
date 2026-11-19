@@ -709,7 +709,7 @@ function spkmodSyncSceneLightingAndShadows(cfg) {
 					if (cfg.ambientInt !== undefined) obj.intensity = cfg.ambientInt;
 				}
 			}
-		} else if (obj.isMesh && obj.renderOrder === 0 && !spkmodShouldHideInNormalPass(obj)) {
+		} else if (obj.isMesh && obj.renderOrder === 0 && !obj.userData?.spkmodNoShadow && !spkmodShouldHideInNormalPass(obj)) {
 			if (!rt.savedMeshes.has(obj)) {
 				rt.savedMeshes.set(obj, { cast: obj.castShadow, recv: obj.receiveShadow });
 			}

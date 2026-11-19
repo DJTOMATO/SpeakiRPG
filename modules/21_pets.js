@@ -402,13 +402,20 @@ function spkmodInstallMonsterIsolationHook() {
 	return true;
 }
 
+const SPKMOD_NOOP_RAYCAST = () => {};
+
 function spkmodDisableRaycastAndSanitize(root, hideSpritesAndRings = false) {
 	if (!root || typeof root.traverse !== "function") return;
 	root.traverse(obj => {
 		if (!obj) return;
 		if (obj.isMesh) {
-			obj.raycast = () => {};
-			obj.frustumCulled = false;
+			obj.raycast = SPKMOD_NOOP_RAYCAST;
+			// Only disable frustum culling on SkinnedMesh (animated bones may extend past bind-pose sphere); keep culling ON for static meshes
+			obj.frustumCulled = !obj.isSkinnedMesh;
+			obj.castShadow = false;
+			obj.receiveShadow = false;
+			if (!obj.userData) obj.userData = {};
+			obj.userData.spkmodNoShadow = true;
 		}
 		if (hideSpritesAndRings) {
 			if (obj.isSprite || obj.type === "Sprite") {
@@ -806,7 +813,9 @@ async function spkmodInstantiatePetVisual(pet, instance) {
 			instance.modelHolder.add(built.root);
 			instance.spinningParts = built.spinningParts || [];
 			instance.wheels = built.wheels || [];
+			instance._ownsVisualResources = true;
 			instance._peakVisualTopY = 0;
+			instance._cachedVisualTopY = 0;
 			spkmodRepositionPetBubbleIfActive(instance);
 		}
 		return;
@@ -843,12 +852,27 @@ async function spkmodInstantiatePetVisual(pet, instance) {
 					entry.container.rotation.set(0, 0, 0);
 					entry.container.scale.setScalar(spec.scale || 0.52);
 					spkmodDisableRaycastAndSanitize(entry.container, true);
+					// Sanitize immediately when async upgradeToSkinned/upgradeToTusklordGlb adds upgraded visuals (prevents nameplate flashes!)
+					if (!entry.container.__spkmodPetAddHooked && typeof entry.container.add === "function") {
+						const origAdd = entry.container.add.bind(entry.container);
+						entry.container.add = function(...args) {
+							const res = origAdd(...args);
+							for (const child of args) {
+								if (child) spkmodDisableRaycastAndSanitize(child, true);
+							}
+							return res;
+						};
+						entry.container.__spkmodPetAddHooked = true;
+					}
 					instance.modelHolder.clear();
 					instance.modelHolder.add(entry.container);
 					instance.monsterEntry = entry;
 					instance.monsterTempId = tempId;
+					instance._sanitizedMonsterVisual = entry.visual || null;
 					instance._lastMeasuredMonsterVisual = entry.visual || null;
+					instance._lastMonsterLoco = null;
 					instance._peakVisualTopY = 0;
+					instance._cachedVisualTopY = 0;
 					spkmodRepositionPetBubbleIfActive(instance);
 					return;
 				}
@@ -989,7 +1013,10 @@ async function spkmodInstantiatePetVisual(pet, instance) {
 
 				instance.modelHolder.clear();
 				instance.modelHolder.add(charWrapper);
+				instance._ownsVisualResources = true;
 				instance._peakVisualTopY = 0;
+				instance._cachedVisualTopY = 0;
+				spkmodDisableRaycastAndSanitize(charWrapper, false);
 				spkmodRepositionPetBubbleIfActive(instance);
 
 				if (kommyFaceMat && faceTex && faceAsleepTex) {
@@ -1040,8 +1067,12 @@ async function spkmodInstantiatePetVisual(pet, instance) {
 			}
 			if (node.isMesh) {
 				node.visible = true;
-				node.raycast = () => {};
-				node.frustumCulled = false;
+				node.raycast = SPKMOD_NOOP_RAYCAST;
+				node.frustumCulled = !node.isSkinnedMesh;
+				node.castShadow = false;
+				node.receiveShadow = false;
+				if (!node.userData) node.userData = {};
+				node.userData.spkmodNoShadow = true;
 				if (spec.tintHex && node.material) {
 					const mats = Array.isArray(node.material) ? node.material : [node.material];
 					const tinted = mats.map(m => {
@@ -1092,6 +1123,7 @@ async function spkmodInstantiatePetVisual(pet, instance) {
 		instance.spinningParts = spinningParts;
 		instance.wheels = wheels;
 		instance._peakVisualTopY = 0;
+		instance._cachedVisualTopY = 0;
 		spkmodRepositionPetBubbleIfActive(instance);
 	}
 }
@@ -1136,64 +1168,24 @@ function spkmodSyncPetSpeechAnchor(instance) {
 	instance.speechAnchor.position.y = fallbackY;
 }
 
+let _spkmodScratchVec3 = null;
+let _spkmodScratchBox3 = null;
+
 function spkmodComputePetVisualTopOffsetY(instance) {
 	const baseTarget = (instance && instance.pet && instance.pet.targetHeight) || 0.65;
+	if (!instance || !instance.modelHolder) return baseTarget;
+	if (instance._cachedVisualTopY && instance._cachedVisualTopY > 0) {
+		return instance._cachedVisualTopY;
+	}
 	const THREE = window.THREE;
-	if (!THREE || !instance || !instance.modelHolder) return baseTarget;
+	if (!THREE) return baseTarget;
 
 	let measuredTop = 0;
 	let nativeMonsterTop = 0;
 
 	try {
-		if (instance.root) instance.root.updateMatrixWorld(true);
-		const holderWorldY = new THREE.Vector3().setFromMatrixPosition(instance.modelHolder.matrixWorld).y;
-		const tmpBox = new THREE.Box3();
-		let maxWorldY = -Infinity;
-
-		const scanVisible = (node) => {
-			if (!node || node.visible === false) return;
-			if (node.isSprite || node.type === "Sprite") return;
-			if (node.isMesh && node.geometry) {
-				let localBox = null;
-				if (node.isSkinnedMesh) {
-					try {
-						if (node.skeleton) node.skeleton.update();
-						node.boundingBox = null;
-						node.computeBoundingBox();
-						localBox = node.boundingBox;
-					} catch (_) {}
-				}
-				if (!localBox) {
-					if (!node.geometry.boundingBox) {
-						try { node.geometry.computeBoundingBox(); } catch (_) {}
-					}
-					localBox = node.geometry.boundingBox;
-				}
-				if (localBox && !localBox.isEmpty()) {
-					tmpBox.copy(localBox).applyMatrix4(node.matrixWorld);
-					if (isFinite(tmpBox.max.y) && tmpBox.max.y > maxWorldY) {
-						maxWorldY = tmpBox.max.y;
-					}
-				}
-			}
-			const children = node.children;
-			if (children && children.length > 0) {
-				for (let i = 0; i < children.length; i++) {
-					scanVisible(children[i]);
-				}
-			}
-		};
-		scanVisible(instance.modelHolder);
-
-		if (isFinite(maxWorldY) && isFinite(holderWorldY)) {
-			const holderScaleY = Math.max(0.5, Math.abs(instance.modelHolder.scale?.y || 1));
-			const relTop = (maxWorldY - holderWorldY) / holderScaleY;
-			if (relTop > 0 && relTop <= 8.0) {
-				measuredTop = relTop;
-			}
-		}
-
-		// Also inspect hidden native monster nameplate sprite (placed at heightM + 0.4 inside monster visual root)
+		// Fast path for native monsters: inspect hidden native nameplate sprite (placed at heightM + 0.4 inside visual root)
+		// Avoids expensive 25,000+ vertex CPU SkinnedMesh bounding-box loops!
 		if (instance.monsterEntry && instance.monsterEntry.container) {
 			const containerScaleY = Math.abs(instance.monsterEntry.container.scale?.y || 1);
 			const visualScaleY = Math.abs(instance.monsterEntry.visual?.root?.scale?.y || 1);
@@ -1207,11 +1199,70 @@ function spkmodComputePetVisualTopOffsetY(instance) {
 				}
 			});
 		}
+
+		// Only measure 3D mesh bounds if we don't already have an authoritative native monster heightM
+		if (nativeMonsterTop <= 0) {
+			if (!_spkmodScratchVec3) _spkmodScratchVec3 = new THREE.Vector3();
+			if (!_spkmodScratchBox3) _spkmodScratchBox3 = new THREE.Box3();
+			if (instance.root) instance.root.updateMatrixWorld(true);
+			const holderWorldY = _spkmodScratchVec3.setFromMatrixPosition(instance.modelHolder.matrixWorld).y;
+			let maxWorldY = -Infinity;
+
+			const scanVisible = (node) => {
+				if (!node || node.visible === false) return;
+				if (node.isSprite || node.type === "Sprite") return;
+				if (node.isMesh && node.geometry) {
+					if (node.isSkinnedMesh && node.geometry.attributes?.position && typeof node.getVertexPosition === "function") {
+						try {
+							if (node.skeleton) node.skeleton.update();
+							const pos = node.geometry.attributes.position;
+							const stride = Math.max(1, Math.floor(pos.count / 240));
+							for (let idx = 0; idx < pos.count; idx += stride) {
+								node.getVertexPosition(idx, _spkmodScratchVec3);
+								_spkmodScratchVec3.applyMatrix4(node.matrixWorld);
+								if (isFinite(_spkmodScratchVec3.y) && _spkmodScratchVec3.y > maxWorldY) {
+									maxWorldY = _spkmodScratchVec3.y;
+								}
+							}
+						} catch (_) {}
+					} else {
+						if (!node.geometry.boundingBox) {
+							try { node.geometry.computeBoundingBox(); } catch (_) {}
+						}
+						const localBox = node.geometry.boundingBox;
+						if (localBox && !localBox.isEmpty()) {
+							_spkmodScratchBox3.copy(localBox).applyMatrix4(node.matrixWorld);
+							if (isFinite(_spkmodScratchBox3.max.y) && _spkmodScratchBox3.max.y > maxWorldY) {
+								maxWorldY = _spkmodScratchBox3.max.y;
+							}
+						}
+					}
+				}
+				const children = node.children;
+				if (children && children.length > 0) {
+					for (let i = 0; i < children.length; i++) {
+						scanVisible(children[i]);
+					}
+				}
+			};
+			scanVisible(instance.modelHolder);
+
+			if (isFinite(maxWorldY) && isFinite(holderWorldY)) {
+				const holderScaleY = Math.max(0.5, Math.abs(instance.modelHolder.scale?.y || 1));
+				const relTop = (maxWorldY - holderWorldY) / holderScaleY;
+				if (relTop > 0 && relTop <= 8.0) {
+					measuredTop = relTop;
+				}
+			}
+		}
 	} catch (_) {}
 
 	const topY = Math.max(baseTarget, measuredTop, nativeMonsterTop, instance._peakVisualTopY || 0);
-	if (isFinite(topY) && topY > (instance._peakVisualTopY || 0)) {
-		instance._peakVisualTopY = topY;
+	if (isFinite(topY) && topY > 0) {
+		instance._peakVisualTopY = Math.max(instance._peakVisualTopY || 0, topY);
+		if (nativeMonsterTop > 0 || measuredTop > 0) {
+			instance._cachedVisualTopY = instance._peakVisualTopY;
+		}
 	}
 	return topY;
 }
@@ -1343,18 +1394,82 @@ function spkmodDisposePetInstance(instance) {
 	if (instance.monsterEntry?.visual?.dispose) {
 		try { instance.monsterEntry.visual.dispose(); } catch (_) {}
 	}
+	if (instance.mixer) {
+		try {
+			instance.mixer.stopAllAction();
+			if (typeof instance.mixer.uncacheRoot === "function" && typeof instance.mixer.getRoot === "function") {
+				instance.mixer.uncacheRoot(instance.mixer.getRoot());
+			}
+		} catch (_) {}
+		instance.mixer = null;
+	}
+	if (instance._ownsVisualResources && instance.modelHolder) {
+		const disposedGeoms = new Set();
+		const disposedMats = new Set();
+		const disposedTex = new Set();
+		try {
+			instance.modelHolder.traverse(obj => {
+				if (!obj || !obj.isMesh) return;
+				if (obj.geometry && !disposedGeoms.has(obj.geometry)) {
+					disposedGeoms.add(obj.geometry);
+					obj.geometry.dispose?.();
+				}
+				const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+				for (const m of mats) {
+					if (!m || disposedMats.has(m)) continue;
+					disposedMats.add(m);
+					if (m.map && !disposedTex.has(m.map)) {
+						disposedTex.add(m.map);
+						m.map.dispose?.();
+					}
+					m.dispose?.();
+				}
+			});
+		} catch (_) {}
+	}
+	if (instance.kommyBlink) {
+		try {
+			instance.kommyBlink.awakeTex?.dispose?.();
+			instance.kommyBlink.asleepTex?.dispose?.();
+		} catch (_) {}
+		instance.kommyBlink = null;
+	}
 	if (typeof gameState !== "undefined" && gameState?.chatBubbles?.remove) {
 		try {
 			gameState.chatBubbles.remove(["spkmod_pet_bubble_" + instance.ownerKey]);
 		} catch (_) {}
 	}
-	if (instance.root && instance.root.parent) {
-		instance.root.parent.remove(instance.root);
+	if (instance.modelHolder && typeof instance.modelHolder.clear === "function") {
+		try { instance.modelHolder.clear(); } catch (_) {}
+	}
+	if (instance.speechAnchor && typeof instance.speechAnchor.clear === "function") {
+		try { instance.speechAnchor.clear(); } catch (_) {}
+	}
+	if (instance.root) {
+		if (instance.root.parent) {
+			instance.root.parent.remove(instance.root);
+		}
+		if (typeof gameState !== "undefined" && gameState?.scene && typeof gameState.scene.remove === "function") {
+			gameState.scene.remove(instance.root);
+		}
+	}
+}
+
+function spkmodSweepScenePetRoots(exactNameOrPrefix, keepRoot = null, matchPrefix = false) {
+	if (typeof gameState === "undefined" || !gameState?.scene?.children) return;
+	const children = gameState.scene.children;
+	for (let i = children.length - 1; i >= 0; i--) {
+		const child = children[i];
+		if (!child || child === keepRoot || typeof child.name !== "string") continue;
+		const hit = matchPrefix ? child.name.startsWith(exactNameOrPrefix) : (child.name === exactNameOrPrefix);
+		if (hit) {
+			gameState.scene.remove(child);
+		}
 	}
 }
 
 async function spkmodCreatePetInstance(ownerKey, pet, isLocal, resolveContainerFn, resolveRemotePlayerFn) {
-	const THREE = (typeof spkmodEnsureThree === "function") ? await spkmodEnsureThree() : window.THREE;
+	const THREE = window.THREE || ((typeof spkmodEnsureThree === "function") ? await spkmodEnsureThree() : null);
 	if (!THREE || typeof gameState === "undefined" || !gameState?.scene) return null;
 
 	const root = new THREE.Group();
@@ -1525,11 +1640,23 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		return;
 	}
 
-	// Hide remote pets if setting is off or owner is hidden (solitude / bot / blocked)
+	// Hide remote pets if setting is off, owner is hidden, or owner is > 28m away (distance culling)
+	let remoteAnimThrottleSec = 0;
 	if (!inst.isLocal) {
 		if (!window.spkmodPetSettings.showRemotePets || ownerContainer.visible === false) {
 			inst.root.visible = false;
 			return;
+		}
+		const myPos = gameState?.playerContainer?.position;
+		if (myPos) {
+			const distToMe = Math.hypot(ownerContainer.position.x - myPos.x, ownerContainer.position.z - myPos.z);
+			if (distToMe > 28) {
+				inst.root.visible = false;
+				return;
+			}
+			if (distToMe > 12) {
+				remoteAnimThrottleSec = 0.05; // ~20 FPS skeletal animation LOD for distant remote pets
+			}
 		}
 	}
 	inst.root.visible = true;
@@ -1996,22 +2123,45 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		inst.speechAnchor.position.y = inst.modelHolder.position.y;
 	}
 
-	// Update native monster visual or GLTF/FBX AnimationMixer
+	// Update native monster visual or GLTF/FBX AnimationMixer (with LOD throttling for distant remote pets)
+	let animStepDt = dt;
+	let shouldStepAnim = true;
+	if (remoteAnimThrottleSec > 0) {
+		inst._animAccumDt = (inst._animAccumDt || 0) + dt;
+		if (inst._animAccumDt >= remoteAnimThrottleSec) {
+			animStepDt = inst._animAccumDt;
+			inst._animAccumDt = 0;
+		} else {
+			shouldStepAnim = false;
+		}
+	}
+
 	if (inst.monsterEntry && inst.monsterEntry.visual) {
 		try {
-			spkmodDisableRaycastAndSanitize(inst.monsterEntry.container, true);
-			const mCtrl = inst.monsterEntry.visual.animationController;
-			if (!isFallenDown) {
-				mCtrl?.setLocomotion?.(isMoving || isDancing);
-			}
-			inst.monsterEntry.visual.update?.(dt);
-			if (inst._lastMeasuredMonsterVisual !== inst.monsterEntry.visual) {
-				inst._lastMeasuredMonsterVisual = inst.monsterEntry.visual;
+			const curVisual = inst.monsterEntry.visual;
+			const mCtrl = curVisual.animationController;
+			// Only sanitize & measure ONCE per visual (and on async upgradeToSkinned swap) instead of traversing every frame!
+			if (inst._sanitizedMonsterVisual !== curVisual) {
+				inst._sanitizedMonsterVisual = curVisual;
+				inst._lastMeasuredMonsterVisual = curVisual;
+				inst._lastMonsterLoco = null;
 				inst._peakVisualTopY = 0;
+				inst._cachedVisualTopY = 0;
+				spkmodDisableRaycastAndSanitize(inst.monsterEntry.container, true);
 				if (isFallenDown && mCtrl && typeof mCtrl.playFallDownEmote === "function") {
 					inst._petFallDownUsingNativeClip = !!mCtrl.playFallDownEmote();
 				}
 				spkmodRepositionPetBubbleIfActive(inst);
+			}
+			if (!isFallenDown && mCtrl && typeof mCtrl.setLocomotion === "function") {
+				const wantLoco = !!(isMoving || isDancing);
+				if (inst._lastMonsterLoco !== wantLoco) {
+					inst._lastMonsterLoco = wantLoco;
+					mCtrl.setLocomotion(wantLoco);
+				}
+			}
+			if (shouldStepAnim) {
+				curVisual.update?.(animStepDt);
 			}
 		} catch (_) {}
 	}
@@ -2032,7 +2182,9 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 				}
 				inst.activeGlbAction = desiredAction;
 			}
-			inst.mixer.update(dt);
+			if (shouldStepAnim) {
+				inst.mixer.update(animStepDt);
+			}
 		} catch (_) {}
 	}
 	if (inst.kommyBlink && nowMs >= inst.kommyBlink.nextToggleMs) {
@@ -2390,17 +2542,26 @@ function spkmodScheduleZonePetBroadcast(delayMs = 1800, reason = "zone") {
 	});
 }
 
+const _spkmodRemoteEquipSeq = new Map();
+const _spkmodRemoteInFlightPetId = new Map();
+let _spkmodLocalEquipSeq = 0;
+let _spkmodLocalEquipInFlight = false;
+let _spkmodDidInitialAutoRestore = false;
+
 async function spkmodSpawnOrUpdateRemotePet(playerId, playerName, petId) {
 	if (!spkmodIsPetsSystemEnabled()) return;
 	const cleanId = (petId || "").trim().toLowerCase();
 	const ownerKey = playerId != null && playerId !== "" ? String(playerId) : `name:${(playerName || "").trim().toLowerCase()}`;
 
 	if (!cleanId || cleanId === "none" || cleanId === "off") {
+		_spkmodRemoteEquipSeq.set(ownerKey, (_spkmodRemoteEquipSeq.get(ownerKey) || 0) + 1);
+		_spkmodRemoteInFlightPetId.delete(ownerKey);
 		const existing = spkmodRemotePetInstances.get(ownerKey);
 		if (existing) {
 			spkmodDisposePetInstance(existing);
 			spkmodRemotePetInstances.delete(ownerKey);
 		}
+		spkmodSweepScenePetRoots("spkmod_pet_root_" + ownerKey, null, false);
 		if (playerName) spkmodPendingRemotePetsByName.delete(playerName.trim().toLowerCase());
 		if (playerId != null) spkmodPendingRemotePetsById.delete(String(playerId));
 		return;
@@ -2413,26 +2574,50 @@ async function spkmodSpawnOrUpdateRemotePet(playerId, playerName, petId) {
 	if (playerId != null) spkmodPendingRemotePetsById.set(String(playerId), cleanId);
 
 	const existing = spkmodRemotePetInstances.get(ownerKey);
-	if (existing && existing.pet.id === pet.id && !existing.disposed) {
+	if ((existing && existing.pet.id === pet.id && !existing.disposed) || _spkmodRemoteInFlightPetId.get(ownerKey) === pet.id) {
 		return;
 	}
+
+	const mySeq = (_spkmodRemoteEquipSeq.get(ownerKey) || 0) + 1;
+	_spkmodRemoteEquipSeq.set(ownerKey, mySeq);
+	_spkmodRemoteInFlightPetId.set(ownerKey, pet.id);
+
 	if (existing) {
 		spkmodDisposePetInstance(existing);
 		spkmodRemotePetInstances.delete(ownerKey);
 	}
+	spkmodSweepScenePetRoots("spkmod_pet_root_" + ownerKey, null, false);
 
+	let cachedRpKey = null;
+	let cachedRpRef = null;
+	const lowerTargetName = playerName ? playerName.trim().toLowerCase() : "";
 	const resolveRp = () => {
 		if (typeof gameState === "undefined" || !gameState?.remotePlayers?.remotePlayers) return null;
 		const rMap = gameState.remotePlayers.remotePlayers;
-		if (playerId != null) {
-			const byId = rMap.get(playerId) || rMap.get(Number(playerId)) || rMap.get(String(playerId));
-			if (byId) return byId;
+		if (cachedRpRef && cachedRpKey !== null && rMap.get(cachedRpKey) === cachedRpRef) {
+			return cachedRpRef;
 		}
-		if (playerName) {
-			const lower = playerName.trim().toLowerCase();
-			for (const rp of rMap.values()) {
+		cachedRpRef = null;
+		cachedRpKey = null;
+		if (playerId != null) {
+			const keys = [playerId, Number(playerId), String(playerId)];
+			for (const k of keys) {
+				const byId = rMap.get(k);
+				if (byId) {
+					cachedRpKey = k;
+					cachedRpRef = byId;
+					return byId;
+				}
+			}
+		}
+		if (lowerTargetName) {
+			for (const [k, rp] of rMap) {
 				const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim().toLowerCase();
-				if (rName && rName === lower) return rp;
+				if (rName && rName === lowerTargetName) {
+					cachedRpKey = k;
+					cachedRpRef = rp;
+					return rp;
+				}
 			}
 		}
 		return null;
@@ -2445,11 +2630,19 @@ async function spkmodSpawnOrUpdateRemotePet(playerId, playerName, petId) {
 		() => resolveRp()?.container || null,
 		resolveRp
 	);
+	if (_spkmodRemoteInFlightPetId.get(ownerKey) === pet.id) {
+		_spkmodRemoteInFlightPetId.delete(ownerKey);
+	}
 	if (inst) {
-		if (!spkmodIsPetsSystemEnabled()) {
+		if (!spkmodIsPetsSystemEnabled() || _spkmodRemoteEquipSeq.get(ownerKey) !== mySeq) {
 			spkmodDisposePetInstance(inst);
 			return;
 		}
+		const prev = spkmodRemotePetInstances.get(ownerKey);
+		if (prev && prev !== inst) {
+			spkmodDisposePetInstance(prev);
+		}
+		spkmodSweepScenePetRoots("spkmod_pet_root_" + ownerKey, inst.root, false);
 		spkmodRemotePetInstances.set(ownerKey, inst);
 	}
 }
@@ -2483,10 +2676,14 @@ async function spkmodEquipLocalPet(idOrLevel, broadcast = true, silentToast = fa
 		return false;
 	}
 	if (idOrLevel === null || idOrLevel === undefined || idOrLevel === "none" || idOrLevel === "off") {
+		_spkmodLocalEquipSeq++;
+		_spkmodLocalEquipInFlight = false;
+		_spkmodDidInitialAutoRestore = true;
 		if (spkmodLocalPetInstance) {
 			spkmodDisposePetInstance(spkmodLocalPetInstance);
 			spkmodLocalPetInstance = null;
 		}
+		spkmodSweepScenePetRoots("spkmod_pet_root_local_self", null, false);
 		window.spkmodPetSettings.equippedId = null;
 		if (window.localStorage) localStorage.removeItem(SPKMOD_PET_STORAGE_KEYS.equipped);
 		if (broadcast) {
@@ -2521,32 +2718,52 @@ async function spkmodEquipLocalPet(idOrLevel, broadcast = true, silentToast = fa
 		return false;
 	}
 
+	const mySeq = ++_spkmodLocalEquipSeq;
+	_spkmodLocalEquipInFlight = true;
+	_spkmodDidInitialAutoRestore = true;
+
 	if (spkmodLocalPetInstance) {
 		spkmodDisposePetInstance(spkmodLocalPetInstance);
 		spkmodLocalPetInstance = null;
 	}
+	spkmodSweepScenePetRoots("spkmod_pet_root_local_self", null, false);
 
 	window.spkmodPetSettings.equippedId = pet.id;
 	if (window.localStorage) localStorage.setItem(SPKMOD_PET_STORAGE_KEYS.equipped, pet.id);
 
-	const createdInst = await spkmodCreatePetInstance(
-		"local_self",
-		pet,
-		true,
-		() => (typeof gameState !== "undefined" ? gameState?.playerContainer : null),
-		() => null
-	);
-	if (!spkmodIsPetsSystemEnabled()) {
+	let createdInst = null;
+	try {
+		createdInst = await spkmodCreatePetInstance(
+			"local_self",
+			pet,
+			true,
+			() => (typeof gameState !== "undefined" ? gameState?.playerContainer : null),
+			() => null
+		);
+	} finally {
+		if (mySeq === _spkmodLocalEquipSeq) {
+			_spkmodLocalEquipInFlight = false;
+		}
+	}
+
+	if (!spkmodIsPetsSystemEnabled() || mySeq !== _spkmodLocalEquipSeq) {
 		if (createdInst) spkmodDisposePetInstance(createdInst);
 		return false;
 	}
+	if (spkmodLocalPetInstance && spkmodLocalPetInstance !== createdInst) {
+		spkmodDisposePetInstance(spkmodLocalPetInstance);
+	}
 	spkmodLocalPetInstance = createdInst;
+	if (createdInst) {
+		spkmodSweepScenePetRoots("spkmod_pet_root_local_self", createdInst.root, false);
+	}
 
 	if (spkmodLocalPetInstance) {
+		const targetInst = spkmodLocalPetInstance;
 		spkmodPlayPetSfx(pet, true);
 		setTimeout(() => {
-			if (spkmodLocalPetInstance && !spkmodLocalPetInstance.disposed) {
-				spkmodShowPetSpeechBubble(spkmodLocalPetInstance);
+			if (spkmodLocalPetInstance === targetInst && !targetInst.disposed) {
+				spkmodShowPetSpeechBubble(targetInst);
 			}
 		}, 600);
 	}
@@ -2611,7 +2828,13 @@ window.spkmodSetPetsSystemEnabled = function(nextEnabled, silentToast = false) {
 
 	if (!enabled) {
 		spkmodStopPetsLoop();
+		_spkmodLocalEquipSeq++;
+		_spkmodLocalEquipInFlight = false;
+		_spkmodDidInitialAutoRestore = false;
+		_spkmodRemoteEquipSeq.clear();
+		_spkmodRemoteInFlightPetId.clear();
 		_spkmodQueuedPetBroadcast = null;
+		_spkmodNeedsZoneSync = false;
 		if (_spkmodPendingBroadcastTimer) {
 			clearTimeout(_spkmodPendingBroadcastTimer);
 			_spkmodPendingBroadcastTimer = null;
@@ -2630,9 +2853,11 @@ window.spkmodSetPetsSystemEnabled = function(nextEnabled, silentToast = false) {
 			const sInst = spkmodShowcaseInstances.pop();
 			spkmodDisposePetInstance(sInst);
 		}
+		spkmodSweepScenePetRoots("spkmod_pet_root_", null, true);
 		const modal = document.getElementById("spkmod-pets-modal");
 		if (modal) modal.classList.add("hidden");
 	} else {
+		_spkmodDidInitialAutoRestore = false;
 		_spkmodLastObservedZoneId = null;
 		_spkmodLastObservedRemoteCount = 0;
 		spkmodStartPetsLoopIfEnabled();
@@ -2651,11 +2876,12 @@ function spkmodPetsMasterLoop(nowMs) {
 	const dt = Math.min(0.1, Math.max(0.001, (nowMs - _spkmodPetLoopLastMs) / 1000));
 	_spkmodPetLoopLastMs = nowMs;
 
-	if (typeof gameState !== "undefined" && gameState && gameState.scene && gameState.playerContainer) {
-		// Auto-restore saved local pet once gameState is ready
-		if (!spkmodLocalPetInstance && !_spkmodAutoRestoringPet && window.spkmodPetSettings.equippedId) {
+	if (!document.hidden && typeof gameState !== "undefined" && gameState && gameState.scene && gameState.playerContainer) {
+		// Auto-restore saved local pet ONCE when gameState becomes ready (never race with manual pet switching!)
+		if (!_spkmodDidInitialAutoRestore && !spkmodLocalPetInstance && !_spkmodAutoRestoringPet && !_spkmodLocalEquipInFlight && window.spkmodPetSettings.equippedId) {
 			const savedPet = SPKMOD_PETS_BY_ID.get(window.spkmodPetSettings.equippedId);
 			if (savedPet && spkmodIsPetUnlocked(savedPet)) {
+				_spkmodDidInitialAutoRestore = true;
 				_spkmodAutoRestoringPet = true;
 				Promise.resolve(spkmodEquipLocalPet(savedPet.id, true, true)).finally(() => {
 					_spkmodAutoRestoringPet = false;
@@ -2695,15 +2921,27 @@ function spkmodPetsMasterLoop(nowMs) {
 			spkmodUpdateSinglePetInstance(spkmodLocalPetInstance, dt, nowMs);
 		}
 
-		// Prune despawned remote pets & update active ones
+		// Prune despawned remote pets (even when other players remain in zone!) & update active ones
 		const rMap = gameState.remotePlayers?.remotePlayers;
 		for (const [key, rInst] of spkmodRemotePetInstances) {
 			const container = rInst.resolveContainer?.();
-			if (!container && rMap && rMap.size === 0) {
-				spkmodDisposePetInstance(rInst);
-				spkmodRemotePetInstances.delete(key);
+			if (!container) {
+				if (rMap && rMap.size === 0) {
+					spkmodDisposePetInstance(rInst);
+					spkmodRemotePetInstances.delete(key);
+					continue;
+				}
+				if (!rInst._missingOwnerSinceMs) {
+					rInst._missingOwnerSinceMs = nowMs;
+				} else if (nowMs - rInst._missingOwnerSinceMs > 4000) {
+					spkmodDisposePetInstance(rInst);
+					spkmodRemotePetInstances.delete(key);
+					continue;
+				}
+				if (rInst.root) rInst.root.visible = false;
 				continue;
 			}
+			rInst._missingOwnerSinceMs = 0;
 			spkmodUpdateSinglePetInstance(rInst, dt, nowMs);
 		}
 
@@ -2718,12 +2956,15 @@ function spkmodPetsMasterLoop(nowMs) {
 				if (sInst.speechAnchor) sInst.speechAnchor.position.y = sInst.modelHolder.position.y;
 				sInst.modelHolder.rotation.y += dt * 1.2;
 				if (sInst.monsterEntry?.visual?.update) {
-					sInst.monsterEntry.visual.update(dt);
-					if (sInst._lastMeasuredMonsterVisual !== sInst.monsterEntry.visual) {
+					if (sInst._sanitizedMonsterVisual !== sInst.monsterEntry.visual) {
+						sInst._sanitizedMonsterVisual = sInst.monsterEntry.visual;
 						sInst._lastMeasuredMonsterVisual = sInst.monsterEntry.visual;
 						sInst._peakVisualTopY = 0;
+						sInst._cachedVisualTopY = 0;
+						spkmodDisableRaycastAndSanitize(sInst.monsterEntry.container, true);
 						spkmodRepositionPetBubbleIfActive(sInst);
 					}
+					sInst.monsterEntry.visual.update(dt);
 				}
 				if (sInst.mixer) sInst.mixer.update(dt);
 			}
@@ -2777,7 +3018,7 @@ function spkmodEnsurePetsModal() {
 				height: min(650px, calc(100vh - 36px));
 				min-width: 340px;
 				min-height: 320px;
-				background: rgba(11, 15, 27, 0.96);
+				background: rgba(11, 15, 27, 0.98);
 				border: 1.5px solid var(--spkmod-accent, #ffd54a);
 				border-radius: 14px;
 				box-shadow: 0 24px 60px rgba(0, 0, 0, 0.88);
@@ -2785,7 +3026,6 @@ function spkmodEnsurePetsModal() {
 				flex-direction: column;
 				overflow: hidden;
 				color: #f8fafc;
-				backdrop-filter: blur(12px);
 				z-index: 2147483610;
 			}
 			#spkmod-pets-modal.hidden {
@@ -3150,6 +3390,7 @@ function spkmodRenderPetsGrid() {
 		return true;
 	});
 
+	const frag = document.createDocumentFragment();
 	for (const pet of filtered) {
 		const unlocked = spkmodIsPetUnlocked(pet);
 		const isEquipped = eqId === pet.id;
@@ -3248,7 +3489,7 @@ function spkmodRenderPetsGrid() {
 		card.appendChild(topMeta);
 		card.appendChild(bodyEl);
 		card.appendChild(footerEl);
-		grid.appendChild(card);
+		frag.appendChild(card);
 	}
 
 	// Render the "Keep leveling up to unlock more!" Hype Teaser Banner when future pets are hidden
@@ -3280,13 +3521,14 @@ function spkmodRenderPetsGrid() {
 				${spkmodGetPetUiText("hypeDesc", totalMysteryRemaining, nextUnlockLvl)}
 			</div>
 		`;
-		grid.appendChild(hypeCard);
+		frag.appendChild(hypeCard);
 	}
+	grid.appendChild(frag);
 }
 
 function spkmodRefreshPetsModalUI() {
 	const modal = document.getElementById("spkmod-pets-modal");
-	if (!modal) return;
+	if (!modal || modal.classList.contains("hidden")) return;
 	const titleEl = document.getElementById("spkmod-pets-title");
 	if (titleEl) titleEl.innerText = spkmodGetPetUiText("petsModalTitle");
 	const controlsBar = document.getElementById("spkmod-pets-controls-bar");

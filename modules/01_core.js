@@ -84,17 +84,23 @@ try {
 			}
 		}
 
-		// Layer 3: Heal Three.js bloomPipeline.compositeMaterial at the material level so Three.js rebuilds a fresh WebGLProgram with all uniforms/attributes bound
+		// Layer 3: Heal Three.js bloomPipeline.compositeMaterial at the material level, then unwrap for zero steady-state draw-call overhead
 		const patchRendererBloomMaterial = (renderer) => {
 			if (!renderer || renderer.__spkmodBloomFixPatched || typeof renderer.renderBufferDirect !== 'function') return;
 			renderer.__spkmodBloomFixPatched = true;
 			const origRenderBufferDirect = renderer.renderBufferDirect;
+			const checkedMaterials = new WeakSet();
 			renderer.renderBufferDirect = function(camera, scene, geometry, material, object, group) {
-				if (material && material.isShaderMaterial && !material.isRawShaderMaterial && typeof material.fragmentShader === 'string' && material.fragmentShader.indexOf('colorspace_pars_fragment') !== -1) {
-					material.fragmentShader = material.fragmentShader.replace(/#include\s*<colorspace_pars_fragment>/g, '');
-					material.needsUpdate = true;
+				if (material && !checkedMaterials.has(material)) {
+					checkedMaterials.add(material);
+					if (material.isShaderMaterial && !material.isRawShaderMaterial && typeof material.fragmentShader === 'string' && material.fragmentShader.indexOf('colorspace_pars_fragment') !== -1) {
+						material.fragmentShader = material.fragmentShader.replace(/#include\s*<colorspace_pars_fragment>/g, '');
+						material.needsUpdate = true;
+						// Bloom compositeMaterial is healed; restore original hot path immediately (Layer 1 shaderSource handles any future shaders)
+						renderer.renderBufferDirect = origRenderBufferDirect;
+					}
 				}
-				return origRenderBufferDirect.apply(this, arguments);
+				return origRenderBufferDirect.call(this, camera, scene, geometry, material, object, group);
 			};
 		};
 
