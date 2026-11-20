@@ -152,3 +152,5 @@ spk_95,https://i.imgur.com/YimvUKw.png
 spk_96,https://i.imgur.com/Q8xDf1L.png
 spk_97,https://i.imgur.com/BiAdjEL.png
 spk_98,https://i.imgur.com/30qxVIm.png
+spk_140,https://i.imgur.com/2YmPcog.png
+spk_141,https://i.imgur.com/lntApBN.png
