@@ -81,6 +81,9 @@ var spkmodCinemaInZone = false;
 
 function spkmodGetExactCinemaZone() {
 	if (typeof gameState === 'undefined' || !gameState) return null;
+	if (typeof gameState.visualZoneId === 'number' && !isNaN(gameState.visualZoneId)) {
+		return gameState.visualZoneId;
+	}
 	if (typeof gameState.zoneId === 'number' && !isNaN(gameState.zoneId)) {
 		return (gameState.zoneId % 10000);
 	}
@@ -1399,15 +1402,42 @@ function spkmodSyncCinemaPlayback(force = false) {
 }
 
 function spkmodIsInMinigame() {
-	if (typeof gameState !== 'undefined') {
-		if (gameState?.selfMinigameRing) return true;
-		if (gameState?.minigame || gameState?.inMinigame) return true;
-		const zid = (gameState?.zoneId !== undefined && typeof gameState.zoneId === 'number' && !isNaN(gameState.zoneId)) ? (gameState.zoneId % 10000) : null;
+	if (typeof gameState !== 'undefined' && gameState) {
+		try {
+			if (typeof gameState.isInMinigame === 'function' && gameState.isInMinigame()) return true;
+			if (gameState.currentMinigame) return true;
+			if (typeof gameState.isInRaid === 'function' && gameState.isInRaid()) return true;
+			if (gameState.shellRouter && typeof gameState.shellRouter.mounted === 'function' && gameState.shellRouter.mounted()) return true;
+			if (gameState.miningHost && typeof gameState.miningHost.isActive === 'function' && gameState.miningHost.isActive()) return true;
+			if (gameState.speakovHost && typeof gameState.speakovHost.isActive === 'function' && gameState.speakovHost.isActive()) return true;
+			if (gameState.racingHost && typeof gameState.racingHost.isActive === 'function' && gameState.racingHost.isActive()) return true;
+			if (gameState.obstacleHost && typeof gameState.obstacleHost.isActive === 'function' && gameState.obstacleHost.isActive()) return true;
+		} catch (_) {}
+		// selfMinigameRing is lazily created on first minigame and kept on playerContainer with visible = false afterwards
+		if (gameState.selfMinigameRing && gameState.selfMinigameRing.visible === true) return true;
+		if (gameState.minigame || gameState.inMinigame) return true;
+		const zid = spkmodGetExactCinemaZone();
 		if (zid !== null && zid >= 900 && zid <= 999) return true;
 	}
-	if (typeof window !== 'undefined' && window.lunActiveMinigamePanel) return true;
+	if (typeof window !== 'undefined' && window.lunActiveMinigamePanel) {
+		const panel = window.lunActiveMinigamePanel;
+		const isPanelOpen = !!(
+			typeof document !== 'undefined' &&
+			document.contains(panel) &&
+			panel.classList &&
+			panel.classList.contains('sr-panel--open') &&
+			!panel.hidden &&
+			panel.style.display !== 'none'
+		);
+		if (isPanelOpen) return true;
+		window.lunActiveMinigamePanel = null;
+	}
 	if (typeof document !== 'undefined') {
-		if (document.querySelector('.sr-minigame, .sr-minigame-game, .sr-minigame-canvas, .sr-minigame-entry-dialog.sr-panel--open')) {
+		if (document.body && document.body.classList && document.body.classList.contains('sr-minigame-active')) {
+			return true;
+		}
+		const mgEl = document.querySelector('.sr-minigame, .sr-minigame-game, .sr-minigame-canvas, .sr-minigame-entry-dialog.sr-panel--open');
+		if (mgEl && !mgEl.hidden && mgEl.style.display !== 'none') {
 			return true;
 		}
 	}
@@ -2916,7 +2946,12 @@ function spkmodCinemaTick() {
 	if (!spkmodCinemaInZone) {
 		spkmodCinemaInZone = true;
 		if (spkmodCinemaContainer) spkmodCinemaContainer.style.display = '';
-		if (spkmodCinemaFrameMesh) spkmodCinemaFrameMesh.visible = true;
+		if (spkmodCinemaFrameMesh) {
+			if (typeof gameState !== 'undefined' && gameState?.scene && spkmodCinemaFrameMesh.parent !== gameState.scene) {
+				try { gameState.scene.add(spkmodCinemaFrameMesh); } catch (_) {}
+			}
+			spkmodCinemaFrameMesh.visible = true;
+		}
 		if (spkmodCinemaOcclusionCanvas && spkmodCinemaConfig.occlusion) {
 			spkmodCinemaOcclusionCanvas.style.display = '';
 		}
@@ -3038,8 +3073,15 @@ function spkmodCinemaTick() {
 function spkmodStartCinemaLoop() {
 	if (spkmodCinemaRenderLoopId) return;
 	function loop() {
-		spkmodCinemaTick();
 		spkmodCinemaRenderLoopId = requestAnimationFrame(loop);
+		try {
+			spkmodCinemaTick();
+		} catch (err) {
+			if (!window._spkmodCinemaLastTickErrMs || (Date.now() - window._spkmodCinemaLastTickErrMs) > 5000) {
+				window._spkmodCinemaLastTickErrMs = Date.now();
+				console.warn("[SpeakiMod+] Cinema tick error:", err);
+			}
+		}
 	}
 	spkmodCinemaRenderLoopId = requestAnimationFrame(loop);
 }
@@ -3401,6 +3443,8 @@ window.spkmodGetCinemaStatus = function() {
 	const inSeats = spkmodIsPlayerInCinemaSeats(playerPos);
 	const curIdx = spkmodGetCinemaCurrentTrackIndex();
 	const status = {
+		zone: spkmodGetExactCinemaZone(),
+		inMinigame: spkmodIsInMinigame(),
 		playerPos: playerPos ? { x: Number(playerPos.x.toFixed(2)), y: Number(playerPos.y.toFixed(2)), z: Number(playerPos.z.toFixed(2)) } : null,
 		cinemaPos: window.spkmodCinemaConfig.pos,
 		rotationY: window.spkmodCinemaConfig.rotationY,
@@ -4223,6 +4267,9 @@ window.spkmodSetCinemaEnabled = function(enabled, persist = true, fromFirework =
 	} else {
 		if (!spkmodCinemaScreenObject && typeof spkmodInitCinema === 'function') {
 			spkmodInitCinema();
+		}
+		if (!spkmodCinemaRenderLoopId && typeof spkmodStartCinemaLoop === 'function') {
+			spkmodStartCinemaLoop();
 		}
 	}
 	if (typeof spkmodUpdateCinemaPlaybackUI === "function") spkmodUpdateCinemaPlaybackUI();
