@@ -5329,9 +5329,14 @@ let SPKMOD_BOLPOP_TRACKS = [];
 
 const SPKMOD_RADIO_URL = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/radio.json";
 
-function applyRadioTrackList(data) {
-    if (!data || typeof data !== "object") return;
+function applyRadioTrackList(data, options = {}) {
+    if (!data || typeof data !== "object") return false;
     let updated = false;
+    const syncCinema = options.syncCinema !== false;
+
+    const state = (typeof window !== "undefined") ? window.__speakiMusicState : null;
+    const prevTracks = (state && typeof getActiveJukeboxTracks === "function") ? getActiveJukeboxTracks() : null;
+    const prevActiveVid = (state && prevTracks && prevTracks[state.currentTrackIndex]) ? prevTracks[state.currentTrackIndex][0] : null;
 
     if (Array.isArray(data.ost) && data.ost.length > 0) {
         SPKMOD_OST_TRACKS = data.ost.map(t => Array.isArray(t) ? t : [t.id || t.videoId || "", t.title || "", t.author || ""]).filter(t => t[0]);
@@ -5351,21 +5356,38 @@ function applyRadioTrackList(data) {
     }
 
     if (updated) {
-        const state = (typeof window !== "undefined") ? window.__speakiMusicState : null;
-        if (state && (!state.currentTrackTitle || state.currentTrackTitle === "Trickcal BGM")) {
-            const tracks = (typeof getActiveJukeboxTracks === "function") ? getActiveJukeboxTracks() : null;
+        if (state && typeof getActiveJukeboxTracks === "function") {
+            const tracks = getActiveJukeboxTracks();
             if (tracks && tracks.length > 0) {
-                const cur = tracks[state.currentTrackIndex] || tracks[0];
-                state.currentTrackTitle = cur[1];
-                state.currentTrackAuthor = cur[2] || "";
+                if (prevActiveVid && (state.activePlaylistKey === "ost" || state.activePlaylistKey === "bolpop")) {
+                    const matchedIdx = tracks.findIndex(t => t[0] === prevActiveVid);
+                    if (matchedIdx >= 0) {
+                        state.currentTrackIndex = matchedIdx;
+                        state.currentTrackTitle = tracks[matchedIdx][1];
+                        state.currentTrackAuthor = tracks[matchedIdx][2] || "";
+                    } else if (state.currentTrackIndex >= tracks.length) {
+                        state.currentTrackIndex = Math.max(0, tracks.length - 1);
+                    }
+                } else if (!state.currentTrackTitle || state.currentTrackTitle === "Trickcal BGM") {
+                    const cur = tracks[state.currentTrackIndex] || tracks[0];
+                    state.currentTrackTitle = cur[1];
+                    state.currentTrackAuthor = cur[2] || "";
+                }
             }
         }
         const modal = (typeof lunHudElements !== "undefined" && lunHudElements) ? lunHudElements.jukeboxModal : null;
         if (modal) {
+            const drawer = modal.querySelector('#spkmod-jukebox-drawer');
+            const prevScroll = drawer ? drawer.scrollTop : 0;
             if (typeof populateJukeboxDrawer === "function") populateJukeboxDrawer(modal);
+            if (drawer) drawer.scrollTop = prevScroll;
             if (typeof updateJukeboxUI === "function") updateJukeboxUI();
         }
+        if (syncCinema && typeof window !== "undefined" && typeof window.spkmodApplyCinemaBolpopData === "function" && Array.isArray(data.bolpop) && data.bolpop.length > 0) {
+            window.spkmodApplyCinemaBolpopData(data);
+        }
     }
+    return updated;
 }
 
 // Apply cached radio tracks from localStorage if present
@@ -5381,7 +5403,7 @@ try {
 // Fetch remote radio tracks from GitHub
 async function fetchRemoteRadioTracks() {
     try {
-        const res = await fetch(SPKMOD_RADIO_URL + "?t=" + Date.now());
+        const res = await fetch(SPKMOD_RADIO_URL + "?t=" + Date.now(), { cache: "no-store" });
         if (res.ok) {
             const data = await res.json();
             if (data && (Array.isArray(data.ost) || Array.isArray(data.bolpop))) {
@@ -5392,15 +5414,18 @@ async function fetchRemoteRadioTracks() {
                     } catch (_) {}
                 }
                 console.log("[SpeakiMod+] Radio tracks synchronized with GitHub (radio.json).");
+                return data;
             }
         }
     } catch (e) {
         console.warn("[SpeakiMod+] Failed to fetch remote radio.json:", e);
     }
+    return null;
 }
 if (typeof window !== "undefined") {
     window.SPKMOD_OST_TRACKS = SPKMOD_OST_TRACKS;
     window.SPKMOD_BOLPOP_TRACKS = SPKMOD_BOLPOP_TRACKS;
+    window.applyRadioTrackList = applyRadioTrackList;
     window.fetchRemoteRadioTracks = fetchRemoteRadioTracks;
 }
 fetchRemoteRadioTracks();
@@ -5435,7 +5460,8 @@ function getJukeboxText(key) {
         jukeboxRepeat: "Repeat Mode",
         jukeboxMiniPlayerHint: "Double right-click to open Mini-player!",
         jukeboxMiniPlayerExpandHint: "Double right-click to expand!",
-        jukeboxResizeTooltip: "Drag corner to resize window"
+        jukeboxResizeTooltip: "Drag corner to resize window",
+        cinemaReloadPlaylist: "Reload Playlist"
     };
     return enFallbacks[key] || key;
 }
@@ -5551,7 +5577,7 @@ function updateJukeboxI18n() {
 
     const titleEl = modal.querySelector('#spkmod-jukebox-header-title');
     if (titleEl) {
-        titleEl.innerHTML = `<span style="font-size:15px;">🎵</span> ${getJukeboxText("jukeboxTitle")}`;
+        titleEl.innerHTML = `<span style="font-size:15px;flex-shrink:0;">🎵</span> <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${getJukeboxText("jukeboxTitle")}</span>`;
     }
 
     const tabOst = modal.querySelector('#spkmod-jukebox-tab-ost');
@@ -5569,6 +5595,11 @@ function updateJukeboxI18n() {
     const tabFav = modal.querySelector('#spkmod-jukebox-tab-fav');
     if (tabFav) {
         tabFav.title = getJukeboxText("jukeboxPlaylistFavorites");
+    }
+
+    const refreshBtn = modal.querySelector('#spkmod-jukebox-refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.title = getJukeboxText("cinemaReloadPlaylist");
     }
 
     const drawerBtn = modal.querySelector('#spkmod-jukebox-drawer-btn');
@@ -6242,6 +6273,9 @@ function toggleMiniPlayer(forceMini) {
     hideJukeboxHint();
     hideJukeboxThumbPreview();
     updateJukeboxI18n();
+    if (!state.isMiniMode) {
+        scrollJukeboxActiveTrackIntoView(false);
+    }
 }
 
 function switchJukeboxPlaylist(key, autoPlay = false) {
@@ -6299,6 +6333,11 @@ function switchJukeboxPlaylist(key, autoPlay = false) {
             favMsgCard.innerHTML = `❤️ <i>${getJukeboxText("jukeboxFavoritesMessage")}</i>`;
         }
         populateJukeboxDrawer(modal);
+        const drawerEl = modal.querySelector('#spkmod-jukebox-drawer');
+        if (drawerEl && (!tracks || tracks.length === 0)) {
+            drawerEl.scrollTop = 0;
+            state._lastScrolledTrackKey = "";
+        }
     }
     updateJukeboxUI();
 
@@ -6355,14 +6394,15 @@ function buildJukeboxUI() {
     const curVid = activeTracks[state.currentTrackIndex]?.[0] || '8kKIzim7ZqU';
 
     modal.innerHTML = `
-        <div id="spkmod-jukebox-header" style="display:flex;justify-content:space-between;align-items:center;cursor:move;border-bottom:1px solid rgba(232,184,75,0.3);padding-bottom:8px;">
-            <div id="spkmod-jukebox-header-title" style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;color:#ffc94a;">
-                <span style="font-size:15px;">🎵</span> ${getJukeboxText("jukeboxTitle")}
+        <div id="spkmod-jukebox-header" style="display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:move;border-bottom:1px solid rgba(232,184,75,0.3);padding-bottom:8px;">
+            <div id="spkmod-jukebox-header-title" style="display:flex;align-items:center;gap:5px;font-weight:700;font-size:13px;color:#ffc94a;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                <span style="font-size:15px;flex-shrink:0;">🎵</span> <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${getJukeboxText("jukeboxTitle")}</span>
             </div>
-            <div style="display:flex;align-items:center;gap:4px;">
+            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
                 <button id="spkmod-jukebox-tab-ost" title="Trickcal ${getJukeboxText('jukeboxPlaylistOst')}" style="background:${state.activePlaylistKey === 'ost' ? '#e8b84b' : '#3e3052'};color:${state.activePlaylistKey === 'ost' ? '#1a1424' : '#ffc94a'};border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;font-weight:700;">💿 ${getJukeboxText('jukeboxPlaylistOst')}</button>
                 <button id="spkmod-jukebox-tab-bolpop" title="${getJukeboxText('jukeboxPlaylistBolpop')}" style="background:${state.activePlaylistKey === 'bolpop' ? '#e8b84b' : '#3e3052'};color:${state.activePlaylistKey === 'bolpop' ? '#1a1424' : '#ffc94a'};border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;font-weight:700;">🎬 ${getJukeboxText('jukeboxBolpopTab')}</button>
                 <button id="spkmod-jukebox-tab-fav" title="${getJukeboxText('jukeboxPlaylistFavorites')}" style="background:${state.activePlaylistKey === 'favorites' ? '#e8b84b' : '#3e3052'};color:${state.activePlaylistKey === 'favorites' ? '#1a1424' : '#ff4d6d'};border:1px solid #7c6894;border-radius:6px;cursor:pointer;padding:2px 7px;font-size:11px;font-weight:700;">❤️</button>
+                <button id="spkmod-jukebox-refresh-btn" title="${getJukeboxText('cinemaReloadPlaylist')}" style="background:#3e3052;border:1px solid #7c6894;color:#ffc94a;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;transition:opacity 0.15s;">🔄</button>
                 <button id="spkmod-jukebox-drawer-btn" title="${getJukeboxText('jukeboxTogglePlaylist')}" style="background:#3e3052;border:1px solid #7c6894;color:#ffc94a;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px;">📜</button>
                 <button id="spkmod-jukebox-close-btn" title="${getJukeboxText('jukeboxClose')}" style="background:transparent;border:none;color:#aaa;cursor:pointer;font-size:15px;line-height:1;padding:0 2px;">✕</button>
             </div>
@@ -6445,6 +6485,7 @@ function buildJukeboxUI() {
                 if (drawer.style.display === 'none' && newH > 220) {
                     drawer.style.display = 'block';
                     if (window.localStorage) localStorage.setItem("spkmod-jukebox-drawer-open", "true");
+                    scrollJukeboxActiveTrackIntoView(false);
                 }
                 if (drawer.style.display !== 'none') {
                     savedH = newH;
@@ -6501,6 +6542,7 @@ function buildJukeboxUI() {
     const seekBar = modal.querySelector('#spkmod-jukebox-seek');
     const volSlider = modal.querySelector('#spkmod-jukebox-vol');
     const drawerBtn = modal.querySelector('#spkmod-jukebox-drawer-btn');
+    const refreshBtn = modal.querySelector('#spkmod-jukebox-refresh-btn');
     const closeBtn = modal.querySelector('#spkmod-jukebox-close-btn');
     const drawer = modal.querySelector('#spkmod-jukebox-drawer');
     const tabOst = modal.querySelector('#spkmod-jukebox-tab-ost');
@@ -6574,6 +6616,21 @@ function buildJukeboxUI() {
         if (window.localStorage) localStorage.setItem("spkmod-jukebox-vol", String(state.volume));
     });
 
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (refreshBtn.dataset.loading === '1') return;
+            refreshBtn.dataset.loading = '1';
+            refreshBtn.style.opacity = '0.5';
+            try {
+                await fetchRemoteRadioTracks();
+            } finally {
+                refreshBtn.dataset.loading = '0';
+                refreshBtn.style.opacity = '1';
+            }
+        });
+    }
+
     drawerBtn.addEventListener('click', () => {
         const isCurrentlyOpen = drawer.style.display !== 'none';
         if (isCurrentlyOpen) {
@@ -6584,6 +6641,7 @@ function buildJukeboxUI() {
             drawer.style.display = 'block';
             modal.style.height = savedH + 'px';
             if (window.localStorage) localStorage.setItem("spkmod-jukebox-drawer-open", "true");
+            scrollJukeboxActiveTrackIntoView(false);
         }
     });
 
@@ -6757,6 +6815,52 @@ function populateJukeboxDrawer(modal) {
     });
 }
 
+function spkmodScrollItemInContainer(container, item, smooth = true) {
+    if (!container || !item) return false;
+    const viewH = container.clientHeight || 0;
+    if (viewH <= 0) return false;
+
+    let itemTop = item.offsetTop || 0;
+    let itemH = item.offsetHeight || 0;
+    if (typeof container.getBoundingClientRect === 'function' && typeof item.getBoundingClientRect === 'function') {
+        const cRect = container.getBoundingClientRect();
+        const iRect = item.getBoundingClientRect();
+        if (cRect && iRect && cRect.height > 0 && iRect.height > 0) {
+            const layoutH = container.offsetHeight || viewH;
+            const scaleY = (layoutH > 0) ? (cRect.height / layoutH) : 1;
+            itemTop = ((iRect.top - cRect.top) / scaleY) + (container.scrollTop || 0);
+            itemH = iRect.height / scaleY;
+        }
+    }
+    const maxScroll = Math.max(0, (container.scrollHeight || 0) - viewH);
+    const targetTop = Math.max(0, Math.min(maxScroll, Math.round(itemTop - (viewH - itemH) / 2)));
+    if (typeof container.scrollTo === 'function') {
+        container.scrollTo({ top: targetTop, behavior: smooth ? 'smooth' : 'auto' });
+    } else {
+        container.scrollTop = targetTop;
+    }
+    return true;
+}
+
+function scrollJukeboxActiveTrackIntoView(smooth = true) {
+    const modal = (typeof lunHudElements !== "undefined" && lunHudElements) ? lunHudElements.jukeboxModal : null;
+    if (!modal || modal.classList.contains('hidden')) return false;
+    const state = window.__speakiMusicState;
+    if (!state || state.isMiniMode) return false;
+    const drawer = modal.querySelector('#spkmod-jukebox-drawer');
+    if (!drawer || drawer.style.display === 'none') return false;
+    const tracks = getActiveJukeboxTracks();
+    const curVid = tracks[state.currentTrackIndex]?.[0] || '';
+    const items = modal.querySelectorAll('.spkmod-pl-item');
+    const activeRow = items[state.currentTrackIndex];
+    if (!activeRow) return false;
+    const scrolled = spkmodScrollItemInContainer(drawer, activeRow, smooth);
+    if (scrolled) {
+        state._lastScrolledTrackKey = `${state.activePlaylistKey}:${state.currentTrackIndex}:${curVid}`;
+    }
+    return scrolled;
+}
+
 function updateJukeboxUI() {
     const modal = lunHudElements.jukeboxModal;
     if (!modal) return;
@@ -6819,6 +6923,11 @@ function updateJukeboxUI() {
             el.style.fontWeight = 'normal';
         }
     });
+
+    const trackKey = `${state.activePlaylistKey}:${state.currentTrackIndex}:${curVid}`;
+    if (curVid && state._lastScrolledTrackKey !== trackKey) {
+        scrollJukeboxActiveTrackIntoView(state._lastScrolledTrackKey !== undefined);
+    }
 }
 
 function initJukeboxPlayer() {
@@ -6975,6 +7084,7 @@ function toggleMusicPlayer(forceState) {
         modal.classList.remove("hidden");
         state.modalVisible = true;
         if (window.localStorage) localStorage.setItem("spkmod-jukebox-visible", "true");
+        scrollJukeboxActiveTrackIntoView(false);
     } else {
         modal.classList.add("hidden");
         state.modalVisible = false;
@@ -10873,9 +10983,20 @@ document.body.appendChild(
 						innerText: "🔄 " + (t("cinemaReloadPlaylist") || "Reload"),
 						title: t("cinemaReloadPlaylist") || "Reload playlist",
 						onclick: () => {
+							const tasks = [];
 							if (typeof window.spkmodLoadMoviesPlaylist === "function") {
-								window.spkmodLoadMoviesPlaylist().then(() => {
+								tasks.push(window.spkmodLoadMoviesPlaylist());
+							}
+							if (typeof window.spkmodLoadSongsPlaylist === "function") {
+								tasks.push(window.spkmodLoadSongsPlaylist(true));
+							} else if (typeof window.fetchRemoteRadioTracks === "function") {
+								tasks.push(window.fetchRemoteRadioTracks());
+							}
+							if (tasks.length > 0) {
+								Promise.all(tasks).then(() => {
+									if (typeof window.spkmodRenderCinemaModalList === "function") window.spkmodRenderCinemaModalList();
 									if (typeof window.spkmodSyncCinemaPlayback === "function") window.spkmodSyncCinemaPlayback(true);
+									if (typeof window.spkmodUpdateCinemaPlaybackUI === "function") window.spkmodUpdateCinemaPlaybackUI();
 									alert("🎬 " + (t("cinemaReloadPlaylist") || "Reload Playlist") + " OK!");
 								});
 							}
@@ -33699,6 +33820,7 @@ var spkmodCinemaIsPaused = false;
 var spkmodCinemaModalEl = null;
 var spkmodCinemaModalOpen = false;
 var spkmodCinemaModalWasOpenBeforeLeaving = false;
+var spkmodCinemaLastScrolledKey = "";
 
 function spkmodIsCinemaModalOpen() {
 	return !!(spkmodCinemaModalOpen || (spkmodCinemaModalEl && !spkmodCinemaModalEl.classList.contains('hidden')));
@@ -34160,31 +34282,46 @@ async function spkmodLoadMoviesPlaylist() {
 	return defaultList;
 }
 
-async function spkmodLoadSongsPlaylist() {
-	// Directly load Bolpop tracks from radio.json ("bolpop": [...])
-	const parseBolpopData = (data) => {
-		if (!data || !Array.isArray(data.bolpop) || data.bolpop.length === 0) return null;
-		return data.bolpop.map(t => {
-			const id = Array.isArray(t) ? t[0] : (t.id || t.videoId || "");
-			const rawTitle = Array.isArray(t) ? t[1] : (t.title || "");
-			const rawAuthor = Array.isArray(t) ? (t[2] || "") : (t.author || "");
-			let dur = (Array.isArray(t) && t[3]) ? (parseInt(t[3], 10) || 0) : (t.duration || 0);
-			if (!dur || dur <= 0) {
-				try {
-					const cached = localStorage.getItem('spkmod_cinema_dur_' + id);
-					if (cached) dur = parseInt(cached, 10) || 0;
-				} catch (_) {}
-			}
-			if (!dur || dur <= 0) dur = 210;
-			return { id, title: rawTitle || id, author: rawAuthor, duration: dur, baseDuration: dur, url: `https://www.youtube.com/watch?v=${id}` };
-		}).filter(t => t.id);
-	};
+function spkmodParseBolpopData(data) {
+	if (!data || !Array.isArray(data.bolpop) || data.bolpop.length === 0) return null;
+	return data.bolpop.map(t => {
+		const id = Array.isArray(t) ? t[0] : (t.id || t.videoId || "");
+		const rawTitle = Array.isArray(t) ? t[1] : (t.title || "");
+		const rawAuthor = Array.isArray(t) ? (t[2] || "") : (t.author || "");
+		let dur = (Array.isArray(t) && t[3]) ? (parseInt(t[3], 10) || 0) : (t.duration || 0);
+		if (!dur || dur <= 0) {
+			try {
+				const cached = localStorage.getItem('spkmod_cinema_dur_' + id);
+				if (cached) dur = parseInt(cached, 10) || 0;
+			} catch (_) {}
+		}
+		if (!dur || dur <= 0) dur = 210;
+		return { id, title: rawTitle || id, author: rawAuthor, duration: dur, baseDuration: dur, url: `https://www.youtube.com/watch?v=${id}` };
+	}).filter(t => t.id);
+}
 
-	// 1. If window.SPKMOD_BOLPOP_TRACKS is already populated and has duration info, use it
-	if (typeof window !== "undefined" && Array.isArray(window.SPKMOD_BOLPOP_TRACKS) && window.SPKMOD_BOLPOP_TRACKS.length > 0) {
+function spkmodApplyCinemaBolpopData(data) {
+	const list = spkmodParseBolpopData(data);
+	if (!list || list.length === 0) return null;
+	spkmodCinemaPlaylists.songs = list;
+	if (spkmodCinemaActiveTab === 'songs') {
+		spkmodCinemaLoadedPlaylist = list;
+	}
+	if (typeof spkmodRenderCinemaModalList === 'function' && spkmodIsCinemaModalOpen()) {
+		spkmodRenderCinemaModalList();
+	}
+	return list;
+}
+window.spkmodApplyCinemaBolpopData = spkmodApplyCinemaBolpopData;
+
+async function spkmodLoadSongsPlaylist(forceRefresh = false) {
+	// Directly load Bolpop tracks from radio.json ("bolpop": [...])
+
+	// 1. Unless forceRefresh is requested, reuse window.SPKMOD_BOLPOP_TRACKS if already populated with durations
+	if (!forceRefresh && typeof window !== "undefined" && Array.isArray(window.SPKMOD_BOLPOP_TRACKS) && window.SPKMOD_BOLPOP_TRACKS.length > 0) {
 		const hasDurations = window.SPKMOD_BOLPOP_TRACKS.some(t => Array.isArray(t) ? (t[3] > 0) : (t.duration > 0));
 		if (hasDurations) {
-			const list = parseBolpopData({ bolpop: window.SPKMOD_BOLPOP_TRACKS });
+			const list = spkmodParseBolpopData({ bolpop: window.SPKMOD_BOLPOP_TRACKS });
 			if (list && list.length > 0) {
 				spkmodCinemaPlaylists.songs = list;
 				if (spkmodCinemaActiveTab === 'songs') {
@@ -34200,14 +34337,18 @@ async function spkmodLoadSongsPlaylist() {
 		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/radio.json?t=" + Date.now(), { cache: "no-store" });
 		if (res.ok) {
 			const data = await res.json();
-			const list = parseBolpopData(data);
+			const list = spkmodParseBolpopData(data);
 			if (list && list.length > 0) {
 				spkmodCinemaPlaylists.songs = list;
 				if (spkmodCinemaActiveTab === 'songs') {
 					spkmodCinemaLoadedPlaylist = list;
 				}
 				if (typeof window !== "undefined") {
-					window.SPKMOD_BOLPOP_TRACKS = data.bolpop;
+					if (typeof window.applyRadioTrackList === "function") {
+						window.applyRadioTrackList(data, { syncCinema: false });
+					} else {
+						window.SPKMOD_BOLPOP_TRACKS = data.bolpop;
+					}
 					try { localStorage.setItem("spkmod-radio-cache", JSON.stringify(data)); } catch (_) {}
 				}
 				return list;
@@ -34219,7 +34360,7 @@ async function spkmodLoadSongsPlaylist() {
 
 	// 3. Fallback to window.SPKMOD_BOLPOP_TRACKS or localStorage cache
 	if (typeof window !== "undefined" && Array.isArray(window.SPKMOD_BOLPOP_TRACKS) && window.SPKMOD_BOLPOP_TRACKS.length > 0) {
-		const list = parseBolpopData({ bolpop: window.SPKMOD_BOLPOP_TRACKS });
+		const list = spkmodParseBolpopData({ bolpop: window.SPKMOD_BOLPOP_TRACKS });
 		if (list && list.length > 0) {
 			spkmodCinemaPlaylists.songs = list;
 			if (spkmodCinemaActiveTab === 'songs') {
@@ -34234,7 +34375,7 @@ async function spkmodLoadSongsPlaylist() {
 		const cached = localStorage.getItem("spkmod-radio-cache");
 		if (cached) {
 			const data = JSON.parse(cached);
-			const list = parseBolpopData(data);
+			const list = spkmodParseBolpopData(data);
 			if (list && list.length > 0) {
 				spkmodCinemaPlaylists.songs = list;
 				if (spkmodCinemaActiveTab === 'songs') {
@@ -35471,6 +35612,42 @@ function spkmodGetTrackThumbnail(track) {
 	return "data:image/svg+xml;utf8,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%2788%27%20height=%2760%27%20viewBox=%270%200%2088%2060%27%3E%3Crect%20width=%2788%27%20height=%2760%27%20fill=%27%231a1025%27/%3E%3Ccircle%20cx=%2726%27%20cy=%2730%27%20r=%276%27%20fill=%27%23ff3344%27/%3E%3Ctext%20x=%2738%27%20y=%2735%27%20fill=%27%23fff%27%20font-family=%27sans-serif%27%20font-size=%2713%27%20font-weight=%27bold%27%3ELIVE%3C/text%3E%3C/svg%3E";
 }
 
+function spkmodScrollCinemaActiveTrackIntoView(smooth = true) {
+	if (!spkmodCinemaModalEl || !spkmodIsCinemaModalOpen()) return false;
+	const listEl = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-list");
+	if (!listEl || (listEl.clientHeight || 0) <= 0) return false;
+
+	const playlist = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
+		? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
+		: (spkmodCinemaLoadedPlaylist || []);
+	const curIdx = spkmodCinemaCurrentVideo ? playlist.findIndex(t => t.id === spkmodCinemaCurrentVideo) : -1;
+	if (curIdx < 0 || !listEl.children[curIdx]) return false;
+
+	const activeItem = listEl.children[curIdx];
+	const viewH = listEl.clientHeight || 0;
+	let itemTop = activeItem.offsetTop || 0;
+	let itemH = activeItem.offsetHeight || 0;
+	if (typeof listEl.getBoundingClientRect === 'function' && typeof activeItem.getBoundingClientRect === 'function') {
+		const cRect = listEl.getBoundingClientRect();
+		const iRect = activeItem.getBoundingClientRect();
+		if (cRect && iRect && cRect.height > 0 && iRect.height > 0) {
+			const layoutH = listEl.offsetHeight || viewH;
+			const scaleY = (layoutH > 0) ? (cRect.height / layoutH) : 1;
+			itemTop = ((iRect.top - cRect.top) / scaleY) + (listEl.scrollTop || 0);
+			itemH = iRect.height / scaleY;
+		}
+	}
+	const maxScroll = Math.max(0, (listEl.scrollHeight || 0) - viewH);
+	const targetTop = Math.max(0, Math.min(maxScroll, Math.round(itemTop - (viewH - itemH) / 2)));
+	if (typeof listEl.scrollTo === 'function') {
+		listEl.scrollTo({ top: targetTop, behavior: smooth ? 'smooth' : 'auto' });
+	} else {
+		listEl.scrollTop = targetTop;
+	}
+	spkmodCinemaLastScrolledKey = `${spkmodCinemaActiveTab}:${curIdx}:${spkmodCinemaCurrentVideo || ''}`;
+	return true;
+}
+
 function spkmodRenderCinemaModalList() {
 	if (!spkmodCinemaModalEl) return;
 	const listEl = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-list");
@@ -35489,10 +35666,13 @@ function spkmodRenderCinemaModalList() {
 	if (playlist.length === 0) {
 		listEl.innerHTML = `<div style="text-align:center;padding:20px;color:#888;font-size:12px;">${getCinemaText("cinemaNoEntries", tabLabel)}</div>`;
 		listEl.dataset.renderedKey = "";
+		listEl.dataset.renderedTab = spkmodCinemaActiveTab;
+		spkmodCinemaLastScrolledKey = "";
 		return;
 	}
 
-	const renderedKey = `${spkmodCinemaActiveTab}_${playlist.length}`;
+	const renderedKey = `${spkmodCinemaActiveTab}_${playlist.length}_${playlist.map(t => `${t.id}\x1f${t.title || ''}\x1f${t.author || ''}\x1f${t.liveVideoId || ''}`).join('\x1e')}`;
+	const scrollKey = (curIdx >= 0) ? `${spkmodCinemaActiveTab}:${curIdx}:${spkmodCinemaCurrentVideo || ''}` : "";
 
 	// If list items already exist and match current playlist, update highlight IN-PLACE without destroying elements
 	if (listEl.dataset.renderedKey === renderedKey && listEl.children.length === playlist.length) {
@@ -35524,11 +35704,17 @@ function spkmodRenderCinemaModalList() {
 			const badge = item.querySelector(".spkmod-cinema-badge");
 			if (badge) badge.style.display = isActive ? 'inline-block' : 'none';
 		}
+		if (scrollKey && spkmodCinemaLastScrolledKey !== scrollKey) {
+			spkmodScrollCinemaActiveTrackIntoView(spkmodCinemaLastScrolledKey !== "");
+		}
 		return;
 	}
 
-	// Full re-render when tab or playlist length changes
+	// Full re-render when tab or playlist contents change
+	const prevTab = listEl.dataset.renderedTab || "";
+	const prevScrollTop = listEl.scrollTop || 0;
 	listEl.dataset.renderedKey = renderedKey;
+	listEl.dataset.renderedTab = spkmodCinemaActiveTab;
 	listEl.innerHTML = "";
 
 	playlist.forEach((track, i) => {
@@ -35592,6 +35778,15 @@ function spkmodRenderCinemaModalList() {
 
 		listEl.appendChild(item);
 	});
+
+	if (scrollKey && spkmodCinemaLastScrolledKey !== scrollKey) {
+		spkmodScrollCinemaActiveTrackIntoView(prevTab === spkmodCinemaActiveTab && spkmodCinemaLastScrolledKey !== "");
+	} else if (prevTab === spkmodCinemaActiveTab) {
+		listEl.scrollTop = prevScrollTop;
+	} else {
+		listEl.scrollTop = 0;
+		spkmodCinemaLastScrolledKey = "";
+	}
 }
 
 function spkmodUpdateCinemaTimeDisplay() {
@@ -35932,12 +36127,22 @@ function spkmodBuildCinemaModal() {
 		window.spkmodSetCinemaVolume(val, val === 0 ? true : false);
 	};
 
-	modal.querySelector("#spkmod-cinema-modal-reload-btn").onclick = () => {
-		Promise.all([spkmodLoadMoviesPlaylist(), spkmodLoadSongsPlaylist()]).then(() => {
-			spkmodRenderCinemaModalList();
-			spkmodUpdateCinemaPlaybackUI();
-		});
-	};
+	const reloadBtn = modal.querySelector("#spkmod-cinema-modal-reload-btn");
+	if (reloadBtn) {
+		reloadBtn.onclick = async () => {
+			if (reloadBtn.dataset.loading === '1') return;
+			reloadBtn.dataset.loading = '1';
+			reloadBtn.style.opacity = '0.5';
+			try {
+				await Promise.all([spkmodLoadMoviesPlaylist(), spkmodLoadSongsPlaylist(true)]);
+				spkmodRenderCinemaModalList();
+				spkmodUpdateCinemaPlaybackUI();
+			} finally {
+				reloadBtn.dataset.loading = '0';
+				reloadBtn.style.opacity = '1';
+			}
+		};
+	}
 
 	const mainThumb = modal.querySelector("#spkmod-cinema-modal-thumb");
 	if (mainThumb) {
@@ -35966,6 +36171,7 @@ window.spkmodToggleCinemaModal = function(forceState) {
 		if (typeof positionModalNicely === "function") {
 			positionModalNicely(modal);
 		}
+		spkmodCinemaLastScrolledKey = "";
 		spkmodRenderCinemaModalList();
 		spkmodUpdateCinemaPlaybackUI();
 	} else {

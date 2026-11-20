@@ -2837,9 +2837,20 @@ document.body.appendChild(
 						innerText: "🔄 " + (t("cinemaReloadPlaylist") || "Reload"),
 						title: t("cinemaReloadPlaylist") || "Reload playlist",
 						onclick: () => {
+							const tasks = [];
 							if (typeof window.spkmodLoadMoviesPlaylist === "function") {
-								window.spkmodLoadMoviesPlaylist().then(() => {
+								tasks.push(window.spkmodLoadMoviesPlaylist());
+							}
+							if (typeof window.spkmodLoadSongsPlaylist === "function") {
+								tasks.push(window.spkmodLoadSongsPlaylist(true));
+							} else if (typeof window.fetchRemoteRadioTracks === "function") {
+								tasks.push(window.fetchRemoteRadioTracks());
+							}
+							if (tasks.length > 0) {
+								Promise.all(tasks).then(() => {
+									if (typeof window.spkmodRenderCinemaModalList === "function") window.spkmodRenderCinemaModalList();
 									if (typeof window.spkmodSyncCinemaPlayback === "function") window.spkmodSyncCinemaPlayback(true);
+									if (typeof window.spkmodUpdateCinemaPlaybackUI === "function") window.spkmodUpdateCinemaPlaybackUI();
 									alert("🎬 " + (t("cinemaReloadPlaylist") || "Reload Playlist") + " OK!");
 								});
 							}

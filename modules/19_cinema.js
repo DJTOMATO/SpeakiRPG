@@ -54,6 +54,7 @@ var spkmodCinemaIsPaused = false;
 var spkmodCinemaModalEl = null;
 var spkmodCinemaModalOpen = false;
 var spkmodCinemaModalWasOpenBeforeLeaving = false;
+var spkmodCinemaLastScrolledKey = "";
 
 function spkmodIsCinemaModalOpen() {
 	return !!(spkmodCinemaModalOpen || (spkmodCinemaModalEl && !spkmodCinemaModalEl.classList.contains('hidden')));
@@ -515,31 +516,46 @@ async function spkmodLoadMoviesPlaylist() {
 	return defaultList;
 }
 
-async function spkmodLoadSongsPlaylist() {
-	// Directly load Bolpop tracks from radio.json ("bolpop": [...])
-	const parseBolpopData = (data) => {
-		if (!data || !Array.isArray(data.bolpop) || data.bolpop.length === 0) return null;
-		return data.bolpop.map(t => {
-			const id = Array.isArray(t) ? t[0] : (t.id || t.videoId || "");
-			const rawTitle = Array.isArray(t) ? t[1] : (t.title || "");
-			const rawAuthor = Array.isArray(t) ? (t[2] || "") : (t.author || "");
-			let dur = (Array.isArray(t) && t[3]) ? (parseInt(t[3], 10) || 0) : (t.duration || 0);
-			if (!dur || dur <= 0) {
-				try {
-					const cached = localStorage.getItem('spkmod_cinema_dur_' + id);
-					if (cached) dur = parseInt(cached, 10) || 0;
-				} catch (_) {}
-			}
-			if (!dur || dur <= 0) dur = 210;
-			return { id, title: rawTitle || id, author: rawAuthor, duration: dur, baseDuration: dur, url: `https://www.youtube.com/watch?v=${id}` };
-		}).filter(t => t.id);
-	};
+function spkmodParseBolpopData(data) {
+	if (!data || !Array.isArray(data.bolpop) || data.bolpop.length === 0) return null;
+	return data.bolpop.map(t => {
+		const id = Array.isArray(t) ? t[0] : (t.id || t.videoId || "");
+		const rawTitle = Array.isArray(t) ? t[1] : (t.title || "");
+		const rawAuthor = Array.isArray(t) ? (t[2] || "") : (t.author || "");
+		let dur = (Array.isArray(t) && t[3]) ? (parseInt(t[3], 10) || 0) : (t.duration || 0);
+		if (!dur || dur <= 0) {
+			try {
+				const cached = localStorage.getItem('spkmod_cinema_dur_' + id);
+				if (cached) dur = parseInt(cached, 10) || 0;
+			} catch (_) {}
+		}
+		if (!dur || dur <= 0) dur = 210;
+		return { id, title: rawTitle || id, author: rawAuthor, duration: dur, baseDuration: dur, url: `https://www.youtube.com/watch?v=${id}` };
+	}).filter(t => t.id);
+}
 
-	// 1. If window.SPKMOD_BOLPOP_TRACKS is already populated and has duration info, use it
-	if (typeof window !== "undefined" && Array.isArray(window.SPKMOD_BOLPOP_TRACKS) && window.SPKMOD_BOLPOP_TRACKS.length > 0) {
+function spkmodApplyCinemaBolpopData(data) {
+	const list = spkmodParseBolpopData(data);
+	if (!list || list.length === 0) return null;
+	spkmodCinemaPlaylists.songs = list;
+	if (spkmodCinemaActiveTab === 'songs') {
+		spkmodCinemaLoadedPlaylist = list;
+	}
+	if (typeof spkmodRenderCinemaModalList === 'function' && spkmodIsCinemaModalOpen()) {
+		spkmodRenderCinemaModalList();
+	}
+	return list;
+}
+window.spkmodApplyCinemaBolpopData = spkmodApplyCinemaBolpopData;
+
+async function spkmodLoadSongsPlaylist(forceRefresh = false) {
+	// Directly load Bolpop tracks from radio.json ("bolpop": [...])
+
+	// 1. Unless forceRefresh is requested, reuse window.SPKMOD_BOLPOP_TRACKS if already populated with durations
+	if (!forceRefresh && typeof window !== "undefined" && Array.isArray(window.SPKMOD_BOLPOP_TRACKS) && window.SPKMOD_BOLPOP_TRACKS.length > 0) {
 		const hasDurations = window.SPKMOD_BOLPOP_TRACKS.some(t => Array.isArray(t) ? (t[3] > 0) : (t.duration > 0));
 		if (hasDurations) {
-			const list = parseBolpopData({ bolpop: window.SPKMOD_BOLPOP_TRACKS });
+			const list = spkmodParseBolpopData({ bolpop: window.SPKMOD_BOLPOP_TRACKS });
 			if (list && list.length > 0) {
 				spkmodCinemaPlaylists.songs = list;
 				if (spkmodCinemaActiveTab === 'songs') {
@@ -555,14 +571,18 @@ async function spkmodLoadSongsPlaylist() {
 		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/radio.json?t=" + Date.now(), { cache: "no-store" });
 		if (res.ok) {
 			const data = await res.json();
-			const list = parseBolpopData(data);
+			const list = spkmodParseBolpopData(data);
 			if (list && list.length > 0) {
 				spkmodCinemaPlaylists.songs = list;
 				if (spkmodCinemaActiveTab === 'songs') {
 					spkmodCinemaLoadedPlaylist = list;
 				}
 				if (typeof window !== "undefined") {
-					window.SPKMOD_BOLPOP_TRACKS = data.bolpop;
+					if (typeof window.applyRadioTrackList === "function") {
+						window.applyRadioTrackList(data, { syncCinema: false });
+					} else {
+						window.SPKMOD_BOLPOP_TRACKS = data.bolpop;
+					}
 					try { localStorage.setItem("spkmod-radio-cache", JSON.stringify(data)); } catch (_) {}
 				}
 				return list;
@@ -574,7 +594,7 @@ async function spkmodLoadSongsPlaylist() {
 
 	// 3. Fallback to window.SPKMOD_BOLPOP_TRACKS or localStorage cache
 	if (typeof window !== "undefined" && Array.isArray(window.SPKMOD_BOLPOP_TRACKS) && window.SPKMOD_BOLPOP_TRACKS.length > 0) {
-		const list = parseBolpopData({ bolpop: window.SPKMOD_BOLPOP_TRACKS });
+		const list = spkmodParseBolpopData({ bolpop: window.SPKMOD_BOLPOP_TRACKS });
 		if (list && list.length > 0) {
 			spkmodCinemaPlaylists.songs = list;
 			if (spkmodCinemaActiveTab === 'songs') {
@@ -589,7 +609,7 @@ async function spkmodLoadSongsPlaylist() {
 		const cached = localStorage.getItem("spkmod-radio-cache");
 		if (cached) {
 			const data = JSON.parse(cached);
-			const list = parseBolpopData(data);
+			const list = spkmodParseBolpopData(data);
 			if (list && list.length > 0) {
 				spkmodCinemaPlaylists.songs = list;
 				if (spkmodCinemaActiveTab === 'songs') {
@@ -1826,6 +1846,42 @@ function spkmodGetTrackThumbnail(track) {
 	return "data:image/svg+xml;utf8,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%2788%27%20height=%2760%27%20viewBox=%270%200%2088%2060%27%3E%3Crect%20width=%2788%27%20height=%2760%27%20fill=%27%231a1025%27/%3E%3Ccircle%20cx=%2726%27%20cy=%2730%27%20r=%276%27%20fill=%27%23ff3344%27/%3E%3Ctext%20x=%2738%27%20y=%2735%27%20fill=%27%23fff%27%20font-family=%27sans-serif%27%20font-size=%2713%27%20font-weight=%27bold%27%3ELIVE%3C/text%3E%3C/svg%3E";
 }
 
+function spkmodScrollCinemaActiveTrackIntoView(smooth = true) {
+	if (!spkmodCinemaModalEl || !spkmodIsCinemaModalOpen()) return false;
+	const listEl = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-list");
+	if (!listEl || (listEl.clientHeight || 0) <= 0) return false;
+
+	const playlist = (spkmodCinemaPlaylists[spkmodCinemaActiveTab] && spkmodCinemaPlaylists[spkmodCinemaActiveTab].length > 0)
+		? spkmodCinemaPlaylists[spkmodCinemaActiveTab]
+		: (spkmodCinemaLoadedPlaylist || []);
+	const curIdx = spkmodCinemaCurrentVideo ? playlist.findIndex(t => t.id === spkmodCinemaCurrentVideo) : -1;
+	if (curIdx < 0 || !listEl.children[curIdx]) return false;
+
+	const activeItem = listEl.children[curIdx];
+	const viewH = listEl.clientHeight || 0;
+	let itemTop = activeItem.offsetTop || 0;
+	let itemH = activeItem.offsetHeight || 0;
+	if (typeof listEl.getBoundingClientRect === 'function' && typeof activeItem.getBoundingClientRect === 'function') {
+		const cRect = listEl.getBoundingClientRect();
+		const iRect = activeItem.getBoundingClientRect();
+		if (cRect && iRect && cRect.height > 0 && iRect.height > 0) {
+			const layoutH = listEl.offsetHeight || viewH;
+			const scaleY = (layoutH > 0) ? (cRect.height / layoutH) : 1;
+			itemTop = ((iRect.top - cRect.top) / scaleY) + (listEl.scrollTop || 0);
+			itemH = iRect.height / scaleY;
+		}
+	}
+	const maxScroll = Math.max(0, (listEl.scrollHeight || 0) - viewH);
+	const targetTop = Math.max(0, Math.min(maxScroll, Math.round(itemTop - (viewH - itemH) / 2)));
+	if (typeof listEl.scrollTo === 'function') {
+		listEl.scrollTo({ top: targetTop, behavior: smooth ? 'smooth' : 'auto' });
+	} else {
+		listEl.scrollTop = targetTop;
+	}
+	spkmodCinemaLastScrolledKey = `${spkmodCinemaActiveTab}:${curIdx}:${spkmodCinemaCurrentVideo || ''}`;
+	return true;
+}
+
 function spkmodRenderCinemaModalList() {
 	if (!spkmodCinemaModalEl) return;
 	const listEl = spkmodCinemaModalEl.querySelector("#spkmod-cinema-modal-list");
@@ -1844,10 +1900,13 @@ function spkmodRenderCinemaModalList() {
 	if (playlist.length === 0) {
 		listEl.innerHTML = `<div style="text-align:center;padding:20px;color:#888;font-size:12px;">${getCinemaText("cinemaNoEntries", tabLabel)}</div>`;
 		listEl.dataset.renderedKey = "";
+		listEl.dataset.renderedTab = spkmodCinemaActiveTab;
+		spkmodCinemaLastScrolledKey = "";
 		return;
 	}
 
-	const renderedKey = `${spkmodCinemaActiveTab}_${playlist.length}`;
+	const renderedKey = `${spkmodCinemaActiveTab}_${playlist.length}_${playlist.map(t => `${t.id}\x1f${t.title || ''}\x1f${t.author || ''}\x1f${t.liveVideoId || ''}`).join('\x1e')}`;
+	const scrollKey = (curIdx >= 0) ? `${spkmodCinemaActiveTab}:${curIdx}:${spkmodCinemaCurrentVideo || ''}` : "";
 
 	// If list items already exist and match current playlist, update highlight IN-PLACE without destroying elements
 	if (listEl.dataset.renderedKey === renderedKey && listEl.children.length === playlist.length) {
@@ -1879,11 +1938,17 @@ function spkmodRenderCinemaModalList() {
 			const badge = item.querySelector(".spkmod-cinema-badge");
 			if (badge) badge.style.display = isActive ? 'inline-block' : 'none';
 		}
+		if (scrollKey && spkmodCinemaLastScrolledKey !== scrollKey) {
+			spkmodScrollCinemaActiveTrackIntoView(spkmodCinemaLastScrolledKey !== "");
+		}
 		return;
 	}
 
-	// Full re-render when tab or playlist length changes
+	// Full re-render when tab or playlist contents change
+	const prevTab = listEl.dataset.renderedTab || "";
+	const prevScrollTop = listEl.scrollTop || 0;
 	listEl.dataset.renderedKey = renderedKey;
+	listEl.dataset.renderedTab = spkmodCinemaActiveTab;
 	listEl.innerHTML = "";
 
 	playlist.forEach((track, i) => {
@@ -1947,6 +2012,15 @@ function spkmodRenderCinemaModalList() {
 
 		listEl.appendChild(item);
 	});
+
+	if (scrollKey && spkmodCinemaLastScrolledKey !== scrollKey) {
+		spkmodScrollCinemaActiveTrackIntoView(prevTab === spkmodCinemaActiveTab && spkmodCinemaLastScrolledKey !== "");
+	} else if (prevTab === spkmodCinemaActiveTab) {
+		listEl.scrollTop = prevScrollTop;
+	} else {
+		listEl.scrollTop = 0;
+		spkmodCinemaLastScrolledKey = "";
+	}
 }
 
 function spkmodUpdateCinemaTimeDisplay() {
@@ -2287,12 +2361,22 @@ function spkmodBuildCinemaModal() {
 		window.spkmodSetCinemaVolume(val, val === 0 ? true : false);
 	};
 
-	modal.querySelector("#spkmod-cinema-modal-reload-btn").onclick = () => {
-		Promise.all([spkmodLoadMoviesPlaylist(), spkmodLoadSongsPlaylist()]).then(() => {
-			spkmodRenderCinemaModalList();
-			spkmodUpdateCinemaPlaybackUI();
-		});
-	};
+	const reloadBtn = modal.querySelector("#spkmod-cinema-modal-reload-btn");
+	if (reloadBtn) {
+		reloadBtn.onclick = async () => {
+			if (reloadBtn.dataset.loading === '1') return;
+			reloadBtn.dataset.loading = '1';
+			reloadBtn.style.opacity = '0.5';
+			try {
+				await Promise.all([spkmodLoadMoviesPlaylist(), spkmodLoadSongsPlaylist(true)]);
+				spkmodRenderCinemaModalList();
+				spkmodUpdateCinemaPlaybackUI();
+			} finally {
+				reloadBtn.dataset.loading = '0';
+				reloadBtn.style.opacity = '1';
+			}
+		};
+	}
 
 	const mainThumb = modal.querySelector("#spkmod-cinema-modal-thumb");
 	if (mainThumb) {
@@ -2321,6 +2405,7 @@ window.spkmodToggleCinemaModal = function(forceState) {
 		if (typeof positionModalNicely === "function") {
 			positionModalNicely(modal);
 		}
+		spkmodCinemaLastScrolledKey = "";
 		spkmodRenderCinemaModalList();
 		spkmodUpdateCinemaPlaybackUI();
 	} else {
