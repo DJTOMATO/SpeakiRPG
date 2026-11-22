@@ -21221,6 +21221,34 @@ if (typeof window !== "undefined") window.spkmodCA = spkmodCA;
 
 let _spkmodCAMatH1 = null;
 let _spkmodCAMatInv = null;
+const _spkmodCAPropMats = [];
+
+function spkmodCACollectHandProps(e) {
+	const out = [];
+	const hands = e && e.hands;
+	if (!hands) return out;
+	for (let i = 0; i < hands.length; i++) {
+		const hb = hands[i];
+		const ch = hb && hb.children;
+		if (!ch) continue;
+		for (let j = 0; j < ch.length; j++) {
+			const c = ch[j];
+			if (c && c.userData && c.userData.lunchPropHolder === true) {
+				out.push(c);
+			}
+		}
+	}
+	return out;
+}
+
+function spkmodCARestorePropHolders(e) {
+	const props = spkmodCACollectHandProps(e);
+	for (let i = 0; i < props.length; i++) {
+		const h = props[i];
+		h.matrixAutoUpdate = true;
+		h.updateMatrix();
+	}
+}
 
 function spkmodCAContainers() {
 	const gs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
@@ -21301,6 +21329,10 @@ function spkmodCARelease(e) {
 		e.head.matrixAutoUpdate = true;
 		e.head.updateMatrix();
 	}
+	spkmodCARestorePropHolders(e);
+	if (e.cont) {
+		e.cont.updateMatrixWorld(true);
+	}
 }
 
 function spkmodCAReleaseAll() {
@@ -21376,11 +21408,12 @@ function spkmodCASync(scene) {
 			const pel = B.find(b => S.pelvis.test(b.name)) || B.find(b => S.spine.test(b.name));
 			const head = B.find(b => S.head.test(b.name) && !/nub/i.test(b.name));
 			if (!pel || !head || pel === head || !head.parent) continue;
+			const hands = B.filter(b => /hand/i.test(b.name) && !/nub/i.test(b.name));
 			cont.updateMatrixWorld(true);
 			const ap = spkmodCAAxes(pel, cont);
 			const px = pel.scale[ap.x], pz = pel.scale[ap.z];
 			if (!px || !pz || !isFinite(px) || !isFinite(pz)) continue;
-			e = { cont, pel, head, ap, p0: { x: px, z: pz }, M: head.matrix.constructor, want: false, rel: true, seen: null, decided: false, born: now, bubbleSeenAt: null };
+			e = { cont, pel, head, hands, ap, p0: { x: px, z: pz }, M: head.matrix.constructor, want: false, rel: true, seen: null, decided: false, born: now, bubbleSeenAt: null };
 		}
 		if (!e.decided) {
 			cont.updateMatrixWorld(true);
@@ -21415,8 +21448,31 @@ function spkmodCASync(scene) {
 function spkmodCAApply() {
 	const S = spkmodCA;
 	for (const e of S.list) {
+		const props = spkmodCACollectHandProps(e);
 		if (!S.on || !e.want || e.ap.x === e.ap.z) {
 			spkmodCARelease(e);
+			// Even on normal customers, repair hand tray/food holders whose scale was baked while container.scale < 1 (pop-in race)
+			if (S.on && props.length > 0 && e.cont) {
+				const ce = e.cont.matrixWorld.elements;
+				const contScale = Math.hypot(ce[0], ce[1], ce[2]) || 1;
+				for (let i = 0; i < props.length; i++) {
+					const h = props[i];
+					const hand = h.parent;
+					if (!hand) continue;
+					const pe = hand.matrixWorld.elements;
+					const l0 = Math.hypot(pe[0], pe[1], pe[2]);
+					if (l0 > 1e-6 && (Math.abs(h.scale.x * l0 - contScale) > 0.05 * contScale ||
+						Math.abs(h.scale.y * l0 - contScale) > 0.05 * contScale ||
+						Math.abs(h.scale.z * l0 - contScale) > 0.05 * contScale)) {
+						const s = contScale / l0;
+						h.scale.x = s;
+						h.scale.y = s;
+						h.scale.z = s;
+						h.updateMatrix();
+						h.updateMatrixWorld(true);
+					}
+				}
+			}
 			continue;
 		}
 		const pel = e.pel, head = e.head, neck = head.parent;
@@ -21424,14 +21480,55 @@ function spkmodCAApply() {
 		if (!_spkmodCAMatH1 || _spkmodCAMatH1.constructor !== e.M) {
 			_spkmodCAMatH1 = new e.M();
 			_spkmodCAMatInv = new e.M();
+			_spkmodCAPropMats.length = 0;
 		}
 		e.rel = false;
 		head.matrixAutoUpdate = true;
+		for (let i = 0; i < props.length; i++) {
+			props[i].matrixAutoUpdate = true;
+		}
 		pel.scale[e.ap.x] = e.p0.x;
 		pel.scale[e.ap.z] = e.p0.z;
 		pel.updateMatrix();
 		e.cont.updateMatrixWorld(true);
 		_spkmodCAMatH1.copy(head.matrixWorld);
+
+		// Snapshot rigid unstretched world transforms for hand-held trays / food (child of pelvis -> arm -> hand)
+		const ce = e.cont.matrixWorld.elements;
+		const contScale = Math.hypot(ce[0], ce[1], ce[2]) || 1;
+		let propCount = 0;
+		for (let i = 0; i < props.length; i++) {
+			const h = props[i];
+			const hand = h.parent;
+			if (!hand) continue;
+			const pe = hand.matrixWorld.elements;
+			const l0 = Math.hypot(pe[0], pe[1], pe[2]);
+			const l1 = Math.hypot(pe[4], pe[5], pe[6]);
+			const l2 = Math.hypot(pe[8], pe[9], pe[10]);
+			if (l0 <= 1e-6 || l1 <= 1e-6 || l2 <= 1e-6) continue;
+			const idealScale = contScale / l0;
+			if (Math.abs(h.scale.x * l0 - contScale) > 0.05 * contScale ||
+				Math.abs(h.scale.y * l0 - contScale) > 0.05 * contScale ||
+				Math.abs(h.scale.z * l0 - contScale) > 0.05 * contScale) {
+				h.scale.x = idealScale;
+				h.scale.y = idealScale;
+				h.scale.z = idealScale;
+				h.updateMatrix();
+			}
+			let pm = _spkmodCAPropMats[propCount];
+			if (!pm || pm.constructor !== e.M) {
+				pm = new e.M();
+				_spkmodCAPropMats[propCount] = pm;
+			}
+			const me = pm.elements;
+			const s0 = contScale / l0, s1 = contScale / l1, s2 = contScale / l2;
+			me[0] = pe[0] * s0; me[1] = pe[1] * s0; me[2] = pe[2] * s0; me[3] = 0;
+			me[4] = pe[4] * s1; me[5] = pe[5] * s1; me[6] = pe[6] * s1; me[7] = 0;
+			me[8] = pe[8] * s2; me[9] = pe[9] * s2; me[10] = pe[10] * s2; me[11] = 0;
+			me[12] = pe[12];    me[13] = pe[13];    me[14] = pe[14];    me[15] = 1;
+			props[propCount] = h;
+			propCount++;
+		}
 
 		pel.scale[e.ap.x] = e.p0.x * S.fx;
 		pel.scale[e.ap.z] = e.p0.z * S.fz;
@@ -21439,16 +21536,42 @@ function spkmodCAApply() {
 		e.cont.updateMatrixWorld(true);
 
 		const ne = neck.matrixWorld;
-		if (typeof ne.determinant === "function" && Math.abs(ne.determinant()) < 1e-10) {
-			continue;
+		if (typeof ne.determinant !== "function" || Math.abs(ne.determinant()) >= 1e-10) {
+			const he = head.matrixWorld.elements;
+			_spkmodCAMatH1.elements[12] = he[12];
+			_spkmodCAMatH1.elements[13] = he[13];
+			_spkmodCAMatH1.elements[14] = he[14];
+			head.matrix.copy(_spkmodCAMatInv.copy(ne).invert().multiply(_spkmodCAMatH1));
+			head.matrixAutoUpdate = false;
+			head.updateMatrixWorld(true);
 		}
-		const he = head.matrixWorld.elements;
-		_spkmodCAMatH1.elements[12] = he[12];
-		_spkmodCAMatH1.elements[13] = he[13];
-		_spkmodCAMatH1.elements[14] = he[14];
-		head.matrix.copy(_spkmodCAMatInv.copy(ne).invert().multiply(_spkmodCAMatH1));
-		head.matrixAutoUpdate = false;
-		head.updateMatrixWorld(true);
+
+		for (let i = 0; i < propCount; i++) {
+			const h = props[i];
+			const hand = h.parent;
+			if (!hand) continue;
+			const hm = hand.matrixWorld;
+			if (typeof hm.determinant === "function" && Math.abs(hm.determinant()) < 1e-10) {
+				continue;
+			}
+			const pm = _spkmodCAPropMats[i];
+			const he = hm.elements;
+			pm.elements[12] = he[12];
+			pm.elements[13] = he[13];
+			pm.elements[14] = he[14];
+			h.matrix.copy(_spkmodCAMatInv.copy(hm).invert().multiply(pm));
+			h.matrixAutoUpdate = false;
+			h.updateMatrixWorld(true);
+		}
+	}
+}
+
+function spkmodCARestoreAfterRender() {
+	const S = spkmodCA;
+	for (const e of S.list) {
+		if (!e.rel) {
+			spkmodCARelease(e);
+		}
 	}
 }
 
@@ -21456,30 +21579,51 @@ function spkmodEnsureBurgerFatSceneHook() {
 	const gs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
 	const scene = gs && gs.scene;
 	if (!scene) return false;
-	if (scene.__spkmodCAHooked) return true;
-	scene.__spkmodCAHooked = true;
-	const prevBefore = scene.onBeforeRender;
-	scene.onBeforeRender = function(renderer, sc, camera, ...rest) {
-		if (typeof prevBefore === "function") {
-			try { prevBefore.call(this, renderer, sc, camera, ...rest); } catch (_) {}
+	if (!scene.__spkmodCABeforeHooked) {
+		scene.__spkmodCABeforeHooked = true;
+		const prevBefore = scene.onBeforeRender;
+		scene.onBeforeRender = function(renderer, sc, camera, ...rest) {
+			if (typeof prevBefore === "function") {
+				try { prevBefore.call(this, renderer, sc, camera, ...rest); } catch (_) {}
+			}
+			const curGs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
+			const S = spkmodCA;
+			if (!curGs || sc !== curGs.scene || (!S.on && S.list.length === 0)) return;
+			try {
+				if (!S.on) {
+					spkmodCAReleaseAll();
+					return;
+				}
+				const now = performance.now();
+				// Skip order-bubble sync during shader overrideMaterial normal pass (which hides sprites)
+				if (!sc.overrideMaterial && now - S.t >= S.every) {
+					S.t = now;
+					spkmodCASync(sc);
+				}
+				spkmodCAApply();
+			} catch (_) {}
+		};
+	}
+	if (!scene.__spkmodCAAfterFn || scene.onAfterRender !== scene.__spkmodCAAfterFn) {
+		// Avoid re-wrapping while shaders or bloom guard temporarily wrap onAfterRender if ours is already in the chain
+		const curAfter = scene.onAfterRender;
+		if (!curAfter || !curAfter.__spkmodCAInChain) {
+			const prevAfter = curAfter;
+			const wrappedAfter = function(renderer, sc, camera, ...rest) {
+				if (typeof prevAfter === "function") {
+					try { prevAfter.call(this, renderer, sc, camera, ...rest); } catch (_) {}
+				}
+				const curGs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
+				if (!curGs || sc !== curGs.scene || spkmodCA.list.length === 0) return;
+				try {
+					spkmodCARestoreAfterRender();
+				} catch (_) {}
+			};
+			wrappedAfter.__spkmodCAInChain = true;
+			scene.__spkmodCAAfterFn = wrappedAfter;
+			scene.onAfterRender = wrappedAfter;
 		}
-		const curGs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
-		const S = spkmodCA;
-		if (!curGs || sc !== curGs.scene || (!S.on && S.list.length === 0)) return;
-		try {
-			if (!S.on) {
-				spkmodCAReleaseAll();
-				return;
-			}
-			const now = performance.now();
-			// Skip order-bubble sync during shader overrideMaterial normal pass (which hides sprites)
-			if (!sc.overrideMaterial && now - S.t >= S.every) {
-				S.t = now;
-				spkmodCASync(sc);
-			}
-			spkmodCAApply();
-		} catch (_) {}
-	};
+	}
 	return true;
 }
 
