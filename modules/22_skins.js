@@ -426,6 +426,13 @@ const SPKMOD_SKIN_CATALOG = [
 		hideMagicStaff: true
 	},
 	{
+		id: "costume_maid", level: 40, category: "outfit", icon: "🎀", accent: "#f472b6",
+		defaultName: "Japanese Maid Speaki",
+		recolor: { hue: 235, satMul: 0.20, satAdd: 0.02, satMax: 0.14, lightMul: 0.34, lightAdd: -0.02, lightMax: 0.26 },
+		costumeBuilder: "maid",
+		hideMagicStaff: true
+	},
+	{
 		id: "costume_kitsune", level: 45, category: "outfit", icon: "🦊", accent: "#f97316",
 		defaultName: "Kitsune (Foxgirl) Speaki",
 		recolor: { hue: 18, satMul: 3.1, satAdd: 0.24, satMax: 0.90, lightMul: 1.18, lightAdd: 0.08, lightMax: 0.80 },
@@ -5024,6 +5031,296 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 			blade.scale.set(1.0, 1.0, 0.38);
 			spear.add(blade);
 			attachHandProp(rightHand, "spkmod_skin_phoenix_spear", spear, Q.HERO_R, [0.03, -0.08, 0.04], { hideInSpeakov: true });
+		}
+		return true;
+	} else if (builder === "maid") {
+		addHead(anchor => {
+			const whiteMat = toon(0xffffff, { emissive: 0xf8fafc, emissiveIntensity: 0.12 });
+			const laceMat = toon(0xfdf2f8, { emissive: 0xfce7f3, emissiveIntensity: 0.14 });
+			const pinkMat = toon(0xf472b6, { emissive: 0xdb2777, emissiveIntensity: 0.22 });
+			const softPinkMat = toon(0xfbcfe8, { emissive: 0xf472b6, emissiveIntensity: 0.18 });
+			const rubyMat = toon(0xe11d48, { emissive: 0xbe123c, emissiveIntensity: 0.45 });
+			const goldMat = toon(0xfacc15, { emissive: 0xb45309, emissiveIntensity: 0.35 });
+			// Snug dome-hugging Japanese Maid Lace Headdress (Katyusha) tailored to Speaki's crown contour
+			const katyusha = new THREE.Group();
+			katyusha.position.set(0, -0.352, 0.04);
+			katyusha.rotation.x = 0.06;
+			const rx = 0.435, ry = 0.295;
+			// Wrap rotated torus arcs in a parent scale group so the ellipse stays 100% left-right symmetric
+			const archGroup = new THREE.Group();
+			archGroup.scale.set(1.0, ry / rx, 1.0);
+			const band = new THREE.Mesh(new THREE.TorusGeometry(rx, 0.021, 8, 24, Math.PI * 0.62), whiteMat);
+			band.rotation.z = Math.PI * 0.19;
+			archGroup.add(band);
+			const ribbon = new THREE.Mesh(new THREE.TorusGeometry(rx + 0.008, 0.012, 8, 22, Math.PI * 0.58), pinkMat);
+			ribbon.rotation.z = Math.PI * 0.21;
+			ribbon.position.z = 0.017;
+			archGroup.add(ribbon);
+			katyusha.add(archGroup);
+			// 11 dainty pleated white lace frill scallops + pastel pink pearls along the crest
+			for (let i = 0; i <= 10; i++) {
+				const ang = Math.PI * (0.21 + (0.58 * i) / 10);
+				const frill = new THREE.Mesh(new THREE.SphereGeometry(0.042, 10, 8), i % 2 === 0 ? whiteMat : laceMat);
+				frill.scale.set(0.95, 1.12, 0.30);
+				frill.position.set(Math.cos(ang) * (rx + 0.032), Math.sin(ang) * (ry + 0.032), -0.004);
+				frill.rotation.z = Math.atan2(Math.sin(ang) / (ry + 0.032), Math.cos(ang) / (rx + 0.032)) - Math.PI / 2;
+				katyusha.add(frill);
+				if (i % 2 === 1) {
+					const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.013, 8, 6), softPinkMat);
+					pearl.position.set(Math.cos(ang) * (rx + 0.010), Math.sin(ang) * (ry + 0.008), 0.026);
+					katyusha.add(pearl);
+				}
+			}
+			// Center mini pink satin bow + ruby gem at peak
+			for (const s of [-1, 1]) {
+				const wing = new THREE.Mesh(new THREE.ConeGeometry(0.032, 0.068, 5), pinkMat);
+				wing.scale.set(1.0, 1.0, 0.42);
+				wing.position.set(s * 0.032, ry + 0.008, 0.030);
+				wing.rotation.z = s * (Math.PI / 2);
+				katyusha.add(wing);
+			}
+			const topGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.020, 0), rubyMat);
+			topGem.position.set(0, ry + 0.008, 0.042);
+			katyusha.add(topGem);
+			// Cute wiggling velvety-black & pastel-pink cat ears nestled right into the lace headdress
+			const earFurMat = toon(0x18181b);
+			for (const s of [-1, 1]) {
+				const catEar = new THREE.Group();
+				catEar.position.set(s * 0.197, 0.262, -0.005);
+				const baseRotZ = -s * 0.32;
+				catEar.rotation.z = baseRotZ;
+				const outerEar = new THREE.Mesh(new THREE.ConeGeometry(0.098, 0.21, 4), earFurMat);
+				outerEar.rotation.y = Math.PI / 4;
+				outerEar.scale.set(1.0, 1.0, 0.52);
+				outerEar.position.y = 0.095;
+				catEar.add(outerEar);
+				const innerEar = new THREE.Mesh(new THREE.ConeGeometry(0.060, 0.145, 4), softPinkMat);
+				innerEar.rotation.y = Math.PI / 4;
+				innerEar.scale.set(1.0, 1.0, 0.36);
+				innerEar.position.set(0, 0.082, 0.028);
+				catEar.add(innerEar);
+				const earCuff = new THREE.Mesh(new THREE.SphereGeometry(0.044, 10, 8), whiteMat);
+				earCuff.scale.set(1.25, 0.50, 0.78);
+				earCuff.position.set(0, 0.012, 0.012);
+				catEar.add(earCuff);
+				katyusha.add(catEar);
+				animParts.push({ type: "earWiggle", node: catEar, side: s, baseRotZ });
+			}
+			// Twin cute pink satin side bows with dangling ribbon streamers on left & right ends
+			for (const s of [-1, 1]) {
+				const sideBow = new THREE.Group();
+				sideBow.position.set(s * 0.358, 0.172, 0.016);
+				sideBow.rotation.z = -s * 0.28;
+				for (const bs of [-1, 1]) {
+					const loop = new THREE.Mesh(new THREE.ConeGeometry(0.038, 0.078, 5), pinkMat);
+					loop.scale.set(1.0, 1.0, 0.45);
+					loop.position.set(bs * 0.034, 0.014, 0.012);
+					loop.rotation.z = bs * (Math.PI / 2);
+					sideBow.add(loop);
+					const tail = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.105, 0.010), bs > 0 ? whiteMat : pinkMat);
+					tail.position.set(bs * 0.024, -0.056, 0.008);
+					tail.rotation.z = bs * 0.24;
+					sideBow.add(tail);
+				}
+				const knot = new THREE.Mesh(new THREE.SphereGeometry(0.021, 8, 8), goldMat);
+				knot.position.set(0, 0.014, 0.020);
+				sideBow.add(knot);
+				katyusha.add(sideBow);
+			}
+			anchor.add(katyusha);
+			// Orbiting cute pastel pink & white sparkles/hearts above head
+			for (let i = 0; i < 3; i++) {
+				const charm = new THREE.Mesh(new THREE.OctahedronGeometry(0.036, 0), i % 2 === 0 ? pinkMat : softPinkMat);
+				charm.scale.set(1.1, 1.25, 0.55);
+				anchor.add(charm);
+				animParts.push({ type: "orbit", node: charm, radius: 0.44, baseY: 0.06 + (i % 2) * 0.06, phase: (Math.PI * 2 * i) / 3 });
+			}
+		});
+		// Front chest satin maid collar choker, ribbon bow & gleaming golden cat bell (suzu) cleanly below chin
+		addBody(spine, "spkmod_skin_maid_chest_bow", [0, 0.03, 0.29], bowAnchor => {
+			const whiteMat = toon(0xffffff, { emissive: 0xf8fafc, emissiveIntensity: 0.10 });
+			const pinkMat = toon(0xf472b6, { emissive: 0xdb2777, emissiveIntensity: 0.26 });
+			// Snug pink satin choker ribbon wrapping around the collar so bow & bell look physically worn from all angles
+			const choker = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.022, 8, 22), pinkMat);
+			choker.rotation.x = Math.PI / 2;
+			choker.position.set(0, 0.02, -0.24);
+			bowAnchor.add(choker);
+			for (const s of [-1, 1]) {
+				const laceWing = new THREE.Mesh(new THREE.ConeGeometry(0.066, 0.132, 5), whiteMat);
+				laceWing.scale.set(1.0, 1.0, 0.36);
+				laceWing.position.set(s * 0.066, 0, -0.008);
+				laceWing.rotation.z = s * (Math.PI / 2);
+				bowAnchor.add(laceWing);
+				const pinkWing = new THREE.Mesh(new THREE.ConeGeometry(0.052, 0.105, 5), pinkMat);
+				pinkWing.scale.set(1.0, 1.0, 0.40);
+				pinkWing.position.set(s * 0.054, 0, 0.008);
+				pinkWing.rotation.z = s * (Math.PI / 2);
+				bowAnchor.add(pinkWing);
+				const streamer = new THREE.Mesh(new THREE.BoxGeometry(0.030, 0.125, 0.012), pinkMat);
+				streamer.position.set(s * 0.036, -0.075, 0.004);
+				streamer.rotation.z = s * 0.24;
+				bowAnchor.add(streamer);
+			}
+			const knot = new THREE.Mesh(new THREE.SphereGeometry(0.034, 10, 8), pinkMat);
+			knot.position.z = 0.016;
+			bowAnchor.add(knot);
+			// Cute shiny golden cat bell (suzu) hanging prominently under the neck ribbon knot against the black bodice
+			const bellGoldMat = toon(0xfacc15, { emissive: 0xd97706, emissiveIntensity: 0.50 });
+			const bellSlitMat = toon(0x18181b);
+			const bellGroup = new THREE.Group();
+			bellGroup.position.set(0, -0.058, 0.034);
+			const bellRing = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.006, 6, 10), bellGoldMat);
+			bellRing.position.y = 0.055;
+			bellGroup.add(bellRing);
+			const bellOrb = new THREE.Mesh(new THREE.SphereGeometry(0.054, 14, 12), bellGoldMat);
+			bellGroup.add(bellOrb);
+			const bellRidge = new THREE.Mesh(new THREE.TorusGeometry(0.054, 0.009, 6, 16), bellGoldMat);
+			bellRidge.rotation.x = Math.PI / 2;
+			bellGroup.add(bellRidge);
+			const bellHole = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 6), bellSlitMat);
+			bellHole.position.set(0, -0.022, 0.046);
+			bellGroup.add(bellHole);
+			const bellSlit = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.011, 0.018), bellSlitMat);
+			bellSlit.position.set(0, -0.026, 0.042);
+			bellGroup.add(bellSlit);
+			bowAnchor.add(bellGroup);
+		});
+		// Oversized fluffy white lace & pink satin back bustle bow with swaying ribbon tails
+		addBody(spine, "spkmod_skin_maid_back_bow", [0, -0.06, -0.75], backAnchor => {
+			const whiteMat = toon(0xffffff, { emissive: 0xf8fafc, emissiveIntensity: 0.10 });
+			const pinkMat = toon(0xf472b6, { emissive: 0xdb2777, emissiveIntensity: 0.20 });
+			const bowGroup = new THREE.Group();
+			bowGroup.rotation.x = 0.26;
+			for (const s of [-1, 1]) {
+				const outerLoop = new THREE.Mesh(new THREE.SphereGeometry(0.145, 12, 10), whiteMat);
+				outerLoop.scale.set(1.38, 0.92, 0.45);
+				outerLoop.position.set(s * 0.175, 0.04, -0.02);
+				outerLoop.rotation.z = s * 0.26;
+				bowGroup.add(outerLoop);
+				const innerLoop = new THREE.Mesh(new THREE.SphereGeometry(0.092, 10, 8), pinkMat);
+				innerLoop.scale.set(1.26, 0.78, 0.38);
+				innerLoop.position.set(s * 0.155, 0.04, -0.062);
+				innerLoop.rotation.z = s * 0.26;
+				bowGroup.add(innerLoop);
+			}
+			const centerKnot = new THREE.Mesh(new THREE.SphereGeometry(0.072, 12, 10), pinkMat);
+			centerKnot.scale.set(1.12, 0.95, 0.68);
+			centerKnot.position.set(0, 0.03, -0.035);
+			bowGroup.add(centerKnot);
+			const knotBand = new THREE.Mesh(new THREE.BoxGeometry(0.088, 0.048, 0.11), whiteMat);
+			knotBand.position.set(0, 0.03, -0.035);
+			bowGroup.add(knotBand);
+			// Swaying ribbon tails hanging gracefully behind the bow
+			const tailsPivot = new THREE.Group();
+			tailsPivot.position.set(0, -0.02, -0.04);
+			for (const s of [-1, 1]) {
+				const whiteRibbon = new THREE.Mesh(new THREE.BoxGeometry(0.095, 0.36, 0.018), whiteMat);
+				whiteRibbon.position.set(s * 0.105, -0.19, -0.01);
+				whiteRibbon.rotation.z = s * 0.26;
+				tailsPivot.add(whiteRibbon);
+				const pinkStripe = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.34, 0.024), pinkMat);
+				pinkStripe.position.set(s * 0.105, -0.19, -0.015);
+				pinkStripe.rotation.z = s * 0.26;
+				tailsPivot.add(pinkStripe);
+			}
+			bowGroup.add(tailsPivot);
+			animParts.push({ type: "cape", node: tailsPivot, baseRotX: 0.10 });
+			backAnchor.add(bowGroup);
+		});
+		if (rightHand) {
+			// Frilly maid serving tray with Japanese strawberry shortcake & porcelain teacup!
+			const trayProp = new THREE.Group();
+			const silverMat = toon(0xe2e8f0, { emissive: 0x94a3b8, emissiveIntensity: 0.22 });
+			const whiteMat = toon(0xffffff);
+			const pinkMat = toon(0xf472b6, { emissive: 0xdb2777, emissiveIntensity: 0.22 });
+			const redMat = toon(0xef4444, { emissive: 0xdc2626, emissiveIntensity: 0.35 });
+			const leafMat = toon(0x22c55e);
+			const teaMat = toon(0x92400e);
+			const tray = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.19, 0.018, 22), silverMat);
+			tray.position.y = 0.12;
+			trayProp.add(tray);
+			const doily = new THREE.Mesh(new THREE.CylinderGeometry(0.185, 0.185, 0.022, 20), whiteMat);
+			doily.position.y = 0.123;
+			trayProp.add(doily);
+			for (let i = 0; i < 12; i++) {
+				const a = (Math.PI * 2 * i) / 12;
+				const scallop = new THREE.Mesh(new THREE.SphereGeometry(0.026, 8, 6), whiteMat);
+				scallop.scale.set(1.0, 0.45, 1.0);
+				scallop.position.set(Math.cos(a) * 0.19, 0.124, Math.sin(a) * 0.19);
+				trayProp.add(scallop);
+			}
+			// Japanese strawberry shortcake
+			const cake = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.078, 0.105, 14), whiteMat);
+			cake.position.set(-0.058, 0.185, 0.02);
+			trayProp.add(cake);
+			const jamLayer = new THREE.Mesh(new THREE.CylinderGeometry(0.080, 0.080, 0.024, 14), pinkMat);
+			jamLayer.position.set(-0.058, 0.185, 0.02);
+			trayProp.add(jamLayer);
+			for (let i = 0; i < 4; i++) {
+				const a = (Math.PI * 2 * i) / 4;
+				const cream = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), whiteMat);
+				cream.position.set(-0.058 + Math.cos(a) * 0.048, 0.244, 0.02 + Math.sin(a) * 0.048);
+				trayProp.add(cream);
+			}
+			const berry = new THREE.Mesh(new THREE.ConeGeometry(0.032, 0.062, 8), redMat);
+			berry.position.set(-0.058, 0.268, 0.02);
+			trayProp.add(berry);
+			const berryLeaf = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.010, 0.012, 6), leafMat);
+			berryLeaf.position.set(-0.058, 0.240, 0.02);
+			trayProp.add(berryLeaf);
+			// Porcelain teacup & saucer
+			const saucer = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.046, 0.012, 14), whiteMat);
+			saucer.position.set(0.085, 0.138, -0.025);
+			trayProp.add(saucer);
+			const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.030, 0.068, 14), pinkMat);
+			cup.position.set(0.085, 0.176, -0.025);
+			trayProp.add(cup);
+			const tea = new THREE.Mesh(new THREE.CylinderGeometry(0.039, 0.039, 0.008, 12), teaMat);
+			tea.position.set(0.085, 0.207, -0.025);
+			trayProp.add(tea);
+			const cupHandle = new THREE.Mesh(new THREE.TorusGeometry(0.020, 0.006, 6, 10), whiteMat);
+			cupHandle.position.set(0.130, 0.178, -0.025);
+			trayProp.add(cupHandle);
+			// Level serving tray orientation (cancels idle right-arm abduction with a subtle 12° forward showcase tilt)
+			attachHandProp(rightHand, "spkmod_skin_maid_tray", trayProp, [0.067, 0.0881, 0.7909, 0.6018], [0.04, -0.18, 0.10], { hideInSpeakov: true });
+		}
+		if (leftHand) {
+			// Fluffy pastel-pink & white frilly maid feather duster!
+			const duster = new THREE.Group();
+			const whiteMat = toon(0xffffff);
+			const pinkMat = toon(0xf472b6, { emissive: 0xdb2777, emissiveIntensity: 0.22 });
+			const softPinkMat = toon(0xfbcfe8, { emissive: 0xf472b6, emissiveIntensity: 0.18 });
+			const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.34, 10), whiteMat);
+			handle.position.y = 0.08;
+			duster.add(handle);
+			const gripBand = new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.07, 10), pinkMat);
+			gripBand.position.y = 0.20;
+			duster.add(gripBand);
+			for (const s of [-1, 1]) {
+				const bow = new THREE.Mesh(new THREE.ConeGeometry(0.034, 0.075, 5), pinkMat);
+				bow.scale.set(1.0, 1.0, 0.45);
+				bow.position.set(s * 0.038, 0.23, 0.015);
+				bow.rotation.z = s * (Math.PI / 2);
+				duster.add(bow);
+			}
+			// Plush feather cloud bouquet
+			const corePuff = new THREE.Mesh(new THREE.SphereGeometry(0.092, 12, 10), whiteMat);
+			corePuff.position.y = 0.34;
+			duster.add(corePuff);
+			for (let i = 0; i < 8; i++) {
+				const a = (Math.PI * 2 * i) / 8;
+				const plume = new THREE.Mesh(new THREE.SphereGeometry(0.068, 10, 8), i % 2 === 0 ? softPinkMat : whiteMat);
+				plume.scale.set(0.85, 1.35, 0.85);
+				plume.position.set(Math.cos(a) * 0.068, 0.35 + (i % 2) * 0.04, Math.sin(a) * 0.068);
+				plume.rotation.z = -Math.cos(a) * 0.45;
+				plume.rotation.x = Math.sin(a) * 0.45;
+				duster.add(plume);
+			}
+			const topPlume = new THREE.Mesh(new THREE.SphereGeometry(0.072, 10, 8), pinkMat);
+			topPlume.scale.set(0.95, 1.25, 0.95);
+			topPlume.position.y = 0.44;
+			duster.add(topPlume);
+			attachHandProp(leftHand, "spkmod_skin_maid_duster", duster, Q.UP_TILT_L, [0.04, -0.15, 0.04]);
 		}
 		return true;
 	}
