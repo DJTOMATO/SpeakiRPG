@@ -49557,6 +49557,77 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 			animParts.push({ type: "cape", node: tailsPivot, baseRotX: 0.10 });
 			backAnchor.add(bowGroup);
 		});
+		// Velvety-black cat tail with snowy-white tip, cute pink ribbon bow & golden cat bell (suzu) on the back
+		addBody(pelvis, "spkmod_skin_maid_cat_tail", [0, -0.14, -0.20], tailAnchor => {
+			const tailMat = toon(0x18181b);
+			const tipMat = toon(0xf8fafc, { emissive: 0xf1f5f9, emissiveIntensity: 0.08 });
+			const pinkMat = toon(0xf472b6, { emissive: 0xdb2777, emissiveIntensity: 0.26 });
+			const bellGoldMat = toon(0xfacc15, { emissive: 0xd97706, emissiveIntensity: 0.50 });
+			const bellSlitMat = toon(0x18181b);
+			const tailRoot = new THREE.Group();
+			// Continuous S-curved cat tail rooted in lower back (Wide-Body safe), clearing veil & bustle bow and curling up behind
+			const segs = [
+				{ y: -0.02, z: -0.15, rx: -1.48, r: 0.044, len: 0.32 },
+				{ y: -0.02, z: -0.44, rx: -1.42, r: 0.043, len: 0.30 },
+				{ y:  0.04, z: -0.68, rx: -1.08, r: 0.042, len: 0.25 },
+				{ y:  0.19, z: -0.82, rx: -0.52, r: 0.040, len: 0.24 },
+				{ y:  0.38, z: -0.86, rx:  0.08, r: 0.038, len: 0.22 },
+				{ y:  0.54, z: -0.81, rx:  0.52, r: 0.036, len: 0.16 }
+			];
+			segs.forEach((sg, idx) => {
+				const mat = idx === segs.length - 1 ? tipMat : tailMat;
+				const m = new THREE.Mesh(new THREE.CylinderGeometry(sg.r * 0.92, sg.r, sg.len, 10), mat);
+				m.position.set(0, sg.y, sg.z);
+				m.rotation.x = sg.rx;
+				tailRoot.add(m);
+				const joint = new THREE.Mesh(new THREE.SphereGeometry(sg.r * 0.96, 10, 8), mat);
+				joint.position.set(0, sg.y - Math.cos(sg.rx) * sg.len * 0.48, sg.z - Math.sin(sg.rx) * sg.len * 0.48);
+				tailRoot.add(joint);
+			});
+			const tip = new THREE.Mesh(new THREE.SphereGeometry(0.042, 10, 8), tipMat);
+			tip.position.set(0, 0.61, -0.77);
+			tailRoot.add(tip);
+			// Cute pink satin tail ribbon bow + gleaming golden cat bell (suzu) tied onto the upright tail curve
+			const tailBellPivot = new THREE.Group();
+			tailBellPivot.position.set(0, 0.36, -0.86);
+			const ribbonBand = new THREE.Mesh(new THREE.TorusGeometry(0.042, 0.011, 8, 14), pinkMat);
+			ribbonBand.rotation.x = Math.PI / 2;
+			tailBellPivot.add(ribbonBand);
+			for (const s of [-1, 1]) {
+				const loop = new THREE.Mesh(new THREE.ConeGeometry(0.030, 0.064, 5), pinkMat);
+				loop.scale.set(1.0, 1.0, 0.45);
+				loop.position.set(s * 0.032, 0.008, -0.046);
+				loop.rotation.z = s * (Math.PI / 2);
+				tailBellPivot.add(loop);
+				const streamer = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.075, 0.008), pinkMat);
+				streamer.position.set(s * 0.020, -0.036, -0.044);
+				streamer.rotation.z = s * 0.25;
+				tailBellPivot.add(streamer);
+			}
+			const bowKnot = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 8), pinkMat);
+			bowKnot.position.set(0, 0.008, -0.048);
+			tailBellPivot.add(bowKnot);
+			const bellGroup = new THREE.Group();
+			bellGroup.position.set(0, -0.042, -0.056);
+			const bellRing = new THREE.Mesh(new THREE.TorusGeometry(0.014, 0.005, 6, 10), bellGoldMat);
+			bellRing.position.y = 0.044;
+			bellGroup.add(bellRing);
+			const bellOrb = new THREE.Mesh(new THREE.SphereGeometry(0.044, 14, 12), bellGoldMat);
+			bellGroup.add(bellOrb);
+			const bellRidge = new THREE.Mesh(new THREE.TorusGeometry(0.044, 0.008, 6, 16), bellGoldMat);
+			bellRidge.rotation.x = Math.PI / 2;
+			bellGroup.add(bellRidge);
+			const bellHole = new THREE.Mesh(new THREE.SphereGeometry(0.013, 8, 6), bellSlitMat);
+			bellHole.position.set(0, -0.018, -0.038);
+			bellGroup.add(bellHole);
+			const bellSlit = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.009, 0.014), bellSlitMat);
+			bellSlit.position.set(0, -0.022, -0.035);
+			bellGroup.add(bellSlit);
+			tailBellPivot.add(bellGroup);
+			tailRoot.add(tailBellPivot);
+			tailAnchor.add(tailRoot);
+			animParts.push({ type: "tail", node: tailRoot, speed: 4.2, amp: 0.26 });
+		});
 		if (rightHand) {
 			// Frilly maid serving tray with Japanese strawberry shortcake & porcelain teacup!
 			const trayProp = new THREE.Group();
