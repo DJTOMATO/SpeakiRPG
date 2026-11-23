@@ -48561,7 +48561,7 @@ async function spkmodBuildExtraCostumeSetA(builder, ctx) {
 
 // Extra 3D Costume Builders — Set B (15 costumes: Fantasy, Sci-Fi, Mythic & Legendary)
 async function spkmodBuildExtraCostumeSetB(builder, ctx) {
-	const { THREE, toon, avatarRoot, head, spine, rightHand, leftHand, reviveHat, attachments, animParts, attachHandProp, Q } = ctx;
+	const { THREE, toon, avatarRoot, head, spine, pelvis, rightHand, leftHand, reviveHat, attachments, animParts, attachHandProp, Q } = ctx;
 	const addHead = (buildFn) => {
 		if (!head) return;
 		const anchor = spkmodSkinCreateHeadAnchor(avatarRoot, head, reviveHat);
