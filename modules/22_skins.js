@@ -8,8 +8,35 @@ const SPKMOD_SKIN_STORAGE_KEYS = {
 	width: "spkmod-skin-width",
 	showRemote: "spkmod-skin-show-remote",
 	shareInChat: "spkmod-skin-share-chat",
+	favorites: "spkmod-skin-favorites",
 	unlockAll: "spkmod-skin-unlock-all-test"
 };
+
+function spkmodLoadSkinFavorites() {
+	const set = new Set();
+	try {
+		if (typeof window !== "undefined" && window.localStorage) {
+			const raw = localStorage.getItem(SPKMOD_SKIN_STORAGE_KEYS.favorites);
+			if (raw) {
+				const arr = JSON.parse(raw);
+				if (Array.isArray(arr)) {
+					for (const id of arr) {
+						if (typeof id === "string" && id.trim()) set.add(id.trim());
+					}
+				}
+			}
+		}
+	} catch (_) {}
+	return set;
+}
+
+function spkmodSaveSkinFavorites(favSet) {
+	try {
+		if (typeof window !== "undefined" && window.localStorage) {
+			localStorage.setItem(SPKMOD_SKIN_STORAGE_KEYS.favorites, JSON.stringify([...favSet]));
+		}
+	} catch (_) {}
+}
 
 window.spkmodSkinSettings = {
 	enabled: (typeof window !== "undefined" && window.localStorage)
@@ -19,8 +46,27 @@ window.spkmodSkinSettings = {
 	widthId: (typeof window !== "undefined" && window.localStorage && localStorage.getItem(SPKMOD_SKIN_STORAGE_KEYS.width)) || "normal",
 	showRemoteSkins: (typeof window !== "undefined" && window.localStorage) ? localStorage.getItem(SPKMOD_SKIN_STORAGE_KEYS.showRemote) !== "false" : true,
 	shareInChat: (typeof window !== "undefined" && window.localStorage) ? localStorage.getItem(SPKMOD_SKIN_STORAGE_KEYS.shareInChat) !== "false" : true,
+	favorites: spkmodLoadSkinFavorites(),
 	unlockAllTest: (typeof window !== "undefined" && window.localStorage) ? localStorage.getItem(SPKMOD_SKIN_STORAGE_KEYS.unlockAll) === "true" : false
 };
+
+function spkmodIsSkinFavorite(skinId) {
+	const favs = window.spkmodSkinSettings?.favorites;
+	return !!(favs && typeof favs.has === "function" && favs.has(skinId));
+}
+
+function spkmodToggleSkinFavorite(skinId) {
+	if (!skinId || !SPKMOD_SKINS_BY_ID.has(skinId)) return false;
+	if (!(window.spkmodSkinSettings.favorites instanceof Set)) {
+		window.spkmodSkinSettings.favorites = spkmodLoadSkinFavorites();
+	}
+	const favs = window.spkmodSkinSettings.favorites;
+	const nowFav = !favs.has(skinId);
+	if (nowFav) favs.add(skinId);
+	else favs.delete(skinId);
+	spkmodSaveSkinFavorites(favs);
+	return nowFav;
+}
 window.spkmodSkinsSystemEnabled = window.spkmodSkinSettings.enabled !== false;
 
 function spkmodIsSkinsSystemEnabled() {
@@ -97,7 +143,11 @@ const SPKMOD_SKIN_UI_FALLBACK_EN = {
 	btnUnequipNativeSkin: "🔄 Switch to Default Speaki",
 	hypeTitle: "Keep leveling up to unlock more!",
 	hypeDesc: "{0} more mystery skins & 3D costumes await you up to Lv.100! Reach Lv.{1} to unlock your next style!",
-	nextWidthHint: "✨ Next Body Width at Lv.{0} ({1} locked)"
+	nextWidthHint: "✨ Next Body Width at Lv.{0} ({1} locked)",
+	tabFavorites: "⭐ Favorites",
+	favAddTooltip: "Add to Favorites",
+	favRemoveTooltip: "Remove from Favorites",
+	favEmptyHint: "No favorite skins yet! Click ☆ on any skin card to pin it to the top and show it here."
 };
 
 function spkmodGetSkinActiveLang() {
@@ -379,7 +429,8 @@ const SPKMOD_SKIN_CATALOG = [
 		id: "costume_kitsune", level: 45, category: "outfit", icon: "🦊", accent: "#f97316",
 		defaultName: "Kitsune (Foxgirl) Speaki",
 		recolor: { hue: 18, satMul: 3.1, satAdd: 0.24, satMax: 0.90, lightMul: 1.18, lightAdd: 0.08, lightMax: 0.80 },
-		costumeBuilder: "kitsune"
+		costumeBuilder: "kitsune",
+		hideMagicStaff: true
 	},
 	{
 		id: "costume_gentleman", level: 45, category: "outfit", icon: "🎩", accent: "#94a3b8",
@@ -931,6 +982,59 @@ function spkmodSkinFindSkeletonBones(root) {
 	return { head, spine, pelvis, rightHand, leftHand, reviveHat };
 }
 
+function spkmodSkinGetVisualRootScale(avatarRoot, bone) {
+	const THREE = window.THREE;
+	if (!THREE || !avatarRoot) return 1;
+	// Walk up from bone to the direct child of avatarRoot (game's Resizer/Giant Potion visual-scale wrapper,
+	// matching 21_pets.js spkmodGetOwnerVisualScale). Skip <0.1 FBX cm-to-m roots.
+	let cur = bone;
+	while (cur && cur.parent && cur.parent !== avatarRoot) {
+		cur = cur.parent;
+	}
+	const vChild = (cur && cur.parent === avatarRoot) ? cur : avatarRoot.children?.[0];
+	if (vChild && vChild.isObject3D && !vChild.isBone && !vChild.isSprite && !vChild.isMesh && vChild.scale) {
+		const sx = vChild.scale.x;
+		const sy = vChild.scale.y;
+		const sz = vChild.scale.z;
+		if (
+			Number.isFinite(sx) && sx >= 0.1 && sx <= 10.0 &&
+			Math.abs(sx - sy) < 0.005 && Math.abs(sx - sz) < 0.005
+		) {
+			return Math.abs(vChild.getWorldScale(new THREE.Vector3()).x) || 1;
+		}
+	}
+	return Math.abs(avatarRoot.getWorldScale(new THREE.Vector3()).x) || 1;
+}
+
+function spkmodSkinGetBoneBaseScale(bone) {
+	const THREE = window.THREE;
+	if (!THREE || !bone) return 1;
+	const ws = bone.getWorldScale(new THREE.Vector3());
+	// Min axis ignores horizontal X/Z Wide Body widening while keeping uniform Giant/Mini Potion scale
+	const minAxis = Math.min(Math.abs(ws.x), Math.abs(ws.y), Math.abs(ws.z));
+	return (Number.isFinite(minAxis) && minAxis > 1e-4) ? minAxis : (Math.abs(ws.x) || 1);
+}
+
+function spkmodSkinGetBoneToMeterScale(avatarRoot, bone, headBone, reviveHat) {
+	// Best source of truth: ReviveHatRoot is game-calibrated in head-bone local units (1 unit = 1m),
+	// so multiplying by (headBase / boneBase) cancels ALL Giant/Mini Resizer Potion wrappers at any depth!
+	if (reviveHat && headBone && reviveHat.parent === headBone && reviveHat.scale) {
+		const rs = Math.abs(reviveHat.scale.x);
+		if (Number.isFinite(rs) && rs > 1e-4) {
+			if (bone === headBone) return rs;
+			const headBase = spkmodSkinGetBoneBaseScale(headBone);
+			const boneBase = spkmodSkinGetBoneBaseScale(bone);
+			if (headBase > 1e-4 && boneBase > 1e-4) {
+				return rs * (headBase / boneBase);
+			}
+			return rs;
+		}
+	}
+	const rootScale = spkmodSkinGetVisualRootScale(avatarRoot, bone);
+	const boneScale = spkmodSkinGetBoneBaseScale(bone);
+	return rootScale / Math.max(1e-4, boneScale);
+}
+
 function spkmodSkinCreateHeadAnchor(avatarRoot, headBone, reviveHat) {
 	const THREE = window.THREE;
 	if (!THREE || !headBone) return null;
@@ -949,8 +1053,8 @@ function spkmodSkinCreateHeadAnchor(avatarRoot, headBone, reviveHat) {
 	// Fallback calibration when ReviveHatRoot isn't present
 	avatarRoot.updateMatrixWorld(true);
 	headBone.updateMatrixWorld(true);
-	const rootScale = avatarRoot.getWorldScale(new THREE.Vector3()).x || 1;
-	const boneScale = headBone.getWorldScale(new THREE.Vector3()).x || 1;
+	const rootScale = spkmodSkinGetVisualRootScale(avatarRoot, headBone);
+	const boneScale = spkmodSkinGetBoneBaseScale(headBone);
 	const boneQuat = headBone.getWorldQuaternion(new THREE.Quaternion());
 	const rootQuat = avatarRoot.getWorldQuaternion(new THREE.Quaternion());
 	const box = new THREE.Box3().setFromObject(avatarRoot);
@@ -969,8 +1073,8 @@ function spkmodSkinCreateBodyAnchor(avatarRoot, targetBone, name, localOffsetWor
 	if (!THREE || !targetBone || !avatarRoot) return null;
 	avatarRoot.updateMatrixWorld(true);
 	targetBone.updateMatrixWorld(true);
-	const rootScale = avatarRoot.getWorldScale(new THREE.Vector3()).x || 1;
-	const boneScale = targetBone.getWorldScale(new THREE.Vector3()).x || 1;
+	const { head, reviveHat } = spkmodSkinFindSkeletonBones(avatarRoot);
+	const boneToMeter = spkmodSkinGetBoneToMeterScale(avatarRoot, targetBone, head, reviveHat);
 	const boneQuat = targetBone.getWorldQuaternion(new THREE.Quaternion());
 	const rootQuat = avatarRoot.getWorldQuaternion(new THREE.Quaternion());
 
@@ -978,11 +1082,13 @@ function spkmodSkinCreateBodyAnchor(avatarRoot, targetBone, name, localOffsetWor
 	anchor.name = name || "spkmod_skin_body_anchor";
 	anchor.userData.spkmodSkinAttachment = true;
 
-	const worldOffset = localOffsetWorldM.clone().multiplyScalar(rootScale).applyQuaternion(rootQuat);
-	const boneLocalOffset = worldOffset.applyQuaternion(boneQuat.clone().invert()).divideScalar(boneScale);
+	const boneLocalOffset = localOffsetWorldM.clone()
+		.applyQuaternion(rootQuat)
+		.applyQuaternion(boneQuat.clone().invert())
+		.multiplyScalar(boneToMeter);
 	anchor.position.copy(boneLocalOffset);
 	anchor.quaternion.copy(boneQuat).invert().multiply(rootQuat);
-	anchor.scale.setScalar(rootScale / boneScale);
+	anchor.scale.setScalar(boneToMeter);
 	return anchor;
 }
 
@@ -1017,11 +1123,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot) {
 	const attachHandProp = (handBone, name, propNode, quat, offset, opts = {}) => {
 		if (!handBone || !propNode) return null;
 		avatarRoot.updateMatrixWorld(true);
-		const rootScale = avatarRoot.getWorldScale(new THREE.Vector3()).x || 1;
-		const handScale = handBone.getWorldScale(new THREE.Vector3()).x || 1;
 		const holder = new THREE.Group();
 		holder.name = name || "spkmod_skin_hand_prop";
-		holder.scale.setScalar(rootScale / Math.max(1e-4, handScale));
+		holder.scale.setScalar(spkmodSkinGetBoneToMeterScale(avatarRoot, handBone, head, reviveHat));
 		if (quat) propNode.quaternion.set(quat[0], quat[1], quat[2], quat[3]);
 		if (offset) propNode.position.set(offset[0], offset[1], offset[2]);
 		holder.add(propNode);
@@ -1634,6 +1738,31 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot) {
 			feather.rotation.z = -0.52;
 			feather.rotation.x = -0.25;
 			hat.add(feather);
+			// Classic black leather pirate eyepatch over right eye (hat y = -0.65 -> anchor y = -0.71, z = 0.484)
+			const strapMat = toon(0x27272a);
+			const patch = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.105, 0.024, 16), blackMat);
+			patch.rotation.x = Math.PI / 2;
+			patch.scale.set(1.08, 1.0, 0.94);
+			patch.position.set(-0.145, -0.65, 0.484);
+			hat.add(patch);
+			const patchRim = new THREE.Mesh(new THREE.TorusGeometry(0.104, 0.013, 6, 16), strapMat);
+			patchRim.scale.set(1.08, 0.94, 1.0);
+			patchRim.position.set(-0.145, -0.65, 0.490);
+			hat.add(patchRim);
+			const patchRivet = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 6), goldMat);
+			patchRivet.position.set(-0.225, -0.62, 0.495);
+			hat.add(patchRivet);
+			// Diagonal forehead leather strap up to headband + outer temple strap tucking behind hair
+			const strapUpper = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.024, 0.018), blackMat);
+			strapUpper.position.set(0.055, -0.455, 0.482);
+			strapUpper.rotation.z = 0.82;
+			hat.add(strapUpper);
+			const strapOuter = new THREE.Mesh(new THREE.BoxGeometry(0.23, 0.024, 0.018), blackMat);
+			strapOuter.position.set(-0.31, -0.60, 0.425);
+			strapOuter.rotation.order = "YXZ";
+			strapOuter.rotation.y = -0.58;
+			strapOuter.rotation.z = -0.46;
+			hat.add(strapOuter);
 			anchor.add(hat);
 			spkmodSkinSanitizeObject(anchor);
 			head.add(anchor);
@@ -1822,11 +1951,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot) {
 			if (leftHand) {
 				// Attach Paladin Shield to left hand (outward-left & angled 30deg forward so emblem is clearly visible!)
 				avatarRoot.updateMatrixWorld(true);
-				const rootScale = avatarRoot.getWorldScale(new THREE.Vector3()).x || 1;
-				const handScale = leftHand.getWorldScale(new THREE.Vector3()).x || 1;
 				const holder = new THREE.Group();
 				holder.name = "spkmod_skin_knight_shield";
-				holder.scale.setScalar(rootScale / Math.max(1e-4, handScale));
+				holder.scale.setScalar(spkmodSkinGetBoneToMeterScale(avatarRoot, leftHand, head, reviveHat));
 				// In L_Hand space (+X=down, -Y=outward left, -Z=forward): top->-X(up), front->outward+20deg fwd
 				shield.quaternion.set(0.5792, -0.5792, 0.4056, 0.4056);
 				shield.position.set(0.03, -0.17, -0.11);
@@ -1944,11 +2071,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot) {
 		if (rightHand) {
 			// Drawn gleaming Samurai Katana in right hand (swaps out magic staff)
 			avatarRoot.updateMatrixWorld(true);
-			const rootScale = avatarRoot.getWorldScale(new THREE.Vector3()).x || 1;
-			const handScale = rightHand.getWorldScale(new THREE.Vector3()).x || 1;
 			const holder = new THREE.Group();
 			holder.name = "spkmod_skin_samurai_hand_katana";
-			holder.scale.setScalar(rootScale / Math.max(1e-4, handScale));
+			holder.scale.setScalar(spkmodSkinGetBoneToMeterScale(avatarRoot, rightHand, head, reviveHat));
 
 			const hiltMat = toon(0xdc2626);
 			const guardMat = toon(0xffd700, { emissive: 0xb45309, emissiveIntensity: 0.4 });
@@ -2135,10 +2260,63 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot) {
 					anchor.add(earPivot);
 					animParts.push({ type: "earWiggle", node: earPivot, side, baseRotZ });
 				}
+				// Folklore kitsune transformation leaf perched right between both fox ears
+				const leafMat = toon(0x22c55e, { emissive: 0x15803d, emissiveIntensity: 0.18 });
+				const veinMat = toon(0x86efac);
+				const stemMat = toon(0x166534);
+				const leafGroup = new THREE.Group();
+				leafGroup.position.set(0, 0.045, 0.06);
+				leafGroup.rotation.set(0.14, 0, -0.08);
+				const blade = new THREE.Mesh(new THREE.SphereGeometry(0.11, 14, 10), leafMat);
+				blade.scale.set(1.02, 0.16, 1.42);
+				leafGroup.add(blade);
+				const leafTip = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.14, 6), leafMat);
+				leafTip.rotation.x = Math.PI / 2;
+				leafTip.scale.set(1.0, 1.0, 0.20);
+				leafTip.position.set(0, 0.0, 0.15);
+				leafGroup.add(leafTip);
+				const midrib = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.022, 0.24), veinMat);
+				midrib.position.set(0, 0.012, 0.01);
+				leafGroup.add(midrib);
+				const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.015, 0.11, 8), stemMat);
+				stem.position.set(0, 0.032, -0.145);
+				stem.rotation.x = -0.68;
+				leafGroup.add(stem);
+				anchor.add(leafGroup);
 				spkmodSkinSanitizeObject(anchor);
 				head.add(anchor);
 				attachments.push({ parent: head, node: anchor });
 			}
+		}
+		if (rightHand) {
+			// Sleek gleaming Kitsune knife / tanto held in right hand (swaps out magic staff)
+			const knife = new THREE.Group();
+			const gripMat = toon(0x1c1917);
+			const guardMat = toon(0xfacc15, { emissive: 0xb45309, emissiveIntensity: 0.35 });
+			const pommelMat = toon(0xdc2626);
+			const steelMat = toon(0xe2e8f0, { emissive: 0x94a3b8, emissiveIntensity: 0.32 });
+			const edgeMat = toon(0xffffff, { emissive: 0xe2e8f0, emissiveIntensity: 0.5 });
+			const pommel = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.028, 0.056), pommelMat);
+			pommel.position.y = -0.105;
+			knife.add(pommel);
+			const handle = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.18, 0.050), gripMat);
+			handle.position.y = -0.005;
+			knife.add(handle);
+			const bolster = new THREE.Mesh(new THREE.BoxGeometry(0.054, 0.024, 0.095), guardMat);
+			bolster.position.set(0, 0.095, 0.006);
+			knife.add(bolster);
+			const bladeBody = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.34, 0.078), steelMat);
+			bladeBody.position.set(0, 0.275, 0.008);
+			knife.add(bladeBody);
+			const edge = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.34, 0.014), edgeMat);
+			edge.position.set(0, 0.275, 0.048);
+			knife.add(edge);
+			const point = new THREE.Mesh(new THREE.ConeGeometry(0.044, 0.14, 4), steelMat);
+			point.rotation.y = Math.PI / 4;
+			point.scale.set(0.32, 1.0, 0.92);
+			point.position.set(0, 0.515, 0.006);
+			knife.add(point);
+			attachHandProp(rightHand, "spkmod_skin_kitsune_knife", knife, Q_HERO_R, [0.03, -0.08, 0.05], { hideInSpeakov: true });
 		}
 		if (pelvis) {
 			// Anchored directly to lower back so all 3 fox tails stay attached (even in Wide Body) while sweeping out behind veil
@@ -3420,6 +3598,58 @@ async function spkmodBuildExtraCostumeSetA(builder, ctx) {
 				}
 			}
 			attachHandProp(rightHand, "spkmod_skin_shiba_bone", bone, Q.HERO_R, [0.03, -0.07, 0.04], { hideInSpeakov: true });
+		}
+		if (leftHand) {
+			// Classic 6-shooter silver & mahogany revolver held pointing down in left hand (gun-space: -Z=barrel, +Y=top)
+			const rev = new THREE.Group();
+			const woodMat = toon(0x78350f);
+			const brassMat = toon(0xd97706);
+			const steelMat = toon(0xcbd5e1);
+			const darkSteelMat = toon(0x475569);
+			const boreMat = toon(0x09090b);
+			// Angled wooden grip + brass butt cap
+			const grip = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.17, 0.072), woodMat);
+			grip.position.set(0, -0.03, 0.02);
+			grip.rotation.x = -0.28;
+			rev.add(grip);
+			const butt = new THREE.Mesh(new THREE.BoxGeometry(0.050, 0.026, 0.078), brassMat);
+			butt.position.set(0, -0.11, 0.042);
+			butt.rotation.x = -0.28;
+			rev.add(butt);
+			// Receiver frame + trigger guard + cocked hammer
+			const frame = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.095, 0.18), steelMat);
+			frame.position.set(0, 0.085, -0.085);
+			rev.add(frame);
+			const guard = new THREE.Mesh(new THREE.TorusGeometry(0.038, 0.008, 6, 12), darkSteelMat);
+			guard.rotation.y = Math.PI / 2;
+			guard.position.set(0, 0.012, -0.075);
+			rev.add(guard);
+			const hammer = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.052, 0.024), darkSteelMat);
+			hammer.position.set(0, 0.145, -0.005);
+			hammer.rotation.x = -0.45;
+			rev.add(hammer);
+			// Iconic 6-chamber revolving cylinder
+			const cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.105, 12), darkSteelMat);
+			cyl.rotation.x = Math.PI / 2;
+			cyl.position.set(0, 0.095, -0.105);
+			rev.add(cyl);
+			// Long revolver barrel + under-barrel ejector rod + front sight + muzzle bore
+			const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.025, 0.34, 10), steelMat);
+			barrel.rotation.x = Math.PI / 2;
+			barrel.position.set(0, 0.105, -0.32);
+			rev.add(barrel);
+			const ejector = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.22, 8), darkSteelMat);
+			ejector.rotation.x = Math.PI / 2;
+			ejector.position.set(0, 0.072, -0.26);
+			rev.add(ejector);
+			const sight = new THREE.Mesh(new THREE.ConeGeometry(0.014, 0.036, 4), darkSteelMat);
+			sight.position.set(0, 0.135, -0.465);
+			rev.add(sight);
+			const bore = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.012, 8), boreMat);
+			bore.rotation.x = Math.PI / 2;
+			bore.position.set(0, 0.105, -0.488);
+			rev.add(bore);
+			attachHandProp(leftHand, "spkmod_skin_shiba_revolver", rev, [-0.6456, -0.0087, 0.7301, 0.2235], [0.04, -0.09, 0.04]);
 		}
 		return true;
 	} else if (builder === "shark") {
@@ -6006,14 +6236,14 @@ function spkmodEnsureSkinsModal() {
 				overflow-y: auto;
 				overflow-x: hidden;
 				overscroll-behavior: contain;
-				padding: 12px;
+				padding: 10px;
 			}
 			.spkmod-skins-grid {
 				display: grid;
-				grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+				grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
 				grid-auto-rows: max-content;
 				align-content: start;
-				gap: 10px;
+				gap: 8px;
 				height: auto;
 			}
 			.spkmod-skin-card {
@@ -6022,9 +6252,8 @@ function spkmodEnsureSkinsModal() {
 				justify-content: space-between;
 				background: rgba(30, 41, 59, 0.72);
 				border: 1.5px solid rgba(148, 163, 184, 0.25);
-				border-radius: 10px;
-				padding: 10px;
-				min-height: 120px;
+				border-radius: 9px;
+				padding: 7px 8px;
 				box-sizing: border-box;
 				transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
 				position: relative;
@@ -6041,6 +6270,34 @@ function spkmodEnsureSkinsModal() {
 			.spkmod-skin-card.locked {
 				opacity: 0.62;
 				filter: grayscale(0.35);
+			}
+			.spkmod-skin-fav-btn {
+				width: 24px;
+				height: 24px;
+				border-radius: 6px;
+				border: 1px solid rgba(148, 163, 184, 0.25);
+				background: rgba(15, 23, 42, 0.65);
+				color: #94a3b8;
+				font-size: 13px;
+				line-height: 1;
+				cursor: pointer;
+				flex-shrink: 0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 0;
+				transition: transform 0.12s ease, color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+			}
+			.spkmod-skin-fav-btn:hover {
+				transform: scale(1.1);
+				color: #fde047;
+				border-color: rgba(250, 204, 21, 0.55);
+			}
+			.spkmod-skin-fav-btn.is-fav {
+				color: #facc15;
+				border-color: rgba(250, 204, 21, 0.65);
+				background: rgba(250, 204, 21, 0.14);
+				text-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
 			}
 			.spkmod-skins-tab-btn {
 				background: rgba(30, 41, 59, 0.85);
@@ -6293,8 +6550,10 @@ function spkmodBuildSkinsModalControls(controlsBar) {
 
 	const tabsRow = document.createElement("div");
 	tabsRow.style.cssText = "display: flex; flex-wrap: wrap; gap: 6px; align-items: center;";
+	const favUnlockedCount = SPKMOD_SKIN_CATALOG.filter(s => spkmodIsSkinUnlocked(s) && spkmodIsSkinFavorite(s.id)).length;
 	const tabs = [
 		{ id: "all", key: "tabAll" },
+		{ id: "favorites", key: "tabFavorites" },
 		{ id: "unlocked", key: "tabUnlocked" },
 		{ id: "color", key: "tabColors" },
 		{ id: "outfit", key: "tabOutfits" },
@@ -6303,8 +6562,11 @@ function spkmodBuildSkinsModalControls(controlsBar) {
 	for (const tab of tabs) {
 		const btn = document.createElement("button");
 		btn.type = "button";
+		if (tab.id === "favorites") btn.id = "spkmod-skins-fav-tab-btn";
 		btn.className = "spkmod-skins-tab-btn" + (_spkmodSkinsActiveTab === tab.id ? " active" : "");
-		btn.innerText = spkmodGetSkinUiText(tab.key);
+		btn.innerText = (tab.id === "favorites" && favUnlockedCount > 0)
+			? `${spkmodGetSkinUiText(tab.key)} (${favUnlockedCount})`
+			: spkmodGetSkinUiText(tab.key);
 		btn.onclick = () => {
 			_spkmodSkinsActiveTab = tab.id;
 			tabsRow.querySelectorAll(".spkmod-skins-tab-btn").forEach(b => b.classList.remove("active"));
@@ -6372,6 +6634,14 @@ function spkmodRenderSkinsStatusBar() {
 	statusBar.appendChild(actionsWrap);
 }
 
+function spkmodUpdateSkinsFavTabLabel() {
+	const favTabBtn = document.getElementById("spkmod-skins-fav-tab-btn");
+	if (!favTabBtn) return;
+	const cnt = SPKMOD_SKIN_CATALOG.filter(s => spkmodIsSkinUnlocked(s) && spkmodIsSkinFavorite(s.id)).length;
+	const base = spkmodGetSkinUiText("tabFavorites");
+	favTabBtn.innerText = cnt > 0 ? `${base} (${cnt})` : base;
+}
+
 function spkmodRenderSkinsGrid() {
 	const grid = document.getElementById("spkmod-skins-grid");
 	if (!grid) return;
@@ -6392,6 +6662,7 @@ function spkmodRenderSkinsGrid() {
 		if (_spkmodSkinsActiveTab === "color" && skin.category !== "color") return false;
 		if (_spkmodSkinsActiveTab === "outfit" && skin.category !== "outfit") return false;
 		if (_spkmodSkinsActiveTab === "fx" && skin.category !== "fx") return false;
+		if (_spkmodSkinsActiveTab === "favorites" && !spkmodIsSkinFavorite(skin.id)) return false;
 
 		if (!unlocked) {
 			hiddenLockedCount++;
@@ -6411,51 +6682,100 @@ function spkmodRenderSkinsGrid() {
 		return true;
 	});
 
+	// Pin favorited skins to the top while preserving catalog order within favorites and non-favorites
+	if (filtered.length > 1) {
+		const favs = [];
+		const rest = [];
+		for (const s of filtered) {
+			if (spkmodIsSkinFavorite(s.id)) favs.push(s);
+			else rest.push(s);
+		}
+		filtered.length = 0;
+		filtered.push(...favs, ...rest);
+	}
+
 	const frag = document.createDocumentFragment();
+	if (_spkmodSkinsActiveTab === "favorites" && filtered.length === 0) {
+		const emptyCard = document.createElement("div");
+		emptyCard.style.cssText = `
+			grid-column: 1 / -1;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			text-align: center;
+			gap: 6px;
+			padding: 22px 16px;
+			border-radius: 12px;
+			border: 1.5px dashed rgba(250, 204, 21, 0.45);
+			background: rgba(15, 23, 42, 0.78);
+			color: #cbd5e1;
+			font-size: 12px;
+		`;
+		emptyCard.innerHTML = `<div style="font-size: 22px; line-height: 1;">⭐</div><div>${spkmodGetSkinUiText("favEmptyHint")}</div>`;
+		frag.appendChild(emptyCard);
+	}
+
 	for (const skin of filtered) {
 		const isEquipped = eqId === skin.id;
+		const isFav = spkmodIsSkinFavorite(skin.id);
 		const catStyle = SPKMOD_SKIN_CAT_STYLES[skin.category] || SPKMOD_SKIN_CAT_STYLES.color;
 		const dispName = spkmodGetSkinDisplayName(skin);
 		const catLabel = catLabelMap[skin.category] || skin.category;
+		const rightTag = skin.level >= 100 ? spkmodGetSkinUiText("milestoneBadge") : "";
+		// Only show extra milestone tag if it is non-empty and differs from catLabel (never duplicate category text!)
+		const extraTagHtml = (rightTag && rightTag.trim().toLowerCase() !== String(catLabel).trim().toLowerCase())
+			? `<span style="font-size: 9.5px; font-weight: 800; color: #ffd54a; white-space: nowrap; flex-shrink: 0;">${rightTag}</span>`
+			: "";
 
 		const card = document.createElement("div");
 		card.className = "spkmod-skin-card" + (isEquipped ? " equipped" : "");
-		card.style.borderColor = isEquipped ? "#4ade80" : (skin.accent || catStyle.border);
+		card.style.borderColor = isEquipped ? "#4ade80" : (isFav ? "#facc15" : (skin.accent || catStyle.border));
 		card.style.background = isEquipped
 			? "linear-gradient(145deg, rgba(20, 83, 45, 0.45), rgba(15, 23, 42, 0.88))"
 			: `linear-gradient(155deg, ${catStyle.bg}, rgba(15, 23, 42, 0.88))`;
 
-		const topMeta = document.createElement("div");
-		topMeta.style.cssText = "display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 6px;";
-		topMeta.innerHTML = `
-			<span style="background: ${catStyle.badge}; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px;">
-				Lv.${skin.level}
-			</span>
-			<span style="font-size: 10px; font-weight: 700; color: ${skin.level >= 100 ? "#ffd54a" : "#94a3b8"};">
-				${skin.level >= 100 ? spkmodGetSkinUiText("milestoneBadge") : catLabel}
-			</span>
+		// Compact single-header body: icon + (name / inline Lv + category + optional Lv.100 badge) + Favorite Star
+		const bodyEl = document.createElement("div");
+		bodyEl.style.cssText = "display: flex; align-items: center; gap: 8px; margin-bottom: 6px;";
+
+		const iconBox = document.createElement("div");
+		iconBox.style.cssText = `width: 36px; height: 36px; border-radius: 8px; background: rgba(2, 6, 23, 0.65); border: 1.5px solid ${skin.accent || "rgba(255,255,255,0.14)"}; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;`;
+		iconBox.textContent = skin.icon;
+
+		const infoCol = document.createElement("div");
+		infoCol.style.cssText = "display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;";
+		infoCol.innerHTML = `
+			<div style="font-size: 12px; font-weight: 800; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${dispName}">
+				${dispName}
+			</div>
+			<div style="display: flex; align-items: center; gap: 5px; min-width: 0;">
+				<span style="background: ${catStyle.badge}; color: #fff; font-size: 9.5px; font-weight: 800; padding: 1px 6px; border-radius: 999px; flex-shrink: 0;">Lv.${skin.level}</span>
+				<span style="font-size: 10px; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${catLabel}</span>
+				${extraTagHtml}
+			</div>
 		`;
 
-		const bodyEl = document.createElement("div");
-		bodyEl.style.cssText = "display: flex; align-items: center; gap: 10px; margin-bottom: 10px;";
-		bodyEl.innerHTML = `
-			<div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(2, 6, 23, 0.65); border: 1.5px solid ${skin.accent || "rgba(255,255,255,0.14)"}; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">
-				${skin.icon}
-			</div>
-			<div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
-				<div style="font-size: 12.5px; font-weight: 800; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${dispName}">
-					${dispName}
-				</div>
-				<div style="font-size: 10px; color: #cbd5e1;">
-					${catLabel}
-				</div>
-			</div>
-		`;
+		const favBtn = document.createElement("button");
+		favBtn.type = "button";
+		favBtn.className = "spkmod-skin-fav-btn" + (isFav ? " is-fav" : "");
+		favBtn.innerText = isFav ? "★" : "☆";
+		favBtn.title = spkmodGetSkinUiText(isFav ? "favRemoveTooltip" : "favAddTooltip");
+		favBtn.onclick = (e) => {
+			e.stopPropagation();
+			spkmodToggleSkinFavorite(skin.id);
+			spkmodUpdateSkinsFavTabLabel();
+			spkmodRenderSkinsGrid();
+		};
+
+		bodyEl.appendChild(iconBox);
+		bodyEl.appendChild(infoCol);
+		bodyEl.appendChild(favBtn);
 
 		const equipBtn = document.createElement("button");
 		equipBtn.type = "button";
 		equipBtn.style.cssText = `
-			width: 100%; height: 28px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;
+			width: 100%; height: 24px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;
 			border: 1px solid ${isEquipped ? "#4ade80" : (skin.accent || catStyle.border)};
 			background: ${isEquipped ? "rgba(22, 163, 74, 0.55)" : "rgba(30, 41, 59, 0.9)"};
 			color: ${isEquipped ? "#bbf7d0" : "#f8fafc"};
@@ -6472,14 +6792,13 @@ function spkmodRenderSkinsGrid() {
 			}
 		};
 
-		card.appendChild(topMeta);
 		card.appendChild(bodyEl);
 		card.appendChild(equipBtn);
 		frag.appendChild(card);
 	}
 
 	// Render encouraging "Keep leveling up to unlock more!" Hype Banner whenever locked skins are hidden
-	if (hiddenLockedCount > 0 && (_spkmodSkinsActiveTab !== "unlocked" || filtered.length === 0)) {
+	if (hiddenLockedCount > 0 && _spkmodSkinsActiveTab !== "favorites" && (_spkmodSkinsActiveTab !== "unlocked" || filtered.length === 0)) {
 		const nextUnlockLvl = isFinite(nextLockedLevel) ? nextLockedLevel : Math.min(100, spkmodGetSkinPlayerLevel() + 1);
 		const hypeCard = document.createElement("div");
 		hypeCard.style.cssText = `
@@ -6619,6 +6938,13 @@ window.spkmodSkins = {
 	equip: (skinId) => spkmodEquipLocalSkin(skinId, true),
 	unequip: () => spkmodEquipLocalSkin(null, true),
 	setWidth: (widthId) => spkmodSetLocalBodyWidth(widthId, true),
+	toggleFavorite: (skinId) => {
+		const next = spkmodToggleSkinFavorite(skinId);
+		spkmodUpdateSkinsFavTabLabel();
+		spkmodRenderSkinsGrid();
+		return next;
+	},
+	getFavorites: () => [...(window.spkmodSkinSettings.favorites || [])],
 	unlockAll: (enable) => {
 		const next = enable !== undefined ? !!enable : !window.spkmodSkinSettings.unlockAllTest;
 		window.spkmodSkinSettings.unlockAllTest = next;
