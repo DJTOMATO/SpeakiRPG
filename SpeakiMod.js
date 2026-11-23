@@ -49468,14 +49468,14 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 				animParts.push({ type: "orbit", node: charm, radius: 0.44, baseY: 0.11 + (i % 2) * 0.06, phase: (Math.PI * 2 * i) / 3 });
 			}
 		});
-		// Front neck satin maid collar choker, ribbon bow & gleaming golden cat bell (suzu) right on the collar
-		addBody(spine, "spkmod_skin_maid_chest_bow", [0, 0.105, 0.285], bowAnchor => {
+		// Front neck satin maid collar choker, ribbon bow & gleaming golden cat bell (suzu) flush on the collar
+		addBody(spine, "spkmod_skin_maid_chest_bow", [0, 0.127, 0.225], bowAnchor => {
 			const whiteMat = toon(0xffffff, { emissive: 0xf8fafc, emissiveIntensity: 0.10 });
 			const pinkMat = toon(0xf472b6, { emissive: 0xdb2777, emissiveIntensity: 0.26 });
-			// Snug pink satin choker ribbon wrapping neatly around the neck/collar behind the bow
-			const choker = new THREE.Mesh(new THREE.TorusGeometry(0.185, 0.018, 8, 22), pinkMat);
+			// Snug pink satin choker ribbon wrapping tightly around the neck/collar behind the bow
+			const choker = new THREE.Mesh(new THREE.TorusGeometry(0.155, 0.016, 8, 22), pinkMat);
 			choker.rotation.x = Math.PI / 2;
-			choker.position.set(0, 0.01, -0.185);
+			choker.position.set(0, 0.012, -0.155);
 			bowAnchor.add(choker);
 			for (const s of [-1, 1]) {
 				const laceWing = new THREE.Mesh(new THREE.ConeGeometry(0.066, 0.132, 5), whiteMat);
@@ -49500,7 +49500,7 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 			const bellGoldMat = toon(0xfacc15, { emissive: 0xd97706, emissiveIntensity: 0.50 });
 			const bellSlitMat = toon(0x18181b);
 			const bellGroup = new THREE.Group();
-			bellGroup.position.set(0, -0.058, 0.034);
+			bellGroup.position.set(0, -0.054, 0.032);
 			const bellRing = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.006, 6, 10), bellGoldMat);
 			bellRing.position.y = 0.055;
 			bellGroup.add(bellRing);
