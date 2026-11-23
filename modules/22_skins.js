@@ -5043,8 +5043,8 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 			const goldMat = toon(0xfacc15, { emissive: 0xb45309, emissiveIntensity: 0.35 });
 			// Snug dome-hugging Japanese Maid Lace Headdress (Katyusha) tailored to Speaki's crown contour
 			const katyusha = new THREE.Group();
-			katyusha.position.set(0, -0.352, 0.04);
-			katyusha.rotation.x = 0.06;
+			katyusha.position.set(0, -0.305, 0.095);
+			katyusha.rotation.x = 0.10;
 			const rx = 0.435, ry = 0.295;
 			// Wrap rotated torus arcs in a parent scale group so the ellipse stays 100% left-right symmetric
 			const archGroup = new THREE.Group();
@@ -5133,17 +5133,17 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 				const charm = new THREE.Mesh(new THREE.OctahedronGeometry(0.036, 0), i % 2 === 0 ? pinkMat : softPinkMat);
 				charm.scale.set(1.1, 1.25, 0.55);
 				anchor.add(charm);
-				animParts.push({ type: "orbit", node: charm, radius: 0.44, baseY: 0.06 + (i % 2) * 0.06, phase: (Math.PI * 2 * i) / 3 });
+				animParts.push({ type: "orbit", node: charm, radius: 0.44, baseY: 0.11 + (i % 2) * 0.06, phase: (Math.PI * 2 * i) / 3 });
 			}
 		});
-		// Front chest satin maid collar choker, ribbon bow & gleaming golden cat bell (suzu) cleanly below chin
-		addBody(spine, "spkmod_skin_maid_chest_bow", [0, 0.03, 0.29], bowAnchor => {
+		// Front neck satin maid collar choker, ribbon bow & gleaming golden cat bell (suzu) right on the collar
+		addBody(spine, "spkmod_skin_maid_chest_bow", [0, 0.105, 0.285], bowAnchor => {
 			const whiteMat = toon(0xffffff, { emissive: 0xf8fafc, emissiveIntensity: 0.10 });
 			const pinkMat = toon(0xf472b6, { emissive: 0xdb2777, emissiveIntensity: 0.26 });
-			// Snug pink satin choker ribbon wrapping around the collar so bow & bell look physically worn from all angles
-			const choker = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.022, 8, 22), pinkMat);
+			// Snug pink satin choker ribbon wrapping neatly around the neck/collar behind the bow
+			const choker = new THREE.Mesh(new THREE.TorusGeometry(0.185, 0.018, 8, 22), pinkMat);
 			choker.rotation.x = Math.PI / 2;
-			choker.position.set(0, 0.02, -0.24);
+			choker.position.set(0, 0.01, -0.185);
 			bowAnchor.add(choker);
 			for (const s of [-1, 1]) {
 				const laceWing = new THREE.Mesh(new THREE.ConeGeometry(0.066, 0.132, 5), whiteMat);
