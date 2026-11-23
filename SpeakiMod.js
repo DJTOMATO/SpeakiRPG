@@ -49373,18 +49373,19 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 			const goldMat = toon(0xfacc15, { emissive: 0xb45309, emissiveIntensity: 0.35 });
 			// Snug dome-hugging Japanese Maid Lace Headdress (Katyusha) tailored to Speaki's crown contour
 			const katyusha = new THREE.Group();
-			katyusha.position.set(0, -0.305, 0.095);
-			katyusha.rotation.x = 0.10;
-			const rx = 0.435, ry = 0.295;
+			katyusha.position.set(0, -0.300, 0.118);
+			katyusha.rotation.x = 0.12;
+			const rx = 0.452, ry = 0.312;
 			// Wrap rotated torus arcs in a parent scale group so the ellipse stays 100% left-right symmetric
 			const archGroup = new THREE.Group();
 			archGroup.scale.set(1.0, ry / rx, 1.0);
 			const band = new THREE.Mesh(new THREE.TorusGeometry(rx, 0.021, 8, 24, Math.PI * 0.62), whiteMat);
 			band.rotation.z = Math.PI * 0.19;
+			band.position.z = 0.008;
 			archGroup.add(band);
 			const ribbon = new THREE.Mesh(new THREE.TorusGeometry(rx + 0.008, 0.012, 8, 22, Math.PI * 0.58), pinkMat);
 			ribbon.rotation.z = Math.PI * 0.21;
-			ribbon.position.z = 0.017;
+			ribbon.position.z = 0.022;
 			archGroup.add(ribbon);
 			katyusha.add(archGroup);
 			// 11 dainty pleated white lace frill scallops + pastel pink pearls along the crest
@@ -49392,12 +49393,12 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 				const ang = Math.PI * (0.21 + (0.58 * i) / 10);
 				const frill = new THREE.Mesh(new THREE.SphereGeometry(0.042, 10, 8), i % 2 === 0 ? whiteMat : laceMat);
 				frill.scale.set(0.95, 1.12, 0.30);
-				frill.position.set(Math.cos(ang) * (rx + 0.032), Math.sin(ang) * (ry + 0.032), -0.004);
+				frill.position.set(Math.cos(ang) * (rx + 0.032), Math.sin(ang) * (ry + 0.032), 0.004);
 				frill.rotation.z = Math.atan2(Math.sin(ang) / (ry + 0.032), Math.cos(ang) / (rx + 0.032)) - Math.PI / 2;
 				katyusha.add(frill);
 				if (i % 2 === 1) {
 					const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.013, 8, 6), softPinkMat);
-					pearl.position.set(Math.cos(ang) * (rx + 0.010), Math.sin(ang) * (ry + 0.008), 0.026);
+					pearl.position.set(Math.cos(ang) * (rx + 0.010), Math.sin(ang) * (ry + 0.008), 0.031);
 					katyusha.add(pearl);
 				}
 			}
@@ -49405,18 +49406,18 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 			for (const s of [-1, 1]) {
 				const wing = new THREE.Mesh(new THREE.ConeGeometry(0.032, 0.068, 5), pinkMat);
 				wing.scale.set(1.0, 1.0, 0.42);
-				wing.position.set(s * 0.032, ry + 0.008, 0.030);
+				wing.position.set(s * 0.032, ry + 0.008, 0.035);
 				wing.rotation.z = s * (Math.PI / 2);
 				katyusha.add(wing);
 			}
 			const topGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.020, 0), rubyMat);
-			topGem.position.set(0, ry + 0.008, 0.042);
+			topGem.position.set(0, ry + 0.008, 0.047);
 			katyusha.add(topGem);
 			// Cute wiggling velvety-black & pastel-pink cat ears nestled right into the lace headdress
 			const earFurMat = toon(0x18181b);
 			for (const s of [-1, 1]) {
 				const catEar = new THREE.Group();
-				catEar.position.set(s * 0.197, 0.262, -0.005);
+				catEar.position.set(s * 0.205, 0.278, 0.002);
 				const baseRotZ = -s * 0.32;
 				catEar.rotation.z = baseRotZ;
 				const outerEar = new THREE.Mesh(new THREE.ConeGeometry(0.098, 0.21, 4), earFurMat);
@@ -49439,7 +49440,7 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 			// Twin cute pink satin side bows with dangling ribbon streamers on left & right ends
 			for (const s of [-1, 1]) {
 				const sideBow = new THREE.Group();
-				sideBow.position.set(s * 0.358, 0.172, 0.016);
+				sideBow.position.set(s * 0.372, 0.186, 0.032);
 				sideBow.rotation.z = -s * 0.28;
 				for (const bs of [-1, 1]) {
 					const loop = new THREE.Mesh(new THREE.ConeGeometry(0.038, 0.078, 5), pinkMat);
@@ -49447,9 +49448,10 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 					loop.position.set(bs * 0.034, 0.014, 0.012);
 					loop.rotation.z = bs * (Math.PI / 2);
 					sideBow.add(loop);
-					const tail = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.105, 0.010), bs > 0 ? whiteMat : pinkMat);
-					tail.position.set(bs * 0.024, -0.056, 0.008);
+					const tail = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.095, 0.010), bs > 0 ? whiteMat : pinkMat);
+					tail.position.set(bs * 0.024, -0.048, 0.018);
 					tail.rotation.z = bs * 0.24;
+					tail.rotation.x = -0.22;
 					sideBow.add(tail);
 				}
 				const knot = new THREE.Mesh(new THREE.SphereGeometry(0.021, 8, 8), goldMat);
