@@ -5344,7 +5344,7 @@ function spkmodEnsurePlayerFatSceneHook() {
 }
 
 // ============================================================================
-// 8. UNIFIED SYNC BRIDGE WITH PET BROADCAST (:pet_<pet>__s_<skin>__f_<width>:)
+// 8. UNIFIED SYNC BRIDGE WITH PET BROADCAST (:pet_<pet>_s_<skin>_f_<width>:)
 // ============================================================================
 let _spkmodSkinHadBroadcast = false;
 let _spkmodSkinLastObservedZoneId = null;

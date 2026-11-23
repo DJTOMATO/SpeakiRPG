@@ -42524,7 +42524,7 @@ function spkmodBuildCombinedPetSyncCode(petId, skinSnap, includeSkinState = fals
 		};
 	}
 	return {
-		code: `:pet_${normPet}__s_${normSkin}__f_${normWidth}:`,
+		code: `:pet_${normPet}_s_${normSkin}_f_${normWidth}:`,
 		hasSkinOrWidth: hasActiveSkin || hasActiveWidth
 	};
 }
@@ -42533,23 +42533,64 @@ function spkmodParseCombinedPetSyncMessage(rawMsg) {
 	if (typeof rawMsg !== "string") return null;
 	const match = rawMsg.trim().match(/^:pet_([a-zA-Z0-9_-]+):$/i);
 	if (!match) return null;
-	const parts = match[1].split(/__|--/);
-	const petId = (parts[0] || "none").toLowerCase();
-	let skinId = null;
-	let widthId = null;
-	let hasSkin = false;
-	let hasWidth = false;
-	for (let i = 1; i < parts.length; i++) {
-		const seg = parts[i];
-		if (/^s_/i.test(seg)) {
-			hasSkin = true;
-			skinId = seg.slice(2).toLowerCase() || "none";
-		} else if (/^f_/i.test(seg)) {
-			hasWidth = true;
-			widthId = seg.slice(2).toLowerCase() || "none";
+	const body = match[1];
+	// Backward compatibility for legacy __ or -- delimiters
+	if (body.includes("__") || body.includes("--")) {
+		const parts = body.split(/__|--/);
+		const petId = (parts[0] || "none").toLowerCase();
+		let skinId = null;
+		let widthId = null;
+		let hasSkin = false;
+		let hasWidth = false;
+		for (let i = 1; i < parts.length; i++) {
+			const seg = parts[i];
+			if (/^s_/i.test(seg)) {
+				hasSkin = true;
+				skinId = seg.slice(2).toLowerCase() || "none";
+			} else if (/^f_/i.test(seg)) {
+				hasWidth = true;
+				widthId = seg.slice(2).toLowerCase() || "none";
+			}
 		}
+		return { petId, skinId, widthId, hasSkin, hasWidth };
 	}
-	return { petId, skinId, widthId, hasSkin, hasWidth };
+	const bothMatch = body.match(/^([a-z0-9_]+?)_s_([a-z0-9_]+?)_f_([a-z0-9_]+)$/i);
+	if (bothMatch) {
+		return {
+			petId: (bothMatch[1] || "none").toLowerCase(),
+			skinId: (bothMatch[2] || "none").toLowerCase(),
+			widthId: (bothMatch[3] || "none").toLowerCase(),
+			hasSkin: true,
+			hasWidth: true
+		};
+	}
+	const skinOnlyMatch = body.match(/^([a-z0-9_]+?)_s_([a-z0-9_]+)$/i);
+	if (skinOnlyMatch) {
+		return {
+			petId: (skinOnlyMatch[1] || "none").toLowerCase(),
+			skinId: (skinOnlyMatch[2] || "none").toLowerCase(),
+			widthId: null,
+			hasSkin: true,
+			hasWidth: false
+		};
+	}
+	const widthOnlyMatch = body.match(/^([a-z0-9_]+?)_f_([a-z0-9_]+)$/i);
+	if (widthOnlyMatch) {
+		return {
+			petId: (widthOnlyMatch[1] || "none").toLowerCase(),
+			skinId: null,
+			widthId: (widthOnlyMatch[2] || "none").toLowerCase(),
+			hasSkin: false,
+			hasWidth: true
+		};
+	}
+	return {
+		petId: (body || "none").toLowerCase(),
+		skinId: null,
+		widthId: null,
+		hasSkin: false,
+		hasWidth: false
+	};
 }
 window.spkmodBuildCombinedPetSyncCode = spkmodBuildCombinedPetSyncCode;
 window.spkmodParseCombinedPetSyncMessage = spkmodParseCombinedPetSyncMessage;
@@ -49483,7 +49524,7 @@ function spkmodEnsurePlayerFatSceneHook() {
 }
 
 // ============================================================================
-// 8. UNIFIED SYNC BRIDGE WITH PET BROADCAST (:pet_<pet>__s_<skin>__f_<width>:)
+// 8. UNIFIED SYNC BRIDGE WITH PET BROADCAST (:pet_<pet>_s_<skin>_f_<width>:)
 // ============================================================================
 let _spkmodSkinHadBroadcast = false;
 let _spkmodSkinLastObservedZoneId = null;
