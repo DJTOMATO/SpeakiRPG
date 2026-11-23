@@ -10,8 +10,35 @@ const SPKMOD_PET_STORAGE_KEYS = {
 	bubbles: "spkmod-pet-speech-bubbles",
 	showRemote: "spkmod-pet-show-remote",
 	shareInChat: "spkmod-pet-share-chat",
+	favorites: "spkmod-pet-favorites",
 	unlockAll: "spkmod-pet-unlock-all-test"
 };
+
+function spkmodLoadPetFavorites() {
+	const set = new Set();
+	try {
+		if (typeof window !== "undefined" && window.localStorage) {
+			const raw = localStorage.getItem(SPKMOD_PET_STORAGE_KEYS.favorites);
+			if (raw) {
+				const arr = JSON.parse(raw);
+				if (Array.isArray(arr)) {
+					for (const id of arr) {
+						if (typeof id === "string" && id.trim()) set.add(id.trim());
+					}
+				}
+			}
+		}
+	} catch (_) {}
+	return set;
+}
+
+function spkmodSavePetFavorites(favSet) {
+	try {
+		if (typeof window !== "undefined" && window.localStorage) {
+			localStorage.setItem(SPKMOD_PET_STORAGE_KEYS.favorites, JSON.stringify([...favSet]));
+		}
+	} catch (_) {}
+}
 
 window.spkmodPetSettings = {
 	enabled: (typeof window !== "undefined" && window.localStorage)
@@ -23,8 +50,27 @@ window.spkmodPetSettings = {
 	speechBubbles: (typeof window !== "undefined" && window.localStorage) ? localStorage.getItem(SPKMOD_PET_STORAGE_KEYS.bubbles) !== "false" : true,
 	showRemotePets: (typeof window !== "undefined" && window.localStorage) ? localStorage.getItem(SPKMOD_PET_STORAGE_KEYS.showRemote) !== "false" : true,
 	shareInChat: (typeof window !== "undefined" && window.localStorage) ? localStorage.getItem(SPKMOD_PET_STORAGE_KEYS.shareInChat) !== "false" : true,
+	favorites: spkmodLoadPetFavorites(),
 	unlockAllTest: (typeof window !== "undefined" && window.localStorage) ? localStorage.getItem(SPKMOD_PET_STORAGE_KEYS.unlockAll) === "true" : false
 };
+
+function spkmodIsPetFavorite(petId) {
+	const favs = window.spkmodPetSettings?.favorites;
+	return !!(favs && typeof favs.has === "function" && favs.has(petId));
+}
+
+function spkmodTogglePetFavorite(petId) {
+	if (!petId || !SPKMOD_PETS_BY_ID.has(petId)) return false;
+	if (!(window.spkmodPetSettings.favorites instanceof Set)) {
+		window.spkmodPetSettings.favorites = spkmodLoadPetFavorites();
+	}
+	const favs = window.spkmodPetSettings.favorites;
+	const nowFav = !favs.has(petId);
+	if (nowFav) favs.add(petId);
+	else favs.delete(petId);
+	spkmodSavePetFavorites(favs);
+	return nowFav;
+}
 window.spkmodPetsSystemEnabled = window.spkmodPetSettings.enabled !== false;
 
 function spkmodIsPetsSystemEnabled() {
@@ -104,7 +150,11 @@ const SPKMOD_PET_UI_FALLBACK_EN = {
 	testUnlockEnabledToast: "🔓 [Pet Test] All 100 pets UNLOCKED for testing!",
 	testUnlockDisabledToast: "🔒 [Pet Test] Normal level requirements restored.",
 	randomPetsSpawnedToast: "🐾 Spawned random test pets on {0} nearby player(s)!",
-	showcaseSpawnedToast: "🐾 Spawned {0} showcase pets around you! Call spkmodPets.clearShowcase() to remove."
+	showcaseSpawnedToast: "🐾 Spawned {0} showcase pets around you! Call spkmodPets.clearShowcase() to remove.",
+	tabFavorites: "⭐ Favorites",
+	favAddTooltip: "Add to Favorites",
+	favRemoveTooltip: "Remove from Favorites",
+	favEmptyHint: "No favorite pets yet! Click ☆ on any pet card to pin it to the top and show it here."
 };
 
 const SPKMOD_PET_SPEECH_URL = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/assets/pet_speech.json";
@@ -3804,14 +3854,14 @@ function spkmodEnsurePetsModal() {
 				overflow-y: auto;
 				overflow-x: hidden;
 				overscroll-behavior: contain;
-				padding: 12px;
+				padding: 10px;
 			}
 			.spkmod-pets-grid {
 				display: grid;
-				grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+				grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
 				grid-auto-rows: max-content;
 				align-content: start;
-				gap: 10px;
+				gap: 8px;
 				height: auto;
 			}
 			.spkmod-pet-card {
@@ -3820,9 +3870,8 @@ function spkmodEnsurePetsModal() {
 				justify-content: space-between;
 				background: rgba(30, 41, 59, 0.72);
 				border: 1.5px solid rgba(148, 163, 184, 0.25);
-				border-radius: 10px;
-				padding: 10px;
-				min-height: 124px;
+				border-radius: 9px;
+				padding: 7px 8px;
 				box-sizing: border-box;
 				transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
 				position: relative;
@@ -3839,6 +3888,34 @@ function spkmodEnsurePetsModal() {
 			.spkmod-pet-card.locked {
 				opacity: 0.62;
 				filter: grayscale(0.35);
+			}
+			.spkmod-pet-fav-btn {
+				width: 24px;
+				height: 24px;
+				border-radius: 6px;
+				border: 1px solid rgba(148, 163, 184, 0.25);
+				background: rgba(15, 23, 42, 0.65);
+				color: #94a3b8;
+				font-size: 13px;
+				line-height: 1;
+				cursor: pointer;
+				flex-shrink: 0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 0;
+				transition: transform 0.12s ease, color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+			}
+			.spkmod-pet-fav-btn:hover {
+				transform: scale(1.1);
+				color: #fde047;
+				border-color: rgba(250, 204, 21, 0.55);
+			}
+			.spkmod-pet-fav-btn.is-fav {
+				color: #facc15;
+				border-color: rgba(250, 204, 21, 0.65);
+				background: rgba(250, 204, 21, 0.14);
+				text-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
 			}
 			.spkmod-pets-tab-btn {
 				background: rgba(30, 41, 59, 0.85);
@@ -4032,8 +4109,10 @@ function spkmodBuildPetsModalControls(controlsBar) {
 	// Row B: Tier / Category Filter Tabs
 	const tabsRow = document.createElement("div");
 	tabsRow.style.cssText = "display: flex; flex-wrap: wrap; gap: 6px; align-items: center;";
+	const favUnlockedCount = SPKMOD_PET_CATALOG.filter(p => spkmodIsPetUnlocked(p) && spkmodIsPetFavorite(p.id)).length;
 	const tabs = [
 		{ id: "all", key: "tabAll" },
+		{ id: "favorites", key: "tabFavorites" },
 		{ id: "unlocked", key: "tabUnlocked" },
 		{ id: "t1", key: "tabTier1" },
 		{ id: "t2", key: "tabTier2" },
@@ -4044,8 +4123,11 @@ function spkmodBuildPetsModalControls(controlsBar) {
 	for (const tab of tabs) {
 		const btn = document.createElement("button");
 		btn.type = "button";
+		if (tab.id === "favorites") btn.id = "spkmod-pets-fav-tab-btn";
 		btn.className = "spkmod-pets-tab-btn" + (_spkmodPetsActiveTab === tab.id ? " active" : "");
-		btn.innerText = spkmodGetPetUiText(tab.key);
+		btn.innerText = (tab.id === "favorites" && favUnlockedCount > 0)
+			? `${spkmodGetPetUiText(tab.key)} (${favUnlockedCount})`
+			: spkmodGetPetUiText(tab.key);
 		btn.onclick = () => {
 			_spkmodPetsActiveTab = tab.id;
 			tabsRow.querySelectorAll(".spkmod-pets-tab-btn").forEach(b => b.classList.remove("active"));
@@ -4119,6 +4201,14 @@ function spkmodRenderPetsStatusBar() {
 	statusBar.appendChild(actionsWrap);
 }
 
+function spkmodUpdatePetsFavTabLabel() {
+	const favTabBtn = document.getElementById("spkmod-pets-fav-tab-btn");
+	if (!favTabBtn) return;
+	const cnt = SPKMOD_PET_CATALOG.filter(p => spkmodIsPetUnlocked(p) && spkmodIsPetFavorite(p.id)).length;
+	const base = spkmodGetPetUiText("tabFavorites");
+	favTabBtn.innerText = cnt > 0 ? `${base} (${cnt})` : base;
+}
+
 function spkmodRenderPetsGrid() {
 	const grid = document.getElementById("spkmod-pets-grid");
 	if (!grid) return;
@@ -4133,16 +4223,20 @@ function spkmodRenderPetsGrid() {
 
 	const filtered = SPKMOD_PET_CATALOG.filter(pet => {
 		const unlocked = spkmodIsPetUnlocked(pet);
-		if (_spkmodPetsActiveTab === "unlocked" && !unlocked) return false;
-		if (_spkmodPetsActiveTab === "t1" && (pet.level < 1 || pet.level > 20)) return false;
-		if (_spkmodPetsActiveTab === "t2" && (pet.level < 21 || pet.level > 40)) return false;
-		if (_spkmodPetsActiveTab === "t3" && (pet.level < 41 || pet.level > 60)) return false;
-		if (_spkmodPetsActiveTab === "t4" && (pet.level < 61 || pet.level > 80)) return false;
-		if (_spkmodPetsActiveTab === "t5" && (pet.level < 81 || pet.level > 100)) return false;
+		if (_spkmodPetsActiveTab === "favorites") {
+			if (!unlocked || !spkmodIsPetFavorite(pet.id)) return false;
+		} else {
+			if (_spkmodPetsActiveTab === "unlocked" && !unlocked) return false;
+			if (_spkmodPetsActiveTab === "t1" && (pet.level < 1 || pet.level > 20)) return false;
+			if (_spkmodPetsActiveTab === "t2" && (pet.level < 21 || pet.level > 40)) return false;
+			if (_spkmodPetsActiveTab === "t3" && (pet.level < 41 || pet.level > 60)) return false;
+			if (_spkmodPetsActiveTab === "t4" && (pet.level < 61 || pet.level > 80)) return false;
+			if (_spkmodPetsActiveTab === "t5" && (pet.level < 81 || pet.level > 100)) return false;
 
-		if (!unlocked && !teaserIds.has(pet.id)) {
-			hiddenFutureCount++;
-			return false;
+			if (!unlocked && !teaserIds.has(pet.id)) {
+				hiddenFutureCount++;
+				return false;
+			}
 		}
 
 		if (_spkmodPetsSearchQuery) {
@@ -4157,74 +4251,124 @@ function spkmodRenderPetsGrid() {
 		return true;
 	});
 
+	// Pin unlocked favorited pets to the top while keeping level order within favorites and non-favorites
+	if (filtered.length > 1) {
+		const favs = [];
+		const rest = [];
+		for (const p of filtered) {
+			if (spkmodIsPetUnlocked(p) && spkmodIsPetFavorite(p.id)) favs.push(p);
+			else rest.push(p);
+		}
+		filtered.length = 0;
+		filtered.push(...favs, ...rest);
+	}
+
 	const frag = document.createDocumentFragment();
+	if (_spkmodPetsActiveTab === "favorites" && filtered.length === 0) {
+		const emptyCard = document.createElement("div");
+		emptyCard.style.cssText = `
+			grid-column: 1 / -1;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			text-align: center;
+			gap: 6px;
+			padding: 22px 16px;
+			border-radius: 12px;
+			border: 1.5px dashed rgba(250, 204, 21, 0.45);
+			background: rgba(15, 23, 42, 0.78);
+			color: #cbd5e1;
+			font-size: 12px;
+		`;
+		emptyCard.innerHTML = `<div style="font-size: 22px; line-height: 1;">⭐</div><div>${spkmodGetPetUiText("favEmptyHint")}</div>`;
+		frag.appendChild(emptyCard);
+	}
+
 	for (const pet of filtered) {
 		const unlocked = spkmodIsPetUnlocked(pet);
 		const isEquipped = eqId === pet.id;
+		const isFav = unlocked && spkmodIsPetFavorite(pet.id);
 		const tierIdx = spkmodGetPetTier(pet.level);
 		const tierStyle = SPKMOD_TIER_COLORS[tierIdx] || SPKMOD_TIER_COLORS[1];
 		const isMilestone = pet.level % 5 === 0;
 		const dispName = spkmodGetPetDisplayName(pet);
 
-		let rightBadgeText = pet.source;
-		let rightBadgeColor = "#94a3b8";
+		// Extra special badge only when distinct from pet.source (never duplicate source text!)
+		let extraTagText = "";
+		let extraTagColor = "#ffd54a";
 		if (!unlocked && teaserIds.has(pet.id)) {
-			rightBadgeText = spkmodGetPetUiText("nextUnlockBadge");
-			rightBadgeColor = "#fb923c";
+			extraTagText = spkmodGetPetUiText("nextUnlockBadge");
+			extraTagColor = "#fb923c";
 		} else if (pet.isExtraReward) {
-			rightBadgeText = spkmodGetPetUiText("bonusRewardBadge");
-			rightBadgeColor = "#f472b6";
+			extraTagText = spkmodGetPetUiText("bonusRewardBadge");
+			extraTagColor = "#f472b6";
 		} else if (isMilestone) {
-			rightBadgeText = spkmodGetPetUiText("milestoneBadge");
-			rightBadgeColor = "#ffd54a";
+			extraTagText = spkmodGetPetUiText("milestoneBadge");
+			extraTagColor = "#ffd54a";
 		}
+		const extraTagHtml = (extraTagText && extraTagText.trim().toLowerCase() !== String(pet.source || "").trim().toLowerCase())
+			? `<span style="font-size: 9px; font-weight: 800; color: ${extraTagColor}; white-space: nowrap; flex-shrink: 0;">${extraTagText}</span>`
+			: "";
 
 		const card = document.createElement("div");
 		card.className = "spkmod-pet-card" + (isEquipped ? " equipped" : "") + (!unlocked ? " locked" : "");
-		card.style.borderColor = isEquipped ? "#4ade80" : tierStyle.border;
+		card.style.borderColor = isEquipped ? "#4ade80" : (isFav ? "#facc15" : tierStyle.border);
 		card.style.background = isEquipped
 			? "linear-gradient(145deg, rgba(20, 83, 45, 0.45), rgba(15, 23, 42, 0.88))"
 			: `linear-gradient(155deg, ${tierStyle.bg}, rgba(15, 23, 42, 0.88))`;
 
-		// Top Row: Level Badge + Milestone / Bonus / Upcoming Badge
-		const topMeta = document.createElement("div");
-		topMeta.style.cssText = "display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 6px;";
-		topMeta.innerHTML = `
-			<span style="background: ${tierStyle.badge}; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px;">
-				Lv.${pet.level}
-			</span>
-			<span style="font-size: 10px; font-weight: 700; color: ${rightBadgeColor};">
-				${rightBadgeText}
-			</span>
+		// Compact single-header body: icon + (name / inline Lv + mode + source + optional special badge) + Favorite Star
+		const bodyEl = document.createElement("div");
+		bodyEl.style.cssText = "display: flex; align-items: center; gap: 8px; margin-bottom: 6px;";
+
+		const iconBox = document.createElement("div");
+		iconBox.style.cssText = "width: 36px; height: 36px; border-radius: 8px; background: rgba(2, 6, 23, 0.65); border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;";
+		iconBox.textContent = pet.icon;
+
+		const infoCol = document.createElement("div");
+		infoCol.style.cssText = "display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;";
+		const modeLabel = pet.moveMode === "fly" ? spkmodGetPetUiText("modeFly") : spkmodGetPetUiText("modeBounce");
+		const srcHtml = pet.source ? `<span style="opacity:0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">• ${pet.source}</span>` : "";
+		infoCol.innerHTML = `
+			<div style="font-size: 12px; font-weight: 800; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${dispName}">
+				${dispName}
+			</div>
+			<div style="display: flex; align-items: center; gap: 4px; font-size: 9.5px; color: #cbd5e1; min-width: 0;">
+				<span style="background: ${tierStyle.badge}; color: #fff; font-size: 9.5px; font-weight: 800; padding: 1px 6px; border-radius: 999px; flex-shrink: 0;">Lv.${pet.level}</span>
+				<span style="white-space: nowrap; flex-shrink: 0;">${modeLabel}</span>
+				${srcHtml}
+				${extraTagHtml}
+			</div>
 		`;
 
-		// Center Row: Big Icon + Name + Move Mode Badge
-		const bodyEl = document.createElement("div");
-		bodyEl.style.cssText = "display: flex; align-items: center; gap: 10px; margin-bottom: 10px;";
-		bodyEl.innerHTML = `
-			<div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(2, 6, 23, 0.65); border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">
-				${pet.icon}
-			</div>
-			<div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
-				<div style="font-size: 12.5px; font-weight: 800; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${dispName}">
-					${dispName}
-				</div>
-				<div style="font-size: 10px; color: #cbd5e1; display: flex; align-items: center; gap: 6px;">
-					<span>${pet.moveMode === "fly" ? spkmodGetPetUiText("modeFly") : spkmodGetPetUiText("modeBounce")}</span>
-					<span style="opacity:0.65;">• ${pet.source}</span>
-				</div>
-			</div>
-		`;
+		bodyEl.appendChild(iconBox);
+		bodyEl.appendChild(infoCol);
+
+		if (unlocked) {
+			const favBtn = document.createElement("button");
+			favBtn.type = "button";
+			favBtn.className = "spkmod-pet-fav-btn" + (isFav ? " is-fav" : "");
+			favBtn.innerText = isFav ? "★" : "☆";
+			favBtn.title = spkmodGetPetUiText(isFav ? "favRemoveTooltip" : "favAddTooltip");
+			favBtn.onclick = (e) => {
+				e.stopPropagation();
+				spkmodTogglePetFavorite(pet.id);
+				spkmodUpdatePetsFavTabLabel();
+				spkmodRenderPetsGrid();
+			};
+			bodyEl.appendChild(favBtn);
+		}
 
 		// Bottom Row: Sound Preview Button + Equip / Locked Button
 		const footerEl = document.createElement("div");
-		footerEl.style.cssText = "display: flex; align-items: center; gap: 6px;";
+		footerEl.style.cssText = "display: flex; align-items: center; gap: 5px;";
 
 		const sfxBtn = document.createElement("button");
 		sfxBtn.type = "button";
 		sfxBtn.innerText = "🔊";
 		sfxBtn.title = spkmodGetPetUiText("previewSoundTooltip");
-		sfxBtn.style.cssText = "background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(148, 163, 184, 0.35); color: #e2e8f0; border-radius: 6px; width: 30px; height: 28px; cursor: pointer; font-size: 12px; flex-shrink: 0;";
+		sfxBtn.style.cssText = "background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(148, 163, 184, 0.35); color: #e2e8f0; border-radius: 6px; width: 28px; height: 24px; cursor: pointer; font-size: 11px; flex-shrink: 0; padding: 0;";
 		sfxBtn.onclick = (e) => {
 			e.stopPropagation();
 			spkmodPlayPetSfx(pet, true);
@@ -4233,7 +4377,7 @@ function spkmodRenderPetsGrid() {
 		const equipBtn = document.createElement("button");
 		equipBtn.type = "button";
 		equipBtn.style.cssText = `
-			flex: 1; height: 28px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: ${unlocked ? "pointer" : "not-allowed"};
+			flex: 1; height: 24px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: ${unlocked ? "pointer" : "not-allowed"};
 			border: 1px solid ${isEquipped ? "#4ade80" : (unlocked ? tierStyle.border : "#475569")};
 			background: ${isEquipped ? "rgba(22, 163, 74, 0.55)" : (unlocked ? "rgba(30, 41, 59, 0.9)" : "rgba(15, 23, 42, 0.6)")};
 			color: ${isEquipped ? "#bbf7d0" : (unlocked ? "#f8fafc" : "#94a3b8")};
@@ -4253,14 +4397,13 @@ function spkmodRenderPetsGrid() {
 		footerEl.appendChild(sfxBtn);
 		footerEl.appendChild(equipBtn);
 
-		card.appendChild(topMeta);
 		card.appendChild(bodyEl);
 		card.appendChild(footerEl);
 		frag.appendChild(card);
 	}
 
 	// Render the "Keep leveling up to unlock more!" Hype Teaser Banner when future pets are hidden
-	if (hiddenFutureCount > 0 && _spkmodPetsActiveTab !== "unlocked") {
+	if (hiddenFutureCount > 0 && _spkmodPetsActiveTab !== "unlocked" && _spkmodPetsActiveTab !== "favorites") {
 		const nextUnlockLvl = teaserLockedPets.length > 0 ? teaserLockedPets[0].level : Math.min(100, spkmodGetPlayerLevel() + 1);
 		const totalMysteryRemaining = Math.max(hiddenFutureCount, allLockedPets.length - teaserLockedPets.length);
 		const hypeCard = document.createElement("div");
@@ -4505,6 +4648,13 @@ window.spkmodPets = {
 	}),
 	reloadSpeech: () => fetchRemotePetSpeech(),
 	generateSpeech: (pet) => spkmodGeneratePetSpeech(pet || spkmodLocalPetInstance?.pet),
+	toggleFavorite: (petId) => {
+		const next = spkmodTogglePetFavorite(petId);
+		spkmodUpdatePetsFavTabLabel();
+		spkmodRenderPetsGrid();
+		return next;
+	},
+	getFavorites: () => [...(window.spkmodPetSettings.favorites || [])],
 	list: () => {
 		console.table(SPKMOD_PET_CATALOG.map(p => ({
 			Level: p.level,
