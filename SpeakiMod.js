@@ -42524,7 +42524,7 @@ function spkmodBuildCombinedPetSyncCode(petId, skinSnap, includeSkinState = fals
 		};
 	}
 	return {
-		code: `:pet_${normPet}--s_${normSkin}--f_${normWidth}:`,
+		code: `:pet_${normPet}__s_${normSkin}__f_${normWidth}:`,
 		hasSkinOrWidth: hasActiveSkin || hasActiveWidth
 	};
 }
@@ -42533,7 +42533,7 @@ function spkmodParseCombinedPetSyncMessage(rawMsg) {
 	if (typeof rawMsg !== "string") return null;
 	const match = rawMsg.trim().match(/^:pet_([a-zA-Z0-9_-]+):$/i);
 	if (!match) return null;
-	const parts = match[1].split("--");
+	const parts = match[1].split(/__|--/);
 	const petId = (parts[0] || "none").toLowerCase();
 	let skinId = null;
 	let widthId = null;
@@ -49483,7 +49483,7 @@ function spkmodEnsurePlayerFatSceneHook() {
 }
 
 // ============================================================================
-// 8. UNIFIED SYNC BRIDGE WITH PET BROADCAST (:pet_<pet>--s_<skin>--f_<width>:)
+// 8. UNIFIED SYNC BRIDGE WITH PET BROADCAST (:pet_<pet>__s_<skin>__f_<width>:)
 // ============================================================================
 let _spkmodSkinHadBroadcast = false;
 let _spkmodSkinLastObservedZoneId = null;
