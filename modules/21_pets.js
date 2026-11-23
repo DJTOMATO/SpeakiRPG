@@ -77,8 +77,8 @@ const SPKMOD_PET_UI_FALLBACK_EN = {
 	toggleOtherSfx: "🔉 Others' Pet Noises",
 	toggleBubbles: "💬 Pet Speech Bubbles",
 	toggleRemotePets: "👁️ Show Others' Pets",
-	toggleShareInChat: "📡 Share My Pet in Chat",
-	shareInChatDisabledToast: "📡 Pet chat sharing is OFF. Enable 'Share My Pet in Chat' in Pet Manager to sync with others.",
+	toggleShareInChat: "📡 Share My Pet with Other Players",
+	shareInChatDisabledToast: "📡 Pet sharing is OFF. Enable 'Share My Pet with Other Players' in Pet Manager to sync with others.",
 	tabAll: "All",
 	tabUnlocked: "Unlocked",
 	tabTier1: "Lv 1-20 Snacks & Toys",
@@ -2821,11 +2821,80 @@ const SPKMOD_PET_CHAT_RECHECK_MS = 600;            // Poll interval while user i
 
 let _spkmodLastBroadcastAtMs = 0;
 let _spkmodLastBroadcastPetId = null;
+let _spkmodLastBroadcastCode = null;
 let _spkmodLastBroadcastZoneId = null;
 let _spkmodLastObservedZoneId = null;
 let _spkmodLastObservedRemoteCount = 0;
 let _spkmodAutoRestoringPet = false;
 let _spkmodNeedsZoneSync = false;
+
+function spkmodGetSkinBroadcastSnapshot() {
+	if (typeof window !== "undefined" && typeof window.spkmodGetActiveSkinBroadcastState === "function") {
+		try {
+			const st = window.spkmodGetActiveSkinBroadcastState();
+			if (st && typeof st === "object") return st;
+		} catch (_) {}
+	}
+	return { enabled: false, shareInChat: false, skinId: null, widthId: null, hadBroadcastSkinOrWidth: false };
+}
+
+function spkmodIsAnyPetOrSkinChatSharingEnabled() {
+	const petCanShare = spkmodIsPetChatSharingEnabled();
+	const skinSnap = spkmodGetSkinBroadcastSnapshot();
+	const skinCanShare = !!(skinSnap.enabled && skinSnap.shareInChat);
+	return petCanShare || skinCanShare;
+}
+
+function spkmodBuildCombinedPetSyncCode(petId, skinSnap, includeSkinState = false) {
+	const normPet = (!petId || petId === "none" || petId === "off") ? "none" : String(petId).trim().toLowerCase();
+	const canShareSkin = !!(skinSnap && skinSnap.enabled && skinSnap.shareInChat);
+	const normSkin = (canShareSkin && skinSnap.skinId && skinSnap.skinId !== "none" && skinSnap.skinId !== "off")
+		? String(skinSnap.skinId).trim().toLowerCase()
+		: "none";
+	const normWidth = (canShareSkin && skinSnap.widthId && skinSnap.widthId !== "normal" && skinSnap.widthId !== "none" && skinSnap.widthId !== "off")
+		? String(skinSnap.widthId).trim().toLowerCase()
+		: "none";
+
+	const hasActiveSkin = normSkin !== "none";
+	const hasActiveWidth = normWidth !== "none";
+	const needSkinFields = canShareSkin && (hasActiveSkin || hasActiveWidth || includeSkinState || !!skinSnap.hadBroadcastSkinOrWidth);
+
+	if (!needSkinFields) {
+		return {
+			code: `:pet_${normPet}:`,
+			hasSkinOrWidth: false
+		};
+	}
+	return {
+		code: `:pet_${normPet}--s_${normSkin}--f_${normWidth}:`,
+		hasSkinOrWidth: hasActiveSkin || hasActiveWidth
+	};
+}
+
+function spkmodParseCombinedPetSyncMessage(rawMsg) {
+	if (typeof rawMsg !== "string") return null;
+	const match = rawMsg.trim().match(/^:pet_([a-zA-Z0-9_-]+):$/i);
+	if (!match) return null;
+	const parts = match[1].split("--");
+	const petId = (parts[0] || "none").toLowerCase();
+	let skinId = null;
+	let widthId = null;
+	let hasSkin = false;
+	let hasWidth = false;
+	for (let i = 1; i < parts.length; i++) {
+		const seg = parts[i];
+		if (/^s_/i.test(seg)) {
+			hasSkin = true;
+			skinId = seg.slice(2).toLowerCase() || "none";
+		} else if (/^f_/i.test(seg)) {
+			hasWidth = true;
+			widthId = seg.slice(2).toLowerCase() || "none";
+		}
+	}
+	return { petId, skinId, widthId, hasSkin, hasWidth };
+}
+window.spkmodBuildCombinedPetSyncCode = spkmodBuildCombinedPetSyncCode;
+window.spkmodParseCombinedPetSyncMessage = spkmodParseCombinedPetSyncMessage;
 
 function spkmodIsInIsolatedMinigame() {
 	if (typeof gameState === "undefined" || !gameState) return false;
@@ -2884,7 +2953,7 @@ function spkmodPruneRecentUserChatTimes(now) {
 }
 
 function spkmodComputePetBroadcastWaitMs(now, entry) {
-	if (!spkmodIsPetChatSharingEnabled()) {
+	if (!spkmodIsAnyPetOrSkinChatSharingEnabled()) {
 		return Infinity;
 	}
 	if (typeof gameState === "undefined" || !gameState || typeof gameState.trySendChat !== "function" || gameState.zoneId == null) {
@@ -2973,7 +3042,7 @@ function spkmodScheduleQueuedBroadcastFlush() {
 }
 
 function spkmodFlushQueuedPetBroadcast() {
-	if (!spkmodIsPetChatSharingEnabled()) {
+	if (!spkmodIsAnyPetOrSkinChatSharingEnabled()) {
 		_spkmodQueuedPetBroadcast = null;
 		return;
 	}
@@ -2991,33 +3060,44 @@ function spkmodFlushQueuedPetBroadcast() {
 		return;
 	}
 
-	// Re-resolve passive broadcasts against the latest equipped pet so we never send stale state
-	const effectivePetId = entry.priority === "passive"
-		? (window.spkmodPetSettings.equippedId || null)
-		: (entry.petId || null);
+	const petCanShare = spkmodIsPetChatSharingEnabled();
+	const skinSnap = spkmodGetSkinBroadcastSnapshot();
+	const skinCanShare = !!(skinSnap.enabled && skinSnap.shareInChat);
+
+	// Re-resolve passive broadcasts against the latest equipped pet + skin so we never send stale state
+	const effectivePetId = petCanShare
+		? (entry.priority === "passive"
+			? (window.spkmodPetSettings.equippedId || null)
+			: (entry.petId !== undefined ? entry.petId : (window.spkmodPetSettings.equippedId || null)))
+		: null;
 
 	_spkmodQueuedPetBroadcast = null;
 
-	if (entry.priority === "passive" && !effectivePetId) return;
+	const hasAnySkinOrWidth = skinCanShare && !!(skinSnap.skinId || skinSnap.widthId);
+	if (entry.priority === "passive" && !effectivePetId && !hasAnySkinOrWidth) return;
 
 	const normalizedId = effectivePetId || "none";
+	const built = spkmodBuildCombinedPetSyncCode(normalizedId, skinSnap, !!entry.includeSkinState);
 	const curZoneId = gameState?.zoneId ?? null;
-	if (!entry.forceResend && _spkmodLastBroadcastAtMs > 0 && _spkmodLastBroadcastPetId === normalizedId && _spkmodLastBroadcastZoneId === curZoneId) {
+	if (!entry.forceResend && _spkmodLastBroadcastAtMs > 0 && _spkmodLastBroadcastCode === built.code && _spkmodLastBroadcastZoneId === curZoneId) {
 		return;
 	}
 
 	_spkmodLastBroadcastAtMs = now;
 	window.__spkmodLastHiddenSyncBroadcastMs = now;
 	_spkmodLastBroadcastPetId = normalizedId;
+	_spkmodLastBroadcastCode = built.code;
 	_spkmodLastBroadcastZoneId = curZoneId;
 	_spkmodChatRejectStrikeCount = 0;
 	_spkmodNeedsZoneSync = false;
+	if (typeof window.spkmodMarkSkinBroadcastSent === "function") {
+		window.spkmodMarkSkinBroadcastSent(built.hasSkinOrWidth);
+	}
 
-	const code = normalizedId !== "none" ? `:pet_${normalizedId}:` : `:pet_none:`;
 	try {
-		gameState.trySendChat(code);
+		gameState.trySendChat(built.code);
 	} catch (err) {
-		console.warn("[SpeakiMod+ Pets] Failed to broadcast pet chat trigger:", err);
+		console.warn("[SpeakiMod+ Pets] Failed to broadcast pet/skin chat trigger:", err);
 	}
 }
 
@@ -3040,8 +3120,8 @@ window.spkmodNotifyUserChatActivity = function(kind = "send") {
 		window.__spkmodLastUserChatTypingMs = now;
 	}
 
-	// Immediately defer any queued pet or car broadcast so it yields to the player's chat
-	if (spkmodIsPetsSystemEnabled() && _spkmodQueuedPetBroadcast) {
+	// Immediately defer any queued pet/skin or car broadcast so it yields to the player's chat
+	if (spkmodIsAnyPetOrSkinChatSharingEnabled() && _spkmodQueuedPetBroadcast) {
 		spkmodScheduleQueuedBroadcastFlush();
 	}
 	if (typeof window.spkmodNotifyCarUserChatActivity === "function") {
@@ -3071,13 +3151,13 @@ window.spkmodOnChatRejected = function(event) {
 		if (_spkmodQueuedPetBroadcast && _spkmodQueuedPetBroadcast.priority === "passive") {
 			_spkmodQueuedPetBroadcast = null;
 		}
-		if (spkmodIsPetsSystemEnabled()) spkmodScheduleQueuedBroadcastFlush();
+		if (spkmodIsAnyPetOrSkinChatSharingEnabled()) spkmodScheduleQueuedBroadcastFlush();
 	} else {
 		_spkmodChatRejectStrikeCount = Math.min(3, _spkmodChatRejectStrikeCount + 1);
 		const backoffMs = Math.min(30000, 10000 * _spkmodChatRejectStrikeCount);
 		_spkmodChatRejectBackoffUntilMs = Math.max(_spkmodChatRejectBackoffUntilMs, now + backoffMs);
 		window.__spkmodChatRejectBackoffUntilMs = Math.max(window.__spkmodChatRejectBackoffUntilMs || 0, _spkmodChatRejectBackoffUntilMs);
-		if (spkmodIsPetsSystemEnabled()) spkmodScheduleQueuedBroadcastFlush();
+		if (spkmodIsAnyPetOrSkinChatSharingEnabled()) spkmodScheduleQueuedBroadcastFlush();
 	}
 
 	if (typeof window.spkmodOnCarChatRejected === "function") {
@@ -3117,7 +3197,7 @@ if (!window.__spkmodPetChatInputTrackersInstalled) {
 }
 
 function spkmodSendPetChatTrigger(petId, optionsOrForce = false) {
-	if (!spkmodIsPetChatSharingEnabled()) return;
+	if (!spkmodIsAnyPetOrSkinChatSharingEnabled()) return;
 	const opts = (optionsOrForce && typeof optionsOrForce === "object")
 		? optionsOrForce
 		: {
@@ -3131,6 +3211,7 @@ function spkmodSendPetChatTrigger(petId, optionsOrForce = false) {
 	const delayMs = Math.max(0, Number(opts.delayMs) || 0);
 	const forceResend = opts.forceResend !== undefined ? !!opts.forceResend : (priority === "explicit");
 	const reason = opts.reason || priority;
+	const includeSkinState = !!opts.includeSkinState;
 	const normalizedId = (!petId || petId === "none" || petId === "off") ? "none" : String(petId);
 
 	// Never let a passive background resync clobber a pending explicit equip/unequip
@@ -3141,17 +3222,30 @@ function spkmodSendPetChatTrigger(petId, optionsOrForce = false) {
 	const now = Date.now();
 	const earliestAtMs = now + delayMs;
 	const prevForceResend = _spkmodQueuedPetBroadcast ? !!_spkmodQueuedPetBroadcast.forceResend : false;
+	const prevIncludeSkin = _spkmodQueuedPetBroadcast ? !!_spkmodQueuedPetBroadcast.includeSkinState : false;
 
 	_spkmodQueuedPetBroadcast = {
 		petId: normalizedId,
 		priority,
 		earliestAtMs,
 		forceResend: forceResend || prevForceResend,
+		includeSkinState: includeSkinState || prevIncludeSkin,
 		reason
 	};
 
 	spkmodScheduleQueuedBroadcastFlush();
 }
+
+window.spkmodQueueUnifiedPetSkinBroadcast = function(opts = {}) {
+	if (!spkmodIsAnyPetOrSkinChatSharingEnabled()) return;
+	const activePet = spkmodIsPetChatSharingEnabled() ? (window.spkmodPetSettings.equippedId || "none") : "none";
+	spkmodSendPetChatTrigger(activePet, Object.assign({
+		priority: "explicit",
+		delayMs: SPKMOD_PET_CHAT_EQUIP_DEBOUNCE_MS,
+		forceResend: true,
+		includeSkinState: true
+	}, opts));
+};
 
 function spkmodScheduleZonePetBroadcast(delayMs = 1800, reason = "zone") {
 	if (!spkmodIsPetChatSharingEnabled()) return;
@@ -3272,11 +3366,8 @@ async function spkmodSpawnOrUpdateRemotePet(playerId, playerName, petId) {
 }
 
 window.spkmodHandleIncomingPetTrigger = function(playerId, playerName, rawMsg) {
-	if (!spkmodIsPetsSystemEnabled()) return;
-	if (typeof rawMsg !== "string") return;
-	const match = rawMsg.trim().match(/^:pet_([a-zA-Z0-9_-]+):$/i);
-	if (!match) return;
-	const petId = match[1].toLowerCase();
+	const parsed = spkmodParseCombinedPetSyncMessage(rawMsg);
+	if (!parsed) return;
 
 	const myId = typeof gameState !== "undefined" ? gameState?.myPlayerId : null;
 	const myName = (typeof gameState !== "undefined" && (gameState?.myPlayerName || gameState?.myStat?.name)) || "";
@@ -3286,7 +3377,12 @@ window.spkmodHandleIncomingPetTrigger = function(playerId, playerName, rawMsg) {
 
 	if (isSelf) return;
 
-	spkmodSpawnOrUpdateRemotePet(playerId, playerName, petId);
+	if (spkmodIsPetsSystemEnabled()) {
+		spkmodSpawnOrUpdateRemotePet(playerId, playerName, parsed.petId);
+	}
+	if ((parsed.hasSkin || parsed.hasWidth) && typeof window.spkmodHandleIncomingSkinState === "function") {
+		window.spkmodHandleIncomingSkinState(playerId, playerName, parsed.skinId, parsed.widthId, parsed.hasSkin, parsed.hasWidth);
+	}
 };
 
 // ============================================================================

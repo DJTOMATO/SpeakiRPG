@@ -753,6 +753,20 @@ if (!checkAndTriggerInGameReady()) {
 window.__speakiInitInGame = onInGameReady;
 
 window.addEventListener("keydown", e => {
+	if (typeof window.spkmodMiningFreeCam !== "undefined" && window.spkmodMiningFreeCam?.isActive?.()) {
+		if ((e.key === "F4" || e.code === "F4") && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+			if (e.repeat) {
+				e.preventDefault();
+				e.stopPropagation();
+				e.stopImmediatePropagation();
+				return;
+			}
+			if (typeof window.spkmodHandleMiningFreeCamF4 === "function") {
+				window.spkmodHandleMiningFreeCamF4(e);
+			}
+		}
+		return;
+	}
 	if (lunDroneModeActive) {
 		const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
 		if (tag !== "input" && tag !== "textarea" && !document.activeElement.isContentEditable) {
@@ -850,9 +864,18 @@ window.addEventListener("keydown", e => {
 		}
 	}
 
-	if (e.key === "F4" && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-		const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
-		if (tag !== "input" && tag !== "textarea" && !document.activeElement.isContentEditable) {
+	if (e.key === "F4" && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+		if (e.repeat) return;
+		const inEditable = typeof window.spkmodIsEditableEventTarget === "function"
+			? window.spkmodIsEditableEventTarget(e)
+			: (() => {
+				const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+				return tag === "input" || tag === "textarea" || tag === "select" || !!document.activeElement?.isContentEditable;
+			})();
+		if (!inEditable) {
+			if (typeof window.spkmodHandleMiningFreeCamF4 === "function" && window.spkmodHandleMiningFreeCamF4(e)) {
+				return;
+			}
 			e.preventDefault();
 			if (typeof lunPanelElements !== "undefined" && lunPanelElements.freeCamBtn) {
 				lunPanelElements.freeCamBtn.click();
@@ -878,6 +901,9 @@ window.addEventListener("keydown", e => {
 }, true);
 
 window.addEventListener("keyup", e => {
+	if (typeof window.spkmodMiningFreeCam !== "undefined" && window.spkmodMiningFreeCam?.isActive?.()) {
+		return;
+	}
 	if (lunDroneModeActive) {
 		const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
 		if (tag !== "input" && tag !== "textarea" && !document.activeElement.isContentEditable) {

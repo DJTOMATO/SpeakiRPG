@@ -187,6 +187,20 @@ MODULE_SPECS = [
             "// ============================================================================\n// IN-GAME 3D PET COMPANION SYSTEM & PET MANAGER (100 LEVELS PROGRESSION)",
             "const SPKMOD_PET_STORAGE_KEYS = {"
         ]
+    },
+    {
+        "name": "22_skins.js",
+        "anchors": [
+            "// ============================================================================\n// IN-GAME 3D SKIN, COSTUME & BODY WIDTH SYSTEM (LEVELS 10-100 PROGRESSION)",
+            "const SPKMOD_SKIN_STORAGE_KEYS = {"
+        ]
+    },
+    {
+        "name": "23_mining_freecam.js",
+        "anchors": [
+            "// ============================================================================\n// MINING MINIGAME FREE-CAMERA MODE (F4) — ANTI-CLIPPING & FULL UI HIDE",
+            "const SPKMOD_MINING_FREECAM_CONFIG = {"
+        ]
     }
 ]
 

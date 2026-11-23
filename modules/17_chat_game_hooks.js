@@ -383,6 +383,42 @@ function hookGameStateOnce() {
 						}
 						break;
 					}
+					case "skins":
+					case "skin":
+					case "wardrobe":
+						if (window.spkmodSkinsSystemEnabled === false) {
+							chatLog(t("skinsSystemDisabledToast") || "👕 Skins System is disabled. Enable it in Settings (under Pets).");
+						} else if (typeof window.spkmodToggleSkinsModal === "function") {
+							window.spkmodToggleSkinsModal();
+						}
+						break;
+					case "skinequip":
+						if (window.spkmodSkinsSystemEnabled === false) {
+							chatLog(t("skinsSystemDisabledToast") || "👕 Skins System is disabled. Enable it in Settings (under Pets).");
+						} else if (window.spkmodSkins && typeof window.spkmodSkins.equip === "function") {
+							window.spkmodSkins.equip(cmd[1]);
+						}
+						break;
+					case "skinwidth":
+					case "width":
+						if (window.spkmodSkinsSystemEnabled === false) {
+							chatLog(t("skinsSystemDisabledToast") || "👕 Skins System is disabled. Enable it in Settings (under Pets).");
+						} else if (window.spkmodSkins && typeof window.spkmodSkins.setWidth === "function") {
+							window.spkmodSkins.setWidth(cmd[1] || "normal");
+						}
+						break;
+					case "skinunlock": {
+						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
+							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
+						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
+							chatLog("❌ You do not have permission to use !skinunlock.");
+						} else if (window.spkmodSkinsSystemEnabled === false) {
+							chatLog(t("skinsSystemDisabledToast") || "👕 Skins System is disabled. Enable it in Settings (under Pets).");
+						} else if (window.spkmodSkins && typeof window.spkmodSkins.unlockAll === "function") {
+							window.spkmodSkins.unlockAll();
+						}
+						break;
+					}
 					case "joayo":
 					case "chowayo":
 						if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
@@ -1798,7 +1834,8 @@ window.addEventListener("keydown", e => {
 			lunHudElements.jukeboxModal,
 			lunHudElements.customCssModal,
 			lunHudElements.resourcePackModal,
-			lunHudElements.petsModal
+			lunHudElements.petsModal,
+			lunHudElements.skinsModal
 		].filter(m => m && !m.classList.contains("hidden"));
 
 		if (candidateModals.length > 0) {

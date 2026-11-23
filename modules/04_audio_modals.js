@@ -821,7 +821,7 @@ function positionModalNicely(modal) {
 	} else if (modal.id === "spkmod-cinema-modal") {
 		targetW = isMobile ? Math.min(380, window.innerWidth - 20) : 400;
 		targetH = isMobile ? Math.min(500, window.innerHeight - 30) : 560;
-	} else if (modal.id === "spkmod-pets-modal") {
+	} else if (modal.id === "spkmod-pets-modal" || modal.id === "spkmod-skins-modal") {
 		targetW = isMobile ? Math.min(780, window.innerWidth - 20) : Math.min(900, window.innerWidth - 40);
 		targetH = isMobile ? Math.min(520, window.innerHeight - 30) : Math.min(640, window.innerHeight - 40);
 	} else {
@@ -856,6 +856,7 @@ function positionModalNicely(modal) {
 		modal === lunHudElements.customCssModal || modal.id === "spkmod-css-modal" ||
 		modal === lunHudElements.resourcePackModal || modal.id === "spkmod-resource-pack-modal" ||
 		modal === lunHudElements.petsModal || modal.id === "spkmod-pets-modal" ||
+		modal === lunHudElements.skinsModal || modal.id === "spkmod-skins-modal" ||
 		modal.id === "spkmod-cinema-modal") {
 		const safeLeft = Math.max(10, Math.min(window.innerWidth - targetW - 10, (modal.id === "spkmod-cinema-modal" && !isMobile) ? (window.innerWidth - targetW - 25) : Math.round((window.innerWidth - targetW) / 2)));
 		const safeTop = Math.max(15, Math.min(window.innerHeight - targetH - 10, Math.round((window.innerHeight - targetH) / 2)));
@@ -971,6 +972,7 @@ function resetWindowPositions() {
 		lunHudElements.customCssModal,
 		lunHudElements.resourcePackModal,
 		lunHudElements.petsModal || document.getElementById("spkmod-pets-modal"),
+		lunHudElements.skinsModal || document.getElementById("spkmod-skins-modal"),
 		typeof lunEmojiPickerPanel !== "undefined" ? lunEmojiPickerPanel : null,
 		typeof mapModalElements !== "undefined" ? mapModalElements.modalWindow : null,
 		typeof spkmodCinemaModalEl !== "undefined" ? spkmodCinemaModalEl : null
@@ -1022,7 +1024,8 @@ function resetWindowPositions() {
 		lunHudElements.infoModal,
 		lunHudElements.customCssModal,
 		lunHudElements.resourcePackModal,
-		lunHudElements.petsModal || document.getElementById("spkmod-pets-modal")
+		lunHudElements.petsModal || document.getElementById("spkmod-pets-modal"),
+		lunHudElements.skinsModal || document.getElementById("spkmod-skins-modal")
 	];
 
 	otherOpenModals.forEach(m => {
@@ -1099,6 +1102,11 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-pet-share-chat",
 	"spkmod-pet-show-remote",
 	"spkmod-pet-speech-bubbles",
+	"spkmod-skin-enabled",
+	"spkmod-skin-equipped",
+	"spkmod-skin-width",
+	"spkmod-skin-share-chat",
+	"spkmod-skin-show-remote",
 	"spkmod-pos-spkmod-bbs-modal",
 	"spkmod-pos-spkmod-effects-modal",
 	"spkmod-pos-spkmod-edits-modal",
@@ -1111,6 +1119,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-pos-spkmod-panel",
 	"spkmod-pos-spkmod-patchnotes-modal",
 	"spkmod-pos-spkmod-pets-modal",
+	"spkmod-pos-spkmod-skins-modal",
 	"spkmod-pos-spkmod-quests-modal",
 	"spkmod-pos-spkmod-settings-modal",
 	"spkmod-pos-spkmod-stats-modal",

@@ -2218,6 +2218,16 @@ document.body.appendChild(
 						if (typeof window.spkmodTogglePetsModal === "function") window.spkmodTogglePetsModal();
 					}
 				}),
+				lunPanelElements.skinsBtn = buildElement("button", {
+					id: "spkmod-skins-btn",
+					className: "spkmod-panel-btn" + (window.spkmodSkinsSystemEnabled === false ? " hidden" : ""),
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer; position: relative;",
+					innerText: "👕",
+					title: "Skin & Costume Wardrobe (Alt+S)",
+					onclick: _ => {
+						if (typeof window.spkmodToggleSkinsModal === "function") window.spkmodToggleSkinsModal();
+					}
+				}),
 				lunPanelElements.jukeboxBtn = buildElement("button", {
 					id: "spkmod-jukebox-btn",
 					className: "spkmod-panel-btn",
@@ -2887,6 +2897,29 @@ document.body.appendChild(
 								window.spkmodPetsSystemEnabled = !!e.target.checked;
 								if (window.localStorage) localStorage.setItem("spkmod-pet-enabled", e.target.checked ? "true" : "false");
 								if (lunPanelElements.petsBtn) lunPanelElements.petsBtn.classList.toggle("hidden", !e.target.checked);
+							}
+						}
+					})
+				]),
+
+				// Skins & Costumes System Master Toggle (under Pets)
+				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 4px;" }, [
+					lunPanelElements.skinsSystemToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;",
+						innerText: "👕 " + (t("skinsSystemToggleLabel") || "Enable Skins System"),
+						title: t("skinsSystemToggleDesc") || "Enable or disable the 3D Skin & Body Wardrobe system, HUD button, Alt+S hotkey, and skin sync"
+					}),
+					lunPanelElements.skinsSystemToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: (window.spkmodSkinsSystemEnabled !== false),
+						title: t("skinsSystemToggleDesc") || "Enable or disable the 3D Skin & Body Wardrobe system, HUD button, Alt+S hotkey, and skin sync",
+						onchange: e => {
+							if (typeof window.spkmodSetSkinsSystemEnabled === "function") {
+								window.spkmodSetSkinsSystemEnabled(e.target.checked);
+							} else {
+								window.spkmodSkinsSystemEnabled = !!e.target.checked;
+								if (window.localStorage) localStorage.setItem("spkmod-skin-enabled", e.target.checked ? "true" : "false");
+								if (lunPanelElements.skinsBtn) lunPanelElements.skinsBtn.classList.toggle("hidden", !e.target.checked);
 							}
 						}
 					})

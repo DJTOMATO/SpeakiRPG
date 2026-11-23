@@ -703,6 +703,12 @@ function updateHudIconTooltips() {
         setSpkmodRichTooltip(lunPanelElements.petsBtn, "🐾 " + petTip);
     }
 
+    // 12c. Skins button
+    if (lunPanelElements.skinsBtn) {
+        const skinTip = (typeof window.spkmodGetSkinUiText === "function" ? window.spkmodGetSkinUiText("skinsBtnTooltip") : null) || "Skin & Costume Wardrobe (Alt+S)";
+        setSpkmodRichTooltip(lunPanelElements.skinsBtn, "👕 " + skinTip);
+    }
+
     // 13. Jukebox button
     if (lunPanelElements.jukeboxBtn) {
         const tip = (typeof getJukeboxText === "function" ? getJukeboxText("jukeboxBtnTooltip") : t("jukeboxBtnTooltip")) || "Monatium Radio Station (Alt+M)";

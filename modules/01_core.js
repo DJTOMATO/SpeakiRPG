@@ -672,6 +672,11 @@ window.spkmodPetsSystemEnabled = (typeof window !== "undefined" && window.localS
 	? localStorage.getItem("spkmod-pet-enabled") !== "false"
 	: true;
 
+// 3D Skin & Costume Wardrobe System Master Toggle (ON by default; persisted in localStorage)
+window.spkmodSkinsSystemEnabled = (typeof window !== "undefined" && window.localStorage)
+	? localStorage.getItem("spkmod-skin-enabled") !== "false"
+	: true;
+
 // 3D Car Display & Sync Master Toggle (ON by default; persisted in localStorage)
 window.spkmodCarSystemEnabled = (typeof window !== "undefined" && window.localStorage)
 	? localStorage.getItem("spkmod-car-enabled") !== "false"

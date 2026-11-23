@@ -1040,6 +1040,13 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.petsSystemToggleInput) {
 		lunPanelElements.petsSystemToggleInput.title = t("petsSystemToggleDesc") || "Enable or disable the 3D Pet Companion system, HUD button, hotkeys, and pet sync";
 	}
+	if (lunPanelElements.skinsSystemToggleLabel) {
+		setText(lunPanelElements.skinsSystemToggleLabel, "👕 " + (t("skinsSystemToggleLabel") || "Enable Skins System"));
+		lunPanelElements.skinsSystemToggleLabel.title = t("skinsSystemToggleDesc") || "Enable or disable the 3D Skin & Body Wardrobe system, HUD button, Alt+S hotkey, and skin sync";
+	}
+	if (lunPanelElements.skinsSystemToggleInput) {
+		lunPanelElements.skinsSystemToggleInput.title = t("skinsSystemToggleDesc") || "Enable or disable the 3D Skin & Body Wardrobe system, HUD button, Alt+S hotkey, and skin sync";
+	}
 	if (lunPanelElements.carSystemToggleLabel) {
 		setText(lunPanelElements.carSystemToggleLabel, "🚗 " + (t("carSystemToggleLabel") || "Enable Cars (Display & Sync)"));
 		lunPanelElements.carSystemToggleLabel.title = t("carSystemToggleDesc") || "Enable or disable 3D car display, HUD button, and multiplayer car sync";

@@ -551,6 +551,8 @@ var lunPanelElements = {
 	muteMinimizedToggleInput: null,
 	petsSystemToggleLabel: null,
 	petsSystemToggleInput: null,
+	skinsSystemToggleLabel: null,
+	skinsSystemToggleInput: null,
 	carSystemToggleLabel: null,
 	carSystemToggleInput: null,
 	burgerFatCustomersToggleLabel: null,
