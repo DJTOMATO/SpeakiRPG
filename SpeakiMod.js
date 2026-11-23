@@ -45918,30 +45918,30 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot) {
 			feather.rotation.z = -0.52;
 			feather.rotation.x = -0.25;
 			hat.add(feather);
-			// Classic black leather pirate eyepatch over right eye (hat y = -0.65 -> anchor y = -0.71, z = 0.484)
+			// Classic black leather pirate eyepatch flush over right eye (hat y = -0.65 -> anchor y = -0.71, z = 0.418)
 			const strapMat = toon(0x27272a);
-			const patch = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.105, 0.024, 16), blackMat);
+			const patch = new THREE.Mesh(new THREE.CylinderGeometry(0.096, 0.096, 0.016, 16), blackMat);
 			patch.rotation.x = Math.PI / 2;
-			patch.scale.set(1.08, 1.0, 0.94);
-			patch.position.set(-0.145, -0.65, 0.484);
+			patch.scale.set(1.06, 1.0, 0.92);
+			patch.position.set(-0.145, -0.65, 0.418);
 			hat.add(patch);
-			const patchRim = new THREE.Mesh(new THREE.TorusGeometry(0.104, 0.013, 6, 16), strapMat);
-			patchRim.scale.set(1.08, 0.94, 1.0);
-			patchRim.position.set(-0.145, -0.65, 0.490);
+			const patchRim = new THREE.Mesh(new THREE.TorusGeometry(0.095, 0.011, 6, 16), strapMat);
+			patchRim.scale.set(1.06, 0.92, 1.0);
+			patchRim.position.set(-0.145, -0.65, 0.422);
 			hat.add(patchRim);
-			const patchRivet = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 6), goldMat);
-			patchRivet.position.set(-0.225, -0.62, 0.495);
+			const patchRivet = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), goldMat);
+			patchRivet.position.set(-0.215, -0.625, 0.426);
 			hat.add(patchRivet);
-			// Diagonal forehead leather strap up to headband + outer temple strap tucking behind hair
-			const strapUpper = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.024, 0.018), blackMat);
-			strapUpper.position.set(0.055, -0.455, 0.482);
-			strapUpper.rotation.z = 0.82;
+			// Flush leather straps tucking cleanly under front bangs & right side hair
+			const strapUpper = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.020, 0.014), blackMat);
+			strapUpper.position.set(0.00, -0.525, 0.418);
+			strapUpper.rotation.z = 0.70;
 			hat.add(strapUpper);
-			const strapOuter = new THREE.Mesh(new THREE.BoxGeometry(0.23, 0.024, 0.018), blackMat);
-			strapOuter.position.set(-0.31, -0.60, 0.425);
+			const strapOuter = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.020, 0.014), blackMat);
+			strapOuter.position.set(-0.275, -0.625, 0.410);
 			strapOuter.rotation.order = "YXZ";
-			strapOuter.rotation.y = -0.58;
-			strapOuter.rotation.z = -0.46;
+			strapOuter.rotation.y = -0.22;
+			strapOuter.rotation.z = -0.24;
 			hat.add(strapOuter);
 			anchor.add(hat);
 			spkmodSkinSanitizeObject(anchor);
