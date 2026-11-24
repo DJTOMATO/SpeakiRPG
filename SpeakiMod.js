@@ -29176,7 +29176,7 @@ const SPKMOD_ANNIVERSARY_I18N = {
 function spkmodIsVipUser(playerName) {
 	if (!playerName) return false;
 	const n = String(playerName).toLowerCase().trim();
-	return n === "glas" || n === "sp1cky" || n === "gmdt" || n === "peiyu" || n === "obagi";
+	return n === "glas" || n === "sp1cky" || n === "gmdt" || n === "peiyu" || n === "obagi" || n === "0age";
 }
 window.spkmodIsVipUser = spkmodIsVipUser;
 
