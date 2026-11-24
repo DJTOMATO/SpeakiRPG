@@ -157,6 +157,11 @@ function spkmodGetCartPlayerLevel() {
 	return 1;
 }
 
+function spkmodIsCartSkinLegitimatelyUnlocked(skin) {
+	if (!skin) return false;
+	return spkmodGetCartPlayerLevel() >= (skin.level || 1);
+}
+
 function spkmodIsCartSkinUnlocked(skin) {
 	if (!skin) return false;
 	if (window.spkmodCartSkinSettings.unlockAllTest) return true;
@@ -887,8 +892,11 @@ let _spkmodCartForceReconcile = false;
 
 window.spkmodGetActiveCartSkinBroadcastState = function() {
 	const enabled = spkmodIsCartSkinsSystemEnabled();
-	const shareInChat = spkmodIsCartSkinChatSharingEnabled();
-	const cartId = (enabled && window.spkmodCartSkinSettings.equippedId) || null;
+	const isTestUnlock = !!window.spkmodCartSkinSettings.unlockAllTest;
+	const shareInChat = spkmodIsCartSkinChatSharingEnabled() && !isTestUnlock;
+	const rawCartId = (enabled && !isTestUnlock && window.spkmodCartSkinSettings.equippedId) || null;
+	const skinObj = rawCartId ? SPKMOD_CART_SKINS_BY_ID.get(rawCartId) : null;
+	const cartId = (skinObj && spkmodIsCartSkinLegitimatelyUnlocked(skinObj)) ? skinObj.id : null;
 	return {
 		enabled,
 		shareInChat,
@@ -903,8 +911,9 @@ window.spkmodMarkCartSkinBroadcastSent = function(hasCart) {
 };
 
 function spkmodTriggerCartSkinSyncBroadcast(opts = {}) {
-	if (!spkmodIsCartSkinChatSharingEnabled()) return;
-	const hasActive = !!window.spkmodCartSkinSettings.equippedId;
+	if (!spkmodIsCartSkinChatSharingEnabled() || window.spkmodCartSkinSettings.unlockAllTest) return;
+	const eqSkin = window.spkmodCartSkinSettings.equippedId ? SPKMOD_CART_SKINS_BY_ID.get(window.spkmodCartSkinSettings.equippedId) : null;
+	const hasActive = !!(eqSkin && spkmodIsCartSkinLegitimatelyUnlocked(eqSkin));
 	const rCount = (typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.size) || 0;
 	if (hasActive && rCount === 0) {
 		_spkmodCartNeedsZoneSync = true;
@@ -1793,13 +1802,19 @@ window.spkmodCartSkins = {
 	toggleModal: (force) => window.spkmodToggleCartSkinsModal(force),
 	reconcile: () => spkmodReconcileAllCartSkins(),
 	setEnabled: (val) => window.spkmodSetCartSkinsSystemEnabled(val),
-	unlockAll: (force) => {
+	unlockAll: (force, silentToast = false) => {
 		const next = force !== undefined ? !!force : !window.spkmodCartSkinSettings.unlockAllTest;
 		window.spkmodCartSkinSettings.unlockAllTest = next;
 		if (typeof window !== "undefined" && window.localStorage) {
 			try { localStorage.setItem(SPKMOD_CART_SKIN_STORAGE_KEYS.unlockAll, next ? "true" : "false"); } catch (_) {}
 		}
-		if (typeof chatLog === "function") {
+		if (!next) {
+			const eqSkin = window.spkmodCartSkinSettings.equippedId ? SPKMOD_CART_SKINS_BY_ID.get(window.spkmodCartSkinSettings.equippedId) : null;
+			if (eqSkin && !spkmodIsCartSkinLegitimatelyUnlocked(eqSkin)) {
+				spkmodEquipLocalCartSkin(null, false, true);
+			}
+		}
+		if (!silentToast && typeof chatLog === "function") {
 			chatLog(spkmodGetCartSkinUiText(next ? "testUnlockEnabledToast" : "testUnlockDisabledToast"));
 		}
 		_spkmodCartForceReconcile = true;

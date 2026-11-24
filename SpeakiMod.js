@@ -30144,16 +30144,28 @@ function hookGameStateOnce() {
 							window.spkmodPets.dance(parseFloat(cmd[1]) || 8);
 						}
 						break;
-					case "petunlock": {
+					case "unlockall": {
 						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
 							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
 						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
-							chatLog("❌ You do not have permission to use !petunlock.");
-						} else if (window.spkmodPetsSystemEnabled === false) {
-							chatLog(t("petsSystemDisabledToast") || "🐾 Pets System is disabled. Enable it in Settings (under Cinema).");
-						} else if (window.spkmodPets && typeof window.spkmodPets.unlockAll === "function") {
-							window.spkmodPets.unlockAll();
+							chatLog("❌ You do not have permission to use !unlockall.");
+						} else {
+							if (window.spkmodPets && typeof window.spkmodPets.unlockAll === "function") window.spkmodPets.unlockAll(true, true);
+							if (window.spkmodSkins && typeof window.spkmodSkins.unlockAll === "function") window.spkmodSkins.unlockAll(true, true);
+							if (window.spkmodCartSkins && typeof window.spkmodCartSkins.unlockAll === "function") window.spkmodCartSkins.unlockAll(true, true);
+							if (window.spkmodVehicles && typeof window.spkmodVehicles.unlockAll === "function") window.spkmodVehicles.unlockAll(true, true);
+							if (window.spkmodSparks && typeof window.spkmodSparks.unlockAll === "function") window.spkmodSparks.unlockAll(true, true);
+							chatLog("🔓 [Test Mode] All Pets, Skins, Cart Skins, Vehicles & Spark FX unlocked locally (testing only — will NOT broadcast to other players). Use !lockall to restore.");
 						}
+						break;
+					}
+					case "lockall": {
+						if (window.spkmodPets && typeof window.spkmodPets.unlockAll === "function") window.spkmodPets.unlockAll(false, true);
+						if (window.spkmodSkins && typeof window.spkmodSkins.unlockAll === "function") window.spkmodSkins.unlockAll(false, true);
+						if (window.spkmodCartSkins && typeof window.spkmodCartSkins.unlockAll === "function") window.spkmodCartSkins.unlockAll(false, true);
+						if (window.spkmodVehicles && typeof window.spkmodVehicles.unlockAll === "function") window.spkmodVehicles.unlockAll(false, true);
+						if (window.spkmodSparks && typeof window.spkmodSparks.unlockAll === "function") window.spkmodSparks.unlockAll(false, true);
+						chatLog("🔒 [Test Mode] Normal level requirements & multiplayer broadcasting restored for all Pets, Skins, Cart Skins, Vehicles & Spark FX.");
 						break;
 					}
 					case "skins":
@@ -30180,18 +30192,6 @@ function hookGameStateOnce() {
 							window.spkmodSkins.setWidth(cmd[1] || "normal");
 						}
 						break;
-					case "skinunlock": {
-						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
-							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
-						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
-							chatLog("❌ You do not have permission to use !skinunlock.");
-						} else if (window.spkmodSkinsSystemEnabled === false) {
-							chatLog(t("skinsSystemDisabledToast") || "👕 Skins System is disabled. Enable it in Settings (under Pets).");
-						} else if (window.spkmodSkins && typeof window.spkmodSkins.unlockAll === "function") {
-							window.spkmodSkins.unlockAll();
-						}
-						break;
-					}
 					case "joayo":
 					case "chowayo":
 						if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
@@ -30216,16 +30216,6 @@ function hookGameStateOnce() {
 							window.spkmodToggleCartSkinsModal();
 						}
 						break;
-					case "cartunlock": {
-						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
-							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
-						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
-							chatLog("❌ You do not have permission to use !cartunlock.");
-						} else if (window.spkmodCartSkins && typeof window.spkmodCartSkins.unlockAll === "function") {
-							window.spkmodCartSkins.unlockAll();
-						}
-						break;
-					}
 					case "vehicles":
 					case "vehicle":
 					case "car":
@@ -30251,17 +30241,6 @@ function hookGameStateOnce() {
 							}
 						}
 						break;
-					case "vehicleunlock":
-					case "carunlock": {
-						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
-							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
-						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
-							chatLog("❌ You do not have permission to use !vehicleunlock.");
-						} else if (window.spkmodVehicles && typeof window.spkmodVehicles.unlockAll === "function") {
-							window.spkmodVehicles.unlockAll();
-						}
-						break;
-					}
 					case "checkupdate":
 					case "modupdate": {
 						const sub = (cmd[1] || "").toLowerCase();
@@ -30289,18 +30268,6 @@ function hookGameStateOnce() {
 							window.spkmodToggleSparksModal();
 						}
 						break;
-					case "sparkunlock": {
-						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
-							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
-						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
-							chatLog("❌ You do not have permission to use !sparkunlock.");
-						} else if (window.spkmodSparksSystemEnabled === false) {
-							chatLog(typeof window.spkmodGetSparkUiText === "function" ? window.spkmodGetSparkUiText("systemDisabledToast") : "✨ Spark FX System is disabled.");
-						} else if (window.spkmodSparks && typeof window.spkmodSparks.unlockAll === "function") {
-							window.spkmodSparks.unlockAll();
-						}
-						break;
-					}
 					case "trail":
 						const trailSub = (cmd[1] || "").toLowerCase();
 						if (trailSub === "off" || trailSub === "stop") {
@@ -39133,6 +39100,11 @@ function spkmodGetPlayerLevel() {
 	return 1;
 }
 
+function spkmodIsPetLegitimatelyUnlocked(pet) {
+	if (!pet) return false;
+	return spkmodGetPlayerLevel() >= pet.level;
+}
+
 function spkmodIsPetUnlocked(pet) {
 	if (!pet) return false;
 	if (window.spkmodPetSettings.unlockAllTest) return true;
@@ -41695,7 +41667,7 @@ function spkmodGetSparkBroadcastSnapshot() {
 }
 
 function spkmodIsAnyPetOrSkinChatSharingEnabled() {
-	const petCanShare = spkmodIsPetChatSharingEnabled();
+	const petCanShare = spkmodIsPetChatSharingEnabled() && !window.spkmodPetSettings.unlockAllTest;
 	const skinSnap = spkmodGetSkinBroadcastSnapshot();
 	const cartSnap = spkmodGetCartSkinBroadcastSnapshot();
 	const carSnap = spkmodGetCarBroadcastSnapshot();
@@ -42233,7 +42205,7 @@ function spkmodFlushQueuedPetBroadcast() {
 		return;
 	}
 
-	const petCanShare = spkmodIsPetChatSharingEnabled();
+	const petCanShare = spkmodIsPetChatSharingEnabled() && !window.spkmodPetSettings.unlockAllTest;
 	const skinSnap = spkmodGetSkinBroadcastSnapshot();
 	const cartSnap = spkmodGetCartSkinBroadcastSnapshot();
 	const carSnap = spkmodGetCarBroadcastSnapshot();
@@ -42244,11 +42216,13 @@ function spkmodFlushQueuedPetBroadcast() {
 	const sparkCanShare = !!(sparkSnap.enabled && sparkSnap.shareInChat);
 
 	// Re-resolve passive broadcasts against the latest equipped cosmetics so we never send stale state
-	const effectivePetId = petCanShare
+	const rawPetId = petCanShare
 		? (entry.priority === "passive"
 			? (window.spkmodPetSettings.equippedId || null)
 			: (entry.petId !== undefined ? entry.petId : (window.spkmodPetSettings.equippedId || null)))
 		: null;
+	const rawPetObj = (rawPetId && rawPetId !== "none" && rawPetId !== "off") ? SPKMOD_PETS_BY_ID.get(String(rawPetId).trim().toLowerCase()) : null;
+	const effectivePetId = (rawPetObj && spkmodIsPetLegitimatelyUnlocked(rawPetObj)) ? rawPetObj.id : null;
 
 	_spkmodQueuedPetBroadcast = null;
 
@@ -42495,9 +42469,10 @@ window.spkmodQueueUnifiedPetSkinBroadcast = function(opts = {}) {
 };
 
 function spkmodScheduleZonePetBroadcast(delayMs = 1800, reason = "zone") {
-	if (!spkmodIsPetChatSharingEnabled()) return;
+	if (!spkmodIsPetChatSharingEnabled() || window.spkmodPetSettings.unlockAllTest) return;
 	const eqId = window.spkmodPetSettings.equippedId;
-	if (!eqId) return;
+	const eqPet = eqId ? SPKMOD_PETS_BY_ID.get(eqId) : null;
+	if (!eqPet || !spkmodIsPetLegitimatelyUnlocked(eqPet)) return;
 	if (reason === "remote_join" && _spkmodQueuedPetBroadcast) return;
 	spkmodSendPetChatTrigger(eqId, {
 		priority: "passive",
@@ -42808,7 +42783,7 @@ async function spkmodEquipLocalPet(idOrLevel, broadcast = true, silentToast = fa
 		}, 600);
 	}
 
-	if (broadcast) {
+	if (broadcast && !window.spkmodPetSettings.unlockAllTest && spkmodIsPetLegitimatelyUnlocked(pet)) {
 		spkmodSendPetChatTrigger(pet.id, {
 			priority: "explicit",
 			delayMs: SPKMOD_PET_CHAT_EQUIP_DEBOUNCE_MS,
@@ -43745,16 +43720,22 @@ window.spkmodPets = {
 	toggle: () => window.spkmodTogglePetsModal(),
 	equip: (idOrLevel) => spkmodEquipLocalPet(idOrLevel, true),
 	unequip: () => spkmodEquipLocalPet(null, true),
-	unlockAll: (enable) => {
+	unlockAll: (enable, silentToast = false) => {
 		if (!spkmodIsPetsSystemEnabled()) {
-			if (typeof chatLog === "function") chatLog(spkmodGetPetsDisabledToastText());
+			if (!silentToast && typeof chatLog === "function") chatLog(spkmodGetPetsDisabledToastText());
 			return false;
 		}
 		const next = enable !== undefined ? !!enable : !window.spkmodPetSettings.unlockAllTest;
 		window.spkmodPetSettings.unlockAllTest = next;
 		if (window.localStorage) localStorage.setItem(SPKMOD_PET_STORAGE_KEYS.unlockAll, next ? "true" : "false");
+		if (!next) {
+			const eqPet = window.spkmodPetSettings.equippedId ? SPKMOD_PETS_BY_ID.get(window.spkmodPetSettings.equippedId) : null;
+			if (eqPet && !spkmodIsPetLegitimatelyUnlocked(eqPet)) {
+				spkmodEquipLocalPet(null, false, true);
+			}
+		}
 		spkmodRefreshPetsModalUI();
-		if (typeof chatLog === "function") {
+		if (!silentToast && typeof chatLog === "function") {
 			chatLog(spkmodGetPetUiText(next ? "testUnlockEnabledToast" : "testUnlockDisabledToast"));
 		}
 		return next;
@@ -44964,10 +44945,21 @@ function spkmodGetSkinPlayerLevel() {
 	return 1;
 }
 
+function spkmodIsSkinLegitimatelyUnlocked(skin) {
+	if (!skin) return false;
+	return spkmodGetSkinPlayerLevel() >= skin.level;
+}
+
 function spkmodIsSkinUnlocked(skin) {
 	if (!skin) return false;
 	if (window.spkmodSkinSettings.unlockAllTest) return true;
 	return spkmodGetSkinPlayerLevel() >= skin.level;
+}
+
+function spkmodIsWidthLegitimatelyUnlocked(widthTier) {
+	if (!widthTier) return false;
+	if (widthTier.level <= 1) return true;
+	return spkmodGetSkinPlayerLevel() >= widthTier.level;
 }
 
 function spkmodIsWidthUnlocked(widthTier) {
@@ -50874,31 +50866,49 @@ async function spkmodBuildExtraCostumeSetC(builder, ctx) {
 		});
 		return true;
 	} else if (builder === "biblical") {
-		addBody(spine, "spkmod_skin_biblical_seraph", [0, 0.16, -0.58], ba => {
-			const gld = toon(0xfde047, { emissive: 0xeab308, emissiveIntensity: 0.65 });
-			const wht = toon(0xf8fafc, { emissive: 0xfef9c3, emissiveIntensity: 0.35 });
-			const eyeIris = toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.8 });
-			// 3 Concentric rotating golden Ophanim eye-rings!
-			for (let r = 0; r < 3; r++) {
+		const gld = toon(0xfde047, { emissive: 0xeab308, emissiveIntensity: 0.65 });
+		const wht = toon(0xf8fafc, { emissive: 0xfef9c3, emissiveIntensity: 0.35 });
+		const eyeIris = toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.8 });
+		// 3 Concentric Ophanim golden eye-rings centered directly around Speaki's torso/head!
+		addBody(pelvis, "spkmod_skin_biblical_rings", [0, 0.30, 0], ra => {
+			const ringSpecs = [
+				{ rad: 0.68, baseRotX: 0.35, baseRotZ: 0.25, speedX: 0.55, speedY: 1.45, speedZ: 0.25 },
+				{ rad: 0.88, baseRotX: -0.55, baseRotZ: 0.50, speedX: -0.45, speedY: -1.15, speedZ: 0.35 },
+				{ rad: 1.08, baseRotX: 0.75, baseRotZ: -0.45, speedX: 0.35, speedY: 0.85, speedZ: -0.40 }
+			];
+			for (let r = 0; r < ringSpecs.length; r++) {
+				const sp = ringSpecs[r];
 				const ring = new THREE.Group();
-				const rad = 0.62 + r * 0.22;
-				ring.rotation.x = r * 0.45;
-				ring.rotation.z = -r * 0.35;
-				put(ring, new THREE.TorusGeometry(rad, 0.036, 8, 28), gld);
+				ring.rotation.set(sp.baseRotX, 0, sp.baseRotZ);
+				put(ring, new THREE.TorusGeometry(sp.rad, 0.036, 8, 28), gld);
 				for (let e = 0; e < 6; e++) {
 					const ang = (e / 6) * Math.PI * 2;
-					put(ring, new THREE.SphereGeometry(0.06, 8, 8), wht, [Math.cos(ang) * rad, Math.sin(ang) * rad, 0.02]);
-					put(ring, new THREE.SphereGeometry(0.032, 6, 6), eyeIris, [Math.cos(ang) * rad, Math.sin(ang) * rad, 0.065]);
+					const ex = Math.cos(ang) * sp.rad;
+					const ey = Math.sin(ang) * sp.rad;
+					put(ring, new THREE.SphereGeometry(0.058, 8, 8), wht, [ex, ey, 0]);
+					put(ring, new THREE.SphereGeometry(0.032, 6, 6), eyeIris, [ex, ey, 0.048]);
+					put(ring, new THREE.SphereGeometry(0.032, 6, 6), eyeIris, [ex, ey, -0.048]);
 				}
-				ba.add(ring);
-				animParts.push({ type: "spinY", node: ring });
+				ra.add(ring);
+				animParts.push({
+					type: "spinMulti",
+					node: ring,
+					baseRotX: sp.baseRotX,
+					baseRotY: 0,
+					baseRotZ: sp.baseRotZ,
+					speedX: sp.speedX,
+					speedY: sp.speedY,
+					speedZ: sp.speedZ
+				});
 			}
-			// 6 Fluttering seraphim wings (3 pairs!)
+		});
+		// 6 Fluttering seraphim wings anchored neatly on Speaki's back
+		addBody(spine, "spkmod_skin_biblical_wings", [0, 0.16, -0.52], ba => {
 			for (let pair = 0; pair < 3; pair++) {
 				const py = 0.26 - pair * 0.24;
 				for (const s of [-1, 1]) {
 					const w = new THREE.Group();
-					w.position.set(s * 0.22, py, -0.05);
+					w.position.set(s * 0.22, py, -0.04);
 					put(w, new THREE.ConeGeometry(0.20, 0.72, 6), wht, [s * 0.34, 0.06, 0], [0, 0, -s * (1.25 - pair * 0.22)], [1, 1, 0.22]);
 					ba.add(w);
 					animParts.push({ type: "wing", node: w, side: s });
@@ -51273,11 +51283,11 @@ async function spkmodApplySkinToAvatar(ownerKey, skinId, avatarRoot, animCtrl) {
 // ============================================================================
 // 7. PLAYER WIDE ("FAT") BODY MODIFIER ENGINE (FROM BURGER SHOP spkmodCA)
 //    - Scales pelvis bone horizontally on X & Z axes in scene.onBeforeRender
-//    - Preserves head (and hats!) + hand props unstretched via matrix inversion
+//    - Preserves head (and hats!), hand props & body skin attachments unstretched via matrix inversion
 //    - Restores cleanly in scene.onAfterRender so animations/physics stay pure
 // ============================================================================
 var spkmodPlayerFat = {
-	entries: new Map(), // ownerKey -> { root, pel, head, hands, ap, p0, M, scale, rel }
+	entries: new Map(), // ownerKey -> { root, pel, head, hands, back, ap, p0, M, scale, rel }
 	pelvisRe: /pelvis|hip/i,
 	headRe: /head/i,
 	spineRe: /spine/i
@@ -51287,6 +51297,7 @@ if (typeof window !== "undefined") window.spkmodPlayerFat = spkmodPlayerFat;
 let _spkmodPFMatH1 = null;
 let _spkmodPFMatInv = null;
 const _spkmodPFPropMats = [];
+const _spkmodPFHostPos = [];
 
 function spkmodPFAxes(bone, cont) {
 	const B = bone.matrixWorld.elements, C = cont.matrixWorld.elements;
@@ -51322,18 +51333,30 @@ function spkmodPFAxes(bone, cont) {
 
 const _spkmodPFScratchProps = [];
 
-function spkmodPFCollectHandProps(entry) {
 
-	const out = [];
-	if (!entry) return out;
-	if (!entry.back && entry.root) {                                          // bones that carry back accessories: pelvis, spine(s), neck, clavicles ...
-		const skip = /head|hand|finger|nub|toe|foot|thigh|calf/i;
-		entry.back = [];
-		entry.root.traverse(o => { if (o.isBone && o !== entry.head && !skip.test(o.name)) entry.back.push(o); });
-	}
-	const hosts = (entry.hands || []).concat(entry.back || []);
-	for (let i = 0; i < hosts.length; i++) {
-		const ch = hosts[i] && hosts[i].children;
+function spkmodPFCollectBackBones(pel, head, hands) {
+	const back = [];
+	if (!pel) return back;
+	const skip = /head|hand|finger|nub|toe|foot|thigh|calf/i;
+	const walk = (o) => {
+		if (!o || o === head) return;
+		if (o.isBone && !skip.test(o.name) && (!hands || hands.indexOf(o) < 0)) {
+			back.push(o);
+		}
+		const ch = o.children;
+		if (ch) {
+			for (let i = 0; i < ch.length; i++) walk(ch[i]);
+		}
+	};
+	walk(pel);
+	return back;
+}
+
+function spkmodPFCollectPropsFromBones(bones, out) {
+	if (!bones) return;
+	for (let i = 0; i < bones.length; i++) {
+		const ch = bones[i] && bones[i].children;
+
 		if (!ch) continue;
 		for (let j = 0; j < ch.length; j++) {
 			const c = ch[j];
@@ -51342,6 +51365,16 @@ function spkmodPFCollectHandProps(entry) {
 			}
 		}
 	}
+}
+
+function spkmodPFCollectHandProps(entry, out = []) {
+	out.length = 0;
+	if (!entry) return out;
+	if (!entry.back && entry.pel) {
+		entry.back = spkmodPFCollectBackBones(entry.pel, entry.head, entry.hands);
+	}
+	spkmodPFCollectPropsFromBones(entry.hands, out);
+	spkmodPFCollectPropsFromBones(entry.back, out);
 	return out;
 }
 
@@ -51407,6 +51440,7 @@ function spkmodPFSetTarget(ownerKey, avatarRoot, widthScale) {
 	const head = bones.find(b => spkmodPlayerFat.headRe.test(b.name) && !/nub|end/i.test(b.name));
 	if (!pel || !head || pel === head || !head.parent) return;
 	const hands = bones.filter(b => /hand/i.test(b.name) && !/nub|finger/i.test(b.name));
+	const back = spkmodPFCollectBackBones(pel, head, hands);
 	avatarRoot.updateMatrixWorld(true);
 	const ap = spkmodPFAxes(pel, avatarRoot);
 	const px = pel.scale[ap.x], pz = pel.scale[ap.z];
@@ -51417,6 +51451,7 @@ function spkmodPFSetTarget(ownerKey, avatarRoot, widthScale) {
 		pel,
 		head,
 		hands,
+		back,
 		ap,
 		p0: { x: px, z: pz },
 		M: head.matrix.constructor,
@@ -51441,6 +51476,7 @@ function spkmodPFApplyAll() {
 			_spkmodPFMatH1 = new e.M();
 			_spkmodPFMatInv = new e.M();
 			_spkmodPFPropMats.length = 0;
+			_spkmodPFHostPos.length = 0;
 		}
 		const props = spkmodPFCollectHandProps(e, _spkmodPFScratchProps);
 		e.rel = false;
@@ -51453,7 +51489,9 @@ function spkmodPFApplyAll() {
 		e.root.updateMatrixWorld(true);
 		_spkmodPFMatH1.copy(head.matrixWorld);
 
-		// Snapshot unstretched world matrices of hand props and body accessories, plus the unstretched position of their host bone
+
+		// Snapshot unstretched hand prop & body skin attachment world matrices
+
 		let propCount = 0;
 		for (let i = 0; i < props.length; i++) {
 			const h = props[i];
@@ -51467,7 +51505,10 @@ function spkmodPFApplyAll() {
 			pm.copy(h.matrixWorld);
 			const hp = _spkmodPFHostPos[propCount] || (_spkmodPFHostPos[propCount] = [0, 0, 0]);
 			const hw = hand.matrixWorld.elements;
-			hp[0] = hw[12]; hp[1] = hw[13]; hp[2] = hw[14];
+
+			hp[0] = hw[12];
+			hp[1] = hw[13];
+			hp[2] = hw[14];
 			props[propCount] = h;
 			propCount++;
 		}
@@ -51489,8 +51530,7 @@ function spkmodPFApplyAll() {
 			head.matrixAutoUpdate = false;
 			head.updateMatrixWorld(true);
 		}
-
-		// Keep held weapons / props / body accessories rigid & unstretched
+		// Keep held weapons/props rigid & body skin attachments unstretched/undisplaced
 		for (let i = 0; i < propCount; i++) {
 			const h = props[i];
 			const hand = h.parent;
@@ -51499,8 +51539,11 @@ function spkmodPFApplyAll() {
 			if (typeof hm.determinant === "function" && Math.abs(hm.determinant()) < 1e-10) continue;
 			const pm = _spkmodPFPropMats[i];
 			if (h.userData?.spkmodSkinAttachment === true && h.userData?.spkmodSkinHandProp !== true) {
-				// body accessory: its offset to the host bone was built for the unwidened body (like the head), so keep that offset and only move the host origin
-				const hp = _spkmodPFHostPos[i], p = pm.elements, hh = hm.elements;
+
+				const hp = _spkmodPFHostPos[i];
+				const p = pm.elements;
+				const hh = hm.elements;
+
 				p[12] = hh[12] + (p[12] - hp[0]);
 				p[13] = hh[13] + (p[13] - hp[1]);
 				p[14] = hh[14] + (p[14] - hp[2]);
@@ -51577,12 +51620,17 @@ let _spkmodSkinNeedsZoneSync = false;
 
 window.spkmodGetActiveSkinBroadcastState = function() {
 	const enabled = spkmodIsSkinsSystemEnabled();
-	const shareInChat = spkmodIsSkinChatSharingEnabled();
+	const isTestUnlock = !!window.spkmodSkinSettings.unlockAllTest;
+	const shareInChat = spkmodIsSkinChatSharingEnabled() && !isTestUnlock;
 	const nativeBlocked = spkmodHasNativeLocalSkin();
-	const skinId = (enabled && !nativeBlocked && window.spkmodSkinSettings.equippedId) || null;
-	const widthId = (enabled && !nativeBlocked && window.spkmodSkinSettings.widthId && window.spkmodSkinSettings.widthId !== "normal")
+	const rawSkinId = (enabled && !nativeBlocked && !isTestUnlock && window.spkmodSkinSettings.equippedId) || null;
+	const skinObj = rawSkinId ? SPKMOD_SKINS_BY_ID.get(rawSkinId) : null;
+	const skinId = (skinObj && spkmodIsSkinLegitimatelyUnlocked(skinObj)) ? skinObj.id : null;
+	const rawWidthId = (enabled && !nativeBlocked && !isTestUnlock && window.spkmodSkinSettings.widthId && window.spkmodSkinSettings.widthId !== "normal")
 		? window.spkmodSkinSettings.widthId
 		: null;
+	const widthObj = rawWidthId ? SPKMOD_BODY_WIDTHS_BY_ID.get(rawWidthId) : null;
+	const widthId = (widthObj && spkmodIsWidthLegitimatelyUnlocked(widthObj)) ? widthObj.id : null;
 	return {
 		enabled,
 		shareInChat,
@@ -51598,8 +51646,13 @@ window.spkmodMarkSkinBroadcastSent = function(hasSkinOrWidth) {
 };
 
 function spkmodTriggerSkinSyncBroadcast(opts = {}) {
-	if (!spkmodIsSkinChatSharingEnabled()) return;
-	const hasActive = !!(window.spkmodSkinSettings.equippedId || (window.spkmodSkinSettings.widthId && window.spkmodSkinSettings.widthId !== "normal"));
+	if (!spkmodIsSkinChatSharingEnabled() || window.spkmodSkinSettings.unlockAllTest) return;
+	const eqSkin = window.spkmodSkinSettings.equippedId ? SPKMOD_SKINS_BY_ID.get(window.spkmodSkinSettings.equippedId) : null;
+	const eqWidth = window.spkmodSkinSettings.widthId ? SPKMOD_BODY_WIDTHS_BY_ID.get(window.spkmodSkinSettings.widthId) : null;
+	const hasActive = !!(
+		(eqSkin && spkmodIsSkinLegitimatelyUnlocked(eqSkin)) ||
+		(eqWidth && eqWidth.id !== "normal" && spkmodIsWidthLegitimatelyUnlocked(eqWidth))
+	);
 	const rCount = (typeof spkmodGetRemotePlayerCount === "function") ? spkmodGetRemotePlayerCount() : ((typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.size) || 0);
 	if (hasActive && rCount === 0) {
 		_spkmodSkinNeedsZoneSync = true;
@@ -51728,27 +51781,49 @@ const _spkmodRemoteModNativeSkinCodes = new Map(); // String(rpKey) -> nativeSki
 const _spkmodPatchedNativeSkinGameStates = new WeakSet();
 
 function spkmodPatchGameStateForModNativeSkins(gs) {
-	if (!gs || typeof gs !== "object" || _spkmodPatchedNativeSkinGameStates.has(gs)) return;
-	_spkmodPatchedNativeSkinGameStates.add(gs);
-	if (typeof gs.effectiveLocalSkinCode === "function") {
-		const origEffectiveLocalSkinCode = gs.effectiveLocalSkinCode;
-		gs.effectiveLocalSkinCode = function(...args) {
-			const origCode = origEffectiveLocalSkinCode.apply(this, args);
-			if (origCode) return origCode;
-			if (_spkmodActiveModNativeSkinCode && Number(this.mySkinItemId || 0) === 0 && spkmodIsSkinsSystemEnabled()) {
-				return _spkmodActiveModNativeSkinCode;
-			}
-			return origCode;
-		};
+	if (!gs || typeof gs !== "object") return;
+	if (!_spkmodPatchedNativeSkinGameStates.has(gs)) {
+		_spkmodPatchedNativeSkinGameStates.add(gs);
+		if (typeof gs.effectiveLocalSkinCode === "function") {
+			const origEffectiveLocalSkinCode = gs.effectiveLocalSkinCode;
+			gs.effectiveLocalSkinCode = function(...args) {
+				const origCode = origEffectiveLocalSkinCode.apply(this, args);
+				if (origCode) return origCode;
+				if (_spkmodActiveModNativeSkinCode && Number(this.mySkinItemId || 0) === 0 && spkmodIsSkinsSystemEnabled()) {
+					return _spkmodActiveModNativeSkinCode;
+				}
+				return origCode;
+			};
+		}
+		if (typeof gs.forcedSkinCodeOf === "function") {
+			const origForcedSkinCodeOf = gs.forcedSkinCodeOf;
+			gs.forcedSkinCodeOf = function(playerId, ...rest) {
+				const orig = origForcedSkinCodeOf.call(this, playerId, ...rest);
+				if (orig) return orig;
+				if (!spkmodIsSkinsSystemEnabled() || window.spkmodSkinSettings.showRemoteSkins === false) return orig;
+				if (playerId != null) {
+					const forced = _spkmodRemoteModNativeSkinCodes.get(String(playerId));
+					if (forced) return forced;
+				}
+				return orig;
+			};
+		}
 	}
-	if (typeof gs.forcedSkinCodeOf === "function") {
-		const origForcedSkinCodeOf = gs.forcedSkinCodeOf;
-		gs.forcedSkinCodeOf = function(playerId, ...rest) {
-			const orig = origForcedSkinCodeOf.call(this, playerId, ...rest);
+	// Patch RemotePlayersManager.effectiveSkinCode directly so remote Burger Staff A/B skins work even when
+	// the viewer hasn't preloaded Burger Shop minigame skins (bypasses game's internal TIt(code) preload gate)
+	const rpMgr = gs.remotePlayers;
+	if (rpMgr && typeof rpMgr.effectiveSkinCode === "function" && !rpMgr.__spkmodEffectiveSkinCodePatched) {
+		rpMgr.__spkmodEffectiveSkinCodePatched = true;
+		const origEffectiveSkinCode = rpMgr.effectiveSkinCode.bind(rpMgr);
+		rpMgr.effectiveSkinCode = function(rp, ...rest) {
+			const orig = origEffectiveSkinCode(rp, ...rest);
 			if (orig) return orig;
 			if (!spkmodIsSkinsSystemEnabled() || window.spkmodSkinSettings.showRemoteSkins === false) return orig;
-			if (playerId != null) {
-				const forced = _spkmodRemoteModNativeSkinCodes.get(String(playerId));
+			if (!rp || this.speakovPresentationActive) return orig;
+			if (Number(rp.skinItemId || 0) !== 0) return orig;
+			const pid = rp.info?.playerId;
+			if (pid != null) {
+				const forced = _spkmodRemoteModNativeSkinCodes.get(String(pid));
 				if (forced) return forced;
 			}
 			return orig;
@@ -51775,7 +51850,11 @@ function spkmodSetLocalModNativeSkinCode(nextCode) {
 }
 
 function spkmodSyncRemoteModNativeSkinCodes(nextMap) {
-	let changed = nextMap.size !== _spkmodRemoteModNativeSkinCodes.size;
+	const gs = (typeof gameState !== "undefined" && gameState) ? gameState : null;
+	const rpMgrWasUnpatched = !!(gs?.remotePlayers && typeof gs.remotePlayers.effectiveSkinCode === "function" && !gs.remotePlayers.__spkmodEffectiveSkinCodePatched);
+	if (gs) spkmodPatchGameStateForModNativeSkins(gs);
+
+	let changed = nextMap.size !== _spkmodRemoteModNativeSkinCodes.size || (rpMgrWasUnpatched && nextMap.size > 0);
 	if (!changed) {
 		for (const [k, v] of nextMap) {
 			if (_spkmodRemoteModNativeSkinCodes.get(k) !== v) {
@@ -51789,11 +51868,8 @@ function spkmodSyncRemoteModNativeSkinCodes(nextMap) {
 	for (const [k, v] of nextMap) {
 		_spkmodRemoteModNativeSkinCodes.set(k, v);
 	}
-	if (typeof gameState !== "undefined" && gameState) {
-		spkmodPatchGameStateForModNativeSkins(gameState);
-		if (typeof gameState.remotePlayers?.refreshForcedSkins === "function") {
-			try { gameState.remotePlayers.refreshForcedSkins(); } catch (_) {}
-		}
+	if (gs && typeof gs.remotePlayers?.refreshForcedSkins === "function") {
+		try { gs.remotePlayers.refreshForcedSkins(); } catch (_) {}
 	}
 }
 
@@ -51815,6 +51891,10 @@ function spkmodHasNativeRemoteSkin(rp, canonicalKey) {
 	const skinId = Number(rp.skinItemId || 0);
 	if (skinId !== 0) return true;
 	if (canonicalKey != null && _spkmodRemoteModNativeSkinCodes.has(String(canonicalKey))) {
+		return false;
+	}
+	const rpPid = rp.info?.playerId;
+	if (rpPid != null && _spkmodRemoteModNativeSkinCodes.has(String(rpPid))) {
 		return false;
 	}
 	const rootFlag = rp.avatar?.root?.userData?.skinAvatarRoot === true;
@@ -52262,7 +52342,9 @@ function spkmodSkinsMasterLoop(nowMs) {
 						if (skin && spkmodCheckRemoteLevelAllowed(skin.level, rpLevel, rpName)) {
 							if (skin.nativeSkinCode) {
 								spkmodSkinClearOnOwner(ownerKey);
-								nextRemoteNativeMap.set(String(canonicalKey), skin.nativeSkinCode);
+								const nativePid = String(rp.info?.playerId ?? canonicalKey);
+								nextRemoteNativeMap.set(nativePid, skin.nativeSkinCode);
+								if (String(canonicalKey) !== nativePid) nextRemoteNativeMap.set(String(canonicalKey), skin.nativeSkinCode);
 							} else {
 								const cur = _spkmodAppliedSkins.get(ownerKey);
 								if (!cur || cur.skinId !== skin.id || cur.root !== rpRoot || _spkmodAvatarSkinOwner.get(rpRoot) !== cur) {
@@ -52309,21 +52391,36 @@ function spkmodSkinsMasterLoop(nowMs) {
 			}
 		}
 
-		// 4. Animate active 3D costume parts & Rainbow Prism FX (zero per-frame traverse, distance & visibility culled!)
+		// 4. Animate active 3D costume parts & Rainbow Prism FX (zero per-frame traverse, accurate world-space culling!)
 		const tSec = nowMs * 0.001;
 		const camPos = gameState.camera?.position || gameState.playerContainer?.position || null;
 		const MAX_REMOTE_ANIM_DIST_SQ = 45 * 45;
+		const THREE_ANIM = typeof window !== "undefined" ? window.THREE : null;
+		if (THREE_ANIM?.Vector3 && !spkmodSkinsMasterLoop._tmpWorldPos) {
+			spkmodSkinsMasterLoop._tmpWorldPos = new THREE_ANIM.Vector3();
+		}
+		const tmpAnimPos = spkmodSkinsMasterLoop._tmpWorldPos || null;
 		for (const [ownerKey, entry] of _spkmodAppliedSkins) {
 			if (!entry || !entry.root) continue;
 			const isLocal = ownerKey === "local_self";
 			if (!isLocal) {
 				if (entry.root.visible === false || entry.root.parent?.visible === false) continue;
-				if (camPos && entry.root.parent?.position) {
-					const rpPos = entry.root.parent.position;
-					const dx = rpPos.x - camPos.x;
-					const dy = rpPos.y - camPos.y;
-					const dz = rpPos.z - camPos.z;
-					if (dx * dx + dy * dy + dz * dz > MAX_REMOTE_ANIM_DIST_SQ) continue;
+				if (camPos) {
+					let rpPos = null;
+					if (tmpAnimPos && typeof entry.root.getWorldPosition === "function") {
+						rpPos = entry.root.getWorldPosition(tmpAnimPos);
+					} else {
+						// Walk up past avatarPose (local 0,0,0) to remote container in world space
+						let p = entry.root.parent;
+						while (p && p.parent && p.parent !== gameState.scene) p = p.parent;
+						rpPos = p?.position || entry.root.parent?.position || null;
+					}
+					if (rpPos) {
+						const dx = rpPos.x - camPos.x;
+						const dy = rpPos.y - camPos.y;
+						const dz = rpPos.z - camPos.z;
+						if (dx * dx + dy * dy + dz * dz > MAX_REMOTE_ANIM_DIST_SQ) continue;
+					}
 				}
 			}
 			if (entry.hideMagicStaff && (!entry._lastStaffCheckMs || nowMs - entry._lastStaffCheckMs >= 900)) {
@@ -52351,7 +52448,11 @@ function spkmodSkinsMasterLoop(nowMs) {
 						part.node.position.y = (part.baseY || 0.24) + Math.sin(tSec * 3.2) * 0.035;
 						part.node.rotation.z = tSec * 0.8;
 					} else if (part.type === "spinY") {
-						part.node.rotation.y = tSec * 2.2;
+						part.node.rotation.y = tSec * (part.speed || 2.2);
+					} else if (part.type === "spinMulti") {
+						part.node.rotation.x = (part.baseRotX || 0) + tSec * (part.speedX || 0);
+						part.node.rotation.y = (part.baseRotY || 0) + tSec * (part.speedY || 0);
+						part.node.rotation.z = (part.baseRotZ || 0) + tSec * (part.speedZ || 0);
 					} else if (part.type === "cape") {
 						part.node.rotation.x = (part.baseRotX || 0) + Math.sin(tSec * 2.8) * 0.06;
 					} else if (part.type === "earWiggle") {
@@ -53148,12 +53249,23 @@ window.spkmodSkins = {
 		return next;
 	},
 	getFavorites: () => [...(window.spkmodSkinSettings.favorites || [])],
-	unlockAll: (enable) => {
+	unlockAll: (enable, silentToast = false) => {
 		const next = enable !== undefined ? !!enable : !window.spkmodSkinSettings.unlockAllTest;
 		window.spkmodSkinSettings.unlockAllTest = next;
 		if (window.localStorage) localStorage.setItem(SPKMOD_SKIN_STORAGE_KEYS.unlockAll, next ? "true" : "false");
+		if (!next) {
+			// Immediately clear any locally-equipped test skin or body width above real player level
+			const eqSkin = window.spkmodSkinSettings.equippedId ? SPKMOD_SKINS_BY_ID.get(window.spkmodSkinSettings.equippedId) : null;
+			if (eqSkin && !spkmodIsSkinLegitimatelyUnlocked(eqSkin)) {
+				spkmodEquipLocalSkin(null, false, true);
+			}
+			const eqWidth = window.spkmodSkinSettings.widthId ? SPKMOD_BODY_WIDTHS_BY_ID.get(window.spkmodSkinSettings.widthId) : null;
+			if (eqWidth && eqWidth.id !== "normal" && !spkmodIsWidthLegitimatelyUnlocked(eqWidth)) {
+				spkmodSetLocalBodyWidth("normal", false, true);
+			}
+		}
 		spkmodRefreshSkinsModalUI();
-		if (typeof chatLog === "function") {
+		if (!silentToast && typeof chatLog === "function") {
 			chatLog(next ? spkmodGetSkinUiText("testUnlockEnabledToast") : spkmodGetSkinUiText("testUnlockDisabledToast"));
 		}
 		return next;
@@ -53201,8 +53313,8 @@ const SPKMOD_MINING_FREECAM_CONFIG = {
 	maxSubstepDist: 0.06,
 	maxSubstepsPerFrame: 48,
 	edgeBufferBlocks: 3.0,
-	ceilingAboveBase: 28.0,
-	hardMaxY: 97.5,
+	ceilingAboveBase: 160.0,
+	hardMaxY: 256.0,
 	eyeHeightStanding: 1.5,
 	eyeHeightSeated: 0.9,
 	fogBodyEyeOffset: 1.7,
@@ -54828,6 +54940,11 @@ function spkmodGetCartPlayerLevel() {
 	return 1;
 }
 
+function spkmodIsCartSkinLegitimatelyUnlocked(skin) {
+	if (!skin) return false;
+	return spkmodGetCartPlayerLevel() >= (skin.level || 1);
+}
+
 function spkmodIsCartSkinUnlocked(skin) {
 	if (!skin) return false;
 	if (window.spkmodCartSkinSettings.unlockAllTest) return true;
@@ -55558,8 +55675,11 @@ let _spkmodCartForceReconcile = false;
 
 window.spkmodGetActiveCartSkinBroadcastState = function() {
 	const enabled = spkmodIsCartSkinsSystemEnabled();
-	const shareInChat = spkmodIsCartSkinChatSharingEnabled();
-	const cartId = (enabled && window.spkmodCartSkinSettings.equippedId) || null;
+	const isTestUnlock = !!window.spkmodCartSkinSettings.unlockAllTest;
+	const shareInChat = spkmodIsCartSkinChatSharingEnabled() && !isTestUnlock;
+	const rawCartId = (enabled && !isTestUnlock && window.spkmodCartSkinSettings.equippedId) || null;
+	const skinObj = rawCartId ? SPKMOD_CART_SKINS_BY_ID.get(rawCartId) : null;
+	const cartId = (skinObj && spkmodIsCartSkinLegitimatelyUnlocked(skinObj)) ? skinObj.id : null;
 	return {
 		enabled,
 		shareInChat,
@@ -55574,8 +55694,9 @@ window.spkmodMarkCartSkinBroadcastSent = function(hasCart) {
 };
 
 function spkmodTriggerCartSkinSyncBroadcast(opts = {}) {
-	if (!spkmodIsCartSkinChatSharingEnabled()) return;
-	const hasActive = !!window.spkmodCartSkinSettings.equippedId;
+	if (!spkmodIsCartSkinChatSharingEnabled() || window.spkmodCartSkinSettings.unlockAllTest) return;
+	const eqSkin = window.spkmodCartSkinSettings.equippedId ? SPKMOD_CART_SKINS_BY_ID.get(window.spkmodCartSkinSettings.equippedId) : null;
+	const hasActive = !!(eqSkin && spkmodIsCartSkinLegitimatelyUnlocked(eqSkin));
 	const rCount = (typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.size) || 0;
 	if (hasActive && rCount === 0) {
 		_spkmodCartNeedsZoneSync = true;
@@ -56464,13 +56585,19 @@ window.spkmodCartSkins = {
 	toggleModal: (force) => window.spkmodToggleCartSkinsModal(force),
 	reconcile: () => spkmodReconcileAllCartSkins(),
 	setEnabled: (val) => window.spkmodSetCartSkinsSystemEnabled(val),
-	unlockAll: (force) => {
+	unlockAll: (force, silentToast = false) => {
 		const next = force !== undefined ? !!force : !window.spkmodCartSkinSettings.unlockAllTest;
 		window.spkmodCartSkinSettings.unlockAllTest = next;
 		if (typeof window !== "undefined" && window.localStorage) {
 			try { localStorage.setItem(SPKMOD_CART_SKIN_STORAGE_KEYS.unlockAll, next ? "true" : "false"); } catch (_) {}
 		}
-		if (typeof chatLog === "function") {
+		if (!next) {
+			const eqSkin = window.spkmodCartSkinSettings.equippedId ? SPKMOD_CART_SKINS_BY_ID.get(window.spkmodCartSkinSettings.equippedId) : null;
+			if (eqSkin && !spkmodIsCartSkinLegitimatelyUnlocked(eqSkin)) {
+				spkmodEquipLocalCartSkin(null, false, true);
+			}
+		}
+		if (!silentToast && typeof chatLog === "function") {
 			chatLog(spkmodGetCartSkinUiText(next ? "testUnlockEnabledToast" : "testUnlockDisabledToast"));
 		}
 		_spkmodCartForceReconcile = true;
@@ -56819,6 +56946,11 @@ function spkmodGetSparkPlayerLevel() {
 		return Number(gameState.myStat.level) || 1;
 	}
 	return 1;
+}
+
+function spkmodIsSparkLegitimatelyUnlocked(spark) {
+	if (!spark) return false;
+	return spkmodGetSparkPlayerLevel() >= spark.level;
 }
 
 function spkmodIsSparkUnlocked(spark) {
@@ -57510,8 +57642,11 @@ let _spkmodSparkLastObservedRemoteCount = 0;
 
 window.spkmodGetActiveSparkBroadcastState = function() {
 	const enabled = spkmodIsSparksSystemEnabled();
-	const shareInChat = spkmodIsSparkChatSharingEnabled();
-	const sparkId = (enabled && window.spkmodSparkSettings.equippedId) || null;
+	const isTestUnlock = !!window.spkmodSparkSettings.unlockAllTest;
+	const shareInChat = spkmodIsSparkChatSharingEnabled() && !isTestUnlock;
+	const rawSparkId = (enabled && !isTestUnlock && window.spkmodSparkSettings.equippedId) || null;
+	const sparkObj = rawSparkId ? SPKMOD_SPARKS_BY_ID.get(rawSparkId) : null;
+	const sparkId = (sparkObj && spkmodIsSparkLegitimatelyUnlocked(sparkObj)) ? sparkObj.id : null;
 	return {
 		enabled,
 		shareInChat,
@@ -57526,8 +57661,9 @@ window.spkmodMarkSparkBroadcastSent = function(hasSpark) {
 };
 
 function spkmodTriggerSparkSyncBroadcast(opts = {}) {
-	if (!spkmodIsSparkChatSharingEnabled()) return;
-	const hasActive = !!window.spkmodSparkSettings.equippedId;
+	if (!spkmodIsSparkChatSharingEnabled() || window.spkmodSparkSettings.unlockAllTest) return;
+	const eqSpark = window.spkmodSparkSettings.equippedId ? SPKMOD_SPARKS_BY_ID.get(window.spkmodSparkSettings.equippedId) : null;
+	const hasActive = !!(eqSpark && spkmodIsSparkLegitimatelyUnlocked(eqSpark));
 	const rCount = (typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.size) || 0;
 	if (hasActive && rCount === 0) {
 		_spkmodSparkNeedsZoneSync = true;
@@ -58541,13 +58677,19 @@ window.spkmodSparks = {
 	burst: (id) => window.spkmodBurstTrail(false, id),
 	toggleModal: (force) => window.spkmodToggleSparksModal(force),
 	setEnabled: (val) => window.spkmodSetSparksSystemEnabled(val),
-	unlockAll: (force) => {
+	unlockAll: (force, silentToast = false) => {
 		const next = force !== undefined ? !!force : !window.spkmodSparkSettings.unlockAllTest;
 		window.spkmodSparkSettings.unlockAllTest = next;
 		if (typeof window !== "undefined" && window.localStorage) {
 			try { localStorage.setItem(SPKMOD_SPARK_STORAGE_KEYS.unlockAll, next ? "true" : "false"); } catch (_) {}
 		}
-		if (typeof chatLog === "function") {
+		if (!next) {
+			const eqSpark = window.spkmodSparkSettings.equippedId ? SPKMOD_SPARKS_BY_ID.get(window.spkmodSparkSettings.equippedId) : null;
+			if (eqSpark && !spkmodIsSparkLegitimatelyUnlocked(eqSpark)) {
+				spkmodEquipLocalSpark(null, false, true);
+			}
+		}
+		if (!silentToast && typeof chatLog === "function") {
 			chatLog(spkmodGetSparkUiText(next ? "testUnlockEnabledToast" : "testUnlockDisabledToast"));
 		}
 		spkmodRefreshSparksModalUI();
@@ -58982,6 +59124,11 @@ function spkmodGetVehiclePlayerLevel() {
 		return Number(gameState.myStat.level) || 1;
 	}
 	return 1;
+}
+
+function spkmodIsVehicleLegitimatelyUnlocked(vehicle) {
+	if (!vehicle) return false;
+	return spkmodGetVehiclePlayerLevel() >= (Number(vehicle.level) || 1);
 }
 
 function spkmodIsVehicleUnlocked(vehicle) {
@@ -60757,13 +60904,53 @@ async function spkmodSpawnLocalVehicle(vehicleId, colorIdx) {
 	return true;
 }
 
-function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot, posePos, ctrl, dt, nowMs) {
+function spkmodGetVehicleOwnerScale(isLocal, avatarRoot, rp) {
+	// Prefer live avatar visual-scale wrapper (children[0] created by game's Giant/Mini Resizer Potion),
+	// which automatically respects both size potions and minigame scale suppression.
+	const visualChild = avatarRoot?.children?.[0];
+	if (visualChild && visualChild.isObject3D && !visualChild.isSprite && !visualChild.isMesh && !visualChild.isBone && visualChild.scale) {
+		const sx = visualChild.scale.x;
+		const sy = visualChild.scale.y;
+		const sz = visualChild.scale.z;
+		if (
+			Number.isFinite(sx) && sx >= 0.1 && sx <= 10.0 &&
+			Math.abs(sx - sy) < 0.005 && Math.abs(sx - sz) < 0.005
+		) {
+			return sx;
+		}
+	}
+	const gs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
+	let permille = 1000;
+	if (isLocal) {
+		if (typeof gs?.myVisualScalePermille === "number" && Number.isFinite(gs.myVisualScalePermille)) {
+			permille = gs.myVisualScalePermille;
+		}
+	} else if (typeof rp?.visualScalePermille === "number" && Number.isFinite(rp.visualScalePermille)) {
+		permille = rp.visualScalePermille;
+	}
+	const clamped = (permille >= 100 && permille <= 10000) ? Math.trunc(permille) : 1000;
+	return clamped / 1000;
+}
+
+function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot, posePos, ctrl, dt, nowMs, rp = null) {
 	if (!entry || !container) return;
 	if (entry.root.parent !== container) {
 		container.add(entry.root);
 	}
 	if (typeof spkmodSetNativeCartVisible === "function") {
 		spkmodSetNativeCartVisible(container, playerId, false);
+	}
+
+	// Scale vehicle smoothly to match Giant / Mini Resizer Potion visual scale
+	const targetScale = spkmodGetVehicleOwnerScale(isLocal, avatarRoot, rp);
+	if (entry.visualScaleCurrent == null || !Number.isFinite(entry.visualScaleCurrent)) {
+		entry.visualScaleCurrent = targetScale;
+	} else {
+		entry.visualScaleCurrent += (targetScale - entry.visualScaleCurrent) * Math.min(1, dt * 12);
+	}
+	const ownerScale = entry.visualScaleCurrent;
+	if (entry.root.scale && typeof entry.root.scale.setScalar === "function") {
+		entry.root.scale.setScalar(ownerScale);
 	}
 
 	// Calculate horizontal travel speed since last frame
@@ -60780,9 +60967,9 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 	const isMoving = dist > 0.004;
 	const tSec = nowMs * 0.001;
 
-	// Spin wheels proportionally to ground distance covered
+	// Spin wheels proportionally to ground distance covered (scaled by owner size potion)
 	if (dist > 0.0001 && entry.wheels && entry.wheels.length > 0) {
-		const angle = dist / (entry.wheelRadius || 0.34);
+		const angle = dist / Math.max(0.05, (entry.wheelRadius || 0.34) * ownerScale);
 		for (let i = 0; i < entry.wheels.length; i++) {
 			entry.wheels[i].rotation.x += angle;
 		}
@@ -60895,7 +61082,7 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 			entry.hiddenAvatarRoot = null;
 		}
 		if (posePos) {
-			posePos.set(0, (entry.seatOffsetY || 0) + hoverDelta, 0);
+			posePos.set(0, ((entry.seatOffsetY || 0) + hoverDelta) * ownerScale, 0);
 		}
 		if (entry.vehicle.pose === "sit") {
 			if (ctrl && !ctrl.mountSitPlaying && typeof ctrl.enterMountPose === "function") {
@@ -61008,15 +61195,16 @@ async function spkmodSpawnOrUpdateRemoteVehicle(ownerKey, state, resolved) {
 	}, built);
 
 	_spkmodRemoteVehicleInstances.set(ownerKey, entry);
-	spkmodTickVehicleEntry(entry, false, live.rp.container, live.rpKey, live.rp.avatar?.root || null, entry.lastPosePos, entry.lastCtrl, 0.016, performance.now());
+	spkmodTickVehicleEntry(entry, false, live.rp.container, live.rpKey, live.rp.avatar?.root || null, entry.lastPosePos, entry.lastCtrl, 0.016, performance.now(), live.rp);
 }
 
 window.spkmodGetActiveCarBroadcastState = function() {
 	const enabled = spkmodIsVehiclesSystemEnabled();
-	const shareInChat = spkmodIsVehicleChatSharingEnabled();
-	const eqId = enabled ? window.spkmodVehicleSettings.equippedId : null;
+	const isTestUnlock = !!window.spkmodVehicleSettings.unlockAllTest;
+	const shareInChat = spkmodIsVehicleChatSharingEnabled() && !isTestUnlock;
+	const eqId = (enabled && !isTestUnlock) ? window.spkmodVehicleSettings.equippedId : null;
 	const vehicle = eqId ? SPKMOD_VEHICLES_BY_ID.get(eqId) : null;
-	const modeIdx = (vehicle && spkmodIsVehicleUnlocked(vehicle)) ? vehicle.code : 0;
+	const modeIdx = (vehicle && spkmodIsVehicleLegitimatelyUnlocked(vehicle)) ? vehicle.code : 0;
 	const colorIdx = modeIdx > 0 ? spkmodClampVehicleColorIdx(window.spkmodVehicleSettings.colorIdx) : 0;
 	return {
 		enabled,
@@ -61033,11 +61221,12 @@ window.spkmodMarkCarBroadcastSent = function(hasVehicle) {
 };
 
 function spkmodTriggerVehicleSyncBroadcast(opts = {}) {
-	if (!spkmodIsVehicleChatSharingEnabled()) return;
+	if (!spkmodIsVehicleChatSharingEnabled() || window.spkmodVehicleSettings.unlockAllTest) return;
+	const eqVeh = window.spkmodVehicleSettings.equippedId ? SPKMOD_VEHICLES_BY_ID.get(window.spkmodVehicleSettings.equippedId) : null;
 	const rCount = (typeof spkmodGetRemotePlayerCount === "function")
 		? spkmodGetRemotePlayerCount()
 		: ((typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.size) || 0);
-	if (window.spkmodVehicleSettings.equippedId && rCount === 0) {
+	if (eqVeh && spkmodIsVehicleLegitimatelyUnlocked(eqVeh) && rCount === 0) {
 		_spkmodVehicleNeedsZoneSync = true;
 	}
 	if (typeof window.spkmodQueueUnifiedModSyncBroadcast === "function") {
@@ -61395,7 +61584,7 @@ function spkmodVehiclesMasterLoop(nowMs) {
 				const ctrl = rp.avatar?.animationController || rp.container?.controller || null;
 				entry.lastPosePos = posePos;
 				entry.lastCtrl = ctrl;
-				spkmodTickVehicleEntry(entry, false, rp.container, entry.lastRpKey ?? entry.playerId, rp.avatar?.root || null, posePos, ctrl, dt, nowMs);
+				spkmodTickVehicleEntry(entry, false, rp.container, entry.lastRpKey ?? entry.playerId, rp.avatar?.root || null, posePos, ctrl, dt, nowMs, rp);
 			}
 		}
 
@@ -62102,12 +62291,18 @@ window.spkmodVehicles = {
 		return next;
 	},
 	getFavorites: () => [...(window.spkmodVehicleSettings.favorites || [])],
-	unlockAll: (enable) => {
+	unlockAll: (enable, silentToast = false) => {
 		const next = enable !== undefined ? !!enable : !window.spkmodVehicleSettings.unlockAllTest;
 		window.spkmodVehicleSettings.unlockAllTest = next;
 		if (window.localStorage) localStorage.setItem(SPKMOD_VEHICLE_STORAGE_KEYS.unlockAll, next ? "true" : "false");
+		if (!next) {
+			const eqVeh = window.spkmodVehicleSettings.equippedId ? SPKMOD_VEHICLES_BY_ID.get(window.spkmodVehicleSettings.equippedId) : null;
+			if (eqVeh && !spkmodIsVehicleLegitimatelyUnlocked(eqVeh)) {
+				spkmodEquipLocalVehicle(null, false, true);
+			}
+		}
 		spkmodRefreshVehiclesModalUI();
-		if (typeof chatLog === "function") {
+		if (!silentToast && typeof chatLog === "function") {
 			chatLog(spkmodGetVehicleUiText(next ? "testUnlockEnabledToast" : "testUnlockDisabledToast"));
 		}
 		return next;

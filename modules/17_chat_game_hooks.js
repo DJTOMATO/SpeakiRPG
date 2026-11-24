@@ -371,16 +371,28 @@ function hookGameStateOnce() {
 							window.spkmodPets.dance(parseFloat(cmd[1]) || 8);
 						}
 						break;
-					case "petunlock": {
+					case "unlockall": {
 						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
 							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
 						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
-							chatLog("❌ You do not have permission to use !petunlock.");
-						} else if (window.spkmodPetsSystemEnabled === false) {
-							chatLog(t("petsSystemDisabledToast") || "🐾 Pets System is disabled. Enable it in Settings (under Cinema).");
-						} else if (window.spkmodPets && typeof window.spkmodPets.unlockAll === "function") {
-							window.spkmodPets.unlockAll();
+							chatLog("❌ You do not have permission to use !unlockall.");
+						} else {
+							if (window.spkmodPets && typeof window.spkmodPets.unlockAll === "function") window.spkmodPets.unlockAll(true, true);
+							if (window.spkmodSkins && typeof window.spkmodSkins.unlockAll === "function") window.spkmodSkins.unlockAll(true, true);
+							if (window.spkmodCartSkins && typeof window.spkmodCartSkins.unlockAll === "function") window.spkmodCartSkins.unlockAll(true, true);
+							if (window.spkmodVehicles && typeof window.spkmodVehicles.unlockAll === "function") window.spkmodVehicles.unlockAll(true, true);
+							if (window.spkmodSparks && typeof window.spkmodSparks.unlockAll === "function") window.spkmodSparks.unlockAll(true, true);
+							chatLog("🔓 [Test Mode] All Pets, Skins, Cart Skins, Vehicles & Spark FX unlocked locally (testing only — will NOT broadcast to other players). Use !lockall to restore.");
 						}
+						break;
+					}
+					case "lockall": {
+						if (window.spkmodPets && typeof window.spkmodPets.unlockAll === "function") window.spkmodPets.unlockAll(false, true);
+						if (window.spkmodSkins && typeof window.spkmodSkins.unlockAll === "function") window.spkmodSkins.unlockAll(false, true);
+						if (window.spkmodCartSkins && typeof window.spkmodCartSkins.unlockAll === "function") window.spkmodCartSkins.unlockAll(false, true);
+						if (window.spkmodVehicles && typeof window.spkmodVehicles.unlockAll === "function") window.spkmodVehicles.unlockAll(false, true);
+						if (window.spkmodSparks && typeof window.spkmodSparks.unlockAll === "function") window.spkmodSparks.unlockAll(false, true);
+						chatLog("🔒 [Test Mode] Normal level requirements & multiplayer broadcasting restored for all Pets, Skins, Cart Skins, Vehicles & Spark FX.");
 						break;
 					}
 					case "skins":
@@ -407,18 +419,6 @@ function hookGameStateOnce() {
 							window.spkmodSkins.setWidth(cmd[1] || "normal");
 						}
 						break;
-					case "skinunlock": {
-						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
-							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
-						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
-							chatLog("❌ You do not have permission to use !skinunlock.");
-						} else if (window.spkmodSkinsSystemEnabled === false) {
-							chatLog(t("skinsSystemDisabledToast") || "👕 Skins System is disabled. Enable it in Settings (under Pets).");
-						} else if (window.spkmodSkins && typeof window.spkmodSkins.unlockAll === "function") {
-							window.spkmodSkins.unlockAll();
-						}
-						break;
-					}
 					case "joayo":
 					case "chowayo":
 						if (typeof gameState !== "undefined" && gameState && typeof gameState.sendEmoteNow === "function") {
@@ -443,16 +443,6 @@ function hookGameStateOnce() {
 							window.spkmodToggleCartSkinsModal();
 						}
 						break;
-					case "cartunlock": {
-						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
-							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
-						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
-							chatLog("❌ You do not have permission to use !cartunlock.");
-						} else if (window.spkmodCartSkins && typeof window.spkmodCartSkins.unlockAll === "function") {
-							window.spkmodCartSkins.unlockAll();
-						}
-						break;
-					}
 					case "vehicles":
 					case "vehicle":
 					case "car":
@@ -478,17 +468,6 @@ function hookGameStateOnce() {
 							}
 						}
 						break;
-					case "vehicleunlock":
-					case "carunlock": {
-						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
-							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
-						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
-							chatLog("❌ You do not have permission to use !vehicleunlock.");
-						} else if (window.spkmodVehicles && typeof window.spkmodVehicles.unlockAll === "function") {
-							window.spkmodVehicles.unlockAll();
-						}
-						break;
-					}
 					case "checkupdate":
 					case "modupdate": {
 						const sub = (cmd[1] || "").toLowerCase();
@@ -516,18 +495,6 @@ function hookGameStateOnce() {
 							window.spkmodToggleSparksModal();
 						}
 						break;
-					case "sparkunlock": {
-						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
-							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
-						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
-							chatLog("❌ You do not have permission to use !sparkunlock.");
-						} else if (window.spkmodSparksSystemEnabled === false) {
-							chatLog(typeof window.spkmodGetSparkUiText === "function" ? window.spkmodGetSparkUiText("systemDisabledToast") : "✨ Spark FX System is disabled.");
-						} else if (window.spkmodSparks && typeof window.spkmodSparks.unlockAll === "function") {
-							window.spkmodSparks.unlockAll();
-						}
-						break;
-					}
 					case "trail":
 						const trailSub = (cmd[1] || "").toLowerCase();
 						if (trailSub === "off" || trailSub === "stop") {
