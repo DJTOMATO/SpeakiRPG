@@ -1963,6 +1963,31 @@ function spkmodIsOwnerDancing(instance) {
 	return false;
 }
 
+const SPKMOD_PET_DANCES = [
+	{ id: "orbit_spin", color: "#ffd700" },
+	{ id: "figure_eight", color: "#4de8ff" },
+	{ id: "front_shimmy", color: "#ff72c6" },
+	{ id: "backflip_bounce", color: "#ff9f43" },
+	{ id: "flower_petal", color: "#c084fc" },
+	{ id: "tornado_whirl", color: "#60a5fa" },
+	{ id: "zig_zag_hop", color: "#4ade80" },
+	{ id: "moonwalk_groove", color: "#facc15" }
+];
+
+function spkmodPickRandomPetDance(inst) {
+	if (!inst) return SPKMOD_PET_DANCES[0];
+	const prevId = inst.danceStyleId;
+	let pool = SPKMOD_PET_DANCES;
+	if (prevId && pool.length > 1) {
+		pool = pool.filter(d => d.id !== prevId);
+	}
+	const picked = pool[Math.floor(Math.random() * pool.length)] || SPKMOD_PET_DANCES[0];
+	inst.danceStyleId = picked.id;
+	inst.danceElapsed = 0;
+	inst.danceDir = Math.random() < 0.5 ? 1 : -1;
+	return picked;
+}
+
 function spkmodIsOwnerFallenDown(instance) {
 	const now = performance.now();
 	if (instance.forceFallDownUntil > now) return true;
@@ -2162,6 +2187,10 @@ async function spkmodCreatePetInstance(ownerKey, pet, isLocal, resolveContainerF
 		nextTalkAtMs: now + 14000 + Math.random() * 22000,
 		nextDanceFxAtMs: 0,
 		forceDanceUntil: 0,
+		danceStyleId: null,
+		danceElapsed: 0,
+		danceDir: 1,
+		_wasDancing: false,
 		forceFallDownUntil: 0,
 		petJumpActive: false,
 		petJumpElapsed: 0,
@@ -2297,6 +2326,13 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 	const ownerCtrl = spkmodGetOwnerAnimController(inst);
 	const isFallenDown = spkmodIsOwnerFallenDown(inst);
 	const isDancing = !isFallenDown && spkmodIsOwnerDancing(inst);
+	if (isDancing && !inst._wasDancing) {
+		spkmodPickRandomPetDance(inst);
+	}
+	inst._wasDancing = isDancing;
+	if (isDancing) {
+		inst.danceElapsed = (inst.danceElapsed || 0) + dt;
+	}
 	const isFlyer = inst.pet.moveMode === "fly";
 
 	// Sync pet size with owner's active Resizer Potion scale (smoothly eases on drink/expire, preserves across pet swaps)
@@ -2403,10 +2439,67 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		stopThreshold = 0.05;
 	} else if (isDancing) {
 		inst.hasWanderTarget = false;
-		const danceRadius = Math.max(1.85, minR - 0.15) + Math.sin(inst.idlePhase * 0.7) * 0.18;
-		targetX = ownerPos.x + Math.cos(inst.orbitAngle) * danceRadius;
-		targetZ = ownerPos.z + Math.sin(inst.orbitAngle) * danceRadius;
-		desiredMaxSpeed = 8.5;
+		const dStyle = inst.danceStyleId || "orbit_spin";
+		const dT = inst.danceElapsed || 0;
+		const dDir = inst.danceDir || 1;
+		const baseR = Math.max(1.85, minR - 0.15);
+		const fwdX = Math.sin(ownerYaw);
+		const fwdZ = Math.cos(ownerYaw);
+		const rightX = Math.cos(ownerYaw);
+		const rightZ = -Math.sin(ownerYaw);
+
+		if (dStyle === "figure_eight") {
+			const t = dT * 2.1 * dDir;
+			const localSide = Math.sin(t) * (baseR * 1.18);
+			const localFwd = Math.sin(t * 2) * (baseR * 0.62) + baseR * 0.35;
+			targetX = ownerPos.x + rightX * localSide + fwdX * localFwd;
+			targetZ = ownerPos.z + rightZ * localSide + fwdZ * localFwd;
+			desiredMaxSpeed = 9.5;
+		} else if (dStyle === "front_shimmy") {
+			const shimmy = Math.sin(dT * 5.2 * dDir) * Math.max(0.85, baseR * 0.58);
+			const depth = baseR * 0.92 + Math.cos(dT * 10.4) * 0.22;
+			targetX = ownerPos.x + fwdX * depth + rightX * shimmy;
+			targetZ = ownerPos.z + fwdZ * depth + rightZ * shimmy;
+			desiredMaxSpeed = 9.0;
+		} else if (dStyle === "backflip_bounce") {
+			const ang = inst.orbitAngle * 0.45 * dDir;
+			const r = baseR * 0.95;
+			targetX = ownerPos.x + Math.cos(ang) * r;
+			targetZ = ownerPos.z + Math.sin(ang) * r;
+			desiredMaxSpeed = 7.5;
+		} else if (dStyle === "flower_petal") {
+			const theta = dT * 1.65 * dDir;
+			const r = baseR * (0.82 + 0.44 * Math.cos(theta * 4));
+			targetX = ownerPos.x + Math.cos(theta) * r;
+			targetZ = ownerPos.z + Math.sin(theta) * r;
+			desiredMaxSpeed = 9.5;
+		} else if (dStyle === "tornado_whirl") {
+			const ang = dT * 5.6 * dDir;
+			const r = baseR * (0.62 + 0.48 * (0.5 + 0.5 * Math.sin(dT * 2.4)));
+			targetX = ownerPos.x + Math.cos(ang) * r;
+			targetZ = ownerPos.z + Math.sin(ang) * r;
+			desiredMaxSpeed = 12.0;
+		} else if (dStyle === "zig_zag_hop") {
+			const stepBeat = dT * 3.2;
+			const ang = Math.floor(stepBeat) * 0.85 * dDir + (stepBeat % 1) * 0.85 * dDir;
+			const zig = (Math.floor(stepBeat) % 2 === 0 ? 1.25 : 0.72);
+			const r = baseR * zig;
+			targetX = ownerPos.x + Math.cos(ang) * r;
+			targetZ = ownerPos.z + Math.sin(ang) * r;
+			desiredMaxSpeed = 10.5;
+		} else if (dStyle === "moonwalk_groove") {
+			const ang = dT * 2.15 * dDir;
+			const r = baseR * 1.05;
+			targetX = ownerPos.x + Math.cos(ang) * r;
+			targetZ = ownerPos.z + Math.sin(ang) * r;
+			desiredMaxSpeed = 7.5;
+		} else {
+			// orbit_spin (classic)
+			const danceRadius = baseR + Math.sin(inst.idlePhase * 0.7) * 0.18;
+			targetX = ownerPos.x + Math.cos(inst.orbitAngle * dDir) * danceRadius;
+			targetZ = ownerPos.z + Math.sin(inst.orbitAngle * dDir) * danceRadius;
+			desiredMaxSpeed = 8.5;
+		}
 		stopThreshold = 0.08;
 	} else if (ownerIsMoving) {
 		// Owner is walking/running -> natural world-space leash pursuit (straight chords, no circular boom-arm)
@@ -2604,7 +2697,37 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 	if ((inst.fallDownBlend || 0) > 0.25) {
 		// Keep fallen pet lying steadily without spinning on the floor
 	} else if (isDancing) {
-		inst.modelHolder.rotation.y += dt * 7.2;
+		const dStyle = inst.danceStyleId || "orbit_spin";
+		const dT = inst.danceElapsed || 0;
+		const dDir = inst.danceDir || 1;
+		if (dStyle === "front_shimmy") {
+			const toOwnerYaw = Math.atan2(ownerPos.x - inst.root.position.x, ownerPos.z - inst.root.position.z);
+			const desiredYaw = toOwnerYaw + Math.sin(dT * 5.2 * dDir) * 0.45;
+			inst.modelHolder.rotation.y += spkmodNormalizeAngleDiff(desiredYaw, inst.modelHolder.rotation.y) * Math.min(1, dt * 12);
+		} else if (dStyle === "figure_eight" || dStyle === "flower_petal") {
+			if (frameMoved > 0.002) {
+				const desiredYaw = Math.atan2(inst.root.position.x - inst.lastX, inst.root.position.z - inst.lastZ);
+				inst.modelHolder.rotation.y += spkmodNormalizeAngleDiff(desiredYaw, inst.modelHolder.rotation.y) * Math.min(1, dt * 10);
+			}
+		} else if (dStyle === "moonwalk_groove") {
+			// Face opposite to travel direction for classic moonwalk, with periodic flourish spins
+			const spinWindow = dT % 3.2;
+			if (spinWindow > 2.65) {
+				inst.modelHolder.rotation.y += dt * 14.0 * dDir;
+			} else if (frameMoved > 0.002) {
+				const backwardYaw = Math.atan2(inst.lastX - inst.root.position.x, inst.lastZ - inst.root.position.z);
+				inst.modelHolder.rotation.y += spkmodNormalizeAngleDiff(backwardYaw, inst.modelHolder.rotation.y) * Math.min(1, dt * 10);
+			}
+		} else if (dStyle === "tornado_whirl") {
+			inst.modelHolder.rotation.y += dt * 16.5 * dDir;
+		} else if (dStyle === "backflip_bounce") {
+			const toOwnerYaw = Math.atan2(ownerPos.x - inst.root.position.x, ownerPos.z - inst.root.position.z);
+			inst.modelHolder.rotation.y += spkmodNormalizeAngleDiff(toOwnerYaw, inst.modelHolder.rotation.y) * Math.min(1, dt * 8);
+		} else if (dStyle === "zig_zag_hop") {
+			inst.modelHolder.rotation.y += dt * 5.5 * dDir;
+		} else {
+			inst.modelHolder.rotation.y += dt * 7.2 * dDir;
+		}
 	} else if (isMoving && frameMoved > 0.002) {
 		const desiredYaw = Math.atan2(inst.root.position.x - inst.lastX, inst.root.position.z - inst.lastZ);
 		const diff = spkmodNormalizeAngleDiff(desiredYaw, inst.modelHolder.rotation.y);
@@ -2633,24 +2756,107 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 	const hopScale = Math.max(0.45, Math.min(2.2, ownerScale));
 
 	if (isDancing) {
-		inst.walkPhase += dt * 11.0;
-		const jumpWave = Math.abs(Math.sin(inst.walkPhase));
+		const dStyle = inst.danceStyleId || "orbit_spin";
+		const dT = inst.danceElapsed || 0;
+		const dDir = inst.danceDir || 1;
 		const baseHover = isFlyer ? (1.15 * flyerHoverScale) : 0;
-		poseY = baseHover + jumpWave * 0.46 * hopScale;
-		const squash = Math.cos(inst.walkPhase * 2) * 0.15;
-		poseSX = 1 + squash;
-		poseSY = 1 - squash * 1.2;
-		poseSZ = 1 + squash;
-		poseRotZ = Math.sin(inst.walkPhase) * 0.24;
-		poseRotX = Math.cos(inst.walkPhase * 0.5) * 0.14;
+		inst.walkPhase += dt * 11.0;
+
+		if (dStyle === "figure_eight") {
+			const hop = Math.abs(Math.sin(dT * 7.5));
+			poseY = baseHover + hop * 0.36 * hopScale;
+			const squash = Math.cos(dT * 15.0) * 0.12;
+			poseSX = 1 + squash;
+			poseSY = 1 - squash * 1.15;
+			poseSZ = 1 + squash;
+			poseRotZ = Math.cos(dT * 2.1 * dDir) * 0.36;
+			poseRotX = Math.sin(dT * 7.5) * 0.12;
+		} else if (dStyle === "front_shimmy") {
+			const bounce = Math.abs(Math.sin(dT * 10.4));
+			poseY = baseHover + bounce * 0.32 * hopScale;
+			const squash = Math.sin(dT * 10.4) * 0.14;
+			poseSX = 1 + squash;
+			poseSY = 1 - squash * 1.1;
+			poseSZ = 1 + squash;
+			poseRotZ = Math.sin(dT * 10.4 * dDir) * 0.34;
+			poseRotX = Math.sin(dT * 5.2) * 0.18;
+		} else if (dStyle === "backflip_bounce") {
+			const cycle = (dT * 1.35) % 1;
+			if (cycle < 0.72) {
+				const p = cycle / 0.72;
+				const arc = 4 * p * (1 - p);
+				poseY = baseHover + arc * 1.15 * hopScale;
+				poseRotX = -p * Math.PI * 2;
+				poseRotZ = Math.sin(p * Math.PI) * 0.12 * dDir;
+				poseSX = 1 - arc * 0.1;
+				poseSY = 1 + arc * 0.16;
+				poseSZ = 1 - arc * 0.1;
+			} else {
+				const lp = (cycle - 0.72) / 0.28;
+				const landSquash = Math.sin(lp * Math.PI) * 0.24;
+				poseY = baseHover;
+				poseRotX = 0;
+				poseRotZ = 0;
+				poseSX = 1 + landSquash;
+				poseSY = 1 - landSquash * 1.15;
+				poseSZ = 1 + landSquash;
+			}
+		} else if (dStyle === "flower_petal") {
+			const floatWave = 0.5 + 0.5 * Math.sin(dT * 4.2);
+			poseY = baseHover + (0.14 + floatWave * 0.42) * hopScale;
+			const sway = Math.sin(dT * 3.3);
+			poseSX = 1 + sway * 0.08;
+			poseSY = 1 - sway * 0.08;
+			poseSZ = 1 + sway * 0.08;
+			poseRotZ = Math.sin(dT * 3.3 * dDir) * 0.28;
+			poseRotX = Math.cos(dT * 3.3) * 0.16;
+		} else if (dStyle === "tornado_whirl") {
+			const lift = 0.5 + 0.5 * Math.sin(dT * 2.4 + Math.PI);
+			poseY = baseHover + (0.18 + lift * 0.58) * hopScale;
+			poseSX = 0.92 + Math.sin(dT * 14) * 0.08;
+			poseSY = 1.12 - Math.sin(dT * 14) * 0.08;
+			poseSZ = 0.92 + Math.sin(dT * 14) * 0.08;
+			poseRotX = Math.sin(dT * 7.5) * 0.28;
+			poseRotZ = Math.cos(dT * 7.5) * 0.28;
+		} else if (dStyle === "zig_zag_hop") {
+			const beat = (dT * 3.2) % 1;
+			const arc = 4 * beat * (1 - beat);
+			poseY = baseHover + arc * 0.68 * hopScale;
+			const squash = (beat < 0.16 || beat > 0.84) ? 0.18 : -0.10 * arc;
+			poseSX = 1 + squash;
+			poseSY = 1 - squash * 1.15;
+			poseSZ = 1 + squash;
+			poseRotZ = (Math.floor(dT * 3.2) % 2 === 0 ? 1 : -1) * arc * 0.32;
+			poseRotX = (0.5 - beat) * 0.26 * arc;
+		} else if (dStyle === "moonwalk_groove") {
+			const slideBob = Math.abs(Math.sin(dT * 6.4)) * 0.14;
+			poseY = baseHover + slideBob * hopScale;
+			const groove = Math.sin(dT * 6.4) * 0.08;
+			poseSX = 1 + groove;
+			poseSY = 1 - groove;
+			poseSZ = 1 + groove;
+			poseRotX = -0.22 + Math.sin(dT * 6.4) * 0.08;
+			poseRotZ = Math.sin(dT * 3.2 * dDir) * 0.18;
+		} else {
+			// orbit_spin (classic)
+			const jumpWave = Math.abs(Math.sin(inst.walkPhase));
+			poseY = baseHover + jumpWave * 0.46 * hopScale;
+			const squash = Math.cos(inst.walkPhase * 2) * 0.15;
+			poseSX = 1 + squash;
+			poseSY = 1 - squash * 1.2;
+			poseSZ = 1 + squash;
+			poseRotZ = Math.sin(inst.walkPhase) * 0.24;
+			poseRotX = Math.cos(inst.walkPhase * 0.5) * 0.14;
+		}
 
 		if (nowMs >= inst.nextDanceFxAtMs && gameState?.skillParticles) {
 			inst.nextDanceFxAtMs = nowMs + 750;
+			const danceDef = SPKMOD_PET_DANCES.find(d => d.id === dStyle);
 			try {
 				gameState.skillParticles.emit({
 					count: 6,
 					texture: "star4",
-					color: "#ffd700",
+					color: danceDef?.color || "#ffd700",
 					axis: "up",
 					coneAngleDeg: 55,
 					speedMinMps: 0.8,
@@ -4601,6 +4807,7 @@ window.spkmodPets = {
 			if (typeof chatLog === "function") chatLog(spkmodGetPetUiText("equipFirstToast"));
 			return;
 		}
+		spkmodPickRandomPetDance(spkmodLocalPetInstance);
 		spkmodLocalPetInstance.forceDanceUntil = performance.now() + (Number(seconds) || 8) * 1000;
 		spkmodShowPetSpeechBubble(spkmodLocalPetInstance);
 		spkmodPlayPetSfx(spkmodLocalPetInstance.pet, true);

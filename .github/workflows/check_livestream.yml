@@ -2,7 +2,7 @@ name: Check Oage Livestream
 
 on:
   schedule:
-    - cron: '*/150 * * * *'
+    - cron: '0 10 * * *' # 7:00 PM JST (UTC+9)
   workflow_dispatch:
 
 permissions:
