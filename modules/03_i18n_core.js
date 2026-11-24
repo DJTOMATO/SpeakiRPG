@@ -371,6 +371,7 @@ var lunHudElements = {
 	customCssModal: null,
 	resourcePackModal: null,
 	cartSkinsModal: null,
+	vehiclesModal: null,
 	sparksModal: null
 };
 var customCssModalElements = {
@@ -471,8 +472,7 @@ var lunPanelElements = {
 	danceBtn: null,
 	autoJumpBtn: null,
 	autoMopBtn: null,
-	burgerSkinBtn: null,
-	burgerCarBtn: null,
+	vehicleToggleBtn: null,
 	randomCarEveryoneBtn: null,
 	resetCarsEveryoneBtn: null,
 	chowayoBtn: null,
@@ -560,6 +560,7 @@ var lunPanelElements = {
 	sparksSystemToggleLabel: null,
 	sparksSystemToggleInput: null,
 	cartSkinsBtn: null,
+	vehiclesBtn: null,
 	sparksBtn: null,
 	carSystemToggleLabel: null,
 	carSystemToggleInput: null,

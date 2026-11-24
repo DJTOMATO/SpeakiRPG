@@ -6,9 +6,11 @@ const SPKMOD_CART_SKIN_STORAGE_KEYS = {
 	enabled: "spkmod-cart-skin-enabled",
 	equipped: "spkmod-cart-skin-equipped",
 	showRemote: "spkmod-cart-skin-show-remote",
-	shareInChat: "spkmod-cart-skin-share-chat"
+	shareInChat: "spkmod-cart-skin-share-chat",
+	unlockAll: "spkmod-cart-skin-unlock-all-test"
 };
 
+const SPKMOD_CART_DISCORD_URL = "https://discord.gg/bruZhcwqRx";
 const SPKMOD_HW_CART_FBX_URL = "/models/mount_pumpkin_cart_halloween/HW_skin.fbx";
 const SPKMOD_HW_CART_ORIG_TEX_URL = "https://speakirpg.overture.io.kr/models/mount_pumpkin_cart_halloween/HW_Map_Body.png";
 
@@ -16,6 +18,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "uifi",
 		code: 1,
+		level: 10,
 		icon: ":SPK_88:",
 		emojiFallback: "🎃",
 		accent: "#4ade80",
@@ -27,6 +30,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "1",
 		code: 2,
+		level: 20,
 		icon: "1️⃣",
 		accent: "#fbbf24",
 		file: "test2.png",
@@ -37,6 +41,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "2",
 		code: 3,
+		level: 30,
 		icon: "2️⃣",
 		accent: "#818cf8",
 		file: "test3.png",
@@ -47,6 +52,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "3",
 		code: 4,
+		level: 40,
 		icon: "3️⃣",
 		accent: "#38bdf8",
 		file: "test4.png",
@@ -57,6 +63,8 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "4",
 		code: 5,
+		level: 50,
+		milestone: true,
 		icon: "4️⃣",
 		accent: "#f472b6",
 		file: "dancing.webp",
@@ -67,6 +75,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "5",
 		code: 6,
+		level: 60,
 		icon: "5️⃣",
 		accent: "#f43f5e",
 		file: "yuki.png",
@@ -121,7 +130,10 @@ window.spkmodCartSkinSettings = {
 		: true,
 	shareInChat: (typeof window !== "undefined" && window.localStorage)
 		? localStorage.getItem(SPKMOD_CART_SKIN_STORAGE_KEYS.shareInChat) !== "false"
-		: true
+		: true,
+	unlockAllTest: (typeof window !== "undefined" && window.localStorage)
+		? localStorage.getItem(SPKMOD_CART_SKIN_STORAGE_KEYS.unlockAll) === "true"
+		: false
 };
 if (window.spkmodCartSkinSettings.equippedId && !SPKMOD_CART_SKINS_BY_ID.has(window.spkmodCartSkinSettings.equippedId)) {
 	window.spkmodCartSkinSettings.equippedId = null;
@@ -138,28 +150,61 @@ function spkmodIsCartSkinChatSharingEnabled() {
 	return spkmodIsCartSkinsSystemEnabled() && window.spkmodCartSkinSettings.shareInChat !== false;
 }
 
+function spkmodGetCartPlayerLevel() {
+	if (typeof gameState !== "undefined" && gameState?.myStat?.level) {
+		return Number(gameState.myStat.level) || 1;
+	}
+	return 1;
+}
+
+function spkmodIsCartSkinUnlocked(skin) {
+	if (!skin) return false;
+	if (window.spkmodCartSkinSettings.unlockAllTest) return true;
+	return spkmodGetCartPlayerLevel() >= (skin.level || 1);
+}
+
+function spkmodCheckCartRemoteLevelAllowed(requiredLevel, remoteLevel, senderName) {
+	if (!requiredLevel || requiredLevel <= 1) return true;
+	if (senderName && typeof spkmodIsVipUser === "function" && spkmodIsVipUser(senderName)) {
+		return true;
+	}
+	const lvl = Number(remoteLevel);
+	if (!isFinite(lvl) || lvl <= 0) return false;
+	return lvl >= requiredLevel;
+}
+
 // ============================================================================
 // 1. MULTI-LANGUAGE UI STRINGS (translations.json)
 // ============================================================================
 const SPKMOD_CART_SKIN_UI_FALLBACK_EN = {
 	cartSkinsBtnTooltip: "Cart Skins Wardrobe (Alt+C)",
 	cartSkinsModalTitle: "🛒 SpeakiMod+ Pumpkin Cart Skins",
+	myLevelLabel: "Your Level",
+	unlockedLabel: "Unlocked",
 	activeLabel: "Active Cart Skin",
 	noneEquipped: "Original Cart",
 	worksOnBothHint: "Works identically on both Normal & Halloween Pumpkin Carts!",
 	btnEquip: "Equip",
 	btnEquipped: "Equipped ✓",
 	btnUnequip: "Restore Original",
+	btnLocked: "Locked (Lv.{0})",
 	btnResync: "📡 Sync Map",
 	animatedBadge: "🎬 Animated",
 	staticBadge: "🖼️ Texture",
 	toggleRemoteCartSkins: "👁️ Show Others' Cart Skins",
 	toggleShareInChat: "📡 Share My Cart Skin with Other Players",
 	shareInChatDisabledToast: "📡 Cart skin sharing is OFF. Enable 'Share My Cart Skin' to sync with others.",
-	equippedToast: "🛒 Equipped Cart Skin: {0}!",
+	equippedToast: "🛒 Equipped Cart Skin: {0} (Lv.{1})!",
 	unequippedToast: "🛒 Cart skin removed (Original Cart restored).",
+	lockedToast: "🔒 Requires Level {0} to equip {1}!",
 	broadcastToast: "📡 Broadcasted active cart skin to nearby mod players!",
 	unknownCartSkinToast: "❌ Unknown cart skin: {0}",
+	testUnlockEnabledToast: "🔓 [Cart Skin Test] All cart skins UNLOCKED for testing!",
+	testUnlockDisabledToast: "🔒 [Cart Skin Test] Normal level requirements restored.",
+	submissionBannerText: "We're looking for skin submissions! Please join our Support Discord to find the blueprint and tutorial on how to design your own!",
+	submissionBannerBtn: "📋 Copy Discord Link",
+	submissionBannerCopied: "✅ Copied!",
+	submissionBannerCopiedToast: "📋 Support Discord link copied to clipboard: {0}",
 	systemDisabledToast: "🛒 Cart Skins System is disabled. Enable it in Settings.",
 	systemEnabledToast: "🛒 Cart Skins System enabled."
 };
@@ -944,29 +989,40 @@ function spkmodResolveDesiredCartSkinForDriver(driverKey) {
 	const myId = typeof gameState !== "undefined" ? gameState?.myPlayerId : null;
 	const isLocal = (myId != null && String(driverKey) === String(myId));
 	if (isLocal) {
-		return window.spkmodCartSkinSettings.equippedId || null;
+		const eq = window.spkmodCartSkinSettings.equippedId || null;
+		if (!eq) return null;
+		const skin = SPKMOD_CART_SKINS_BY_ID.get(eq);
+		return (skin && spkmodIsCartSkinUnlocked(skin)) ? skin.id : null;
 	}
 	if (window.spkmodCartSkinSettings.showRemoteCartSkins === false) return null;
 
 	const keyStr = String(driverKey);
-	const direct = _spkmodRemoteCartSkinStates.get(keyStr);
-	if (direct && direct.cartId) return direct.cartId;
-
-	// Fallback match by remote player name
 	const rMap = typeof gameState !== "undefined" ? gameState?.remotePlayers?.remotePlayers : null;
 	const rp = rMap ? (rMap.get(driverKey) || rMap.get(Number(driverKey)) || rMap.get(keyStr)) : null;
-	const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim().toLowerCase();
-	if (rName) {
-		const byName = _spkmodRemoteCartSkinStates.get(`name:${rName}`);
+	const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim();
+	const rLower = rName.toLowerCase();
+	const rLevel = rp?.info?.level ?? rp?.level ?? 0;
+
+	const validate = (cartId, fallbackName) => {
+		if (!cartId) return null;
+		const skin = SPKMOD_CART_SKINS_BY_ID.get(cartId);
+		if (!skin) return null;
+		return spkmodCheckCartRemoteLevelAllowed(skin.level, rLevel, rName || fallbackName) ? skin.id : null;
+	};
+
+	const direct = _spkmodRemoteCartSkinStates.get(keyStr);
+	if (direct && direct.cartId) return validate(direct.cartId, direct.playerName);
+
+	if (rLower) {
+		const byName = _spkmodRemoteCartSkinStates.get(`name:${rLower}`);
 		if (byName && byName.cartId) {
-			// Promote to canonical ID key
-			_spkmodRemoteCartSkinStates.delete(`name:${rName}`);
+			_spkmodRemoteCartSkinStates.delete(`name:${rLower}`);
 			_spkmodRemoteCartSkinStates.set(keyStr, Object.assign({}, byName, { playerId: keyStr }));
-			return byName.cartId;
+			return validate(byName.cartId, byName.playerName);
 		}
 		for (const st of _spkmodRemoteCartSkinStates.values()) {
-			if (st && st.cartId && st.playerName && st.playerName.trim().toLowerCase() === rName) {
-				return st.cartId;
+			if (st && st.cartId && st.playerName && st.playerName.trim().toLowerCase() === rLower) {
+				return validate(st.cartId, st.playerName);
 			}
 		}
 	}
@@ -1152,6 +1208,13 @@ function spkmodEquipLocalCartSkin(skinId, broadcast = true, silentToast = false)
 		return false;
 	}
 
+	if (!spkmodIsCartSkinUnlocked(skin)) {
+		if (!silentToast && typeof chatLog === "function") {
+			chatLog(spkmodGetCartSkinUiText("lockedToast", skin.level, spkmodGetCartSkinDisplayName(skin)));
+		}
+		return false;
+	}
+
 	// Preload texture & FBX template immediately
 	spkmodCartGetOrLoadSkinResource(skin.id, () => {
 		_spkmodCartForceReconcile = true;
@@ -1179,7 +1242,7 @@ function spkmodEquipLocalCartSkin(skinId, broadcast = true, silentToast = false)
 		});
 	}
 	if (!silentToast && typeof chatLog === "function") {
-		chatLog(spkmodGetCartSkinUiText("equippedToast", spkmodGetCartSkinDisplayName(skin)));
+		chatLog(spkmodGetCartSkinUiText("equippedToast", spkmodGetCartSkinDisplayName(skin), skin.level));
 	}
 	spkmodRefreshCartSkinsModalUI();
 	return true;
@@ -1319,6 +1382,15 @@ function spkmodBuildCartSkinsModal() {
 				background: rgba(20, 83, 45, 0.35);
 				box-shadow: 0 0 14px rgba(74, 222, 128, 0.28);
 			}
+			.spkmod-cart-card.locked {
+				opacity: 0.62;
+				cursor: not-allowed;
+			}
+			.spkmod-cart-card.locked:hover {
+				transform: none;
+				border-color: rgba(148, 163, 184, 0.25);
+				box-shadow: none;
+			}
 			.spkmod-cart-thumb-wrap {
 				position: relative;
 				width: 100%;
@@ -1379,6 +1451,10 @@ function spkmodBuildCartSkinsModal() {
 	grid.className = "spkmod-cart-grid";
 	gridScroll.appendChild(grid);
 
+	const footerBanner = document.createElement("div");
+	footerBanner.id = "spkmod-cart-skins-footer";
+	footerBanner.style.cssText = "display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 14px; background: linear-gradient(135deg, rgba(88, 101, 242, 0.22), rgba(245, 158, 11, 0.16)); border-top: 1px solid rgba(129, 140, 248, 0.45); font-size: 11.5px; color: #e2e8f0;";
+
 	const resizeHandle = document.createElement("div");
 	resizeHandle.id = "spkmod-cart-skins-resize";
 	resizeHandle.style.cssText = "position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px; cursor: nwse-resize; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 11px; user-select: none;";
@@ -1388,6 +1464,7 @@ function spkmodBuildCartSkinsModal() {
 	modal.appendChild(statusBar);
 	modal.appendChild(controlsBar);
 	modal.appendChild(gridScroll);
+	modal.appendChild(footerBanner);
 	modal.appendChild(resizeHandle);
 	document.body.appendChild(modal);
 
@@ -1398,7 +1475,7 @@ function spkmodBuildCartSkinsModal() {
 		makeDraggable(modal, [header]);
 	}
 	if (typeof makeResizable === "function") {
-		makeResizable(modal, resizeHandle, 340, 300);
+		makeResizable(modal, resizeHandle, 340, 320);
 	}
 
 	gridScroll.addEventListener("wheel", (e) => { e.stopPropagation(); }, { passive: true });
@@ -1409,7 +1486,7 @@ function spkmodBuildCartSkinsModal() {
 			try { document.exitPointerLock(); } catch (_) {}
 		}
 	});
-	for (const el of [statusBar, controlsBar, gridScroll]) {
+	for (const el of [statusBar, controlsBar, gridScroll, footerBanner]) {
 		el.addEventListener("pointerdown", (e) => e.stopPropagation());
 		el.addEventListener("mousedown", (e) => e.stopPropagation());
 	}
@@ -1433,11 +1510,17 @@ function spkmodRefreshCartSkinsModalUI() {
 	const statusBar = document.getElementById("spkmod-cart-skins-status-bar");
 	if (statusBar) {
 		statusBar.innerHTML = "";
+		const lvl = spkmodGetCartPlayerLevel();
+		const unlockedCount = SPKMOD_CART_SKIN_CATALOG.filter(spkmodIsCartSkinUnlocked).length;
 		const infoDiv = document.createElement("div");
-		infoDiv.style.cssText = "display: flex; flex-direction: column; gap: 2px;";
+		infoDiv.style.cssText = "display: flex; flex-direction: column; gap: 3px;";
 		const activeRow = document.createElement("div");
-		activeRow.style.cssText = "display: flex; align-items: center; gap: 6px; font-weight: 700;";
-		activeRow.innerHTML = `<span style="color:#94a3b8;">${spkmodGetCartSkinUiText("activeLabel")}:</span> <span style="color:${activeSkin ? "#4ade80" : "#cbd5e1"};">${activeSkin ? spkmodGetCartSkinDisplayName(activeSkin) : spkmodGetCartSkinUiText("noneEquipped")}</span>`;
+		activeRow.style.cssText = "display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-weight: 700;";
+		activeRow.innerHTML = `
+			<span>⭐ ${spkmodGetCartSkinUiText("myLevelLabel")}: <strong style="color:#ffd54a;">Lv.${lvl}</strong></span>
+			<span>🔓 ${spkmodGetCartSkinUiText("unlockedLabel")}: <strong style="color:#7dd3fc;">${unlockedCount}/${SPKMOD_CART_SKIN_CATALOG.length}</strong></span>
+			<span><span style="color:#94a3b8;">${spkmodGetCartSkinUiText("activeLabel")}:</span> <strong style="color:${activeSkin ? "#4ade80" : "#cbd5e1"};">${activeSkin ? spkmodGetCartSkinDisplayName(activeSkin) : spkmodGetCartSkinUiText("noneEquipped")}</strong></span>
+		`;
 		const hintRow = document.createElement("div");
 		hintRow.style.cssText = "font-size: 10.5px; color: #94a3b8;";
 		hintRow.innerText = "✨ " + spkmodGetCartSkinUiText("worksOnBothHint");
@@ -1543,9 +1626,10 @@ function spkmodRefreshCartSkinsModalUI() {
 	if (grid) {
 		grid.innerHTML = "";
 		for (const skin of SPKMOD_CART_SKIN_CATALOG) {
+			const unlocked = spkmodIsCartSkinUnlocked(skin);
 			const isEquipped = window.spkmodCartSkinSettings.equippedId === skin.id;
 			const card = document.createElement("div");
-			card.className = "spkmod-cart-card" + (isEquipped ? " equipped" : "");
+			card.className = "spkmod-cart-card" + (isEquipped ? " equipped" : "") + (!unlocked ? " locked" : "");
 
 			const thumbWrap = document.createElement("div");
 			thumbWrap.className = "spkmod-cart-thumb-wrap";
@@ -1553,7 +1637,13 @@ function spkmodRefreshCartSkinsModalUI() {
 			img.src = skin.url;
 			img.alt = spkmodGetCartSkinDisplayName(skin);
 			img.loading = "lazy";
+			if (!unlocked) img.style.filter = "grayscale(0.6) brightness(0.65)";
 			thumbWrap.appendChild(img);
+
+			const lvlBadge = document.createElement("span");
+			lvlBadge.style.cssText = `position: absolute; top: 5px; left: 5px; padding: 2px 6px; border-radius: 6px; font-size: 9.5px; font-weight: 800; background: rgba(15,23,42,0.88); color: ${unlocked ? "#7dd3fc" : "#f87171"}; border: 1px solid rgba(255,255,255,0.16);`;
+			lvlBadge.innerText = `Lv.${skin.level || 1}` + (skin.milestone ? " ★" : "");
+			thumbWrap.appendChild(lvlBadge);
 
 			const badge = document.createElement("span");
 			badge.style.cssText = `position: absolute; top: 5px; right: 5px; padding: 2px 6px; border-radius: 6px; font-size: 9.5px; font-weight: 800; background: rgba(15,23,42,0.85); color: ${skin.animated ? "#f472b6" : "#94a3b8"}; border: 1px solid rgba(255,255,255,0.14);`;
@@ -1579,11 +1669,19 @@ function spkmodRefreshCartSkinsModalUI() {
 			btn.className = "spkmod-panel-btn";
 			btn.style.cssText = isEquipped
 				? "width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 800; color: #bbf7d0; border-color: #4ade80; background: rgba(22, 163, 74, 0.35); cursor: pointer;"
-				: "width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 700; color: #f8fafc; cursor: pointer;";
-			btn.innerText = spkmodGetCartSkinUiText(isEquipped ? "btnEquipped" : "btnEquip");
+				: (unlocked
+					? "width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 700; color: #f8fafc; cursor: pointer;"
+					: "width: 100%; padding: 5px 8px; font-size: 10.5px; font-weight: 700; color: #94a3b8; cursor: not-allowed;");
+			btn.innerText = !unlocked
+				? spkmodGetCartSkinUiText("btnLocked", skin.level || 1)
+				: spkmodGetCartSkinUiText(isEquipped ? "btnEquipped" : "btnEquip");
 
 			const onSelect = (e) => {
 				if (e) e.stopPropagation();
+				if (!unlocked) {
+					if (typeof chatLog === "function") chatLog(spkmodGetCartSkinUiText("lockedToast", skin.level || 1, spkmodGetCartSkinDisplayName(skin)));
+					return;
+				}
 				if (isEquipped) {
 					spkmodEquipLocalCartSkin(null, true, false);
 				} else {
@@ -1598,6 +1696,58 @@ function spkmodRefreshCartSkinsModalUI() {
 			card.appendChild(btn);
 			grid.appendChild(card);
 		}
+	}
+
+	// Community submission Discord footer banner
+	const footerBanner = document.getElementById("spkmod-cart-skins-footer");
+	if (footerBanner) {
+		footerBanner.innerHTML = "";
+		const msg = document.createElement("div");
+		msg.style.cssText = "flex: 1 1 260px; line-height: 1.35; font-weight: 600;";
+		msg.innerText = "🎨 " + spkmodGetCartSkinUiText("submissionBannerText");
+
+		const discordBtn = document.createElement("button");
+		discordBtn.type = "button";
+		discordBtn.className = "spkmod-panel-btn";
+		discordBtn.style.cssText = "padding: 5px 12px; font-size: 11px; font-weight: 800; color: #ffffff; background: #5865F2; border-color: #818cf8; border-radius: 7px; cursor: pointer; white-space: nowrap;";
+		discordBtn.innerText = spkmodGetCartSkinUiText("submissionBannerBtn");
+		discordBtn.title = SPKMOD_CART_DISCORD_URL;
+		discordBtn.onclick = () => {
+			const onCopied = () => {
+				discordBtn.innerText = spkmodGetCartSkinUiText("submissionBannerCopied");
+				discordBtn.style.background = "#16a34a";
+				discordBtn.style.borderColor = "#4ade80";
+				if (typeof chatLog === "function") {
+					chatLog(spkmodGetCartSkinUiText("submissionBannerCopiedToast", SPKMOD_CART_DISCORD_URL));
+				}
+				setTimeout(() => {
+					discordBtn.innerText = spkmodGetCartSkinUiText("submissionBannerBtn");
+					discordBtn.style.background = "#5865F2";
+					discordBtn.style.borderColor = "#818cf8";
+				}, 2000);
+			};
+			const fallbackCopy = () => {
+				try {
+					const ta = document.createElement("textarea");
+					ta.value = SPKMOD_CART_DISCORD_URL;
+					ta.style.cssText = "position:fixed;left:-9999px;top:-9999px;";
+					document.body.appendChild(ta);
+					ta.focus();
+					ta.select();
+					document.execCommand("copy");
+					document.body.removeChild(ta);
+				} catch (_) {}
+				onCopied();
+			};
+			if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+				navigator.clipboard.writeText(SPKMOD_CART_DISCORD_URL).then(onCopied, fallbackCopy);
+			} else {
+				fallbackCopy();
+			}
+		};
+
+		footerBanner.appendChild(msg);
+		footerBanner.appendChild(discordBtn);
 	}
 }
 window.spkmodRefreshCartSkinsModalUI = spkmodRefreshCartSkinsModalUI;
@@ -1642,7 +1792,20 @@ window.spkmodCartSkins = {
 	unequip: () => spkmodEquipLocalCartSkin(null, true, false),
 	toggleModal: (force) => window.spkmodToggleCartSkinsModal(force),
 	reconcile: () => spkmodReconcileAllCartSkins(),
-	setEnabled: (val) => window.spkmodSetCartSkinsSystemEnabled(val)
+	setEnabled: (val) => window.spkmodSetCartSkinsSystemEnabled(val),
+	unlockAll: (force) => {
+		const next = force !== undefined ? !!force : !window.spkmodCartSkinSettings.unlockAllTest;
+		window.spkmodCartSkinSettings.unlockAllTest = next;
+		if (typeof window !== "undefined" && window.localStorage) {
+			try { localStorage.setItem(SPKMOD_CART_SKIN_STORAGE_KEYS.unlockAll, next ? "true" : "false"); } catch (_) {}
+		}
+		if (typeof chatLog === "function") {
+			chatLog(spkmodGetCartSkinUiText(next ? "testUnlockEnabledToast" : "testUnlockDisabledToast"));
+		}
+		_spkmodCartForceReconcile = true;
+		spkmodRefreshCartSkinsModalUI();
+		return next;
+	}
 };
 
 // Auto-start loop if enabled & preload saved skin

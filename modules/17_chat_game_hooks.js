@@ -443,6 +443,66 @@ function hookGameStateOnce() {
 							window.spkmodToggleCartSkinsModal();
 						}
 						break;
+					case "cartunlock": {
+						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
+							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
+						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
+							chatLog("❌ You do not have permission to use !cartunlock.");
+						} else if (window.spkmodCartSkins && typeof window.spkmodCartSkins.unlockAll === "function") {
+							window.spkmodCartSkins.unlockAll();
+						}
+						break;
+					}
+					case "vehicles":
+					case "vehicle":
+					case "car":
+					case "cars":
+						if (cmd[1]) {
+							const vSub = cmd[1].toLowerCase();
+							if (vSub === "off" || vSub === "stop" || vSub === "none" || vSub === "exit") {
+								if (window.spkmodVehicles?.unequip) window.spkmodVehicles.unequip();
+							} else if (window.spkmodVehicles?.equip) {
+								window.spkmodVehicles.equip(vSub);
+							}
+						} else if (typeof window.spkmodToggleVehiclesModal === "function") {
+							window.spkmodToggleVehiclesModal();
+						}
+						break;
+					case "box":
+					case "mgs":
+						if (window.spkmodVehicles) {
+							if (window.spkmodVehicleSettings?.equippedId === "mgs_box") {
+								window.spkmodVehicles.unequip();
+							} else {
+								window.spkmodVehicles.equip("mgs_box");
+							}
+						}
+						break;
+					case "vehicleunlock":
+					case "carunlock": {
+						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
+							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
+						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
+							chatLog("❌ You do not have permission to use !vehicleunlock.");
+						} else if (window.spkmodVehicles && typeof window.spkmodVehicles.unlockAll === "function") {
+							window.spkmodVehicles.unlockAll();
+						}
+						break;
+					}
+					case "checkupdate":
+					case "modupdate": {
+						const sub = (cmd[1] || "").toLowerCase();
+						if (sub === "preview" || sub === "test") {
+							const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
+								|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
+							if (typeof spkmodIsVipUser === "function" && spkmodIsVipUser(myName) && window.spkmodUpdateChecker?.showAlert) {
+								window.spkmodUpdateChecker.showAlert({ build: "preview", protocol: window.SPKMOD_PROTOCOL_VERSION || 2 });
+							}
+						} else if (window.spkmodUpdateChecker?.checkNow) {
+							window.spkmodUpdateChecker.checkNow("manual");
+						}
+						break;
+					}
 					case "sparks":
 					case "spark":
 						if (cmd[1]) {
@@ -1873,6 +1933,7 @@ window.addEventListener("keydown", e => {
 			lunHudElements.petsModal,
 			lunHudElements.skinsModal,
 			lunHudElements.cartSkinsModal,
+			lunHudElements.vehiclesModal,
 			lunHudElements.sparksModal
 		].filter(m => m && !m.classList.contains("hidden"));
 

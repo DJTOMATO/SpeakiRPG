@@ -167,6 +167,9 @@ function spkmodIsMobile() {
 }
 window.spkmodIsMobile = spkmodIsMobile;
 
+const SPKMOD_PROTOCOL_VERSION = 2;
+window.SPKMOD_PROTOCOL_VERSION = SPKMOD_PROTOCOL_VERSION;
+
 if (!isElectronEnv && !isSpeakiMobile) {
 	if (document.body) {
 		const acTranslations = {
@@ -2039,6 +2042,7 @@ var lunHudElements = {
 	customCssModal: null,
 	resourcePackModal: null,
 	cartSkinsModal: null,
+	vehiclesModal: null,
 	sparksModal: null
 };
 var customCssModalElements = {
@@ -2139,8 +2143,7 @@ var lunPanelElements = {
 	danceBtn: null,
 	autoJumpBtn: null,
 	autoMopBtn: null,
-	burgerSkinBtn: null,
-	burgerCarBtn: null,
+	vehicleToggleBtn: null,
 	randomCarEveryoneBtn: null,
 	resetCarsEveryoneBtn: null,
 	chowayoBtn: null,
@@ -2228,6 +2231,7 @@ var lunPanelElements = {
 	sparksSystemToggleLabel: null,
 	sparksSystemToggleInput: null,
 	cartSkinsBtn: null,
+	vehiclesBtn: null,
 	sparksBtn: null,
 	carSystemToggleLabel: null,
 	carSystemToggleInput: null,
@@ -4696,6 +4700,7 @@ function positionModalNicely(modal) {
 		modal === lunHudElements.petsModal || modal.id === "spkmod-pets-modal" ||
 		modal === lunHudElements.skinsModal || modal.id === "spkmod-skins-modal" ||
 		modal === lunHudElements.cartSkinsModal || modal.id === "spkmod-cart-skins-modal" ||
+		modal === lunHudElements.vehiclesModal || modal.id === "spkmod-vehicles-modal" ||
 		modal === lunHudElements.sparksModal || modal.id === "spkmod-sparks-modal" ||
 		modal.id === "spkmod-cinema-modal") {
 		const safeLeft = Math.max(10, Math.min(window.innerWidth - targetW - 10, (modal.id === "spkmod-cinema-modal" && !isMobile) ? (window.innerWidth - targetW - 25) : Math.round((window.innerWidth - targetW) / 2)));
@@ -4814,6 +4819,7 @@ function resetWindowPositions() {
 		lunHudElements.petsModal || document.getElementById("spkmod-pets-modal"),
 		lunHudElements.skinsModal || document.getElementById("spkmod-skins-modal"),
 		lunHudElements.cartSkinsModal || document.getElementById("spkmod-cart-skins-modal"),
+		lunHudElements.vehiclesModal || document.getElementById("spkmod-vehicles-modal"),
 		lunHudElements.sparksModal || document.getElementById("spkmod-sparks-modal"),
 		typeof lunEmojiPickerPanel !== "undefined" ? lunEmojiPickerPanel : null,
 		typeof mapModalElements !== "undefined" ? mapModalElements.modalWindow : null,
@@ -4869,6 +4875,7 @@ function resetWindowPositions() {
 		lunHudElements.petsModal || document.getElementById("spkmod-pets-modal"),
 		lunHudElements.skinsModal || document.getElementById("spkmod-skins-modal"),
 		lunHudElements.cartSkinsModal || document.getElementById("spkmod-cart-skins-modal"),
+		lunHudElements.vehiclesModal || document.getElementById("spkmod-vehicles-modal"),
 		lunHudElements.sparksModal || document.getElementById("spkmod-sparks-modal")
 	];
 
@@ -4939,6 +4946,12 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-party-highlight-enabled",
 	"spkmod-burger-fat-customers",
 	"spkmod-car-enabled",
+	"spkmod-vehicle-equipped",
+	"spkmod-vehicle-last-equipped",
+	"spkmod-vehicle-color",
+	"spkmod-vehicle-share-chat",
+	"spkmod-vehicle-show-remote",
+	"spkmod-vehicle-favorites",
 	"spkmod-pet-enabled",
 	"spkmod-pet-equipped",
 	"spkmod-pet-my-sfx",
@@ -4975,6 +4988,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-pos-spkmod-pets-modal",
 	"spkmod-pos-spkmod-skins-modal",
 	"spkmod-pos-spkmod-cart-skins-modal",
+	"spkmod-pos-spkmod-vehicles-modal",
 	"spkmod-pos-spkmod-sparks-modal",
 	"spkmod-pos-spkmod-quests-modal",
 	"spkmod-pos-spkmod-settings-modal",
@@ -9577,22 +9591,14 @@ document.body.appendChild(
 						if (typeof toggleAutoMop === "function") toggleAutoMop(e.target);
 					}
 				}),
-				lunPanelElements.burgerSkinBtn = buildElement("button", {
-					id: "spkmod-burgerskin-btn",
-					className: "spkmod-panel-btn",
-					innerText: typeof getBurgerSkinBtnLabel === "function" ? getBurgerSkinBtnLabel() : "Burger: OFF",
-					value: "",
-					onclick: e => {
-						if (typeof cycleBurgerSkin === "function") cycleBurgerSkin(e.target);
-					}
-				}),
-				lunPanelElements.burgerCarBtn = buildElement("button", {
-					id: "spkmod-burgercar-btn",
+				lunPanelElements.vehicleToggleBtn = buildElement("button", {
+					id: "spkmod-vehicle-toggle-btn",
 					className: "spkmod-panel-btn" + (window.spkmodCarSystemEnabled === false ? " hidden" : ""),
-					innerText: typeof getBurgerCarBtnLabel === "function" ? getBurgerCarBtnLabel() : "Car: OFF",
+					innerText: typeof window.spkmodGetVehicleQuickToggleLabel === "function" ? window.spkmodGetVehicleQuickToggleLabel() : "🚗 Vehicle: OFF",
+					title: "Quick Toggle Vehicle (Alt+X)",
 					value: "",
-					onclick: e => {
-						if (typeof cycleBurgerCar === "function") cycleBurgerCar(e.target);
+					onclick: () => {
+						if (typeof window.spkmodToggleActiveVehicle === "function") window.spkmodToggleActiveVehicle();
 					}
 				})
 			]),
@@ -10439,6 +10445,16 @@ document.body.appendChild(
 						if (typeof window.spkmodToggleCartSkinsModal === "function") window.spkmodToggleCartSkinsModal();
 					}
 				}),
+				lunPanelElements.vehiclesBtn = buildElement("button", {
+					id: "spkmod-vehicles-btn",
+					className: "spkmod-panel-btn" + (window.spkmodCarSystemEnabled === false ? " hidden" : ""),
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer; position: relative;",
+					innerText: "🚗",
+					title: "Vehicles & Stealth Box Garage (Alt+V)",
+					onclick: _ => {
+						if (typeof window.spkmodToggleVehiclesModal === "function") window.spkmodToggleVehiclesModal();
+					}
+				}),
 				lunPanelElements.sparksBtn = buildElement("button", {
 					id: "spkmod-sparks-btn",
 					className: "spkmod-panel-btn" + (window.spkmodSparksSystemEnabled === false ? " hidden" : ""),
@@ -11209,7 +11225,8 @@ document.body.appendChild(
 							} else {
 								window.spkmodCarSystemEnabled = !!e.target.checked;
 								if (window.localStorage) localStorage.setItem("spkmod-car-enabled", e.target.checked ? "true" : "false");
-								if (lunPanelElements.burgerCarBtn) lunPanelElements.burgerCarBtn.classList.toggle("hidden", !e.target.checked);
+								if (lunPanelElements.vehiclesBtn) lunPanelElements.vehiclesBtn.classList.toggle("hidden", !e.target.checked);
+								if (lunPanelElements.vehicleToggleBtn) lunPanelElements.vehicleToggleBtn.classList.toggle("hidden", !e.target.checked);
 							}
 						}
 					})
@@ -14077,7 +14094,13 @@ function updateHudIconTooltips() {
         setSpkmodRichTooltip(lunPanelElements.cartSkinsBtn, "🛒 " + cartTip);
     }
 
-    // 12e. Spark FX Trails button
+    // 12e. Vehicles & Stealth Box button
+    if (lunPanelElements.vehiclesBtn) {
+        const vehTip = (typeof window.spkmodGetVehicleUiText === "function" ? window.spkmodGetVehicleUiText("vehiclesBtnTooltip") : null) || "Vehicles & Stealth Box Garage (Alt+V)";
+        setSpkmodRichTooltip(lunPanelElements.vehiclesBtn, "🚗 " + vehTip);
+    }
+
+    // 12f. Spark FX Trails button
     if (lunPanelElements.sparksBtn) {
         const sparkTip = (typeof window.spkmodGetSparkUiText === "function" ? window.spkmodGetSparkUiText("sparksBtnTooltip") : null) || "Spark FX Walking Trails (Alt+F)";
         setSpkmodRichTooltip(lunPanelElements.sparksBtn, "✨ " + sparkTip);
@@ -16446,93 +16469,38 @@ function toggleAutoMop(btn) {
 	}
 }
 
-window.LocalBurgerSkinMode = 0; // 0 = Off, 1 = BurgerStaff_A, 2 = BurgerStaff_B
-const lunBurgerSkinPatchedGameStates = new WeakSet();
-
-function spkmodPatchLocalSkinOverride(gs) {
-	if (!gs || typeof gs !== "object" || lunBurgerSkinPatchedGameStates.has(gs)) return;
-	if (typeof gs.effectiveLocalSkinCode !== "function") return;
-	lunBurgerSkinPatchedGameStates.add(gs);
-	const origEffectiveLocalSkinCode = gs.effectiveLocalSkinCode;
-	gs.effectiveLocalSkinCode = function (...args) {
-		const overrideCode = LUN_BURGER_SKIN_CODES[window.LocalBurgerSkinMode] || null;
-		if (overrideCode) return overrideCode;
-		return origEffectiveLocalSkinCode.apply(this, args);
-	};
-}
+window.LocalBurgerSkinMode = 0; // Legacy compatibility flag mirrored by 22_skins.js
 
 function getBurgerSkinBtnLabel() {
 	const idx = window.LocalBurgerSkinMode || 0;
 	return t(LUN_BURGER_SKIN_KEYS[idx]) || LUN_BURGER_SKIN_FALLBACKS[idx];
 }
 
-function cycleBurgerSkin(btn) {
-	window.LocalBurgerSkinMode = ((window.LocalBurgerSkinMode || 0) + 1) % LUN_BURGER_SKIN_CODES.length;
-	if (typeof gameState !== "undefined" && gameState) {
-		spkmodPatchLocalSkinOverride(gameState);
-		if (typeof gameState.applyLocalSkin === "function") {
-			gameState.applyLocalSkin();
-		}
-	}
-	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.burgerSkinBtn);
-	if (targetBtn) {
-		setText(targetBtn, getBurgerSkinBtnLabel());
+function cycleBurgerSkin() {
+	const nextMode = ((window.LocalBurgerSkinMode || 0) + 1) % LUN_BURGER_SKIN_CODES.length;
+	const targetSkinId = nextMode === 1 ? "costume_burger_staff_a" : (nextMode === 2 ? "costume_burger_staff_b" : null);
+	if (window.spkmodSkins && typeof window.spkmodSkins.equip === "function") {
+		if (targetSkinId) window.spkmodSkins.equip(targetSkinId);
+		else window.spkmodSkins.unequip();
 	}
 }
 
-window.BurgerCarMode = 0; // 0 = Off, 1 = Sedan, 2 = Van
+window.BurgerCarMode = 0; // Active vehicle code mirrored by 26_vehicles.js (0 = Off, 1 = Sedan, 2 = Van, 3..19 = Vehicles)
 window.BurgerCarColorIdx = 0;
 const SPKMOD_BURGER_CAR_SCALE = 1.22;
 let _lunBurgerCarGltfScene = null;
 let _lunBurgerCarLoadingPromise = null;
-let _lunBurgerCarState = null;
-let _lunBurgerCarLastColorIdx = -1;
-let _lunBurgerCarKeyHooked = false;
 
 function spkmodIsCarSystemEnabled() {
 	return window.spkmodCarSystemEnabled !== false;
 }
 
 function spkmodGetCarEnabledToastText() {
-	return (typeof t === "function" && t("carSystemEnabledToast")) || "🚗 Cars display & sync enabled.";
+	return (typeof t === "function" && t("carSystemEnabledToast")) || "🚗 Vehicles display & sync enabled.";
 }
 
 function spkmodGetCarDisabledToastText() {
-	return (typeof t === "function" && t("carSystemDisabledToast")) || "🚗 Cars display & sync is disabled. Enable it in Settings (under Pets).";
-}
-
-function spkmodSyncCarSystemUIState() {
-	const enabled = spkmodIsCarSystemEnabled();
-	if (typeof lunPanelElements !== "undefined" && lunPanelElements) {
-		if (lunPanelElements.carSystemToggleInput) {
-			lunPanelElements.carSystemToggleInput.checked = enabled;
-		}
-		if (lunPanelElements.burgerCarBtn) {
-			lunPanelElements.burgerCarBtn.classList.toggle("hidden", !enabled);
-			if (typeof getBurgerCarBtnLabel === "function") {
-				setText(lunPanelElements.burgerCarBtn, getBurgerCarBtnLabel());
-			}
-		}
-	}
-}
-
-function getBurgerCarBtnLabel() {
-	const idx = window.BurgerCarMode || 0;
-	return t(LUN_BURGER_CAR_KEYS[idx]) || LUN_BURGER_CAR_FALLBACKS[idx];
-}
-
-function spkmodPickNextBurgerCarColorIdx() {
-	const len = LUN_BURGER_CAR_COLORS.length;
-	let next = Math.floor(Math.random() * len);
-	if (len > 1 && next === _lunBurgerCarLastColorIdx) {
-		next = (next + 1 + Math.floor(Math.random() * (len - 1))) % len;
-	}
-	_lunBurgerCarLastColorIdx = next;
-	return next;
-}
-
-function spkmodPickNextBurgerCarColor() {
-	return LUN_BURGER_CAR_COLORS[spkmodPickNextBurgerCarColorIdx()];
+	return (typeof t === "function" && t("carSystemDisabledToast")) || "🚗 Vehicles display & sync is disabled. Enable it in Settings (under Pets).";
 }
 
 function spkmodPlayBurgerCarAudio(sfxPath) {
@@ -16595,34 +16563,6 @@ function spkmodSetNativeCartVisible(container, playerId, visible) {
 	} catch (_) {}
 }
 
-function spkmodEnsureBurgerCarKeyHooks() {
-	if (_lunBurgerCarKeyHooked) return;
-	_lunBurgerCarKeyHooked = true;
-	const isTypingTarget = el =>
-		el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
-	window.addEventListener("keydown", e => {
-		if (!window.BurgerCarMode || isTypingTarget(e.target)) return;
-		if (e.code === "KeyF" || e.code === "KeyG") {
-			e.preventDefault();
-			e.stopImmediatePropagation();
-			if (!e.repeat) {
-				spkmodPlayBurgerCarAudio(
-					e.code === "KeyF"
-						? "/audio/sfx/burger_shop/carHorn.mp3"
-						: "/audio/sfx/burger_shop/carHornDouble.mp3"
-				);
-			}
-		}
-	}, true);
-	window.addEventListener("keyup", e => {
-		if (!window.BurgerCarMode || isTypingTarget(e.target)) return;
-		if (e.code === "KeyF" || e.code === "KeyG") {
-			e.preventDefault();
-			e.stopImmediatePropagation();
-		}
-	}, true);
-}
-
 async function spkmodLoadBurgerVehiclesScene() {
 	if (_lunBurgerCarGltfScene) return _lunBurgerCarGltfScene;
 	if (_lunBurgerCarLoadingPromise) return _lunBurgerCarLoadingPromise;
@@ -16643,31 +16583,6 @@ async function spkmodLoadBurgerVehiclesScene() {
 		_lunBurgerCarLoadingPromise = null;
 	});
 	return _lunBurgerCarLoadingPromise;
-}
-
-function spkmodRemoveBurgerCar() {
-	if (_lunBurgerCarState) {
-		if (_lunBurgerCarState.rafId) cancelAnimationFrame(_lunBurgerCarState.rafId);
-		if (_lunBurgerCarState.root && _lunBurgerCarState.root.parent) {
-			_lunBurgerCarState.root.parent.remove(_lunBurgerCarState.root);
-		}
-		_lunBurgerCarState = null;
-	}
-	if (typeof gameState !== "undefined" && gameState) {
-		const pc = gameState.playerContainer;
-		const myId = gameState.myPlayerId;
-		spkmodSetNativeCartVisible(pc, myId, true);
-		const stillMounted = spkmodHasActiveNativeMount(pc, myId);
-		if (!stillMounted) {
-			if (gameState.localAvatarPose?.position) {
-				gameState.localAvatarPose.position.set(0, 0, 0);
-			}
-			const ctrl = spkmodGetLocalAnimController();
-			if (ctrl && typeof ctrl.exitMountPose === "function") {
-				ctrl.exitMountPose();
-			}
-		}
-	}
 }
 
 function spkmodCreateBurgerCarInstance(scene, modelName, colorHex) {
@@ -16701,741 +16616,9 @@ function spkmodCreateBurgerCarInstance(scene, modelName, colorHex) {
 	return { carObj, wheelRadius, seatOffsetY, wheels };
 }
 
-async function spkmodSpawnBurgerCar(modeIdx, forcedColorIdx) {
-	if (!spkmodIsCarSystemEnabled()) {
-		spkmodRemoveBurgerCar();
-		return;
-	}
-	const modelName = LUN_BURGER_CAR_MODES[modeIdx];
-	if (!modelName) {
-		spkmodRemoveBurgerCar();
-		return;
-	}
-	const colorIdx = (typeof forcedColorIdx === "number" && forcedColorIdx >= 0 && forcedColorIdx < LUN_BURGER_CAR_COLORS.length)
-		? forcedColorIdx
-		: spkmodPickNextBurgerCarColorIdx();
-	window.BurgerCarColorIdx = colorIdx;
-	const colorHex = LUN_BURGER_CAR_COLORS[colorIdx];
-
-	const scene = await spkmodLoadBurgerVehiclesScene();
-	if (!scene || !spkmodIsCarSystemEnabled() || window.BurgerCarMode !== modeIdx) return;
-	if (typeof gameState === "undefined" || !gameState?.playerContainer) return;
-
-	const inst = spkmodCreateBurgerCarInstance(scene, modelName, colorHex);
-	if (!inst) return;
-
-	spkmodRemoveBurgerCar();
-	const { carObj, wheelRadius, seatOffsetY, wheels } = inst;
-	carObj.name = "spkmod_local_car";
-
-	gameState.playerContainer.add(carObj);
-	spkmodSetNativeCartVisible(gameState.playerContainer, gameState.myPlayerId, false);
-	if (gameState.localAvatarPose?.position) {
-		gameState.localAvatarPose.position.set(0, seatOffsetY, 0);
-	}
-	const ctrl = spkmodGetLocalAnimController();
-	if (ctrl && typeof ctrl.enterMountPose === "function") {
-		ctrl.enterMountPose("sit");
-	}
-
-	const state = {
-		root: carObj,
-		wheels,
-		wheelRadius,
-		seatOffsetY,
-		lastX: gameState.playerContainer.position.x,
-		lastZ: gameState.playerContainer.position.z,
-		rafId: 0
-	};
-	_lunBurgerCarState = state;
-
-	const tick = () => {
-		if (!window.BurgerCarMode || _lunBurgerCarState !== state) return;
-		if (typeof gameState !== "undefined" && gameState?.playerContainer) {
-			const pc = gameState.playerContainer;
-			if (state.root.parent !== pc) pc.add(state.root);
-			spkmodSetNativeCartVisible(pc, gameState.myPlayerId, false);
-			if (gameState.localAvatarPose?.position) {
-				gameState.localAvatarPose.position.set(0, state.seatOffsetY, 0);
-			}
-			const c = spkmodGetLocalAnimController();
-			if (c && !c.mountSitPlaying && typeof c.enterMountPose === "function") {
-				c.enterMountPose("sit");
-			}
-			const dx = pc.position.x - state.lastX;
-			const dz = pc.position.z - state.lastZ;
-			const dist = Math.hypot(dx, dz);
-			if (dist > 0.0001) {
-				const angle = dist / state.wheelRadius;
-				for (const w of state.wheels) w.rotation.x += angle;
-				state.lastX = pc.position.x;
-				state.lastZ = pc.position.z;
-			}
-		}
-		state.rafId = requestAnimationFrame(tick);
-	};
-	state.rafId = requestAnimationFrame(tick);
-}
-
-// ============================================================================
-// MULTIPLAYER CAR CHAT-TRIGGER SYNC (:car_<mode>_<colorIdx>: / :car_none:)
-// ============================================================================
-const SPKMOD_CAR_CHAT_MIN_GAP_MS = 1600;
-const SPKMOD_CAR_CHAT_EQUIP_DEBOUNCE_MS = 1100;
-const SPKMOD_CAR_CHAT_AFTER_USER_MSG_MS = 2200;
-const SPKMOD_CAR_CHAT_AFTER_TYPING_MS = 2000;
-const SPKMOD_CAR_CHAT_PASSIVE_INTERVAL_MS = 20000;
-const SPKMOD_CAR_CHAT_RECHECK_MS = 600;
-
-let _lunCarLastBroadcastAtMs = 0;
-let _lunCarLastBroadcastToken = null;
-let _lunCarLastBroadcastZoneId = null;
-let _lunCarLastObservedZoneId = null;
-let _lunCarLastObservedRemoteCount = 0;
-let _lunCarNeedsZoneSync = false;
-let _lunCarQueuedBroadcast = null; // { token, priority, earliestAtMs, forceResend, reason }
-let _lunCarPendingBroadcastTimer = null;
-
-const spkmodRemoteCarInstances = new Map(); // ownerKey -> entry
-const spkmodPendingRemoteCarsById = new Map(); // String(id) -> { modeIdx, colorIdx, playerId, playerName }
-const spkmodPendingRemoteCarsByName = new Map(); // lowerName -> { modeIdx, colorIdx, playerId, playerName }
-const _spkmodRemoteCarSeq = new Map();
-const _spkmodRemoteCarInFlight = new Map();
-let _spkmodRemoteCarRafId = null;
-
-function spkmodCarIsInIsolatedMinigame() {
-	if (typeof gameState === "undefined" || !gameState) return false;
-	try {
-		if (gameState.miningHost?.isActive?.()) return true;
-		if (gameState.speakovHost?.isActive?.()) return true;
-	} catch (_) {}
-	return false;
-}
-
-function spkmodCarGetRemoteCount() {
-	return (typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.size) || 0;
-}
-
-function spkmodCarIsUserTyping() {
-	try {
-		if (typeof gameState !== "undefined" && gameState?.chatBox?.isTouchExpanded === true) return true;
-		const inputEl = (typeof gameState !== "undefined" && gameState?.chatBox?.inputEl)
-			|| document.querySelector(".sr-chatbox__input, .sr-chatbox input, input[placeholder*='chat']");
-		if (inputEl) {
-			if (document.activeElement === inputEl) return true;
-			if (typeof inputEl.value === "string" && inputEl.value.trim().length > 0) return true;
-		}
-		if (document.activeElement && document.activeElement.closest && document.activeElement.closest(".sr-chatbox")) {
-			return true;
-		}
-	} catch (_) {}
-	return false;
-}
-
-function spkmodCarGetPlayerLevel() {
-	try {
-		if (typeof gameState !== "undefined" && gameState?.myStat?.level != null) {
-			return Number(gameState.myStat.level) || 1;
-		}
-	} catch (_) {}
-	return 1;
-}
-
-let _lunCarHadBroadcast = false;
-
-function spkmodGetLocalCarSyncToken() {
-	const mode = window.BurgerCarMode || 0;
-	if (!mode || !LUN_BURGER_CAR_MODES[mode]) return "none";
-	const cIdx = Math.max(0, Math.min(LUN_BURGER_CAR_COLORS.length - 1, Number(window.BurgerCarColorIdx) || 0));
-	return `${mode}_${cIdx}`;
-}
-
-window.spkmodGetActiveCarBroadcastState = function() {
-	const enabled = spkmodIsCarSystemEnabled();
-	const mode = (enabled && window.BurgerCarMode && LUN_BURGER_CAR_MODES[window.BurgerCarMode]) ? Number(window.BurgerCarMode) : 0;
-	const colorIdx = mode > 0
-		? Math.max(0, Math.min(LUN_BURGER_CAR_COLORS.length - 1, Number(window.BurgerCarColorIdx) || 0))
-		: 0;
-	return {
-		enabled,
-		shareInChat: enabled,
-		modeIdx: mode,
-		colorIdx,
-		hadBroadcastCar: _lunCarHadBroadcast
-	};
-};
-
-window.spkmodMarkCarBroadcastSent = function(hasCar) {
-	_lunCarHadBroadcast = !!hasCar;
-	_lunCarNeedsZoneSync = false;
-};
-
-function spkmodComputeCarBroadcastWaitMs(now, entry) {
-	if (!spkmodIsCarSystemEnabled()) {
-		return Infinity;
-	}
-	if (typeof gameState === "undefined" || !gameState || typeof gameState.trySendChat !== "function" || gameState.zoneId == null) {
-		return SPKMOD_CAR_CHAT_RECHECK_MS;
-	}
-	const levelGate = window.__spkmodChatMinLevelGate || 0;
-	if (levelGate > 0 && spkmodCarGetPlayerLevel() < levelGate) {
-		return Infinity;
-	}
-	if (spkmodCarIsInIsolatedMinigame() || spkmodCarGetRemoteCount() === 0) {
-		if (window.BurgerCarMode > 0) _lunCarNeedsZoneSync = true;
-		return Infinity;
-	}
-
-	let waitMs = 0;
-	if (entry && entry.earliestAtMs > now) {
-		waitMs = Math.max(waitMs, entry.earliestAtMs - now);
-	}
-	const sharedBackoff = window.__spkmodChatRejectBackoffUntilMs || 0;
-	if (sharedBackoff > now) {
-		waitMs = Math.max(waitMs, sharedBackoff - now);
-	}
-	if (spkmodCarIsUserTyping()) {
-		waitMs = Math.max(waitMs, SPKMOD_CAR_CHAT_RECHECK_MS);
-	}
-	const lastTyping = window.__spkmodLastUserChatTypingMs || 0;
-	if (lastTyping > 0) {
-		const typingClearAt = lastTyping + SPKMOD_CAR_CHAT_AFTER_TYPING_MS;
-		if (typingClearAt > now) waitMs = Math.max(waitMs, typingClearAt - now);
-	}
-	const lastUserSent = window.__spkmodLastPlayerChatSentMs || 0;
-	if (lastUserSent > 0) {
-		const sendClearAt = lastUserSent + SPKMOD_CAR_CHAT_AFTER_USER_MSG_MS;
-		if (sendClearAt > now) waitMs = Math.max(waitMs, sendClearAt - now);
-	}
-	const lastGlobalHidden = window.__spkmodLastHiddenSyncBroadcastMs || 0;
-	if (lastGlobalHidden > 0) {
-		const globalGapClearAt = lastGlobalHidden + SPKMOD_CAR_CHAT_MIN_GAP_MS;
-		if (globalGapClearAt > now) waitMs = Math.max(waitMs, globalGapClearAt - now);
-	}
-	if (_lunCarLastBroadcastAtMs > 0) {
-		const isRemoteJoinPassive = entry && entry.reason === "remote_join";
-		const minGap = isRemoteJoinPassive ? SPKMOD_CAR_CHAT_PASSIVE_INTERVAL_MS : SPKMOD_CAR_CHAT_MIN_GAP_MS;
-		const gapClearAt = _lunCarLastBroadcastAtMs + minGap;
-		if (gapClearAt > now) waitMs = Math.max(waitMs, gapClearAt - now);
-	}
-	return waitMs;
-}
-
-function spkmodScheduleQueuedCarBroadcastFlush() {
-	if (_lunCarPendingBroadcastTimer) {
-		clearTimeout(_lunCarPendingBroadcastTimer);
-		_lunCarPendingBroadcastTimer = null;
-	}
-	if (!_lunCarQueuedBroadcast) return;
-
-	const now = Date.now();
-	const waitMs = spkmodComputeCarBroadcastWaitMs(now, _lunCarQueuedBroadcast);
-	if (!isFinite(waitMs)) {
-		_lunCarQueuedBroadcast = null;
-		return;
-	}
-	_lunCarPendingBroadcastTimer = setTimeout(() => {
-		_lunCarPendingBroadcastTimer = null;
-		spkmodFlushQueuedCarBroadcast();
-	}, Math.max(0, Math.ceil(waitMs)));
-}
-
-function spkmodFlushQueuedCarBroadcast() {
-	if (!spkmodIsCarSystemEnabled()) {
-		_lunCarQueuedBroadcast = null;
-		return;
-	}
-	const entry = _lunCarQueuedBroadcast;
-	if (!entry) return;
-
-	const now = Date.now();
-	const waitMs = spkmodComputeCarBroadcastWaitMs(now, entry);
-	if (!isFinite(waitMs)) {
-		_lunCarQueuedBroadcast = null;
-		return;
-	}
-	if (waitMs > 25) {
-		spkmodScheduleQueuedCarBroadcastFlush();
-		return;
-	}
-
-	const effectiveToken = entry.priority === "passive"
-		? spkmodGetLocalCarSyncToken()
-		: (entry.token || "none");
-
-	_lunCarQueuedBroadcast = null;
-
-	if (entry.priority === "passive" && effectiveToken === "none") return;
-
-	const curZoneId = gameState?.zoneId ?? null;
-	if (!entry.forceResend && _lunCarLastBroadcastAtMs > 0 && _lunCarLastBroadcastToken === effectiveToken && _lunCarLastBroadcastZoneId === curZoneId) {
-		return;
-	}
-
-	_lunCarLastBroadcastAtMs = now;
-	window.__spkmodLastHiddenSyncBroadcastMs = now;
-	_lunCarLastBroadcastToken = effectiveToken;
-	_lunCarLastBroadcastZoneId = curZoneId;
-	_lunCarNeedsZoneSync = false;
-	_lunCarHadBroadcast = effectiveToken !== "none";
-
-	let code = ":m_v0:";
-	if (effectiveToken !== "none") {
-		const parts = String(effectiveToken).split("_");
-		const mIdx = Number(parts[0]) || 0;
-		const cIdx = Number(parts[1]) || 0;
-		code = mIdx > 0 ? `:m_v${mIdx}${cIdx}:` : ":m_v0:";
-	}
-	try {
-		gameState.trySendChat(code);
-	} catch (err) {
-		console.warn("[SpeakiMod+ Cars] Failed to broadcast car chat trigger:", err);
-	}
-}
-
-function spkmodSendCarChatTrigger(token, opts = {}) {
-	if (!spkmodIsCarSystemEnabled()) return;
-	// Prefer the unified :m_...: broadcast queue so car + pet + skin + cart + spark share 1 packet
-	if (typeof window.spkmodQueueUnifiedModSyncBroadcast === "function") {
-		const priority = opts.priority || "explicit";
-		const delayMs = Math.max(0, Number(opts.delayMs) || 0);
-		const forceResend = opts.forceResend !== undefined ? !!opts.forceResend : (priority === "explicit");
-		const reason = opts.reason || priority;
-		window.spkmodQueueUnifiedModSyncBroadcast({
-			priority,
-			delayMs,
-			forceResend,
-			includeCarState: true,
-			reason: "car_" + reason
-		});
-		return;
-	}
-	const priority = opts.priority || "explicit";
-	const delayMs = Math.max(0, Number(opts.delayMs) || 0);
-	const forceResend = opts.forceResend !== undefined ? !!opts.forceResend : (priority === "explicit");
-	const reason = opts.reason || priority;
-	const normalized = (!token || token === "none" || token === "off") ? "none" : String(token);
-
-	if (priority === "passive" && _lunCarQueuedBroadcast && _lunCarQueuedBroadcast.priority === "explicit") {
-		return;
-	}
-	const prevForce = _lunCarQueuedBroadcast ? !!_lunCarQueuedBroadcast.forceResend : false;
-	_lunCarQueuedBroadcast = {
-		token: normalized,
-		priority,
-		earliestAtMs: Date.now() + delayMs,
-		forceResend: forceResend || prevForce,
-		reason
-	};
-	spkmodScheduleQueuedCarBroadcastFlush();
-}
-
-function spkmodScheduleZoneCarBroadcast(delayMs = 2200, reason = "zone") {
-	if (!spkmodIsCarSystemEnabled() || !window.BurgerCarMode) return;
-	if (reason === "remote_join" && _lunCarQueuedBroadcast) return;
-	spkmodSendCarChatTrigger(spkmodGetLocalCarSyncToken(), {
-		priority: "passive",
-		delayMs,
-		forceResend: true,
-		reason
-	});
-}
-
-window.spkmodNotifyCarUserChatActivity = function() {
-	if (_lunCarQueuedBroadcast) {
-		spkmodScheduleQueuedCarBroadcastFlush();
-	}
-};
-
-window.spkmodOnCarChatRejected = function(event) {
-	const rawCode = event?.reasonCode;
-	const isNewbieGate = rawCode === 1 || rawCode === "CHAT_REJECT_NEWBIE_GATE";
-	const isMutedOrDisabled = rawCode === 2 || rawCode === "CHAT_REJECT_DISABLED"
-		|| rawCode === 3 || rawCode === "CHAT_REJECT_UNLINKED"
-		|| rawCode === 4 || rawCode === "CHAT_REJECT_MUTED";
-	if (isNewbieGate) {
-		_lunCarQueuedBroadcast = null;
-		if (_lunCarPendingBroadcastTimer) {
-			clearTimeout(_lunCarPendingBroadcastTimer);
-			_lunCarPendingBroadcastTimer = null;
-		}
-		return;
-	}
-	if (isMutedOrDisabled && _lunCarQueuedBroadcast && _lunCarQueuedBroadcast.priority === "passive") {
-		_lunCarQueuedBroadcast = null;
-	}
-	if (_lunCarQueuedBroadcast) {
-		spkmodScheduleQueuedCarBroadcastFlush();
-	}
-};
-
-function spkmodDisposeRemoteCarEntry(entry) {
-	if (!entry) return;
-	if (entry.root && entry.root.parent) {
-		entry.root.parent.remove(entry.root);
-	}
-	const rp = entry.resolveRp ? entry.resolveRp() : null;
-	const container = rp?.container || entry.lastContainer;
-	const rpId = entry.lastRpKey ?? entry.playerId;
-	if (container) {
-		spkmodSetNativeCartVisible(container, rpId, true);
-		const stillMounted = spkmodHasActiveNativeMount(container, rpId);
-		if (!stillMounted) {
-			const posePos = rp?.avatarPose?.position || rp?.avatar?.root?.position || entry.lastPosePos;
-			if (posePos) posePos.set(0, 0, 0);
-			const ctrl = rp?.avatar?.animationController || rp?.container?.controller || entry.lastCtrl;
-			if (ctrl && typeof ctrl.exitMountPose === "function") {
-				try { ctrl.exitMountPose(); } catch (_) {}
-			}
-		}
-	}
-}
-
-function spkmodEnsureRemoteCarsLoop() {
-	if (_spkmodRemoteCarRafId || spkmodRemoteCarInstances.size === 0) return;
-	const tick = () => {
-		_spkmodRemoteCarRafId = null;
-		if (spkmodRemoteCarInstances.size === 0) return;
-		if (!document.hidden && typeof gameState !== "undefined" && gameState) {
-			for (const [ownerKey, entry] of spkmodRemoteCarInstances) {
-				const rp = entry.resolveRp();
-				const container = rp?.container || null;
-				if (!container) {
-					spkmodDisposeRemoteCarEntry(entry);
-					spkmodRemoteCarInstances.delete(ownerKey);
-					continue;
-				}
-				entry.lastContainer = container;
-				if (entry.root.parent !== container) {
-					container.add(entry.root);
-				}
-				const rpId = entry.lastRpKey ?? entry.playerId;
-				spkmodSetNativeCartVisible(container, rpId, false);
-				const posePos = rp.avatarPose?.position || rp.avatar?.root?.position || null;
-				entry.lastPosePos = posePos;
-				if (posePos) {
-					posePos.set(0, entry.seatOffsetY, 0);
-				}
-				const ctrl = rp.avatar?.animationController || rp.container?.controller || null;
-				entry.lastCtrl = ctrl;
-				if (ctrl && !ctrl.mountSitPlaying && typeof ctrl.enterMountPose === "function") {
-					try { ctrl.enterMountPose("sit"); } catch (_) {}
-				}
-				if (container.position) {
-					const dx = container.position.x - entry.lastX;
-					const dz = container.position.z - entry.lastZ;
-					const dist = Math.hypot(dx, dz);
-					if (dist > 0.0001) {
-						const angle = dist / entry.wheelRadius;
-						for (const w of entry.wheels) w.rotation.x += angle;
-						entry.lastX = container.position.x;
-						entry.lastZ = container.position.z;
-					}
-				}
-			}
-		}
-		if (spkmodRemoteCarInstances.size > 0) {
-			_spkmodRemoteCarRafId = requestAnimationFrame(tick);
-		}
-	};
-	_spkmodRemoteCarRafId = requestAnimationFrame(tick);
-}
-
-async function spkmodSpawnOrUpdateRemoteCar(playerId, playerName, modeIdx, colorIdx) {
-	if (!spkmodIsCarSystemEnabled()) return;
-	const ownerKey = (playerId != null && playerId !== "")
-		? String(playerId)
-		: `name:${(playerName || "").trim().toLowerCase()}`;
-	const lowerName = (playerName || "").trim().toLowerCase();
-
-	if (!modeIdx || !LUN_BURGER_CAR_MODES[modeIdx]) {
-		_spkmodRemoteCarSeq.set(ownerKey, (_spkmodRemoteCarSeq.get(ownerKey) || 0) + 1);
-		_spkmodRemoteCarInFlight.delete(ownerKey);
-		const existing = spkmodRemoteCarInstances.get(ownerKey);
-		if (existing) {
-			spkmodDisposeRemoteCarEntry(existing);
-			spkmodRemoteCarInstances.delete(ownerKey);
-		}
-		if (playerId != null && playerId !== "") spkmodPendingRemoteCarsById.delete(String(playerId));
-		if (lowerName) spkmodPendingRemoteCarsByName.delete(lowerName);
-		return;
-	}
-
-	const safeColorIdx = Math.max(0, Math.min(LUN_BURGER_CAR_COLORS.length - 1, Number(colorIdx) || 0));
-	const carToken = `${modeIdx}_${safeColorIdx}`;
-	const pendingPayload = { modeIdx, colorIdx: safeColorIdx, playerId, playerName };
-	if (playerId != null && playerId !== "") spkmodPendingRemoteCarsById.set(String(playerId), pendingPayload);
-	if (lowerName) spkmodPendingRemoteCarsByName.set(lowerName, pendingPayload);
-
-	const existing = spkmodRemoteCarInstances.get(ownerKey);
-	if ((existing && existing.modeIdx === modeIdx && existing.colorIdx === safeColorIdx) || _spkmodRemoteCarInFlight.get(ownerKey) === carToken) {
-		return;
-	}
-
-	const mySeq = (_spkmodRemoteCarSeq.get(ownerKey) || 0) + 1;
-	_spkmodRemoteCarSeq.set(ownerKey, mySeq);
-	_spkmodRemoteCarInFlight.set(ownerKey, carToken);
-
-	const scene = await spkmodLoadBurgerVehiclesScene();
-	if (_spkmodRemoteCarInFlight.get(ownerKey) === carToken) {
-		_spkmodRemoteCarInFlight.delete(ownerKey);
-	}
-	if (!scene || !spkmodIsCarSystemEnabled() || _spkmodRemoteCarSeq.get(ownerKey) !== mySeq) return;
-
-	let cachedKey = null;
-	let cachedRp = null;
-	const resolveRp = () => {
-		if (typeof gameState === "undefined" || !gameState?.remotePlayers?.remotePlayers) return null;
-		const rMap = gameState.remotePlayers.remotePlayers;
-		if (cachedRp && cachedKey !== null && rMap.get(cachedKey) === cachedRp) {
-			return cachedRp;
-		}
-		cachedRp = null;
-		cachedKey = null;
-		if (playerId != null && playerId !== "") {
-			for (const k of [playerId, Number(playerId), String(playerId)]) {
-				const found = rMap.get(k);
-				if (found) {
-					cachedKey = k;
-					cachedRp = found;
-					return found;
-				}
-			}
-		}
-		if (lowerName) {
-			for (const [k, rp] of rMap) {
-				const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim().toLowerCase();
-				if (rName && rName === lowerName) {
-					cachedKey = k;
-					cachedRp = rp;
-					return rp;
-				}
-			}
-		}
-		return null;
-	};
-
-	const rp = resolveRp();
-	if (!rp || !rp.container) return; // stays in pending map until remote player spawns
-
-	const modelName = LUN_BURGER_CAR_MODES[modeIdx];
-	const inst = spkmodCreateBurgerCarInstance(scene, modelName, LUN_BURGER_CAR_COLORS[safeColorIdx]);
-	if (!inst || _spkmodRemoteCarSeq.get(ownerKey) !== mySeq) return;
-
-	const prev = spkmodRemoteCarInstances.get(ownerKey);
-	if (prev) {
-		spkmodDisposeRemoteCarEntry(prev);
-		spkmodRemoteCarInstances.delete(ownerKey);
-	}
-	if (Array.isArray(rp.container.children)) {
-		for (let i = rp.container.children.length - 1; i >= 0; i--) {
-			const ch = rp.container.children[i];
-			if (ch && typeof ch.name === "string" && ch.name.startsWith("spkmod_remote_car_")) {
-				rp.container.remove(ch);
-			}
-		}
-	}
-
-	const { carObj, wheelRadius, seatOffsetY, wheels } = inst;
-	carObj.name = "spkmod_remote_car_" + ownerKey;
-	rp.container.add(carObj);
-	spkmodSetNativeCartVisible(rp.container, cachedKey ?? playerId, false);
-	const posePos = rp.avatarPose?.position || rp.avatar?.root?.position || null;
-	if (posePos) posePos.set(0, seatOffsetY, 0);
-	const ctrl = rp.avatar?.animationController || rp.container?.controller || null;
-	if (ctrl && typeof ctrl.enterMountPose === "function") {
-		try { ctrl.enterMountPose("sit"); } catch (_) {}
-	}
-
-	spkmodRemoteCarInstances.set(ownerKey, {
-		ownerKey,
-		playerId,
-		playerName,
-		modeIdx,
-		colorIdx: safeColorIdx,
-		root: carObj,
-		wheels,
-		wheelRadius,
-		seatOffsetY,
-		resolveRp,
-		lastRpKey: cachedKey ?? playerId,
-		lastContainer: rp.container,
-		lastPosePos: posePos,
-		lastCtrl: ctrl,
-		lastX: rp.container.position ? rp.container.position.x : 0,
-		lastZ: rp.container.position ? rp.container.position.z : 0
-	});
-	spkmodEnsureRemoteCarsLoop();
-}
-
-window.spkmodHandleIncomingCarState = function(playerId, playerName, modeIdx, colorIdx) {
-	if (!spkmodIsCarSystemEnabled()) return;
-	const myId = typeof gameState !== "undefined" ? gameState?.myPlayerId : null;
-	const myName = (typeof gameState !== "undefined" && (gameState?.myPlayerName || gameState?.myStat?.name)) || "";
-	const isSelf = (myId != null && playerId != null && String(playerId) === String(myId))
-		|| (myName && playerName && myName.trim().toLowerCase() === playerName.trim().toLowerCase());
-	if (isSelf) return;
-	const m = Number(modeIdx) || 0;
-	const c = Number(colorIdx) || 0;
-	spkmodSpawnOrUpdateRemoteCar(playerId, playerName, m, c);
-};
-
-window.spkmodHandleIncomingCarTrigger = function(playerId, playerName, rawMsg) {
-	if (!spkmodIsCarSystemEnabled()) return;
-	if (typeof rawMsg !== "string") return;
-	const trimmed = rawMsg.trim();
-	const myId = typeof gameState !== "undefined" ? gameState?.myPlayerId : null;
-	const myName = (typeof gameState !== "undefined" && (gameState?.myPlayerName || gameState?.myStat?.name)) || "";
-	const isSelf = (myId != null && playerId != null && String(playerId) === String(myId))
-		|| (myName && playerName && myName.trim().toLowerCase() === playerName.trim().toLowerCase());
-	if (isSelf) return;
-
-	if (/^:car_(?:none|off):$/i.test(trimmed)) {
-		spkmodSpawnOrUpdateRemoteCar(playerId, playerName, 0, 0);
-		return;
-	}
-	const m = trimmed.match(/^:car_([12])_(\d+):$/i);
-	if (!m) return;
-	const modeIdx = parseInt(m[1], 10);
-	const colorIdx = parseInt(m[2], 10);
-	spkmodSpawnOrUpdateRemoteCar(playerId, playerName, modeIdx, colorIdx);
-};
-
-// Lightweight zone-change / remote-join / pending remote-car watcher
-if (!window.__spkmodCarSyncWatcherInstalled) {
-	window.__spkmodCarSyncWatcherInstalled = true;
-	setInterval(() => {
-		if (!spkmodIsCarSystemEnabled()) return;
-		if (typeof gameState === "undefined" || !gameState) return;
-		// 1. Detect zone change -> clear stale remote cars & broadcast local active car
-		if (gameState.zoneId != null && gameState.zoneId !== _lunCarLastObservedZoneId) {
-			_lunCarLastObservedZoneId = gameState.zoneId;
-			for (const entry of spkmodRemoteCarInstances.values()) {
-				spkmodDisposeRemoteCarEntry(entry);
-			}
-			spkmodRemoteCarInstances.clear();
-			spkmodPendingRemoteCarsById.clear();
-			spkmodPendingRemoteCarsByName.clear();
-			_spkmodRemoteCarInFlight.clear();
-			if (window.BurgerCarMode > 0) {
-				_lunCarNeedsZoneSync = true;
-				spkmodScheduleZoneCarBroadcast(2200, "zone");
-			}
-		}
-		// 2. Sync local car when another player enters the zone
-		const rCount = spkmodCarGetRemoteCount();
-		if (rCount > 0 && !spkmodCarIsInIsolatedMinigame() && window.BurgerCarMode > 0) {
-			if (_lunCarNeedsZoneSync && !_lunCarQueuedBroadcast) {
-				_lunCarNeedsZoneSync = false;
-				spkmodScheduleZoneCarBroadcast(2200, "zone");
-			} else if (rCount > _lunCarLastObservedRemoteCount) {
-				if (!_lunCarQueuedBroadcast && Date.now() - _lunCarLastBroadcastAtMs > SPKMOD_CAR_CHAT_PASSIVE_INTERVAL_MS) {
-					spkmodScheduleZoneCarBroadcast(3200, "remote_join");
-				}
-			}
-		}
-		_lunCarLastObservedRemoteCount = rCount;
-
-		// 3. Attach pending remote cars once remote player models finish spawning
-		const rMap = gameState.remotePlayers?.remotePlayers;
-		if (rMap && rMap.size > 0 && (spkmodPendingRemoteCarsById.size > 0 || spkmodPendingRemoteCarsByName.size > 0)) {
-			for (const [k, rp] of rMap) {
-				if (!rp || !rp.container) continue;
-				const idKey = String(k);
-				const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim().toLowerCase();
-				const pending = spkmodPendingRemoteCarsById.get(idKey) || (rName ? spkmodPendingRemoteCarsByName.get(rName) : null);
-				if (pending && !spkmodRemoteCarInstances.has(idKey)) {
-					spkmodSpawnOrUpdateRemoteCar(k, rp?.info?.name || pending.playerName, pending.modeIdx, pending.colorIdx);
-				}
-			}
-		}
-	}, 900);
-}
-
-window.spkmodSetCarSystemEnabled = function(nextEnabled, silentToast = false) {
-	const enabled = !!nextEnabled;
-	window.spkmodCarSystemEnabled = enabled;
-	if (typeof window !== "undefined" && window.localStorage) {
-		try {
-			localStorage.setItem("spkmod-car-enabled", enabled ? "true" : "false");
-		} catch (_) {}
-	}
-
-	if (!enabled) {
-		_lunCarQueuedBroadcast = null;
-		_lunCarNeedsZoneSync = false;
-		if (_lunCarPendingBroadcastTimer) {
-			clearTimeout(_lunCarPendingBroadcastTimer);
-			_lunCarPendingBroadcastTimer = null;
-		}
-		if (_spkmodRemoteCarRafId) {
-			cancelAnimationFrame(_spkmodRemoteCarRafId);
-			_spkmodRemoteCarRafId = null;
-		}
-		for (const entry of spkmodRemoteCarInstances.values()) {
-			spkmodDisposeRemoteCarEntry(entry);
-		}
-		spkmodRemoteCarInstances.clear();
-		spkmodPendingRemoteCarsById.clear();
-		spkmodPendingRemoteCarsByName.clear();
-		_spkmodRemoteCarInFlight.clear();
-		_spkmodRemoteCarSeq.clear();
-
-		window.BurgerCarMode = 0;
-		spkmodRemoveBurgerCar();
-		if (typeof window.spkmodResetCarsEveryone === "function") {
-			window.spkmodResetCarsEveryone(true, false);
-		}
-	} else {
-		_lunCarLastObservedZoneId = null;
-		_lunCarLastObservedRemoteCount = 0;
-	}
-
-	spkmodSyncCarSystemUIState();
-
-	if (!silentToast && typeof chatLog === "function") {
-		chatLog(enabled ? spkmodGetCarEnabledToastText() : spkmodGetCarDisabledToastText());
-	}
-	return enabled;
-};
-
-function cycleBurgerCar(btn) {
-	if (!spkmodIsCarSystemEnabled()) {
-		if (typeof chatLog === "function") {
-			chatLog(spkmodGetCarDisabledToastText());
-		}
-		return;
-	}
-	spkmodEnsureBurgerCarKeyHooks();
-	if (typeof window.spkmodResetCarsEveryone === "function") {
-		window.spkmodResetCarsEveryone(true, false);
-	}
-	const prevMode = window.BurgerCarMode || 0;
-	window.BurgerCarMode = (prevMode + 1) % LUN_BURGER_CAR_MODES.length;
-	const targetBtn = btn || (typeof lunPanelElements !== "undefined" && lunPanelElements.burgerCarBtn);
-	if (targetBtn) {
-		setText(targetBtn, getBurgerCarBtnLabel());
-	}
-	if (window.BurgerCarMode === 0) {
-		spkmodRemoveBurgerCar();
-		if (prevMode > 0) {
-			spkmodSendCarChatTrigger("none", {
-				priority: "explicit",
-				delayMs: SPKMOD_CAR_CHAT_EQUIP_DEBOUNCE_MS,
-				forceResend: false,
-				reason: "unequip"
-			});
-		}
-	} else {
-		const colorIdx = spkmodPickNextBurgerCarColorIdx();
-		window.BurgerCarColorIdx = colorIdx;
-		spkmodSpawnBurgerCar(window.BurgerCarMode, colorIdx);
-		spkmodSendCarChatTrigger(`${window.BurgerCarMode}_${colorIdx}`, {
-			priority: "explicit",
-			delayMs: SPKMOD_CAR_CHAT_EQUIP_DEBOUNCE_MS,
-			forceResend: true,
-			reason: "equip"
-		});
+function cycleBurgerCar() {
+	if (typeof window.spkmodToggleVehiclesModal === "function") {
+		window.spkmodToggleVehiclesModal();
 	}
 }
 
@@ -17478,7 +16661,8 @@ window.spkmodResetCarsEveryone = function(silent = false, clearLocalCar = true) 
 		if (gameState.remotePlayers?.remotePlayers) {
 			for (const [k, rp] of gameState.remotePlayers.remotePlayers) {
 				sweepContainer(rp?.container);
-				if (!spkmodRemoteCarInstances.has(String(k))) {
+				const hasRemoteVeh = typeof window.spkmodHasRemoteVehicle === "function" && window.spkmodHasRemoteVehicle(String(k));
+				if (!hasRemoteVeh) {
 					spkmodSetNativeCartVisible(rp?.container, k, true);
 					if (!spkmodHasActiveNativeMount(rp?.container, k)) {
 						const posePos = rp?.avatarPose?.position || rp?.avatar?.root?.position;
@@ -17494,19 +16678,10 @@ window.spkmodResetCarsEveryone = function(silent = false, clearLocalCar = true) 
 	}
 
 	if (clearLocalCar) {
-		const hadLocal = (window.BurgerCarMode || 0) > 0;
-		window.BurgerCarMode = 0;
-		spkmodRemoveBurgerCar();
-		if (hadLocal) {
-			spkmodSendCarChatTrigger("none", {
-				priority: "explicit",
-				delayMs: SPKMOD_CAR_CHAT_EQUIP_DEBOUNCE_MS,
-				forceResend: false,
-				reason: "reset"
-			});
-		}
-		if (typeof lunPanelElements !== "undefined" && lunPanelElements.burgerCarBtn && typeof getBurgerCarBtnLabel === "function") {
-			setText(lunPanelElements.burgerCarBtn, getBurgerCarBtnLabel());
+		if (window.spkmodVehicles && typeof window.spkmodVehicles.unequip === "function") {
+			window.spkmodVehicles.unequip(true, true);
+		} else {
+			window.BurgerCarMode = 0;
 		}
 	}
 
@@ -17577,7 +16752,7 @@ window.spkmodRandomCarsEveryone = async function() {
 	if (gameState.remotePlayers?.remotePlayers) {
 		for (const [k, rp] of gameState.remotePlayers.remotePlayers) {
 			if (!rp || !rp.container) continue;
-			if (spkmodRemoteCarInstances.has(String(k))) continue;
+			if (typeof window.spkmodHasRemoteVehicle === "function" && window.spkmodHasRemoteVehicle(String(k))) continue;
 			attachCar(
 				rp.container,
 				rp.avatarPose?.position || rp.avatar?.root?.position || null,
@@ -26785,8 +25960,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.faintBtn) setText(lunPanelElements.faintBtn, t("faintOn"));
 	if (lunPanelElements.autoFaintBtn) setText(lunPanelElements.autoFaintBtn, t(window.AutoFaintActive ? "aFaintOn" : "aFaintOff"));
 	if (lunPanelElements.autoMopBtn) setText(lunPanelElements.autoMopBtn, t(window.AutoMopActive ? "autoMopOn" : "autoMopOff") || (window.AutoMopActive ? "Mop: ⏸️" : "Mop: ▶️"));
-	if (lunPanelElements.burgerSkinBtn && typeof getBurgerSkinBtnLabel === "function") setText(lunPanelElements.burgerSkinBtn, getBurgerSkinBtnLabel());
-	if (lunPanelElements.burgerCarBtn && typeof getBurgerCarBtnLabel === "function") setText(lunPanelElements.burgerCarBtn, getBurgerCarBtnLabel());
+	if (typeof window.spkmodUpdateVehicleQuickToggleBtn === "function") window.spkmodUpdateVehicleQuickToggleBtn();
 	setText(lunPanelElements.chowayoBtn, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
 	setText(lunPanelElements.heartsBtn, t("hearts"));
 	setText(lunPanelElements.autoHeartsBtn, t(window.AutoHeartsActive ? "autoHeartsOn" : "autoHeartsOff"));
@@ -27011,6 +26185,7 @@ spkmodI18nRenderers.push(() => {
 		lunPanelElements.sparksSystemToggleInput.title = tCustom("sparksSystemToggleDesc", "Enable or disable the 100-level Spark FX walking trails, HUD button (Alt+F), and multiplayer trail sync");
 	}
 	if (typeof window.spkmodRefreshCartSkinsModalUI === "function") window.spkmodRefreshCartSkinsModalUI();
+	if (typeof window.spkmodRefreshVehiclesModalUI === "function") window.spkmodRefreshVehiclesModalUI();
 	if (typeof window.spkmodRefreshSparksModalUI === "function") window.spkmodRefreshSparksModalUI();
 	if (lunPanelElements.carSystemToggleLabel) {
 		setText(lunPanelElements.carSystemToggleLabel, "🚗 " + (t("carSystemToggleLabel") || "Enable Cars (Display & Sync)"));
@@ -30299,6 +29474,299 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 	}
 }
 
+// ============================================================================
+// AUTO-UPDATE DETECTOR & 30-SECOND RELOAD ALERT WINDOW
+// ============================================================================
+const SPKMOD_UPDATE_VERSION_URL = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/version.json";
+const SPKMOD_UPDATE_CHECK_INTERVAL_MS = 3 * 60 * 1000;
+const SPKMOD_UPDATE_IMMEDIATE_COOLDOWN_MS = 25 * 1000;
+const SPKMOD_UPDATE_RELOAD_SECONDS = 30;
+
+const SPKMOD_UPDATE_ALERT_FALLBACK_EN = {
+	title: "🔄 SpeakiMod+ Update Available",
+	body: "An update has been found, the game will reload in {0} seconds. Please update manually if needed.",
+	chatNote: "If you see strange mod messages in chat before reloading, don't worry — other players are already on the newer version!",
+	btnReloadNow: "🔄 Reload Now",
+	btnDismiss: "✕ Later",
+	checkingToast: "🔄 Checking for SpeakiMod+ updates...",
+	upToDateToast: "✅ SpeakiMod+ is up to date!"
+};
+
+let _spkmodUpdateBaselineBuild = null;
+let _spkmodUpdateDetected = false;
+let _spkmodUpdateDismissed = false;
+let _spkmodUpdateInFlight = false;
+let _spkmodUpdateLastCheckMs = 0;
+let _spkmodUpdateCountdownTimer = null;
+let _spkmodUpdateRemainingSec = SPKMOD_UPDATE_RELOAD_SECONDS;
+let _spkmodUpdatePollIntervalId = null;
+
+function spkmodGetUpdateAlertText(key, ...args) {
+	const rawLang = (typeof spkmodGetActiveLang === "function")
+		? spkmodGetActiveLang()
+		: ((typeof spkmodLang !== "undefined" && spkmodLang) ? spkmodLang : "en");
+	const lang = (rawLang === "zh") ? "zh-CN" : (rawLang === "es" ? "es-419" : rawLang);
+	const tr = typeof spkmodTranslations !== "undefined" ? spkmodTranslations : null;
+	let str = (tr && tr[lang] && tr[lang].updateAlert && tr[lang].updateAlert[key])
+		|| (tr && tr.en && tr.en.updateAlert && tr.en.updateAlert[key])
+		|| SPKMOD_UPDATE_ALERT_FALLBACK_EN[key]
+		|| key;
+	args.forEach((a, i) => {
+		str = str.split(`{${i}}`).join(a);
+	});
+	return str;
+}
+
+function spkmodTriggerUpdateReload() {
+	if (_spkmodUpdateCountdownTimer) {
+		clearInterval(_spkmodUpdateCountdownTimer);
+		_spkmodUpdateCountdownTimer = null;
+	}
+	if (typeof window.__spkmodReloadPage === "function") {
+		window.__spkmodReloadPage();
+		return;
+	}
+	try {
+		if (window.location && typeof window.location.reload === "function") {
+			window.location.reload();
+		}
+	} catch (_) {}
+}
+
+function spkmodDismissUpdateAlert() {
+	_spkmodUpdateDismissed = true;
+	if (_spkmodUpdateCountdownTimer) {
+		clearInterval(_spkmodUpdateCountdownTimer);
+		_spkmodUpdateCountdownTimer = null;
+	}
+	const modal = document.getElementById("spkmod-update-alert-modal");
+	if (modal) modal.classList.add("hidden");
+}
+
+function spkmodRefreshUpdateAlertModalUI() {
+	const modal = document.getElementById("spkmod-update-alert-modal");
+	if (!modal) return;
+	const titleEl = document.getElementById("spkmod-update-alert-title");
+	const bodyEl = document.getElementById("spkmod-update-alert-body");
+	const noteEl = document.getElementById("spkmod-update-alert-note");
+	const reloadBtn = document.getElementById("spkmod-update-alert-reload");
+	const dismissBtn = document.getElementById("spkmod-update-alert-dismiss");
+	const barEl = document.getElementById("spkmod-update-alert-bar");
+
+	if (titleEl) titleEl.innerText = spkmodGetUpdateAlertText("title");
+	if (bodyEl) bodyEl.innerText = spkmodGetUpdateAlertText("body", Math.max(0, _spkmodUpdateRemainingSec));
+	if (noteEl) noteEl.innerText = spkmodGetUpdateAlertText("chatNote");
+	if (reloadBtn) reloadBtn.innerText = spkmodGetUpdateAlertText("btnReloadNow");
+	if (dismissBtn) dismissBtn.innerText = spkmodGetUpdateAlertText("btnDismiss");
+	if (barEl) {
+		const pct = Math.max(0, Math.min(100, (_spkmodUpdateRemainingSec / SPKMOD_UPDATE_RELOAD_SECONDS) * 100));
+		barEl.style.width = pct.toFixed(1) + "%";
+	}
+}
+
+function spkmodEnsureUpdateAlertModal() {
+	let modal = document.getElementById("spkmod-update-alert-modal");
+	if (modal) return modal;
+
+	modal = document.createElement("div");
+	modal.id = "spkmod-update-alert-modal";
+	modal.className = "spkmod-modal hidden";
+	modal.style.cssText = "position: fixed; top: 58px; left: 50%; transform: translateX(-50%); width: 410px; max-width: 92vw; background: rgba(15, 23, 42, 0.97); border: 2px solid #f59e0b; border-radius: 14px; box-shadow: 0 18px 50px rgba(0,0,0,0.78), 0 0 24px rgba(245,158,11,0.28); color: #f8fafc; font-family: inherit; overflow: hidden; z-index: 2147483645;";
+
+	const header = document.createElement("div");
+	header.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: linear-gradient(90deg, rgba(245,158,11,0.28), rgba(56,189,248,0.22)); border-bottom: 1px solid rgba(255,255,255,0.12); cursor: grab; user-select: none;";
+
+	const title = document.createElement("span");
+	title.id = "spkmod-update-alert-title";
+	title.style.cssText = "font-size: 13.5px; font-weight: 900; color: #fde047;";
+	header.appendChild(title);
+
+	const closeX = document.createElement("button");
+	closeX.type = "button";
+	closeX.innerText = "✕";
+	closeX.style.cssText = "background: rgba(255,255,255,0.12); color: #fff; border: none; border-radius: 6px; width: 24px; height: 24px; font-weight: 900; cursor: pointer;";
+	closeX.onclick = () => spkmodDismissUpdateAlert();
+	header.appendChild(closeX);
+
+	const content = document.createElement("div");
+	content.style.cssText = "padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;";
+
+	const body = document.createElement("div");
+	body.id = "spkmod-update-alert-body";
+	body.style.cssText = "font-size: 13px; font-weight: 800; line-height: 1.45; color: #ffffff;";
+
+	const note = document.createElement("div");
+	note.id = "spkmod-update-alert-note";
+	note.style.cssText = "font-size: 11.5px; line-height: 1.45; color: #cbd5e1; background: rgba(255,255,255,0.06); border-left: 3px solid #38bdf8; padding: 8px 10px; border-radius: 6px;";
+
+	const progressWrap = document.createElement("div");
+	progressWrap.style.cssText = "width: 100%; height: 6px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden;";
+	const bar = document.createElement("div");
+	bar.id = "spkmod-update-alert-bar";
+	bar.style.cssText = "width: 100%; height: 100%; background: linear-gradient(90deg, #f59e0b, #38bdf8); transition: width 0.85s linear;";
+	progressWrap.appendChild(bar);
+
+	const btnRow = document.createElement("div");
+	btnRow.style.cssText = "display: flex; gap: 8px; justify-content: flex-end; margin-top: 2px;";
+
+	const dismissBtn = document.createElement("button");
+	dismissBtn.id = "spkmod-update-alert-dismiss";
+	dismissBtn.type = "button";
+	dismissBtn.style.cssText = "background: rgba(100,116,139,0.35); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 700; cursor: pointer;";
+	dismissBtn.onclick = () => spkmodDismissUpdateAlert();
+
+	const reloadBtn = document.createElement("button");
+	reloadBtn.id = "spkmod-update-alert-reload";
+	reloadBtn.type = "button";
+	reloadBtn.style.cssText = "background: linear-gradient(90deg, #d97706, #f59e0b); color: #111827; border: none; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 900; cursor: pointer;";
+	reloadBtn.onclick = () => spkmodTriggerUpdateReload();
+
+	btnRow.appendChild(dismissBtn);
+	btnRow.appendChild(reloadBtn);
+
+	content.appendChild(body);
+	content.appendChild(note);
+	content.appendChild(progressWrap);
+	content.appendChild(btnRow);
+
+	modal.appendChild(header);
+	modal.appendChild(content);
+	if (document.body) document.body.appendChild(modal);
+
+	modal.addEventListener("wheel", (e) => e.stopPropagation(), { passive: true });
+	content.addEventListener("mousedown", (e) => e.stopPropagation());
+	content.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+	if (typeof makeDraggable === "function") {
+		// Remove centering transform once user drags
+		header.addEventListener("pointerdown", () => {
+			if (modal.style.transform) {
+				const rect = modal.getBoundingClientRect();
+				modal.style.transform = "";
+				modal.style.left = Math.round(rect.left) + "px";
+				modal.style.top = Math.round(rect.top) + "px";
+			}
+		}, true);
+		makeDraggable(modal, [header]);
+	}
+	return modal;
+}
+
+function spkmodShowUpdateAlertModal() {
+	if (_spkmodUpdateCountdownTimer) {
+		clearInterval(_spkmodUpdateCountdownTimer);
+		_spkmodUpdateCountdownTimer = null;
+	}
+	_spkmodUpdateDetected = true;
+	_spkmodUpdateDismissed = false;
+	_spkmodUpdateRemainingSec = SPKMOD_UPDATE_RELOAD_SECONDS;
+
+	const modal = spkmodEnsureUpdateAlertModal();
+	if (modal) {
+		modal.classList.remove("hidden");
+		if (typeof bringToFront === "function") bringToFront(modal);
+	}
+	spkmodRefreshUpdateAlertModalUI();
+
+	_spkmodUpdateCountdownTimer = setInterval(() => {
+		if (_spkmodUpdateDismissed) {
+			clearInterval(_spkmodUpdateCountdownTimer);
+			_spkmodUpdateCountdownTimer = null;
+			return;
+		}
+		_spkmodUpdateRemainingSec -= 1;
+		spkmodRefreshUpdateAlertModalUI();
+		if (_spkmodUpdateRemainingSec <= 0) {
+			spkmodTriggerUpdateReload();
+		}
+	}, 1000);
+}
+
+async function spkmodCheckForModUpdate(reason = "poll") {
+	if (_spkmodUpdateDetected || _spkmodUpdateDismissed || _spkmodUpdateInFlight) return false;
+	const now = Date.now();
+	if (reason === "unknown_token" && now - _spkmodUpdateLastCheckMs < SPKMOD_UPDATE_IMMEDIATE_COOLDOWN_MS) {
+		return false;
+	}
+	if (reason === "manual" && typeof chatLog === "function") {
+		chatLog(spkmodGetUpdateAlertText("checkingToast"));
+	}
+	_spkmodUpdateInFlight = true;
+	_spkmodUpdateLastCheckMs = now;
+	try {
+		if (typeof fetch !== "function") return false;
+		const res = await fetch(`${SPKMOD_UPDATE_VERSION_URL}?t=${now}`, { cache: "no-store" });
+		if (!res || !res.ok) return false;
+		const data = await res.json();
+		if (!data || typeof data !== "object") return false;
+
+		const remoteBuild = typeof data.build === "string" ? data.build.trim() : "";
+		const remoteProtocol = Number(data.protocol) || 0;
+		const localProtocol = Number(window.SPKMOD_PROTOCOL_VERSION || 1);
+
+		const protocolOutdated = remoteProtocol > localProtocol;
+		let buildChanged = false;
+		if (remoteBuild) {
+			if (!_spkmodUpdateBaselineBuild) {
+				_spkmodUpdateBaselineBuild = remoteBuild;
+			} else if (remoteBuild !== _spkmodUpdateBaselineBuild) {
+				buildChanged = true;
+			}
+		}
+
+		if (protocolOutdated || buildChanged) {
+			spkmodShowUpdateAlertModal(data);
+			return true;
+		}
+		if (reason === "manual" && typeof chatLog === "function") {
+			chatLog(spkmodGetUpdateAlertText("upToDateToast"));
+		}
+		return false;
+	} catch (_) {
+		return false;
+	} finally {
+		_spkmodUpdateInFlight = false;
+	}
+}
+
+window.spkmodNotifyUnknownSyncToken = function() {
+	if (!_spkmodUpdateDetected && !_spkmodUpdateDismissed) {
+		spkmodCheckForModUpdate("unknown_token");
+	}
+};
+
+window.spkmodUpdateChecker = {
+	checkNow: (reason = "manual") => spkmodCheckForModUpdate(reason),
+	showAlert: () => spkmodShowUpdateAlertModal(),
+	dismiss: () => spkmodDismissUpdateAlert(),
+	reloadNow: () => spkmodTriggerUpdateReload(),
+	getState: () => ({
+		baselineBuild: _spkmodUpdateBaselineBuild,
+		detected: _spkmodUpdateDetected,
+		dismissed: _spkmodUpdateDismissed,
+		remainingSec: _spkmodUpdateRemainingSec,
+		localProtocol: Number(window.SPKMOD_PROTOCOL_VERSION || 1)
+	})
+};
+
+if (typeof spkmodI18nRenderers !== "undefined" && Array.isArray(spkmodI18nRenderers)) {
+	spkmodI18nRenderers.push(() => {
+		spkmodRefreshUpdateAlertModalUI();
+	});
+}
+
+if (!window.__spkmodUpdateCheckerStarted) {
+	window.__spkmodUpdateCheckerStarted = true;
+	setTimeout(() => {
+		spkmodCheckForModUpdate("boot");
+	}, 8000);
+	_spkmodUpdatePollIntervalId = setInterval(() => {
+		if (!document.hidden && !_spkmodUpdateDetected && !_spkmodUpdateDismissed) {
+			spkmodCheckForModUpdate("poll");
+		}
+	}, SPKMOD_UPDATE_CHECK_INTERVAL_MS);
+}
+
 
 function hookGameStateOnce() {
 	if (typeof gameState === "undefined" || !gameState) return false;
@@ -30745,6 +30213,66 @@ function hookGameStateOnce() {
 							window.spkmodToggleCartSkinsModal();
 						}
 						break;
+					case "cartunlock": {
+						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
+							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
+						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
+							chatLog("❌ You do not have permission to use !cartunlock.");
+						} else if (window.spkmodCartSkins && typeof window.spkmodCartSkins.unlockAll === "function") {
+							window.spkmodCartSkins.unlockAll();
+						}
+						break;
+					}
+					case "vehicles":
+					case "vehicle":
+					case "car":
+					case "cars":
+						if (cmd[1]) {
+							const vSub = cmd[1].toLowerCase();
+							if (vSub === "off" || vSub === "stop" || vSub === "none" || vSub === "exit") {
+								if (window.spkmodVehicles?.unequip) window.spkmodVehicles.unequip();
+							} else if (window.spkmodVehicles?.equip) {
+								window.spkmodVehicles.equip(vSub);
+							}
+						} else if (typeof window.spkmodToggleVehiclesModal === "function") {
+							window.spkmodToggleVehiclesModal();
+						}
+						break;
+					case "box":
+					case "mgs":
+						if (window.spkmodVehicles) {
+							if (window.spkmodVehicleSettings?.equippedId === "mgs_box") {
+								window.spkmodVehicles.unequip();
+							} else {
+								window.spkmodVehicles.equip("mgs_box");
+							}
+						}
+						break;
+					case "vehicleunlock":
+					case "carunlock": {
+						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
+							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
+						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
+							chatLog("❌ You do not have permission to use !vehicleunlock.");
+						} else if (window.spkmodVehicles && typeof window.spkmodVehicles.unlockAll === "function") {
+							window.spkmodVehicles.unlockAll();
+						}
+						break;
+					}
+					case "checkupdate":
+					case "modupdate": {
+						const sub = (cmd[1] || "").toLowerCase();
+						if (sub === "preview" || sub === "test") {
+							const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
+								|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
+							if (typeof spkmodIsVipUser === "function" && spkmodIsVipUser(myName) && window.spkmodUpdateChecker?.showAlert) {
+								window.spkmodUpdateChecker.showAlert({ build: "preview", protocol: window.SPKMOD_PROTOCOL_VERSION || 2 });
+							}
+						} else if (window.spkmodUpdateChecker?.checkNow) {
+							window.spkmodUpdateChecker.checkNow("manual");
+						}
+						break;
+					}
 					case "sparks":
 					case "spark":
 						if (cmd[1]) {
@@ -32175,6 +31703,7 @@ window.addEventListener("keydown", e => {
 			lunHudElements.petsModal,
 			lunHudElements.skinsModal,
 			lunHudElements.cartSkinsModal,
+			lunHudElements.vehiclesModal,
 			lunHudElements.sparksModal
 		].filter(m => m && !m.classList.contains("hidden"));
 
@@ -39491,7 +39020,7 @@ const SPKMOD_PET_CATALOG = [
 	{ level: 52, id: "mon_1302", icon: "✉️", moveMode: "fly", voiceType: "ghost", targetHeight: 0.66, monsterId: 1302, defaultName: "Mail Ghost", source: "Ghost Village", spec: { kind: "monster", monsterId: 1302 } },
 	{ level: 53, id: "mon_1303", icon: "💧", moveMode: "bounce", voiceType: "slime", targetHeight: 0.60, monsterId: 1303, defaultName: "Puddle Jelly", source: "Ghost Village", spec: { kind: "monster", monsterId: 1303 } },
 	{ level: 54, id: "mon_1305", icon: "🦇", moveMode: "fly", voiceType: "ghost", targetHeight: 0.64, monsterId: 1305, defaultName: "Paper Lantern Bat", source: "Ghost Village", spec: { kind: "monster", monsterId: 1305 } },
-	{ level: 55, id: "mon_1306", icon: "🐦‍⬛", moveMode: "fly", voiceType: "ghost", targetHeight: 0.65, monsterId: 1306, defaultName: "Straw Hat Crow", source: "Ghost Village", spec: { kind: "monster", monsterId: 1306 } },
+	{ level: 55, id: "mon_1306", icon: "🦅", moveMode: "fly", voiceType: "ghost", targetHeight: 0.65, monsterId: 1306, defaultName: "Straw Hat Crow", source: "Ghost Village", spec: { kind: "monster", monsterId: 1306 } },
 	{ level: 56, id: "mon_1309", icon: "☂️", moveMode: "fly", voiceType: "ghost", targetHeight: 0.70, monsterId: 1309, defaultName: "Umbrella Ghost", source: "Ghost Village", spec: { kind: "monster", monsterId: 1309 } },
 	{ level: 57, id: "mon_1310", icon: "🐸", moveMode: "bounce", voiceType: "slime", targetHeight: 0.62, monsterId: 1310, defaultName: "Crybaby Toad", source: "Ghost Village", spec: { kind: "monster", monsterId: 1310 } },
 	{ level: 58, id: "mon_1316", icon: "📷", moveMode: "fly", voiceType: "drone", targetHeight: 0.64, monsterId: 1316, defaultName: "Prank Camera", source: "Ghost Village", spec: { kind: "monster", monsterId: 1316 } },
@@ -39517,12 +39046,12 @@ const SPKMOD_PET_CATALOG = [
 	{ level: 76, id: "mon_1107", icon: "🛸", moveMode: "fly", voiceType: "drone", targetHeight: 0.58, monsterId: 1107, defaultName: "Monatium Scout Drone", source: "Monatium Field", spec: { kind: "monster", monsterId: 1107 } },
 	{ level: 77, id: "mon_1113", icon: "🤖", moveMode: "bounce", voiceType: "drone", targetHeight: 0.62, monsterId: 1113, defaultName: "Welding Spark Impbot", source: "Monatium Factory", spec: { kind: "monster", monsterId: 1113 } },
 	{ level: 78, id: "mon_1128", icon: "🕷️", moveMode: "bounce", voiceType: "drone", targetHeight: 0.58, monsterId: 1128, defaultName: "Coil Spiderbot", source: "Monatium Factory", spec: { kind: "monster", monsterId: 1128 } },
-	{ level: 79, id: "mon_1133", icon: "🫠", moveMode: "bounce", voiceType: "slime", targetHeight: 0.62, monsterId: 1133, defaultName: "Molten Slimecore", source: "Monatium Core", spec: { kind: "monster", monsterId: 1133 } },
+	{ level: 79, id: "mon_1133", icon: "🌋", moveMode: "bounce", voiceType: "slime", targetHeight: 0.62, monsterId: 1133, defaultName: "Molten Slimecore", source: "Monatium Core", spec: { kind: "monster", monsterId: 1133 } },
 	{ level: 80, id: "mon_1134", icon: "👁️", moveMode: "fly", voiceType: "drone", targetHeight: 0.62, monsterId: 1134, defaultName: "Watcher Eye Lens", source: "Monatium Core", spec: { kind: "monster", monsterId: 1134 } },
 
 	// --- TIER 5: LV 81-100 (SPEAKOV, TRAINS, DRAGONS, RAID BOSSES, CHIBI NPCS & BATTLECRUISER) ---
 	{ level: 81, id: "speakov_rifle", icon: "🔫", moveMode: "fly", voiceType: "drone", targetHeight: 0.55, defaultName: "Floating Tactical Rifle", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/weapon-rifle.glb" } },
-	{ level: 82, id: "speakov_raider", icon: "🪖", moveMode: "bounce", voiceType: "drone", targetHeight: 0.72, defaultName: "Mini Speakov Raider", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/raider-assault.glb" } },
+	{ level: 82, id: "speakov_raider", icon: "🎖️", moveMode: "bounce", voiceType: "drone", targetHeight: 0.72, defaultName: "Mini Speakov Raider", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/raider-assault.glb" } },
 	{ level: 83, id: "speakov_commander", icon: "🎖️", moveMode: "bounce", voiceType: "drone", targetHeight: 0.75, defaultName: "Mini Raider Commander", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/raider-commander.glb" } },
 	{ level: 84, id: "mini_town_train", icon: "🚂", moveMode: "bounce", voiceType: "vehicle", targetHeight: 0.68, defaultName: "Mini Worldtree Train", source: "Town Train", spec: { kind: "glb", url: "/models/town-train/worldtree-town-train.glb" } },
 	{ level: 85, id: "mini_santa_sleigh", icon: "🛷", moveMode: "fly", voiceType: "fairy", targetHeight: 0.68, defaultName: "Flying Santa Sleigh", source: "Winter Town", spec: { kind: "glb", url: "/models/winter-town/santa-sleigh-set.glb" } },
@@ -42262,7 +41791,7 @@ function spkmodBuildUnifiedSyncCode(state = {}) {
 	if (cartCode > 0) tokens.push(`c${cartCode}`);
 	else if (prev.cart || inc.cart) tokens.push("c0");
 
-	if (carMode > 0) tokens.push(`v${carMode}${carColor}`);
+	if (carMode > 0) tokens.push(`v${carMode}c${carColor}`);
 	else if (prev.car || inc.car) tokens.push("v0");
 
 	if (sparkCode > 0) tokens.push(`t${sparkCode}`);
@@ -42380,6 +41909,7 @@ function spkmodParseUnifiedSyncMessage(rawMsg) {
 					const resolved = (typeof spkmodPetCodeToId === "function")
 						? spkmodPetCodeToId(num)
 						: (typeof window !== "undefined" && typeof window.spkmodPetCodeToId === "function" ? window.spkmodPetCodeToId(num) : null);
+					if (!resolved) res.hasUnknownToken = true;
 					res.petId = resolved || "none";
 				}
 			} else if ((tok = part.match(/^s(\d+)$/))) {
@@ -42392,6 +41922,7 @@ function spkmodParseUnifiedSyncMessage(rawMsg) {
 					const resolved = (typeof window !== "undefined" && typeof window.spkmodSkinCodeToId === "function")
 						? window.spkmodSkinCodeToId(num)
 						: null;
+					if (!resolved) res.hasUnknownToken = true;
 					res.skinId = resolved || "none";
 				}
 			} else if ((tok = part.match(/^f(\d+)$/))) {
@@ -42409,6 +41940,7 @@ function spkmodParseUnifiedSyncMessage(rawMsg) {
 					const resolved = (typeof window !== "undefined" && typeof window.spkmodCartSkinCodeToId === "function")
 						? window.spkmodCartSkinCodeToId(num)
 						: null;
+					if (!resolved) res.hasUnknownToken = true;
 					res.cartId = resolved || "none";
 				}
 			} else if (part === "v0") {
@@ -42416,7 +41948,16 @@ function spkmodParseUnifiedSyncMessage(rawMsg) {
 				res.hasCar = true;
 				res.carMode = 0;
 				res.carColorIdx = 0;
-			} else if ((tok = part.match(/^v([12])(\d+)$/))) {
+			} else if ((tok = part.match(/^v(\d+)c(\d+)$/))) {
+				recognized++;
+				res.hasCar = true;
+				res.carMode = Number(tok[1]);
+				res.carColorIdx = Number(tok[2]);
+				if (res.carMode > 0 && typeof window !== "undefined" && typeof window.spkmodVehicleCodeToId === "function" && !window.spkmodVehicleCodeToId(res.carMode)) {
+					res.hasUnknownToken = true;
+				}
+			} else if ((tok = part.match(/^v([12])(\d)$/))) {
+				// Backward compatibility with legacy 2-digit v1X / v2X sedan/van tokens
 				recognized++;
 				res.hasCar = true;
 				res.carMode = Number(tok[1]);
@@ -42431,11 +41972,13 @@ function spkmodParseUnifiedSyncMessage(rawMsg) {
 					const resolved = (typeof window !== "undefined" && typeof window.spkmodSparkCodeToId === "function")
 						? window.spkmodSparkCodeToId(num)
 						: null;
+					if (!resolved) res.hasUnknownToken = true;
 					res.sparkId = resolved || "none";
 				}
-			} else if (/^[a-z]\d+$/.test(part)) {
-				// Forward-compatible unknown compact field
+			} else if (/^[a-z]\d+(?:[a-z]\d+)*$/.test(part)) {
+				// Forward-compatible unknown compact field from a newer mod version
 				recognized++;
+				res.hasUnknownToken = true;
 			}
 		}
 		return recognized > 0 ? res : null;
@@ -43149,6 +42692,9 @@ window.spkmodHandleIncomingPetTrigger = function(playerId, playerName, rawMsg) {
 	}
 	if (parsed.hasSpark && typeof window.spkmodHandleIncomingSparkState === "function") {
 		window.spkmodHandleIncomingSparkState(playerId, playerName, parsed.sparkId);
+	}
+	if (parsed.hasUnknownToken && typeof window.spkmodNotifyUnknownSyncToken === "function") {
+		window.spkmodNotifyUnknownSyncToken();
 	}
 };
 window.spkmodHandleIncomingModSync = window.spkmodHandleIncomingPetTrigger;
@@ -44718,7 +44264,7 @@ const SPKMOD_SKIN_CATALOG = [
 		costumeBuilder: "chef"
 	},
 	{
-		id: "costume_soldier", level: 30, category: "outfit", icon: "🪖", accent: "#65a30d",
+		id: "costume_soldier", level: 30, category: "outfit", icon: "🎖️", accent: "#65a30d",
 		defaultName: "Combat Soldier Speaki",
 		recolor: { hue: 96, satMul: 1.8, satAdd: 0.14, satMax: 0.58, lightMul: 0.78, lightAdd: 0.02, lightMax: 0.52 },
 		costumeBuilder: "soldier",
@@ -44866,7 +44412,7 @@ const SPKMOD_SKIN_CATALOG = [
 		costumeBuilder: "mage"
 	},
 	{
-		id: "costume_ninja", level: 55, category: "outfit", icon: "🥷", accent: "#64748b",
+		id: "costume_ninja", level: 55, category: "outfit", icon: "🥋", accent: "#64748b",
 		defaultName: "Shadow Ninja Speaki",
 		recolor: { hue: 235, satMul: 0.35, satAdd: 0.04, satMax: 0.22, lightMul: 0.34, lightAdd: -0.02, lightMax: 0.26 },
 		costumeBuilder: "ninja",
@@ -45085,6 +44631,264 @@ const SPKMOD_SKIN_CATALOG = [
 		id: "fx_rainbow", level: 100, category: "fx", icon: "🌈", accent: "#ec4899",
 		defaultName: "Rainbow Prism Speaki",
 		fxMode: "rainbow"
+	},
+	{
+		id: "costume_burger_staff_a", level: 50, category: "outfit", icon: "🍔", accent: "#ef4444",
+		defaultName: "Burger Staff A Uniform",
+		nativeSkinCode: "SKIN_SPEAKI_BURGER_STAFF_A"
+	},
+	{
+		id: "costume_burger_staff_b", level: 50, category: "outfit", icon: "🍟", accent: "#f59e0b",
+		defaultName: "Burger Staff B Uniform",
+		nativeSkinCode: "SKIN_SPEAKI_BURGER_STAFF_B"
+	},
+	{
+		id: "costume_mouse", level: 15, category: "outfit", icon: "🐭", accent: "#94a3b8",
+		defaultName: "Squeaky Mouse Speaki",
+		recolor: { hue: 220, satMul: 0.28, satAdd: 0.04, satMax: 0.18, lightMul: 1.05, lightAdd: 0.22, lightMax: 0.78 },
+		costumeBuilder: "mouse",
+		hideMagicStaff: true
+	},
+	// --- FUNNY, FOOD, ANIMAL & MYTHIC COSTUMES (BALANCED SPREAD LV 12 -> 100) ---
+	{
+		id: "costume_plunger_knight", level: 14, category: "outfit", icon: "🚽", accent: "#ef4444",
+		defaultName: "Plunger Knight Speaki",
+		recolor: { hue: 205, satMul: 1.6, satAdd: 0.12, satMax: 0.65, lightMul: 1.18, lightAdd: 0.18, lightMax: 0.88 },
+		costumeBuilder: "plungerKnight", hideMagicStaff: true
+	},
+	{
+		id: "costume_traffic_cone", level: 12, category: "outfit", icon: "🚧", accent: "#f97316",
+		defaultName: "Traffic Cone Head Speaki",
+		recolor: { hue: 28, satMul: 3.2, satAdd: 0.25, satMax: 0.94, lightMul: 1.22, lightAdd: 0.10, lightMax: 0.82 },
+		costumeBuilder: "trafficCone", hideMagicStaff: true
+	},
+	{
+		id: "costume_trash_goblin", level: 18, category: "outfit", icon: "🗑️", accent: "#64748b",
+		defaultName: "Trash Goblin Speaki",
+		recolor: { hue: 145, satMul: 1.3, satAdd: 0.10, satMax: 0.45, lightMul: 0.90, lightAdd: 0.04, lightMax: 0.66 },
+		costumeBuilder: "trashGoblin", hideMagicStaff: true
+	},
+	{
+		id: "costume_spa_towel", level: 19, category: "outfit", icon: "🛁", accent: "#7dd3fc",
+		defaultName: "Spa Day Towel Speaki",
+		recolor: { hue: 195, satMul: 1.2, satAdd: 0.12, satMax: 0.50, lightMul: 1.32, lightAdd: 0.30, lightMax: 0.94 },
+		costumeBuilder: "spaTowel", hideMagicStaff: true
+	},
+	{
+		id: "costume_salaryman", level: 31, category: "outfit", icon: "💼", accent: "#334155",
+		defaultName: "Overworked Salaryman Speaki",
+		recolor: { hue: 222, satMul: 0.55, satAdd: 0.06, satMax: 0.30, lightMul: 0.55, lightAdd: 0.02, lightMax: 0.42 },
+		costumeBuilder: "salaryman", hideMagicStaff: true
+	},
+	{
+		id: "costume_tinfoil_hat", level: 34, category: "outfit", icon: "📡", accent: "#cbd5e1",
+		defaultName: "Tin-Foil Conspiracy Speaki",
+		recolor: { hue: 215, satMul: 0.35, satAdd: 0.04, satMax: 0.22, lightMul: 1.15, lightAdd: 0.26, lightMax: 0.86 },
+		costumeBuilder: "tinfoilHat", hideMagicStaff: true
+	},
+	{
+		id: "costume_tp_mummy", level: 24, category: "outfit", icon: "🧻", accent: "#f8fafc",
+		defaultName: "Toilet Paper Mummy Speaki",
+		recolor: { hue: 42, satMul: 0.25, satAdd: 0.03, satMax: 0.18, lightMul: 1.10, lightAdd: 0.44, lightMax: 0.94 },
+		costumeBuilder: "tpMummy", hideMagicStaff: true
+	},
+	{
+		id: "costume_frying_pan", level: 28, category: "outfit", icon: "🍳", accent: "#fbbf24",
+		defaultName: "Frying Pan Bonk Speaki",
+		recolor: { hue: 48, satMul: 2.4, satAdd: 0.18, satMax: 0.82, lightMul: 1.25, lightAdd: 0.14, lightMax: 0.86 },
+		costumeBuilder: "fryingPan", hideMagicStaff: true
+	},
+	{
+		id: "costume_cactus_pot", level: 29, category: "outfit", icon: "🌵", accent: "#22c55e",
+		defaultName: "Potted Cactus Speaki",
+		recolor: { hue: 132, satMul: 2.5, satAdd: 0.18, satMax: 0.78, lightMul: 1.05, lightAdd: 0.06, lightMax: 0.72 },
+		costumeBuilder: "cactusPot", hideMagicStaff: true
+	},
+	{
+		id: "costume_toast_head", level: 16, category: "outfit", icon: "🍞", accent: "#d97706",
+		defaultName: "Toast-Head Meme Speaki",
+		recolor: { hue: 36, satMul: 2.0, satAdd: 0.18, satMax: 0.75, lightMul: 1.26, lightAdd: 0.18, lightMax: 0.86 },
+		costumeBuilder: "toastHead", hideMagicStaff: true
+	},
+	{
+		id: "costume_banana_suit", level: 22, category: "outfit", icon: "🍌", accent: "#facc15",
+		defaultName: "Banana Suit Speaki",
+		recolor: { hue: 52, satMul: 3.1, satAdd: 0.24, satMax: 0.92, lightMul: 1.28, lightAdd: 0.16, lightMax: 0.86 },
+		costumeBuilder: "bananaSuit", hideMagicStaff: true
+	},
+	{
+		id: "costume_ice_cream", level: 36, category: "outfit", icon: "🍦", accent: "#f472b6",
+		defaultName: "Upside-Down Ice Cream Speaki",
+		recolor: { hue: 336, satMul: 2.0, satAdd: 0.18, satMax: 0.78, lightMul: 1.32, lightAdd: 0.24, lightMax: 0.90 },
+		costumeBuilder: "iceCream", hideMagicStaff: true
+	},
+	{
+		id: "costume_taco_fiesta", level: 39, category: "outfit", icon: "🌮", accent: "#eab308",
+		defaultName: "Taco Fiesta Speaki",
+		recolor: { hue: 40, satMul: 2.8, satAdd: 0.22, satMax: 0.88, lightMul: 1.22, lightAdd: 0.12, lightMax: 0.84 },
+		costumeBuilder: "tacoFiesta", hideMagicStaff: true
+	},
+	{
+		id: "costume_pizza_boy", level: 41, category: "outfit", icon: "🍕", accent: "#dc2626",
+		defaultName: "Pizza Delivery Speaki",
+		recolor: { hue: 4, satMul: 2.9, satAdd: 0.22, satMax: 0.86, lightMul: 1.14, lightAdd: 0.08, lightMax: 0.78 },
+		costumeBuilder: "pizzaBoy", hideMagicStaff: true
+	},
+	{
+		id: "costume_duckling", level: 21, category: "outfit", icon: "🦆", accent: "#fde047",
+		defaultName: "Duckling Hood Speaki",
+		recolor: { hue: 50, satMul: 3.0, satAdd: 0.24, satMax: 0.92, lightMul: 1.30, lightAdd: 0.16, lightMax: 0.88 },
+		costumeBuilder: "duckling", hideMagicStaff: true
+	},
+	{
+		id: "costume_moo_cow", level: 26, category: "outfit", icon: "🐮", accent: "#f8fafc",
+		defaultName: "Moo Cow Speaki",
+		recolor: { hue: 210, satMul: 0.15, satAdd: 0.0, satMax: 0.12, lightMul: 0.96, lightAdd: 0.48, lightMax: 0.95 },
+		costumeBuilder: "mooCow", hideMagicStaff: true
+	},
+	{
+		id: "costume_cloud_lamb", level: 33, category: "outfit", icon: "🐑", accent: "#fef3c7",
+		defaultName: "Cloud Lamb Speaki",
+		recolor: { hue: 45, satMul: 0.28, satAdd: 0.04, satMax: 0.22, lightMul: 1.08, lightAdd: 0.46, lightMax: 0.95 },
+		costumeBuilder: "cloudLamb", hideMagicStaff: true
+	},
+	{
+		id: "costume_raccoon", level: 38, category: "outfit", icon: "🦝", accent: "#64748b",
+		defaultName: "Trash Panda Raccoon Speaki",
+		recolor: { hue: 215, satMul: 0.30, satAdd: 0.04, satMax: 0.20, lightMul: 0.78, lightAdd: 0.08, lightMax: 0.62 },
+		costumeBuilder: "raccoon", hideMagicStaff: true
+	},
+	{
+		id: "costume_penguin", level: 43, category: "outfit", icon: "🐧", accent: "#38bdf8",
+		defaultName: "Chubby Penguin Speaki",
+		recolor: { hue: 220, satMul: 0.45, satAdd: 0.06, satMax: 0.28, lightMul: 0.52, lightAdd: 0.02, lightMax: 0.44 },
+		costumeBuilder: "penguin", hideMagicStaff: true
+	},
+	{
+		id: "costume_rooster", level: 44, category: "outfit", icon: "🐔", accent: "#ef4444",
+		defaultName: "Cluck Rooster Speaki",
+		recolor: { hue: 38, satMul: 0.35, satAdd: 0.05, satMax: 0.25, lightMul: 1.05, lightAdd: 0.44, lightMax: 0.94 },
+		costumeBuilder: "rooster", hideMagicStaff: true
+	},
+	{
+		id: "costume_pajamas", level: 46, category: "outfit", icon: "🌙", accent: "#818cf8",
+		defaultName: "Sleepy Pajamas Speaki",
+		recolor: { hue: 235, satMul: 1.8, satAdd: 0.16, satMax: 0.72, lightMul: 1.24, lightAdd: 0.20, lightMax: 0.88 },
+		costumeBuilder: "pajamas", hideMagicStaff: true
+	},
+	{
+		id: "costume_honk_clown", level: 48, category: "outfit", icon: "🤡", accent: "#f43f5e",
+		defaultName: "Honk Clown Speaki",
+		recolor: { hue: 350, satMul: 2.9, satAdd: 0.24, satMax: 0.90, lightMul: 1.20, lightAdd: 0.12, lightMax: 0.84 },
+		costumeBuilder: "honkClown", hideMagicStaff: true
+	},
+	{
+		id: "costume_sushi_hat", level: 51, category: "outfit", icon: "🍣", accent: "#fb7185",
+		defaultName: "Salmon Nigiri Speaki",
+		recolor: { hue: 14, satMul: 2.8, satAdd: 0.22, satMax: 0.88, lightMul: 1.24, lightAdd: 0.14, lightMax: 0.84 },
+		costumeBuilder: "sushiHat", hideMagicStaff: true
+	},
+	{
+		id: "costume_boba_tea", level: 53, category: "outfit", icon: "🥤", accent: "#d6a77a",
+		defaultName: "Boba Milk Tea Speaki",
+		recolor: { hue: 30, satMul: 1.4, satAdd: 0.14, satMax: 0.56, lightMul: 1.24, lightAdd: 0.22, lightMax: 0.86 },
+		costumeBuilder: "bobaTea", hideMagicStaff: true
+	},
+	{
+		id: "costume_toadstool", level: 56, category: "outfit", icon: "🍄", accent: "#ef4444",
+		defaultName: "Giant Toadstool Speaki",
+		recolor: { hue: 0, satMul: 2.8, satAdd: 0.22, satMax: 0.86, lightMul: 1.15, lightAdd: 0.08, lightMax: 0.80 },
+		costumeBuilder: "toadstool", hideMagicStaff: true
+	},
+	{
+		id: "costume_detective", level: 58, category: "outfit", icon: "🕵️", accent: "#b45309",
+		defaultName: "Noir Detective Speaki",
+		recolor: { hue: 32, satMul: 1.2, satAdd: 0.10, satMax: 0.48, lightMul: 0.86, lightAdd: 0.06, lightMax: 0.64 },
+		costumeBuilder: "detective", hideMagicStaff: true
+	},
+	{
+		id: "costume_mariachi", level: 61, category: "outfit", icon: "🎸", accent: "#e11d48",
+		defaultName: "Mariachi Sombrero Speaki",
+		recolor: { hue: 348, satMul: 2.8, satAdd: 0.22, satMax: 0.88, lightMul: 1.05, lightAdd: 0.05, lightMax: 0.72 },
+		costumeBuilder: "mariachi", hideMagicStaff: true
+	},
+	{
+		id: "costume_ramen_bowl", level: 63, category: "outfit", icon: "🍜", accent: "#f59e0b",
+		defaultName: "Ramen Bowl Head Speaki",
+		recolor: { hue: 6, satMul: 2.6, satAdd: 0.20, satMax: 0.84, lightMul: 1.12, lightAdd: 0.08, lightMax: 0.78 },
+		costumeBuilder: "ramenBowl", hideMagicStaff: true
+	},
+	{
+		id: "costume_cardboard_bot", level: 66, category: "outfit", icon: "🤖", accent: "#b4834e",
+		defaultName: "DIY Cardboard Robot Speaki",
+		recolor: { hue: 32, satMul: 1.3, satAdd: 0.12, satMax: 0.50, lightMul: 1.06, lightAdd: 0.14, lightMax: 0.76 },
+		costumeBuilder: "cardboardBot", hideMagicStaff: true
+	},
+	{
+		id: "costume_crt_tv", level: 69, category: "outfit", icon: "📺", accent: "#38bdf8",
+		defaultName: "CRT TV Head Speaki",
+		recolor: { hue: 40, satMul: 0.42, satAdd: 0.05, satMax: 0.28, lightMul: 1.12, lightAdd: 0.26, lightMax: 0.86 },
+		costumeBuilder: "crtTv", hideMagicStaff: true
+	},
+	{
+		id: "costume_snail", level: 68, category: "outfit", icon: "🐌", accent: "#a855f7",
+		defaultName: "Giant Snail Speaki",
+		recolor: { hue: 280, satMul: 1.8, satAdd: 0.16, satMax: 0.72, lightMul: 1.24, lightAdd: 0.18, lightMax: 0.86 },
+		costumeBuilder: "snail"
+	},
+	{
+		id: "costume_octopus", level: 72, category: "outfit", icon: "🐙", accent: "#c084fc",
+		defaultName: "Octopus Crown Speaki",
+		recolor: { hue: 276, satMul: 2.4, satAdd: 0.20, satMax: 0.84, lightMul: 1.16, lightAdd: 0.10, lightMax: 0.82 },
+		costumeBuilder: "octopus"
+	},
+	{
+		id: "costume_trex", level: 76, category: "outfit", icon: "🦖", accent: "#22c55e",
+		defaultName: "Inflatable T-Rex Speaki",
+		recolor: { hue: 122, satMul: 2.8, satAdd: 0.22, satMax: 0.86, lightMul: 1.12, lightAdd: 0.08, lightMax: 0.76 },
+		costumeBuilder: "trex"
+	},
+	{
+		id: "costume_capybara", level: 81, category: "outfit", icon: "🍊", accent: "#d97706",
+		defaultName: "Zen Capybara Speaki",
+		recolor: { hue: 28, satMul: 1.5, satAdd: 0.12, satMax: 0.56, lightMul: 0.92, lightAdd: 0.06, lightMax: 0.68 },
+		costumeBuilder: "capybara", hideMagicStaff: true
+	},
+	{
+		id: "costume_plague_doc", level: 84, category: "outfit", icon: "🦅", accent: "#10b981",
+		defaultName: "Plague Doctor Speaki",
+		recolor: { hue: 230, satMul: 0.25, satAdd: 0.02, satMax: 0.18, lightMul: 0.38, lightAdd: -0.02, lightMax: 0.30 },
+		costumeBuilder: "plagueDoc", hideMagicStaff: true
+	},
+	{
+		id: "costume_masquerade", level: 88, category: "outfit", icon: "🎭", accent: "#eab308",
+		defaultName: "Phantom Masquerade Speaki",
+		recolor: { hue: 266, satMul: 2.5, satAdd: 0.20, satMax: 0.84, lightMul: 0.84, lightAdd: 0.04, lightMax: 0.66 },
+		costumeBuilder: "masquerade", hideMagicStaff: true
+	},
+	{
+		id: "costume_voxel_hero", level: 92, category: "outfit", icon: "👾", accent: "#06b6d4",
+		defaultName: "8-Bit Voxel Hero Speaki",
+		recolor: { hue: 194, satMul: 2.8, satAdd: 0.22, satMax: 0.88, lightMul: 1.22, lightAdd: 0.12, lightMax: 0.84 },
+		costumeBuilder: "voxelHero", hideMagicStaff: true
+	},
+	{
+		id: "costume_saturn", level: 96, category: "outfit", icon: "🪐", accent: "#f59e0b",
+		defaultName: "Saturn Rings Speaki",
+		recolor: { hue: 252, satMul: 2.6, satAdd: 0.20, satMax: 0.84, lightMul: 0.90, lightAdd: 0.05, lightMax: 0.70 },
+		costumeBuilder: "saturn"
+	},
+	{
+		id: "costume_ufo_abduct", level: 98, category: "outfit", icon: "🛸", accent: "#4ade80",
+		defaultName: "Mini UFO Abduction Speaki",
+		recolor: { hue: 148, satMul: 2.6, satAdd: 0.22, satMax: 0.88, lightMul: 1.18, lightAdd: 0.10, lightMax: 0.82 },
+		costumeBuilder: "ufoAbduct"
+	},
+	{
+		id: "costume_biblical", level: 100, category: "outfit", icon: "👁️", accent: "#fde047",
+		defaultName: "Biblically Accurate Speaki",
+		recolor: { hue: 46, satMul: 2.6, satAdd: 0.22, satMax: 0.90, lightMul: 1.32, lightAdd: 0.22, lightMax: 0.92 },
+		costumeBuilder: "biblical"
 	}
 ];
 
@@ -48016,7 +47820,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 		};
 		try {
 			if (!(await spkmodBuildExtraCostumeSetA(builder, ctx))) {
-				await spkmodBuildExtraCostumeSetB(builder, ctx);
+				if (!(await spkmodBuildExtraCostumeSetB(builder, ctx))) {
+					await spkmodBuildExtraCostumeSetC(builder, ctx);
+				}
 			}
 		} catch (err) {
 			console.warn("[SpeakiMod+ Skins] Costume builder error:", builder, err);
@@ -48091,6 +47897,93 @@ async function spkmodBuildExtraCostumeSetA(builder, ctx) {
 				bamboo.add(leaf);
 			}
 			attachHandProp(rightHand, "spkmod_skin_panda_bamboo", bamboo, Q.HERO_R, [0.03, -0.07, 0.04], { hideInSpeakov: true });
+		}
+		return true;
+	} else if (builder === "mouse") {
+		addHead(anchor => {
+			const furMat = toon(0x94a3b8);
+			const rimMat = toon(0x64748b);
+			const pinkMat = toon(0xf9a8d4);
+			const band = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.024, 8, 20, Math.PI), rimMat);
+			band.position.set(0, -0.32, 0.02);
+			anchor.add(band);
+			for (const s of [-1, 1]) {
+				const ear = new THREE.Group();
+				ear.position.set(s * 0.27, 0.02, 0.02);
+				const baseRotZ = -s * 0.24;
+				ear.rotation.z = baseRotZ;
+				ear.rotation.y = -s * 0.14;
+				const outer = new THREE.Mesh(new THREE.SphereGeometry(0.205, 16, 14), furMat);
+				outer.scale.set(1.0, 0.98, 0.34);
+				outer.position.set(0, 0.11, 0);
+				ear.add(outer);
+				const inner = new THREE.Mesh(new THREE.SphereGeometry(0.142, 14, 12), pinkMat);
+				inner.scale.set(1.0, 0.96, 0.22);
+				inner.position.set(0, 0.105, 0.048);
+				ear.add(inner);
+				anchor.add(ear);
+				animParts.push({ type: "earWiggle", node: ear, side: s, baseRotZ });
+			}
+		});
+		addBody(pelvis, "spkmod_skin_mouse_tail", [0, -0.14, -0.20], tailAnchor => {
+			const tailMat = toon(0xf472b6);
+			const tipMat = toon(0xfda4af);
+			const tailRoot = new THREE.Group();
+			const segs = [
+				{ y: -0.02, z: -0.14, rx: -1.52, rTop: 0.026, rBot: 0.032, len: 0.28 },
+				{ y:  0.00, z: -0.40, rx: -1.36, rTop: 0.021, rBot: 0.026, len: 0.28 },
+				{ y:  0.08, z: -0.63, rx: -0.96, rTop: 0.017, rBot: 0.021, len: 0.24 },
+				{ y:  0.23, z: -0.77, rx: -0.42, rTop: 0.013, rBot: 0.017, len: 0.22 },
+				{ y:  0.40, z: -0.80, rx:  0.25, rTop: 0.009, rBot: 0.013, len: 0.20 }
+			];
+			segs.forEach((sg, idx) => {
+				const mat = idx === segs.length - 1 ? tipMat : tailMat;
+				const m = new THREE.Mesh(new THREE.CylinderGeometry(sg.rTop, sg.rBot, sg.len, 8), mat);
+				m.position.set(0, sg.y, sg.z);
+				m.rotation.x = sg.rx;
+				tailRoot.add(m);
+				const joint = new THREE.Mesh(new THREE.SphereGeometry(sg.rBot * 0.98, 8, 6), mat);
+				joint.position.set(0, sg.y - Math.cos(sg.rx) * sg.len * 0.48, sg.z - Math.sin(sg.rx) * sg.len * 0.48);
+				tailRoot.add(joint);
+			});
+			const tip = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), tipMat);
+			tip.position.set(0, 0.49, -0.77);
+			tailRoot.add(tip);
+			tailAnchor.add(tailRoot);
+			animParts.push({ type: "tail", node: tailRoot, speed: 5.2, amp: 0.36 });
+		});
+		if (rightHand) {
+			const cheese = new THREE.Group();
+			const cheeseMat = toon(0xfacc15, { emissive: 0xca8a04, emissiveIntensity: 0.16 });
+			const rindMat = toon(0xeab308);
+			const holeMat = toon(0xb45309);
+			// Triangular Swiss cheese wedge (3-sided cylinder prism)
+			const wedge = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.15, 3), cheeseMat);
+			wedge.scale.set(0.85, 1.0, 1.35);
+			wedge.position.set(0, 0.16, 0.04);
+			wedge.rotation.z = 0.22;
+			cheese.add(wedge);
+			// Golden cheese crust along the back edge
+			const rind = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.155, 0.045), rindMat);
+			rind.position.set(0.02, 0.16, -0.11);
+			rind.rotation.z = 0.22;
+			cheese.add(rind);
+			// Iconic Swiss cheese holes on top & sides
+			const holes = [
+				[0.02, 0.235, 0.02, 0.044],
+				[-0.07, 0.232, -0.04, 0.032],
+				[0.08, 0.230, -0.05, 0.028],
+				[0.10, 0.15, 0.08, 0.036],
+				[-0.10, 0.16, 0.07, 0.030],
+				[0.01, 0.14, 0.18, 0.034]
+			];
+			for (const [hx, hy, hz, hr] of holes) {
+				const h = new THREE.Mesh(new THREE.SphereGeometry(hr, 10, 8), holeMat);
+				h.scale.set(1, 0.55, 1);
+				h.position.set(hx, hy, hz);
+				cheese.add(h);
+			}
+			attachHandProp(rightHand, "spkmod_skin_mouse_cheese", cheese, Q.HERO_R, [0.03, -0.06, 0.05], { hideInSpeakov: true });
 		}
 		return true;
 	} else if (builder === "bee") {
@@ -50052,6 +49945,873 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 	return false;
 }
 
+// Extra 3D Costume Builders — Set C (40 High-Level Funny, Food, Animal & Mythic Costumes: Lv.61-100)
+async function spkmodBuildExtraCostumeSetC(builder, ctx) {
+	const { THREE, toon, avatarRoot, head, spine, pelvis, rightHand, leftHand, reviveHat, skeletonBones, attachments, animParts, attachHandProp, Q } = ctx;
+	const addHead = (buildFn) => {
+		if (!head) return;
+		const anchor = spkmodSkinCreateHeadAnchor(avatarRoot, head, reviveHat);
+		if (!anchor) return;
+		buildFn(anchor);
+		spkmodSkinSanitizeObject(anchor);
+		head.add(anchor);
+		attachments.push({ parent: head, node: anchor });
+	};
+	const addBody = (bone, name, offset, buildFn) => {
+		if (!bone) return;
+		const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones);
+		if (!anchor) return;
+		buildFn(anchor);
+		spkmodSkinSanitizeObject(anchor);
+		bone.add(anchor);
+		attachments.push({ parent: bone, node: anchor });
+	};
+	const put = (parent, geo, mat, pos = null, rot = null, scale = null) => {
+		const m = new THREE.Mesh(geo, mat);
+		if (pos) m.position.set(pos[0], pos[1], pos[2]);
+		if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
+		if (scale) m.scale.set(scale[0], scale[1], scale[2]);
+		parent.add(m);
+		return m;
+	};
+	const addProp = (name, buildFn, off = [0.03, -0.07, 0.04], hand = rightHand, quat = Q.HERO_R) => {
+		if (!hand) return;
+		const g = new THREE.Group();
+		buildFn(g);
+		attachHandProp(hand, name, g, quat, off, { hideInSpeakov: true });
+	};
+
+	if (builder === "plungerKnight") {
+		addHead(a => {
+			const cup = toon(0xdc2626), wood = toon(0xb45309);
+			put(a, new THREE.SphereGeometry(0.16, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.58), cup, [0, -0.02, 0]);
+			put(a, new THREE.TorusGeometry(0.155, 0.026, 8, 18), cup, [0, -0.01, 0], [Math.PI / 2, 0, 0]);
+			put(a, new THREE.CylinderGeometry(0.024, 0.028, 0.52, 10), wood, [0, 0.34, 0]);
+			put(a, new THREE.SphereGeometry(0.032, 8, 8), wood, [0, 0.60, 0]);
+		});
+		addProp("spkmod_skin_tp_wand", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.02, 0.58, 8), toon(0xb45309), [0, 0.18, 0]);
+			put(g, new THREE.CylinderGeometry(0.11, 0.11, 0.22, 14), toon(0xf8fafc), [0, 0.52, 0]);
+			put(g, new THREE.CylinderGeometry(0.038, 0.038, 0.226, 10), toon(0x94a3b8), [0, 0.52, 0]);
+		});
+		return true;
+	} else if (builder === "trafficCone") {
+		addHead(a => {
+			const org = toon(0xf97316, { emissive: 0xea580c, emissiveIntensity: 0.2 }), wht = toon(0xf8fafc);
+			put(a, new THREE.BoxGeometry(0.46, 0.045, 0.46), org, [0, -0.04, 0]);
+			put(a, new THREE.ConeGeometry(0.20, 0.58, 16), org, [0, 0.26, 0]);
+			put(a, new THREE.CylinderGeometry(0.095, 0.135, 0.11, 16), wht, [0, 0.28, 0]);
+			put(a, new THREE.CylinderGeometry(0.045, 0.072, 0.08, 16), wht, [0, 0.44, 0]);
+		});
+		addProp("spkmod_skin_stop_sign", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.02, 0.72, 8), toon(0x94a3b8), [0, 0.24, 0]);
+			put(g, new THREE.CylinderGeometry(0.20, 0.20, 0.03, 8), toon(0xdc2626), [0, 0.68, 0], [Math.PI / 2, Math.PI / 8, 0]);
+			put(g, new THREE.TorusGeometry(0.175, 0.015, 6, 8), toon(0xffffff), [0, 0.68, 0.014], [0, 0, Math.PI / 8]);
+		});
+		return true;
+	} else if (builder === "trashGoblin") {
+		addHead(a => {
+			const metal = toon(0x94a3b8), dark = toon(0x475569), bone = toon(0xf8fafc);
+			const lid = new THREE.Group();
+			lid.position.set(0.06, 0.02, 0);
+			lid.rotation.z = -0.26;
+			put(lid, new THREE.CylinderGeometry(0.28, 0.31, 0.06, 18), metal, [0, 0, 0]);
+			put(lid, new THREE.TorusGeometry(0.065, 0.018, 8, 12, Math.PI), dark, [0, 0.03, 0]);
+			// Cute fishbone perched on lid
+			put(lid, new THREE.CylinderGeometry(0.012, 0.012, 0.20, 6), bone, [0.10, 0.055, 0.06], [0, 0.4, Math.PI / 2]);
+			put(lid, new THREE.ConeGeometry(0.04, 0.06, 4), bone, [0.20, 0.055, 0.02], [0, 0, -Math.PI / 2]);
+			a.add(lid);
+		});
+		addProp("spkmod_skin_soda_wand", g => {
+			put(g, new THREE.CylinderGeometry(0.018, 0.018, 0.56, 8), toon(0x64748b), [0, 0.16, 0]);
+			put(g, new THREE.CylinderGeometry(0.085, 0.085, 0.20, 14), toon(0x22c55e, { emissive: 0x16a34a, emissiveIntensity: 0.25 }), [0, 0.50, 0]);
+			put(g, new THREE.CylinderGeometry(0.086, 0.086, 0.04, 14), toon(0xe2e8f0), [0, 0.59, 0]);
+		});
+		return true;
+	} else if (builder === "spaTowel") {
+		addHead(a => {
+			const wht = toon(0xf8fafc), cyan = toon(0xbae6fd);
+			put(a, new THREE.TorusGeometry(0.32, 0.095, 12, 20), wht, [0, -0.04, 0], [Math.PI / 2, 0, 0]);
+			put(a, new THREE.SphereGeometry(0.25, 14, 12), wht, [0, 0.14, -0.02], [1.0, 0.85, 1.0]);
+			put(a, new THREE.ConeGeometry(0.14, 0.28, 12), cyan, [0.06, 0.34, -0.06], [-0.3, 0, -0.4]);
+		});
+		addProp("spkmod_skin_spa_duck", g => {
+			const yel = toon(0xfacc15), org = toon(0xf97316);
+			put(g, new THREE.SphereGeometry(0.12, 12, 10), yel, [0, 0.12, 0], [0.9, 0.8, 1.2]);
+			put(g, new THREE.SphereGeometry(0.085, 12, 10), yel, [0, 0.23, 0.08]);
+			put(g, new THREE.ConeGeometry(0.036, 0.075, 8), org, [0, 0.22, 0.17], [Math.PI / 2, 0, 0]);
+		});
+		return true;
+	} else if (builder === "salaryman") {
+		addHead(a => {
+			const tie = toon(0xdc2626), strp = toon(0xfef08a);
+			put(a, new THREE.TorusGeometry(0.32, 0.036, 8, 20), tie, [0, -0.05, 0], [Math.PI / 2, 0, 0]);
+			const knot = new THREE.Group();
+			knot.position.set(0.22, -0.02, 0.20);
+			put(knot, new THREE.SphereGeometry(0.055, 8, 8), tie);
+			put(knot, new THREE.BoxGeometry(0.06, 0.24, 0.02), tie, [0.08, 0.12, 0], [0, 0, -0.55]);
+			put(knot, new THREE.BoxGeometry(0.064, 0.04, 0.024), strp, [0.08, 0.12, 0], [0, 0, -0.55]);
+			a.add(knot);
+			// Floating stress steam puffs
+			const puff = new THREE.Group();
+			puff.position.set(-0.26, 0.26, 0);
+			put(puff, new THREE.SphereGeometry(0.065, 8, 8), toon(0xe2e8f0, { transparent: true, opacity: 0.75 }));
+			a.add(puff);
+			animParts.push({ type: "floatY", node: puff, baseY: 0.26 });
+		});
+		addProp("spkmod_skin_briefcase", g => {
+			put(g, new THREE.BoxGeometry(0.32, 0.24, 0.10), toon(0x78350f), [0, 0.04, 0]);
+			put(g, new THREE.TorusGeometry(0.06, 0.015, 6, 10, Math.PI), toon(0x451a03), [0, 0.16, 0]);
+			put(g, new THREE.BoxGeometry(0.05, 0.04, 0.11), toon(0xfacc15), [0, 0.10, 0]);
+		});
+		return true;
+	} else if (builder === "tinfoilHat") {
+		addHead(a => {
+			const foil = toon(0xe2e8f0, { emissive: 0x94a3b8, emissiveIntensity: 0.25 });
+			put(a, new THREE.ConeGeometry(0.34, 0.50, 5), foil, [0, 0.18, 0]);
+			put(a, new THREE.TorusGeometry(0.32, 0.04, 6, 10), foil, [0, -0.05, 0], [Math.PI / 2, 0, 0]);
+			const ant = new THREE.Group();
+			ant.position.set(0, 0.42, 0);
+			put(ant, new THREE.CylinderGeometry(0.012, 0.012, 0.24, 6), foil, [0, 0.12, 0]);
+			put(ant, new THREE.SphereGeometry(0.048, 8, 8), toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.7 }), [0, 0.25, 0]);
+			a.add(ant);
+			animParts.push({ type: "earWiggle", node: ant, side: 1, baseRotZ: 0 });
+		});
+		addProp("spkmod_skin_conspiracy_glass", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.02, 0.34, 8), toon(0x475569), [0, 0.08, 0]);
+			put(g, new THREE.TorusGeometry(0.14, 0.024, 8, 18), toon(0x94a3b8), [0, 0.36, 0]);
+			put(g, new THREE.CircleGeometry(0.125, 16), toon(0x7dd3fc, { transparent: true, opacity: 0.5, side: THREE.DoubleSide }), [0, 0.36, 0]);
+		});
+		return true;
+	} else if (builder === "tpMummy") {
+		addHead(a => {
+			const wrap = toon(0xf8fafc), strip = toon(0xe2e8f0);
+			for (let i = 0; i < 4; i++) {
+				put(a, new THREE.TorusGeometry(0.33 - i * 0.025, 0.048, 8, 20), i % 2 ? strip : wrap, [0, -0.06 + i * 0.07, 0], [Math.PI / 2 + (i % 2 ? 0.12 : -0.1), 0, 0]);
+			}
+			put(a, new THREE.SphereGeometry(0.24, 12, 10), wrap, [0, 0.15, 0], [1, 0.7, 1]);
+			// Fluttering toilet paper tail from head
+			const trail = new THREE.Group();
+			trail.position.set(0, 0.05, -0.32);
+			put(trail, new THREE.BoxGeometry(0.12, 0.44, 0.015), wrap, [0, -0.22, -0.04]);
+			a.add(trail);
+			animParts.push({ type: "cape", node: trail, baseRotX: 0.25 });
+		});
+		addProp("spkmod_skin_scarab_staff", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.02, 0.66, 8), toon(0xeab308), [0, 0.22, 0]);
+			put(g, new THREE.SphereGeometry(0.10, 12, 10), toon(0x22d3ee, { emissive: 0x06b6d4, emissiveIntensity: 0.55 }), [0, 0.60, 0], [1, 1.3, 0.6]);
+		});
+		return true;
+	} else if (builder === "fryingPan") {
+		addHead(a => {
+			const iron = toon(0x1e293b), eggW = toon(0xffffff), yolk = toon(0xfacc15, { emissive: 0xeab308, emissiveIntensity: 0.3 });
+			put(a, new THREE.CylinderGeometry(0.34, 0.30, 0.08, 20), iron, [0, 0.02, 0]);
+			put(a, new THREE.BoxGeometry(0.08, 0.04, 0.42), iron, [0, 0.04, -0.44]);
+			put(a, new THREE.CylinderGeometry(0.21, 0.22, 0.025, 16), eggW, [0.02, 0.075, 0.02]);
+			put(a, new THREE.SphereGeometry(0.085, 12, 10), yolk, [0.02, 0.10, 0.02], [1, 0.6, 1]);
+		});
+		addProp("spkmod_skin_spatula", g => {
+			put(g, new THREE.CylinderGeometry(0.018, 0.018, 0.48, 8), toon(0x1e293b), [0, 0.16, 0]);
+			put(g, new THREE.BoxGeometry(0.16, 0.22, 0.02), toon(0xcbd5e1), [0, 0.50, 0]);
+		});
+		return true;
+	} else if (builder === "cactusPot") {
+		addHead(a => {
+			const pot = toon(0xc2410c), grn = toon(0x16a34a), flw = toon(0xf472b6, { emissive: 0xdb2777, emissiveIntensity: 0.3 });
+			put(a, new THREE.CylinderGeometry(0.28, 0.22, 0.18, 16), pot, [0, 0.02, 0]);
+			put(a, new THREE.CylinderGeometry(0.30, 0.30, 0.055, 16), pot, [0, 0.11, 0]);
+			put(a, new THREE.CylinderGeometry(0.14, 0.15, 0.34, 12), grn, [0, 0.28, 0]);
+			put(a, new THREE.SphereGeometry(0.14, 12, 10), grn, [0, 0.45, 0]);
+			put(a, new THREE.CylinderGeometry(0.06, 0.06, 0.18, 8), grn, [0.18, 0.34, 0], [0, 0, -0.5]);
+			put(a, new THREE.CylinderGeometry(0.055, 0.055, 0.15, 8), grn, [-0.17, 0.30, 0], [0, 0, 0.55]);
+			put(a, new THREE.SphereGeometry(0.075, 10, 8), flw, [0, 0.60, 0]);
+		});
+		addProp("spkmod_skin_watering_can", g => {
+			const can = toon(0x38bdf8);
+			put(g, new THREE.CylinderGeometry(0.12, 0.14, 0.22, 14), can, [0, 0.12, 0]);
+			put(g, new THREE.CylinderGeometry(0.022, 0.036, 0.24, 8), can, [0, 0.16, 0.18], [0.9, 0, 0]);
+			put(g, new THREE.TorusGeometry(0.09, 0.018, 6, 12), can, [0, 0.16, -0.12], [0, Math.PI / 2, 0]);
+		});
+		return true;
+	} else if (builder === "toastHead") {
+		addHead(a => {
+			const crust = toon(0xb45309), crumb = toon(0xfef3c7);
+			// Giant golden toast halo frame behind/around head
+			const frame = new THREE.Group();
+			frame.position.set(0, -0.14, -0.02);
+			put(frame, new THREE.BoxGeometry(0.76, 0.12, 0.10), crust, [0, 0.36, 0]);
+			put(frame, new THREE.BoxGeometry(0.70, 0.08, 0.11), crumb, [0, 0.31, 0]);
+			for (const s of [-1, 1]) {
+				put(frame, new THREE.BoxGeometry(0.11, 0.68, 0.10), crust, [s * 0.36, 0.02, 0]);
+				put(frame, new THREE.BoxGeometry(0.07, 0.62, 0.11), crumb, [s * 0.31, 0.02, 0]);
+			}
+			put(frame, new THREE.BoxGeometry(0.76, 0.10, 0.10), crust, [0, -0.32, 0]);
+			a.add(frame);
+		});
+		addProp("spkmod_skin_butter_knife", g => {
+			put(g, new THREE.CylinderGeometry(0.022, 0.022, 0.24, 8), toon(0x92400e), [0, 0.04, 0]);
+			put(g, new THREE.BoxGeometry(0.055, 0.42, 0.016), toon(0xe2e8f0), [0, 0.36, 0]);
+			put(g, new THREE.BoxGeometry(0.08, 0.08, 0.05), toon(0xfde047), [0.02, 0.48, 0.02]);
+		});
+		return true;
+	} else if (builder === "bananaSuit") {
+		addHead(a => {
+			const yel = toon(0xfacc15), tip = toon(0x451a03), pale = toon(0xfef9c3);
+			put(a, new THREE.CylinderGeometry(0.18, 0.24, 0.38, 12), yel, [0, 0.16, -0.04], [-0.25, 0, 0]);
+			put(a, new THREE.ConeGeometry(0.18, 0.30, 12), yel, [0, 0.44, -0.14], [-0.55, 0, 0]);
+			put(a, new THREE.CylinderGeometry(0.045, 0.06, 0.10, 8), tip, [0, 0.59, -0.22], [-0.6, 0, 0]);
+			for (const s of [-1, 1]) {
+				put(a, new THREE.BoxGeometry(0.10, 0.26, 0.04), pale, [s * 0.26, -0.02, 0.05], [0, 0, -s * 0.45]);
+			}
+		});
+		addProp("spkmod_skin_banana_bunch", g => {
+			const yel = toon(0xfacc15);
+			for (const s of [-1, 0, 1]) {
+				put(g, new THREE.TorusGeometry(0.14, 0.036, 8, 12, Math.PI * 0.75), yel, [s * 0.06, 0.16, 0], [0, s * 0.2, 0.5]);
+			}
+		});
+		return true;
+	} else if (builder === "iceCream") {
+		addHead(a => {
+			const cone = toon(0xd97706), scoop = toon(0xf9a8d4), cherry = toon(0xef4444, { emissive: 0xdc2626, emissiveIntensity: 0.3 });
+			put(a, new THREE.SphereGeometry(0.30, 16, 12), scoop, [0, 0.02, 0], [1.0, 0.72, 1.0]);
+			put(a, new THREE.ConeGeometry(0.22, 0.48, 16), cone, [0.05, 0.36, -0.02], [0, 0, -0.18]);
+			put(a, new THREE.SphereGeometry(0.068, 10, 8), cherry, [0.14, 0.62, -0.02]);
+			const sprColors = [0x38bdf8, 0xfacc15, 0x4ade80, 0xf43f5e];
+			for (let i = 0; i < 8; i++) {
+				const ang = (i / 8) * Math.PI * 2;
+				put(a, new THREE.BoxGeometry(0.03, 0.03, 0.07), toon(sprColors[i % 4]), [Math.cos(ang) * 0.27, 0.08, Math.sin(ang) * 0.27], [0, ang, 0.4]);
+			}
+		});
+		addProp("spkmod_skin_giant_spoon", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.022, 0.58, 8), toon(0xe2e8f0), [0, 0.20, 0]);
+			put(g, new THREE.SphereGeometry(0.12, 12, 10), toon(0xf1f5f9), [0, 0.56, 0], [0.9, 1.25, 0.38]);
+		});
+		return true;
+	} else if (builder === "tacoFiesta") {
+		addHead(a => {
+			const shell = toon(0xeab308), letMat = toon(0x22c55e), tom = toon(0xef4444), chz = toon(0xfde047);
+			put(a, new THREE.CylinderGeometry(0.34, 0.34, 0.24, 18, 1, false, 0, Math.PI), shell, [0, 0.02, 0], [0, 0, -Math.PI / 2]);
+			for (let i = -2; i <= 2; i++) {
+				put(a, new THREE.SphereGeometry(0.075, 8, 8), letMat, [i * 0.11, 0.14, 0.04]);
+				put(a, new THREE.BoxGeometry(0.06, 0.06, 0.06), i % 2 ? tom : chz, [i * 0.10, 0.19, -0.02]);
+			}
+		});
+		addProp("spkmod_skin_maraca", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.022, 0.26, 8), toon(0xb45309), [0, 0.08, 0]);
+			put(g, new THREE.SphereGeometry(0.11, 12, 10), toon(0xef4444), [0, 0.28, 0], [1, 1.2, 1]);
+			put(g, new THREE.TorusGeometry(0.105, 0.018, 6, 14), toon(0xfacc15), [0, 0.28, 0], [Math.PI / 2, 0, 0]);
+		});
+		return true;
+	} else if (builder === "pizzaBoy") {
+		addHead(a => {
+			const red = toon(0xdc2626), chz = toon(0xfacc15), crust = toon(0xd97706), pep = toon(0xb91c1c);
+			put(a, new THREE.SphereGeometry(0.31, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.52), red, [0, -0.05, 0]);
+			put(a, new THREE.CylinderGeometry(0.28, 0.28, 0.03, 14, 1, false, -0.9, 1.8), red, [0, -0.04, 0.16]);
+			// Giant pepperoni pizza slice on top of cap
+			put(a, new THREE.CylinderGeometry(0.24, 0.24, 0.045, 3), chz, [0, 0.24, 0.04], [0, Math.PI, 0]);
+			put(a, new THREE.BoxGeometry(0.38, 0.06, 0.06), crust, [0, 0.24, -0.11]);
+			put(a, new THREE.CylinderGeometry(0.042, 0.042, 0.052, 10), pep, [0, 0.25, 0.04]);
+			put(a, new THREE.CylinderGeometry(0.036, 0.036, 0.052, 10), pep, [-0.07, 0.25, -0.03]);
+			put(a, new THREE.CylinderGeometry(0.036, 0.036, 0.052, 10), pep, [0.07, 0.25, -0.03]);
+		});
+		addProp("spkmod_skin_pizza_boxes", g => {
+			const box = toon(0xf8fafc), badge = toon(0xef4444);
+			for (let i = 0; i < 3; i++) {
+				put(g, new THREE.BoxGeometry(0.34, 0.055, 0.34), box, [0, 0.08 + i * 0.062, 0]);
+			}
+			put(g, new THREE.CylinderGeometry(0.08, 0.08, 0.01, 12), badge, [0, 0.24, 0]);
+		});
+		return true;
+	} else if (builder === "duckling") {
+		addHead(a => {
+			const yel = toon(0xfde047), beak = toon(0xf97316);
+			put(a, new THREE.SphereGeometry(0.31, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.56), yel, [0, -0.05, 0]);
+			put(a, new THREE.SphereGeometry(0.14, 12, 8), beak, [0, -0.02, 0.32], [1.1, 0.42, 1.0]);
+			put(a, new THREE.ConeGeometry(0.05, 0.16, 6), yel, [0, 0.30, 0.02], [-0.25, 0, 0]);
+			put(a, new THREE.ConeGeometry(0.04, 0.13, 6), yel, [0.04, 0.29, -0.04], [-0.45, 0, -0.25]);
+		});
+		addBody(spine, "spkmod_skin_duck_wings", [0, 0.04, -0.64], wa => {
+			const yel = toon(0xfde047);
+			for (const s of [-1, 1]) {
+				const w = new THREE.Group();
+				w.position.set(s * 0.18, 0, 0);
+				put(w, new THREE.SphereGeometry(0.18, 12, 10), yel, [s * 0.16, 0, 0], [0, 0, -s * 0.3], [1.3, 0.7, 0.45]);
+				wa.add(w);
+				animParts.push({ type: "wing", node: w, side: s });
+			}
+		});
+		addProp("spkmod_skin_bread_basket", g => {
+			put(g, new THREE.CylinderGeometry(0.14, 0.10, 0.14, 12), toon(0xb45309), [0, 0.08, 0]);
+			put(g, new THREE.SphereGeometry(0.09, 10, 8), toon(0xfbbf24), [0, 0.17, 0], [1.2, 0.75, 0.9]);
+		});
+		return true;
+	} else if (builder === "mooCow") {
+		addHead(a => {
+			const wht = toon(0xf8fafc), blk = toon(0x18181b), pnk = toon(0xf9a8d4), horn = toon(0xfef3c7);
+			for (const s of [-1, 1]) {
+				const ear = new THREE.Group();
+				ear.position.set(s * 0.26, -0.05, 0.02);
+				const baseRotZ = s * 0.42;
+				ear.rotation.z = baseRotZ;
+				put(ear, new THREE.SphereGeometry(0.13, 12, 10), s === 1 ? blk : wht, [s * 0.06, 0, 0], null, [1.2, 0.65, 0.42]);
+				put(ear, new THREE.SphereGeometry(0.08, 10, 8), pnk, [s * 0.06, -0.005, 0.045], null, [0.95, 0.48, 0.22]);
+				a.add(ear);
+				animParts.push({ type: "earWiggle", node: ear, side: s, baseRotZ });
+				// Curved cow horns anchored deeply into skull dome (no floating gap)
+				const hGroup = new THREE.Group();
+				hGroup.position.set(s * 0.14, -0.03, 0.04);
+				hGroup.rotation.set(0.12, 0, -s * 0.30);
+				put(hGroup, new THREE.ConeGeometry(0.058, 0.18, 10), horn, [0, 0.06, 0]);
+				put(hGroup, new THREE.ConeGeometry(0.036, 0.12, 10), horn, [-s * 0.015, 0.165, 0.01], [0, 0, s * 0.32]);
+				a.add(hGroup);
+			}
+			put(a, new THREE.CylinderGeometry(0.05, 0.075, 0.09, 8), toon(0xeab308), [0, -0.34, 0.24]);
+		});
+		addBody(pelvis, "spkmod_skin_cow_tail", [0, -0.14, -0.20], ta => {
+			const tr = new THREE.Group();
+			put(tr, new THREE.CylinderGeometry(0.022, 0.026, 0.54, 8), toon(0xf8fafc), [0, -0.08, -0.28], [-1.25, 0, 0]);
+			put(tr, new THREE.SphereGeometry(0.068, 10, 8), toon(0x18181b), [0, -0.16, -0.54], null, [0.9, 1.3, 0.9]);
+			ta.add(tr);
+			animParts.push({ type: "tail", node: tr, speed: 4.0, amp: 0.3 });
+		});
+		addProp("spkmod_skin_milk_carton", g => {
+			put(g, new THREE.BoxGeometry(0.14, 0.24, 0.14), toon(0xf8fafc), [0, 0.12, 0]);
+			put(g, new THREE.BoxGeometry(0.144, 0.08, 0.144), toon(0x38bdf8), [0, 0.10, 0]);
+			put(g, new THREE.ConeGeometry(0.10, 0.10, 4), toon(0x38bdf8), [0, 0.28, 0], [0, Math.PI / 4, 0]);
+		});
+		return true;
+	} else if (builder === "cloudLamb") {
+		addHead(a => {
+			const wool = toon(0xfefce8), horn = toon(0xfbbf24), hornDark = toon(0xd97706), pnk = toon(0xf9a8d4);
+			const puffs = [[0, 0.10, 0, 0.23], [-0.18, 0.05, 0.03, 0.15], [0.18, 0.05, 0.03, 0.15], [0, 0.08, 0.16, 0.145], [0, 0.06, -0.16, 0.16], [-0.12, 0.19, -0.04, 0.145], [0.12, 0.19, -0.04, 0.145]];
+			for (const [x, y, z, r] of puffs) put(a, new THREE.SphereGeometry(r, 12, 10), wool, [x, y, z]);
+			for (const s of [-1, 1]) {
+				// Curly spiraled ram horns emerging cleanly OUTSIDE the side wool puffs
+				const h = new THREE.Group();
+				h.position.set(s * 0.32, 0.01, 0.02);
+				h.rotation.set(0.12, s * Math.PI / 2, 0);
+				put(h, new THREE.TorusGeometry(0.115, 0.038, 10, 18, Math.PI * 1.55), horn, [0, -0.02, 0.02]);
+				put(h, new THREE.TorusGeometry(0.062, 0.028, 8, 14, Math.PI * 1.25), hornDark, [0.02, -0.04, 0.068], [0, 0, 0.85]);
+				put(h, new THREE.SphereGeometry(0.028, 8, 8), hornDark, [-0.035, -0.05, 0.082]);
+				a.add(h);
+				// Cute floppy lamb ears tucked neatly under the curly horns
+				const ear = new THREE.Group();
+				ear.position.set(s * 0.27, -0.11, -0.01);
+				const baseRotZ = s * 0.82;
+				ear.rotation.z = baseRotZ;
+				put(ear, new THREE.SphereGeometry(0.095, 10, 8), wool, [s * 0.07, 0, 0], null, [1.3, 0.55, 0.42]);
+				put(ear, new THREE.SphereGeometry(0.06, 8, 8), pnk, [s * 0.07, -0.005, 0.032], null, [1.05, 0.42, 0.22]);
+				a.add(ear);
+				animParts.push({ type: "earWiggle", node: ear, side: s, baseRotZ });
+			}
+		});
+		addProp("spkmod_skin_shepherd_bell", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.02, 0.68, 8), toon(0x92400e), [0, 0.24, 0]);
+			put(g, new THREE.TorusGeometry(0.09, 0.022, 8, 12, Math.PI), toon(0x92400e), [0.09, 0.58, 0]);
+			put(g, new THREE.SphereGeometry(0.055, 10, 8), toon(0xfacc15), [0.17, 0.50, 0]);
+		});
+		return true;
+	} else if (builder === "raccoon") {
+		addHead(a => {
+			const gry = toon(0x64748b), blk = toon(0x18181b), wht = toon(0xf1f5f9);
+			for (const s of [-1, 1]) {
+				// Seated cleanly into skull sides matching kitsune ear anchor depth
+				const ear = new THREE.Group();
+				ear.position.set(s * 0.20, -0.07, 0.02);
+				const baseRotZ = -s * 0.32;
+				ear.rotation.z = baseRotZ;
+				ear.rotation.x = 0.08;
+				put(ear, new THREE.ConeGeometry(0.125, 0.26, 6), blk, [0, 0.09, 0], [0, Math.PI / 6, 0], [1, 1, 0.52]);
+				put(ear, new THREE.ConeGeometry(0.078, 0.17, 6), wht, [0, 0.08, 0.032], [0, Math.PI / 6, 0], [1, 1, 0.38]);
+				a.add(ear);
+				animParts.push({ type: "earWiggle", node: ear, side: s, baseRotZ });
+			}
+			// Bandit goggles resting snug against the brow
+			put(a, new THREE.BoxGeometry(0.44, 0.095, 0.065), blk, [0, -0.08, 0.24]);
+			for (const s of [-1, 1]) put(a, new THREE.TorusGeometry(0.072, 0.018, 8, 14), gry, [s * 0.11, -0.08, 0.275]);
+		});
+		addBody(pelvis, "spkmod_skin_raccoon_tail", [0, -0.14, -0.22], ta => {
+			const tr = new THREE.Group(), gry = toon(0x64748b), blk = toon(0x18181b);
+			for (let i = 0; i < 6; i++) {
+				put(tr, new THREE.SphereGeometry(0.12 - i * 0.008, 12, 10), i % 2 === 0 ? gry : blk, [0, 0.02 + i * 0.07, -0.14 - i * 0.12], null, [1.0, 1.0, 1.2]);
+			}
+			ta.add(tr);
+			animParts.push({ type: "tail", node: tr, speed: 4.5, amp: 0.34 });
+		});
+		addProp("spkmod_skin_loot_bag", g => {
+			put(g, new THREE.SphereGeometry(0.15, 12, 10), toon(0xd97706), [0, 0.06, 0], null, [1, 1.15, 1]);
+			put(g, new THREE.CylinderGeometry(0.06, 0.08, 0.08, 10), toon(0xfacc15), [0, 0.21, 0]);
+		});
+		return true;
+	} else if (builder === "penguin") {
+		addHead(a => {
+			const blk = toon(0x0f172a), org = toon(0xf97316), red = toon(0xef4444);
+			put(a, new THREE.SphereGeometry(0.32, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.54), blk, [0, -0.05, 0]);
+			put(a, new THREE.ConeGeometry(0.09, 0.18, 10), org, [0, -0.03, 0.34], [Math.PI / 2, 0, 0]);
+			put(a, new THREE.TorusGeometry(0.28, 0.055, 8, 18), red, [0, -0.34, 0.02], [Math.PI / 2, 0, 0]);
+		});
+		addBody(spine, "spkmod_skin_penguin_wings", [0, 0.02, -0.60], wa => {
+			const blk = toon(0x0f172a);
+			for (const s of [-1, 1]) {
+				const w = new THREE.Group();
+				w.position.set(s * 0.22, 0, 0);
+				put(w, new THREE.SphereGeometry(0.16, 10, 8), blk, [s * 0.14, -0.06, 0], [0, 0, -s * 0.6], [1.4, 0.55, 0.45]);
+				wa.add(w);
+				animParts.push({ type: "wing", node: w, side: s });
+			}
+		});
+		addProp("spkmod_skin_fish_pop", g => {
+			put(g, new THREE.CylinderGeometry(0.018, 0.018, 0.34, 8), toon(0xfde68a), [0, 0.06, 0]);
+			put(g, new THREE.SphereGeometry(0.12, 12, 10), toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.3 }), [0, 0.34, 0], [0.7, 1.3, 0.4]);
+			put(g, new THREE.ConeGeometry(0.08, 0.12, 4), toon(0x38bdf8), [0, 0.50, 0], [Math.PI, 0, 0]);
+		});
+		return true;
+	} else if (builder === "rooster") {
+		addHead(a => {
+			const red = toon(0xef4444), org = toon(0xf97316);
+			// Dome-hugging comb ridge + 4 lobes curved tightly along Speaki's skull (zero gap)
+			put(a, new THREE.BoxGeometry(0.068, 0.11, 0.34), red, [0, -0.015, -0.02], [0.28, 0, 0]);
+			const lobes = [
+				[0, 0.065, 0.14, 0.092],
+				[0, 0.075, 0.03, 0.095],
+				[0, 0.035, -0.08, 0.086],
+				[0, -0.025, -0.18, 0.078]
+			];
+			for (const [lx, ly, lz, lr] of lobes) {
+				put(a, new THREE.SphereGeometry(lr, 10, 8), red, [lx, ly, lz], null, [0.44, 1.38, 0.92]);
+			}
+			put(a, new THREE.ConeGeometry(0.075, 0.16, 8), org, [0, -0.04, 0.31], [Math.PI / 2, 0, 0]);
+		});
+		// Prominent arching multicolored rooster tail clearing well behind long hair & hood
+		addBody(pelvis, "spkmod_skin_rooster_tail", [0, -0.06, -0.40], ta => {
+			const tr = new THREE.Group(), cols = [0xef4444, 0xf97316, 0xfacc15, 0x16a34a, 0x2563eb];
+			for (let i = 0; i < 5; i++) {
+				const off = i - 2;
+				const mat = toon(cols[i]);
+				const plume = new THREE.Group();
+				plume.position.set(off * 0.07, 0.02, -0.12);
+				plume.rotation.y = off * 0.18;
+				plume.rotation.z = -off * 0.14;
+				put(plume, new THREE.ConeGeometry(0.078, 0.50, 8), mat, [0, 0.16, -0.22], [-0.88, 0, 0], [0.65, 1.0, 1.1]);
+				put(plume, new THREE.ConeGeometry(0.066, 0.44, 8), mat, [0, 0.42, -0.42], [-0.35, 0, 0], [0.58, 1.0, 1.05]);
+				tr.add(plume);
+			}
+			ta.add(tr);
+			animParts.push({ type: "tail", node: tr, speed: 5.0, amp: 0.26 });
+		});
+		addProp("spkmod_skin_rubber_chicken", g => {
+			const yel = toon(0xfacc15), red = toon(0xef4444);
+			put(g, new THREE.SphereGeometry(0.11, 10, 8), yel, [0, 0.16, 0], null, [0.85, 1.2, 0.85]);
+			put(g, new THREE.CylinderGeometry(0.036, 0.044, 0.24, 8), yel, [0, 0.34, 0]);
+			put(g, new THREE.SphereGeometry(0.068, 10, 8), yel, [0, 0.48, 0.02]);
+			put(g, new THREE.ConeGeometry(0.038, 0.09, 6), red, [0, 0.48, 0.11], [Math.PI / 2, 0, 0]);
+		});
+		return true;
+	} else if (builder === "pajamas") {
+		addHead(a => {
+			const cap = toon(0x6366f1), dot = toon(0xfef08a), wht = toon(0xf8fafc);
+			put(a, new THREE.TorusGeometry(0.28, 0.055, 8, 18), wht, [0, -0.04, 0], [Math.PI / 2, 0, 0]);
+			put(a, new THREE.ConeGeometry(0.27, 0.46, 14), cap, [0, 0.18, -0.06], [-0.35, 0, 0]);
+			put(a, new THREE.ConeGeometry(0.11, 0.30, 10), cap, [0.16, 0.28, -0.22], [-0.85, 0, -0.9]);
+			put(a, new THREE.SphereGeometry(0.075, 10, 8), wht, [0.30, 0.20, -0.34]);
+			for (let i = 0; i < 3; i++) {
+				const orb = new THREE.Group();
+				put(orb, new THREE.SphereGeometry(0.045 + i * 0.012, 8, 8), dot);
+				a.add(orb);
+				animParts.push({ type: "orbit", node: orb, radius: 0.48, baseY: 0.18 + i * 0.08, phase: (i / 3) * Math.PI * 2 });
+			}
+		});
+		addProp("spkmod_skin_pillow", g => {
+			put(g, new THREE.BoxGeometry(0.32, 0.40, 0.12), toon(0xe0e7ff), [0, 0.18, 0]);
+			put(g, new THREE.SphereGeometry(0.05, 8, 8), toon(0xfde047), [0, 0.18, 0.07]);
+		});
+		return true;
+	} else if (builder === "honkClown") {
+		addHead(a => {
+			const cols = [0xef4444, 0xf97316, 0xfacc15, 0x22c55e, 0x3b82f6, 0xa855f7];
+			for (let i = 0; i < 12; i++) {
+				const ang = (i / 12) * Math.PI * 2;
+				put(a, new THREE.SphereGeometry(0.145, 10, 8), toon(cols[i % 6]), [Math.cos(ang) * 0.26, 0.08 + (i % 2) * 0.09, Math.sin(ang) * 0.26]);
+			}
+			put(a, new THREE.SphereGeometry(0.18, 12, 10), toon(0xf43f5e), [0, 0.22, 0]);
+			put(a, new THREE.TorusGeometry(0.28, 0.06, 8, 18), toon(0xfef08a), [0, -0.35, 0], [Math.PI / 2, 0, 0]);
+		});
+		addProp("spkmod_skin_clown_mallet", g => {
+			put(g, new THREE.CylinderGeometry(0.022, 0.022, 0.56, 8), toon(0xfacc15), [0, 0.20, 0]);
+			put(g, new THREE.CylinderGeometry(0.15, 0.15, 0.36, 16), toon(0xef4444), [0, 0.54, 0], [0, 0, Math.PI / 2]);
+			for (const s of [-1, 1]) put(g, new THREE.CylinderGeometry(0.158, 0.158, 0.04, 16), toon(0xfacc15), [s * 0.16, 0.54, 0], [0, 0, Math.PI / 2]);
+		});
+		return true;
+	} else if (builder === "sushiHat") {
+		addHead(a => {
+			const rice = toon(0xf8fafc), salmon = toon(0xfb7185), stripe = toon(0xffedd5), nori = toon(0x14532d);
+			put(a, new THREE.BoxGeometry(0.36, 0.16, 0.56), rice, [0, 0.04, 0]);
+			put(a, new THREE.BoxGeometry(0.40, 0.09, 0.64), salmon, [0, 0.15, 0]);
+			for (const sz of [-0.18, 0, 0.18]) put(a, new THREE.BoxGeometry(0.41, 0.095, 0.03), stripe, [0, 0.155, sz], [0, 0.35, 0]);
+			put(a, new THREE.BoxGeometry(0.42, 0.24, 0.14), nori, [0, 0.10, 0]);
+		});
+		addProp("spkmod_skin_soy_bottle", g => {
+			put(g, new THREE.CylinderGeometry(0.075, 0.095, 0.24, 12), toon(0x451a03), [0, 0.12, 0]);
+			put(g, new THREE.CylinderGeometry(0.04, 0.055, 0.09, 10), toon(0xdc2626), [0, 0.27, 0]);
+		});
+		return true;
+	} else if (builder === "bobaTea") {
+		addHead(a => {
+			const cup = toon(0xe6ccb2), lid = toon(0xffffff, { transparent: true, opacity: 0.65 }), straw = toon(0xf472b6), pearl = toon(0x1c1917);
+			put(a, new THREE.CylinderGeometry(0.26, 0.22, 0.20, 18), cup, [0, 0.05, 0]);
+			put(a, new THREE.SphereGeometry(0.26, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), lid, [0, 0.14, 0]);
+			put(a, new THREE.CylinderGeometry(0.045, 0.045, 0.44, 12), straw, [0.06, 0.34, 0], [0, 0, -0.18]);
+			for (let i = 0; i < 6; i++) {
+				const orb = new THREE.Group();
+				put(orb, new THREE.SphereGeometry(0.055, 10, 8), pearl);
+				a.add(orb);
+				animParts.push({ type: "orbit", node: orb, radius: 0.46, baseY: 0.04 + (i % 2) * 0.12, phase: (i / 6) * Math.PI * 2 });
+			}
+		});
+		addProp("spkmod_skin_boba_cup", g => {
+			put(g, new THREE.CylinderGeometry(0.11, 0.085, 0.26, 14), toon(0xe6ccb2), [0, 0.14, 0]);
+			put(g, new THREE.CylinderGeometry(0.025, 0.025, 0.22, 8), toon(0xf472b6), [0, 0.32, 0]);
+		});
+		return true;
+	} else if (builder === "toadstool") {
+		addHead(a => {
+			const cap = toon(0xdc2626), wht = toon(0xf8fafc), glow = toon(0x86efac, { emissive: 0x4ade80, emissiveIntensity: 0.8 });
+			put(a, new THREE.SphereGeometry(0.56, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.52), cap, [0, -0.02, 0], null, [1, 0.72, 1]);
+			put(a, new THREE.CylinderGeometry(0.52, 0.52, 0.04, 20), wht, [0, -0.03, 0]);
+			const spots = [[0, 0.36, 0, 0.12], [0.34, 0.18, 0.16, 0.10], [-0.34, 0.18, 0.16, 0.10], [0.24, 0.20, -0.30, 0.10], [-0.24, 0.20, -0.30, 0.10], [0, 0.18, 0.38, 0.10]];
+			for (const [x, y, z, r] of spots) put(a, new THREE.SphereGeometry(r, 10, 8), wht, [x, y, z], null, [1, 0.5, 1]);
+			for (let i = 0; i < 4; i++) {
+				const orb = new THREE.Group();
+				put(orb, new THREE.SphereGeometry(0.042, 8, 8), glow);
+				a.add(orb);
+				animParts.push({ type: "orbit", node: orb, radius: 0.62, baseY: 0.12, phase: (i / 4) * Math.PI * 2 });
+			}
+		});
+		addProp("spkmod_skin_shroom_wand", g => {
+			put(g, new THREE.CylinderGeometry(0.024, 0.032, 0.58, 8), toon(0xfef3c7), [0, 0.20, 0]);
+			put(g, new THREE.SphereGeometry(0.15, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), toon(0xdc2626), [0, 0.48, 0]);
+		});
+		return true;
+	} else if (builder === "detective") {
+		addHead(a => {
+			const plaid = toon(0x92400e), dark = toon(0x451a03), clue = toon(0xfacc15, { emissive: 0xeab308, emissiveIntensity: 0.65 });
+			put(a, new THREE.SphereGeometry(0.32, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), plaid, [0, -0.05, 0]);
+			put(a, new THREE.BoxGeometry(0.28, 0.035, 0.18), dark, [0, -0.04, 0.30]);
+			put(a, new THREE.BoxGeometry(0.28, 0.035, 0.18), dark, [0, -0.04, -0.30]);
+			put(a, new THREE.SphereGeometry(0.05, 8, 8), dark, [0, 0.27, 0]);
+			for (let i = 0; i < 3; i++) {
+				const orb = new THREE.Group();
+				put(orb, new THREE.OctahedronGeometry(0.055, 0), clue);
+				a.add(orb);
+				animParts.push({ type: "orbit", node: orb, radius: 0.52, baseY: 0.22, phase: (i / 3) * Math.PI * 2 });
+			}
+		});
+		addProp("spkmod_skin_detective_glass", g => {
+			put(g, new THREE.CylinderGeometry(0.024, 0.028, 0.36, 8), toon(0x78350f), [0, 0.08, 0]);
+			put(g, new THREE.TorusGeometry(0.17, 0.03, 10, 20), toon(0xf59e0b), [0, 0.40, 0]);
+			put(g, new THREE.CircleGeometry(0.155, 16), toon(0xbae6fd, { transparent: true, opacity: 0.5, side: THREE.DoubleSide }), [0, 0.40, 0]);
+		});
+		return true;
+	} else if (builder === "mariachi") {
+		addHead(a => {
+			const blk = toon(0x18181b), gld = toon(0xfacc15), red = toon(0xe11d48);
+			put(a, new THREE.CylinderGeometry(0.66, 0.62, 0.05, 24), blk, [0, -0.02, 0]);
+			put(a, new THREE.TorusGeometry(0.64, 0.035, 8, 24), gld, [0, 0.01, 0], [Math.PI / 2, 0, 0]);
+			put(a, new THREE.ConeGeometry(0.26, 0.36, 16), blk, [0, 0.16, 0]);
+			put(a, new THREE.TorusGeometry(0.25, 0.03, 8, 18), red, [0, 0.03, 0], [Math.PI / 2, 0, 0]);
+		});
+		// Use calibrated Q.GUITAR_R so the mariachi guitar faces outward cleanly
+		addProp("spkmod_skin_acoustic_guitar", g => {
+			const wood = toon(0xd97706), neck = toon(0x78350f), hole = toon(0x1c1917), gld = toon(0xfacc15), str = toon(0xfef3c7);
+			put(g, new THREE.CylinderGeometry(0.16, 0.16, 0.075, 18), wood, [0, 0.01, 0], [Math.PI / 2, 0, 0]);
+			put(g, new THREE.CylinderGeometry(0.125, 0.125, 0.075, 16), wood, [0, 0.21, 0], [Math.PI / 2, 0, 0]);
+			put(g, new THREE.CylinderGeometry(0.052, 0.052, 0.014, 14), hole, [0, 0.14, 0.036], [Math.PI / 2, 0, 0]);
+			put(g, new THREE.TorusGeometry(0.062, 0.009, 6, 16), gld, [0, 0.14, 0.042]);
+			put(g, new THREE.BoxGeometry(0.11, 0.026, 0.018), neck, [0, -0.01, 0.042]);
+			put(g, new THREE.BoxGeometry(0.056, 0.48, 0.032), neck, [0, 0.50, 0.01]);
+			put(g, new THREE.BoxGeometry(0.032, 0.56, 0.008), str, [0, 0.36, 0.034]);
+			put(g, new THREE.BoxGeometry(0.085, 0.12, 0.032), neck, [0, 0.78, 0.01]);
+			for (const s of [-1, 1]) {
+				put(g, new THREE.CylinderGeometry(0.01, 0.01, 0.04, 6), gld, [s * 0.055, 0.76, 0.01], [0, 0, Math.PI / 2]);
+				put(g, new THREE.CylinderGeometry(0.01, 0.01, 0.04, 6), gld, [s * 0.055, 0.81, 0.01], [0, 0, Math.PI / 2]);
+			}
+		}, [0.04, -0.14, 0.09], rightHand, Q.GUITAR_R);
+		return true;
+	} else if (builder === "ramenBowl") {
+		addHead(a => {
+			const bowl = toon(0xb91c1c), rim = toon(0xfacc15), broth = toon(0xf59e0b), egg = toon(0xffffff), yolk = toon(0xf97316), nori = toon(0x14532d), stick = toon(0x78350f);
+			put(a, new THREE.CylinderGeometry(0.38, 0.22, 0.26, 20), bowl, [0, 0.08, 0]);
+			put(a, new THREE.TorusGeometry(0.37, 0.025, 8, 20), rim, [0, 0.21, 0], [Math.PI / 2, 0, 0]);
+			put(a, new THREE.CylinderGeometry(0.35, 0.35, 0.02, 18), broth, [0, 0.19, 0]);
+			put(a, new THREE.SphereGeometry(0.09, 10, 8), egg, [-0.12, 0.21, 0.06], null, [1.2, 0.55, 0.9]);
+			put(a, new THREE.SphereGeometry(0.05, 8, 8), yolk, [-0.12, 0.23, 0.06]);
+			put(a, new THREE.BoxGeometry(0.16, 0.20, 0.015), nori, [0.18, 0.28, -0.14], [-0.25, -0.4, 0]);
+			put(a, new THREE.CylinderGeometry(0.012, 0.016, 0.56, 8), stick, [0.08, 0.28, 0.06], [0.25, 0, -0.85]);
+			put(a, new THREE.CylinderGeometry(0.012, 0.016, 0.56, 8), stick, [0.06, 0.30, 0.11], [0.22, 0, -0.78]);
+		});
+		// Right-side-up Japanese ramen ladle: cup opens upward (+Z under Q.HERO_R), double-sided with golden broth inside
+		addProp("spkmod_skin_ramen_ladle", g => {
+			const red = toon(0xdc2626), blk = toon(0x18181b, { side: THREE.DoubleSide }), broth = toon(0xf59e0b), cake = toon(0xf8fafc), swirl = toon(0xf472b6);
+			put(g, new THREE.CylinderGeometry(0.018, 0.022, 0.48, 8), red, [0, 0.18, 0]);
+			const cup = new THREE.Group();
+			cup.position.set(0, 0.49, -0.02);
+			cup.rotation.x = Math.PI / 2 - 0.35;
+			put(cup, new THREE.SphereGeometry(0.115, 16, 12, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5), blk, [0, 0, 0]);
+			put(cup, new THREE.TorusGeometry(0.115, 0.012, 8, 18), red, [0, 0, 0], [Math.PI / 2, 0, 0]);
+			put(cup, new THREE.CylinderGeometry(0.104, 0.104, 0.014, 16), broth, [0, -0.016, 0]);
+			put(cup, new THREE.CylinderGeometry(0.032, 0.032, 0.016, 12), cake, [0.02, -0.005, 0.01]);
+			put(cup, new THREE.SphereGeometry(0.014, 8, 8), swirl, [0.02, 0.004, 0.01]);
+			g.add(cup);
+		});
+		return true;
+	} else if (builder === "cardboardBot") {
+		addHead(a => {
+			const box = toon(0xc49a6c), tape = toon(0x94a3b8), eye = toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.7 });
+			put(a, new THREE.BoxGeometry(0.56, 0.42, 0.52), box, [0, 0.12, 0]);
+			put(a, new THREE.BoxGeometry(0.57, 0.07, 0.12), tape, [0, 0.33, 0]);
+			put(a, new THREE.BoxGeometry(0.10, 0.10, 0.03), eye, [-0.13, 0.14, 0.26]);
+			put(a, new THREE.BoxGeometry(0.10, 0.10, 0.03), eye, [0.13, 0.14, 0.26]);
+			const ant = new THREE.Group();
+			ant.position.set(0, 0.34, 0);
+			put(ant, new THREE.CylinderGeometry(0.014, 0.014, 0.22, 6), tape, [0, 0.11, 0], [0, 0, 0.22]);
+			put(ant, new THREE.SphereGeometry(0.045, 8, 8), toon(0xef4444, { emissive: 0xdc2626, emissiveIntensity: 0.7 }), [-0.04, 0.22, 0]);
+			a.add(ant);
+			animParts.push({ type: "earWiggle", node: ant, side: 1, baseRotZ: 0 });
+		});
+		addProp("spkmod_skin_robot_claw", g => {
+			put(g, new THREE.BoxGeometry(0.14, 0.26, 0.14), toon(0xc49a6c), [0, 0.12, 0]);
+			for (const s of [-1, 1]) put(g, new THREE.BoxGeometry(0.04, 0.16, 0.06), toon(0x94a3b8), [s * 0.07, 0.32, 0], [0, 0, s * 0.25]);
+		});
+		return true;
+	} else if (builder === "crtTv") {
+		addHead(a => {
+			const shell = toon(0xe7e5e4), bezel = toon(0x334155), screen = toon(0x0ea5e9, { emissive: 0x38bdf8, emissiveIntensity: 0.55 }), antMat = toon(0x94a3b8);
+			put(a, new THREE.BoxGeometry(0.62, 0.48, 0.52), shell, [0, 0.12, -0.02]);
+			put(a, new THREE.BoxGeometry(0.48, 0.34, 0.04), bezel, [-0.04, 0.12, 0.24]);
+			put(a, new THREE.BoxGeometry(0.42, 0.28, 0.046), screen, [-0.04, 0.12, 0.245]);
+			// Cute glowing pixel ^_^ on screen
+			for (const s of [-1, 1]) put(a, new THREE.BoxGeometry(0.08, 0.03, 0.055), toon(0xffffff), [-0.04 + s * 0.10, 0.16, 0.25]);
+			put(a, new THREE.BoxGeometry(0.10, 0.025, 0.055), toon(0xffffff), [-0.04, 0.07, 0.25]);
+			// Rabbit-ear antennas
+			for (const s of [-1, 1]) {
+				put(a, new THREE.CylinderGeometry(0.01, 0.012, 0.36, 6), antMat, [s * 0.12, 0.48, 0], [0, 0, -s * 0.45]);
+			}
+		});
+		addProp("spkmod_skin_tv_remote", g => {
+			put(g, new THREE.BoxGeometry(0.08, 0.28, 0.035), toon(0x1e293b), [0, 0.14, 0]);
+			put(g, new THREE.SphereGeometry(0.02, 6, 6), toon(0xef4444), [0.02, 0.24, 0.02]);
+		});
+		return true;
+	} else if (builder === "snail") {
+		addHead(a => {
+			const body = toon(0xfde68a), eye = toon(0x18181b), wht = toon(0xffffff);
+			for (const s of [-1, 1]) {
+				const stalk = new THREE.Group();
+				stalk.position.set(s * 0.16, 0.02, 0.08);
+				const baseRotZ = -s * 0.26;
+				stalk.rotation.z = baseRotZ;
+				put(stalk, new THREE.CylinderGeometry(0.022, 0.026, 0.34, 8), body, [0, 0.16, 0]);
+				put(stalk, new THREE.SphereGeometry(0.075, 10, 8), wht, [0, 0.35, 0]);
+				put(stalk, new THREE.SphereGeometry(0.038, 8, 6), eye, [0, 0.35, 0.055]);
+				a.add(stalk);
+				animParts.push({ type: "earWiggle", node: stalk, side: s, baseRotZ });
+			}
+		});
+		addBody(spine, "spkmod_skin_snail_shell", [0, 0.06, -0.78], sa => {
+			const sh = toon(0xc084fc), spiral = toon(0x7e22ce);
+			put(sa, new THREE.SphereGeometry(0.46, 18, 14), sh, [0, 0.06, -0.10], null, [0.78, 1.05, 1.05]);
+			for (const s of [-1, 1]) {
+				put(sa, new THREE.TorusGeometry(0.24, 0.045, 8, 18), spiral, [s * 0.34, 0.06, -0.10], [0, Math.PI / 2, 0]);
+				put(sa, new THREE.TorusGeometry(0.11, 0.035, 8, 14), spiral, [s * 0.36, 0.06, -0.10], [0, Math.PI / 2, 0]);
+			}
+		});
+		return true;
+	} else if (builder === "octopus") {
+		addHead(a => {
+			const oct = toon(0xa855f7), suc = toon(0xf5d0fe), eye = toon(0x18181b), wht = toon(0xffffff);
+			put(a, new THREE.SphereGeometry(0.27, 16, 14), oct, [0, 0.20, 0], [0.95, 1.15, 0.95]);
+			for (const s of [-1, 1]) {
+				put(a, new THREE.SphereGeometry(0.058, 10, 8), wht, [s * 0.11, 0.16, 0.22]);
+				put(a, new THREE.SphereGeometry(0.032, 8, 8), eye, [s * 0.11, 0.16, 0.265]);
+			}
+			for (let i = 0; i < 8; i++) {
+				const ang = (i / 8) * Math.PI * 2;
+				const tent = new THREE.Group();
+				tent.position.set(Math.cos(ang) * 0.22, 0.02, Math.sin(ang) * 0.22);
+				const baseRotZ = -Math.cos(ang) * 0.45;
+				tent.rotation.z = baseRotZ;
+				tent.rotation.x = Math.sin(ang) * 0.45;
+				put(tent, new THREE.ConeGeometry(0.055, 0.34, 8), oct, [0, -0.15, 0], [Math.PI, 0, 0]);
+				put(tent, new THREE.SphereGeometry(0.028, 6, 6), suc, [0, -0.18, 0.02]);
+				a.add(tent);
+				animParts.push({ type: "earWiggle", node: tent, side: i % 2 ? 1 : -1, baseRotZ });
+			}
+		});
+		return true;
+	} else if (builder === "trex") {
+		addHead(a => {
+			const grn = toon(0x22c55e), yel = toon(0xfef08a), wht = toon(0xffffff), eye = toon(0x18181b);
+			put(a, new THREE.BoxGeometry(0.46, 0.34, 0.56), grn, [0, 0.12, 0.12]);
+			put(a, new THREE.BoxGeometry(0.38, 0.10, 0.22), yel, [0, -0.02, 0.36]);
+			for (const s of [-1, 1]) {
+				put(a, new THREE.SphereGeometry(0.06, 8, 8), wht, [s * 0.22, 0.20, 0.22]);
+				put(a, new THREE.SphereGeometry(0.032, 6, 6), eye, [s * 0.24, 0.20, 0.26]);
+				put(a, new THREE.ConeGeometry(0.035, 0.08, 4), wht, [s * 0.12, -0.03, 0.38], [Math.PI, 0, 0]);
+			}
+		});
+		addBody(pelvis, "spkmod_skin_trex_tail", [0, -0.14, -0.22], ta => {
+			const tr = new THREE.Group(), grn = toon(0x22c55e), spineM = toon(0x15803d);
+			for (let i = 0; i < 4; i++) {
+				put(tr, new THREE.SphereGeometry(0.20 - i * 0.038, 12, 10), grn, [0, -0.04 + i * 0.03, -0.18 - i * 0.22], null, [1.0, 0.9, 1.3]);
+				put(tr, new THREE.ConeGeometry(0.055 - i * 0.008, 0.12, 4), spineM, [0, 0.14 - i * 0.01, -0.18 - i * 0.22]);
+			}
+			ta.add(tr);
+			animParts.push({ type: "tail", node: tr, speed: 3.4, amp: 0.28 });
+		});
+		return true;
+	} else if (builder === "capybara") {
+		addHead(a => {
+			const fur = toon(0x92400e), org = toon(0xf97316, { emissive: 0xea580c, emissiveIntensity: 0.18 }), leaf = toon(0x22c55e);
+			for (const s of [-1, 1]) {
+				put(a, new THREE.SphereGeometry(0.10, 10, 8), fur, [s * 0.25, 0.01, -0.02], null, [0.9, 1.0, 0.45]);
+			}
+			// Iconic stacked Zen mandarin oranges balanced on head!
+			put(a, new THREE.SphereGeometry(0.14, 14, 12), org, [0, 0.11, 0], null, [1.05, 0.88, 1.05]);
+			put(a, new THREE.SphereGeometry(0.105, 12, 10), org, [0, 0.30, 0], null, [1.05, 0.88, 1.05]);
+			put(a, new THREE.ConeGeometry(0.045, 0.11, 4), leaf, [0.04, 0.42, 0], [0, 0, -0.5]);
+		});
+		addProp("spkmod_skin_yuzu_branch", g => {
+			put(g, new THREE.SphereGeometry(0.11, 12, 10), toon(0xf97316), [0, 0.14, 0], [0, 0, 0], [1.05, 0.9, 1.05]);
+			put(g, new THREE.ConeGeometry(0.04, 0.09, 4), toon(0x22c55e), [0.04, 0.24, 0], [0, 0, -0.4]);
+		});
+		return true;
+	} else if (builder === "plagueDoc") {
+		addHead(a => {
+			const blk = toon(0x18181b), gld = toon(0xeab308), beak = toon(0xe7e5e4);
+			put(a, new THREE.CylinderGeometry(0.50, 0.52, 0.04, 22), blk, [0, 0.02, 0]);
+			put(a, new THREE.CylinderGeometry(0.24, 0.28, 0.28, 18), blk, [0, 0.16, 0]);
+			put(a, new THREE.TorusGeometry(0.27, 0.024, 8, 18), gld, [0, 0.06, 0], [Math.PI / 2, 0, 0]);
+			// Curved crow beak mask resting at front brow
+			put(a, new THREE.ConeGeometry(0.10, 0.34, 10), beak, [0, -0.14, 0.34], [1.85, 0, 0]);
+			for (const s of [-1, 1]) put(a, new THREE.TorusGeometry(0.055, 0.015, 8, 12), gld, [s * 0.10, -0.10, 0.28]);
+		});
+		addProp("spkmod_skin_plague_lantern", g => {
+			put(g, new THREE.CylinderGeometry(0.022, 0.024, 0.74, 8), toon(0x27272a), [0, 0.26, 0]);
+			put(g, new THREE.OctahedronGeometry(0.12, 0), toon(0x22c55e, { emissive: 0x4ade80, emissiveIntensity: 0.85 }), [0, 0.68, 0.08]);
+		});
+		return true;
+	} else if (builder === "masquerade") {
+		addHead(a => {
+			const gld = toon(0xfacc15, { emissive: 0xd97706, emissiveIntensity: 0.25 }), plume = toon(0xc084fc);
+			put(a, new THREE.BoxGeometry(0.46, 0.14, 0.06), gld, [0, -0.14, 0.27]);
+			for (const s of [-1, 1]) put(a, new THREE.ConeGeometry(0.09, 0.22, 4), gld, [s * 0.24, -0.06, 0.26], [0, 0, -s * 0.65]);
+			const feather = new THREE.Group();
+			feather.position.set(0.24, 0.02, 0.20);
+			put(feather, new THREE.ConeGeometry(0.08, 0.44, 6), plume, [0.06, 0.20, 0], [0, 0, -0.35], [1, 1, 0.3]);
+			a.add(feather);
+			animParts.push({ type: "earWiggle", node: feather, side: 1, baseRotZ: 0 });
+		});
+		addBody(spine, "spkmod_skin_masq_cape", [0, 0.12, -0.60], ca => {
+			const cape = new THREE.Group();
+			put(cape, new THREE.BoxGeometry(0.72, 0.88, 0.04), toon(0x3b0764), [0, -0.40, -0.06]);
+			put(cape, new THREE.BoxGeometry(0.74, 0.07, 0.05), toon(0xfacc15), [0, -0.82, -0.06]);
+			ca.add(cape);
+			animParts.push({ type: "cape", node: cape, baseRotX: 0.18 });
+		});
+		addProp("spkmod_skin_rose_wand", g => {
+			put(g, new THREE.CylinderGeometry(0.016, 0.016, 0.56, 8), toon(0x16a34a), [0, 0.18, 0]);
+			put(g, new THREE.DodecahedronGeometry(0.10, 0), toon(0xf43f5e, { emissive: 0xe11d48, emissiveIntensity: 0.45 }), [0, 0.50, 0]);
+		});
+		return true;
+	} else if (builder === "voxelHero") {
+		addHead(a => {
+			const gld = toon(0xfacc15), gem = toon(0x22d3ee, { emissive: 0x06b6d4, emissiveIntensity: 0.75 }), hrt = toon(0xf43f5e, { emissive: 0xe11d48, emissiveIntensity: 0.55 });
+			put(a, new THREE.BoxGeometry(0.46, 0.14, 0.46), gld, [0, 0.08, 0]);
+			for (const [x, z] of [[-0.18, 0.18], [0.18, 0.18], [-0.18, -0.18], [0.18, -0.18], [0, 0.20]]) {
+				put(a, new THREE.BoxGeometry(0.10, 0.14, 0.10), gld, [x, 0.21, z]);
+			}
+			put(a, new THREE.BoxGeometry(0.10, 0.10, 0.10), gem, [0, 0.12, 0.24]);
+			for (let i = 0; i < 3; i++) {
+				const orb = new THREE.Group();
+				put(orb, new THREE.BoxGeometry(0.09, 0.09, 0.09), hrt);
+				a.add(orb);
+				animParts.push({ type: "orbit", node: orb, radius: 0.56, baseY: 0.24, phase: (i / 3) * Math.PI * 2 });
+			}
+		});
+		addProp("spkmod_skin_voxel_sword", g => {
+			put(g, new THREE.BoxGeometry(0.06, 0.20, 0.06), toon(0x78350f), [0, 0.02, 0]);
+			put(g, new THREE.BoxGeometry(0.24, 0.06, 0.08), toon(0xfacc15), [0, 0.14, 0]);
+			put(g, new THREE.BoxGeometry(0.10, 0.58, 0.05), toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.45 }), [0, 0.46, 0]);
+		});
+		return true;
+	} else if (builder === "saturn") {
+		addBody(pelvis, "spkmod_skin_saturn_rings", [0, 0.16, 0], sa => {
+			const ringGrp = new THREE.Group();
+			ringGrp.rotation.x = 0.26;
+			ringGrp.rotation.z = 0.22;
+			put(ringGrp, new THREE.TorusGeometry(0.86, 0.05, 8, 36), toon(0xfde047, { emissive: 0xf59e0b, emissiveIntensity: 0.55 }), null, [Math.PI / 2, 0, 0]);
+			put(ringGrp, new THREE.TorusGeometry(1.06, 0.035, 8, 36), toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.55 }), null, [Math.PI / 2, 0, 0]);
+			const moon = new THREE.Group();
+			put(moon, new THREE.SphereGeometry(0.13, 12, 10), toon(0xe2e8f0, { emissive: 0x94a3b8, emissiveIntensity: 0.3 }), [1.14, 0.06, 0]);
+			ringGrp.add(moon);
+			sa.add(ringGrp);
+			animParts.push({ type: "spinY", node: ringGrp });
+		});
+		return true;
+	} else if (builder === "ufoAbduct") {
+		addHead(a => {
+			const disc = toon(0x94a3b8), dome = toon(0x7dd3fc, { transparent: true, opacity: 0.72 }), beam = toon(0x4ade80, { emissive: 0x22c55e, emissiveIntensity: 0.85, transparent: true, opacity: 0.34, side: THREE.DoubleSide });
+			const ufo = new THREE.Group();
+			ufo.position.set(0, 0.66, 0);
+			put(ufo, new THREE.CylinderGeometry(0.24, 0.40, 0.09, 20), disc);
+			put(ufo, new THREE.SphereGeometry(0.19, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), dome, [0, 0.04, 0]);
+			for (let i = 0; i < 6; i++) {
+				const ang = (i / 6) * Math.PI * 2;
+				put(ufo, new THREE.SphereGeometry(0.036, 8, 6), toon(0x4ade80, { emissive: 0x22c55e, emissiveIntensity: 0.9 }), [Math.cos(ang) * 0.35, 0, Math.sin(ang) * 0.35]);
+			}
+			a.add(ufo);
+			animParts.push({ type: "spinY", node: ufo });
+			put(a, new THREE.ConeGeometry(0.42, 0.76, 18, 1, true), beam, [0, 0.28, 0]);
+		});
+		return true;
+	} else if (builder === "biblical") {
+		addBody(spine, "spkmod_skin_biblical_seraph", [0, 0.16, -0.58], ba => {
+			const gld = toon(0xfde047, { emissive: 0xeab308, emissiveIntensity: 0.65 });
+			const wht = toon(0xf8fafc, { emissive: 0xfef9c3, emissiveIntensity: 0.35 });
+			const eyeIris = toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.8 });
+			// 3 Concentric rotating golden Ophanim eye-rings!
+			for (let r = 0; r < 3; r++) {
+				const ring = new THREE.Group();
+				const rad = 0.62 + r * 0.22;
+				ring.rotation.x = r * 0.45;
+				ring.rotation.z = -r * 0.35;
+				put(ring, new THREE.TorusGeometry(rad, 0.036, 8, 28), gld);
+				for (let e = 0; e < 6; e++) {
+					const ang = (e / 6) * Math.PI * 2;
+					put(ring, new THREE.SphereGeometry(0.06, 8, 8), wht, [Math.cos(ang) * rad, Math.sin(ang) * rad, 0.02]);
+					put(ring, new THREE.SphereGeometry(0.032, 6, 6), eyeIris, [Math.cos(ang) * rad, Math.sin(ang) * rad, 0.065]);
+				}
+				ba.add(ring);
+				animParts.push({ type: "spinY", node: ring });
+			}
+			// 6 Fluttering seraphim wings (3 pairs!)
+			for (let pair = 0; pair < 3; pair++) {
+				const py = 0.26 - pair * 0.24;
+				for (const s of [-1, 1]) {
+					const w = new THREE.Group();
+					w.position.set(s * 0.22, py, -0.05);
+					put(w, new THREE.ConeGeometry(0.20, 0.72, 6), wht, [s * 0.34, 0.06, 0], [0, 0, -s * (1.25 - pair * 0.22)], [1, 1, 0.22]);
+					ba.add(w);
+					animParts.push({ type: "wing", node: w, side: s });
+				}
+			}
+		});
+		return true;
+	}
+	return false;
+}
+
 // ============================================================================
 // 6. PER-PLAYER SKIN APPLICATION & CLEAN RESTORE (LOCAL + REMOTE)
 // ============================================================================
@@ -50288,15 +51048,33 @@ function spkmodSkinApplyRecolorTexture(root, tex) {
 }
 
 async function spkmodApplySkinToAvatar(ownerKey, skinId, avatarRoot, animCtrl) {
-	if (!skinId || skinId === "none" || skinId === "off" || !avatarRoot || avatarRoot.userData?.skinAvatarRoot === true) {
+	if (!skinId || skinId === "none" || skinId === "off") {
 		spkmodSkinClearOnOwner(ownerKey);
+		if (ownerKey === "local_self") spkmodSetLocalModNativeSkinCode(null);
 		if (avatarRoot) spkmodSkinClearOnRoot(avatarRoot);
 		return;
 	}
 	const skin = SPKMOD_SKINS_BY_ID.get(skinId);
 	if (!skin) {
 		spkmodSkinClearOnOwner(ownerKey);
-		spkmodSkinClearOnRoot(avatarRoot);
+		if (ownerKey === "local_self") spkmodSetLocalModNativeSkinCode(null);
+		if (avatarRoot) spkmodSkinClearOnRoot(avatarRoot);
+		return;
+	}
+	if (skin.nativeSkinCode) {
+		spkmodSkinClearOnOwner(ownerKey);
+		if (avatarRoot) spkmodSkinClearOnRoot(avatarRoot);
+		if (ownerKey === "local_self") {
+			spkmodSetLocalModNativeSkinCode(skin.nativeSkinCode);
+		}
+		return;
+	}
+	if (ownerKey === "local_self" && _spkmodActiveModNativeSkinCode) {
+		spkmodSetLocalModNativeSkinCode(null);
+	}
+	if (!avatarRoot || avatarRoot.userData?.skinAvatarRoot === true) {
+		spkmodSkinClearOnOwner(ownerKey);
+		if (avatarRoot) spkmodSkinClearOnRoot(avatarRoot);
 		return;
 	}
 
@@ -50828,6 +51606,80 @@ window.spkmodHandleIncomingSkinState = function(playerId, playerName, skinIdRaw,
 // ============================================================================
 let _spkmodUnequippingNativeSkin = false;
 let _spkmodSkinsLastObservedNativeSkin = false;
+let _spkmodActiveModNativeSkinCode = null;
+let _spkmodLastLocalNativeAppliedGs = null;
+const _spkmodRemoteModNativeSkinCodes = new Map(); // String(rpKey) -> nativeSkinCode
+const _spkmodPatchedNativeSkinGameStates = new WeakSet();
+
+function spkmodPatchGameStateForModNativeSkins(gs) {
+	if (!gs || typeof gs !== "object" || _spkmodPatchedNativeSkinGameStates.has(gs)) return;
+	_spkmodPatchedNativeSkinGameStates.add(gs);
+	if (typeof gs.effectiveLocalSkinCode === "function") {
+		const origEffectiveLocalSkinCode = gs.effectiveLocalSkinCode;
+		gs.effectiveLocalSkinCode = function(...args) {
+			const origCode = origEffectiveLocalSkinCode.apply(this, args);
+			if (origCode) return origCode;
+			if (_spkmodActiveModNativeSkinCode && Number(this.mySkinItemId || 0) === 0 && spkmodIsSkinsSystemEnabled()) {
+				return _spkmodActiveModNativeSkinCode;
+			}
+			return origCode;
+		};
+	}
+	if (typeof gs.forcedSkinCodeOf === "function") {
+		const origForcedSkinCodeOf = gs.forcedSkinCodeOf;
+		gs.forcedSkinCodeOf = function(playerId, ...rest) {
+			const orig = origForcedSkinCodeOf.call(this, playerId, ...rest);
+			if (orig) return orig;
+			if (!spkmodIsSkinsSystemEnabled() || window.spkmodSkinSettings.showRemoteSkins === false) return orig;
+			if (playerId != null) {
+				const forced = _spkmodRemoteModNativeSkinCodes.get(String(playerId));
+				if (forced) return forced;
+			}
+			return orig;
+		};
+	}
+}
+
+function spkmodSetLocalModNativeSkinCode(nextCode) {
+	const normalized = nextCode || null;
+	const gs = (typeof gameState !== "undefined" && gameState) ? gameState : null;
+	const prev = _spkmodActiveModNativeSkinCode;
+	const gsChanged = !!(gs && gs !== _spkmodLastLocalNativeAppliedGs);
+	_spkmodActiveModNativeSkinCode = normalized;
+	if (typeof window !== "undefined") {
+		window.LocalBurgerSkinMode = normalized === "SKIN_SPEAKI_BURGER_STAFF_A" ? 1 : (normalized === "SKIN_SPEAKI_BURGER_STAFF_B" ? 2 : 0);
+	}
+	if (gs) {
+		spkmodPatchGameStateForModNativeSkins(gs);
+		if ((prev !== normalized || (normalized && gsChanged)) && typeof gs.applyLocalSkin === "function") {
+			_spkmodLastLocalNativeAppliedGs = gs;
+			try { gs.applyLocalSkin(); } catch (_) {}
+		}
+	}
+}
+
+function spkmodSyncRemoteModNativeSkinCodes(nextMap) {
+	let changed = nextMap.size !== _spkmodRemoteModNativeSkinCodes.size;
+	if (!changed) {
+		for (const [k, v] of nextMap) {
+			if (_spkmodRemoteModNativeSkinCodes.get(k) !== v) {
+				changed = true;
+				break;
+			}
+		}
+	}
+	if (!changed) return;
+	_spkmodRemoteModNativeSkinCodes.clear();
+	for (const [k, v] of nextMap) {
+		_spkmodRemoteModNativeSkinCodes.set(k, v);
+	}
+	if (typeof gameState !== "undefined" && gameState) {
+		spkmodPatchGameStateForModNativeSkins(gameState);
+		if (typeof gameState.remotePlayers?.refreshForcedSkins === "function") {
+			try { gameState.remotePlayers.refreshForcedSkins(); } catch (_) {}
+		}
+	}
+}
 
 function spkmodHasNativeLocalSkin() {
 	if (typeof gameState === "undefined" || !gameState) return false;
@@ -50836,15 +51688,21 @@ function spkmodHasNativeLocalSkin() {
 	const effectiveId = (typeof gameState.effectiveLocalSkinItemId === "function")
 		? Number(gameState.effectiveLocalSkinItemId() || 0)
 		: mySkinId;
+	if (mySkinId !== 0 || installedId !== 0 || effectiveId !== 0) return true;
+	if (_spkmodActiveModNativeSkinCode) return false;
 	const rootFlag = gameState.localAvatar?.root?.userData?.skinAvatarRoot === true;
-	return mySkinId !== 0 || installedId !== 0 || effectiveId !== 0 || rootFlag;
+	return rootFlag;
 }
 
-function spkmodHasNativeRemoteSkin(rp) {
+function spkmodHasNativeRemoteSkin(rp, canonicalKey) {
 	if (!rp) return false;
 	const skinId = Number(rp.skinItemId || 0);
+	if (skinId !== 0) return true;
+	if (canonicalKey != null && _spkmodRemoteModNativeSkinCodes.has(String(canonicalKey))) {
+		return false;
+	}
 	const rootFlag = rp.avatar?.root?.userData?.skinAvatarRoot === true;
-	return skinId !== 0 || rootFlag;
+	return rootFlag;
 }
 
 async function spkmodUnequipNativeGameSkin() {
@@ -50907,6 +51765,7 @@ async function spkmodEquipLocalSkin(skinId, broadcast = true, silentToast = fals
 		window.spkmodSkinSettings.equippedId = null;
 		if (window.localStorage) localStorage.removeItem(SPKMOD_SKIN_STORAGE_KEYS.equipped);
 		spkmodSkinClearOnOwner("local_self");
+		spkmodSetLocalModNativeSkinCode(null);
 		if (broadcast) {
 			spkmodTriggerSkinSyncBroadcast({
 				priority: "explicit",
@@ -50948,9 +51807,17 @@ async function spkmodEquipLocalSkin(skinId, broadcast = true, silentToast = fals
 	window.spkmodSkinSettings.equippedId = skin.id;
 	if (window.localStorage) localStorage.setItem(SPKMOD_SKIN_STORAGE_KEYS.equipped, skin.id);
 
-	if (typeof gameState !== "undefined" && gameState?.localAvatar?.root) {
-		const ctrl = gameState.localAnimationController || gameState.localAvatar?.animationController || null;
-		await spkmodApplySkinToAvatar("local_self", skin.id, gameState.localAvatar.root, ctrl);
+	if (skin.nativeSkinCode) {
+		spkmodSkinClearOnOwner("local_self");
+		spkmodSetLocalModNativeSkinCode(skin.nativeSkinCode);
+	} else {
+		if (_spkmodActiveModNativeSkinCode) {
+			spkmodSetLocalModNativeSkinCode(null);
+		}
+		if (typeof gameState !== "undefined" && gameState?.localAvatar?.root) {
+			const ctrl = gameState.localAnimationController || gameState.localAvatar?.animationController || null;
+			await spkmodApplySkinToAvatar("local_self", skin.id, gameState.localAvatar.root, ctrl);
+		}
 	}
 
 	if (broadcast) {
@@ -51071,6 +51938,8 @@ window.spkmodSetSkinsSystemEnabled = function(nextEnabled, silentToast = false) 
 		for (const key of [..._spkmodAppliedSkins.keys()]) {
 			spkmodSkinClearOnOwner(key);
 		}
+		spkmodSetLocalModNativeSkinCode(null);
+		spkmodSyncRemoteModNativeSkinCodes(new Map());
 		spkmodPFReleaseAll();
 		const modal = document.getElementById("spkmod-skins-modal");
 		if (modal) modal.classList.add("hidden");
@@ -51114,6 +51983,7 @@ function spkmodSkinsMasterLoop(nowMs) {
 					(window.spkmodSkinSettings.widthId && window.spkmodSkinSettings.widthId !== "normal")
 				);
 				if (_spkmodAppliedSkins.has("local_self")) spkmodSkinClearOnOwner("local_self");
+				if (_spkmodActiveModNativeSkinCode) spkmodSetLocalModNativeSkinCode(null);
 				if (spkmodPlayerFat.entries.has("local_self")) spkmodPFSetTarget("local_self", null, 1.0);
 				if (hadEquippedMod) {
 					window.spkmodSkinSettings.equippedId = null;
@@ -51137,15 +52007,27 @@ function spkmodSkinsMasterLoop(nowMs) {
 				if (eqSkinId) {
 					const skin = SPKMOD_SKINS_BY_ID.get(eqSkinId);
 					if (skin && spkmodIsSkinUnlocked(skin)) {
-						const cur = _spkmodAppliedSkins.get("local_self");
-						if (!cur || cur.skinId !== skin.id || cur.root !== localRoot) {
-							spkmodApplySkinToAvatar("local_self", skin.id, localRoot, localCtrl);
+						if (skin.nativeSkinCode) {
+							if (_spkmodAppliedSkins.has("local_self")) spkmodSkinClearOnOwner("local_self");
+							spkmodSetLocalModNativeSkinCode(skin.nativeSkinCode);
+						} else {
+							if (_spkmodActiveModNativeSkinCode) spkmodSetLocalModNativeSkinCode(null);
+							const cur = _spkmodAppliedSkins.get("local_self");
+							if (!cur || cur.skinId !== skin.id || cur.root !== localRoot) {
+								spkmodApplySkinToAvatar("local_self", skin.id, localRoot, localCtrl);
+							}
 						}
 					} else if (skin && !spkmodIsSkinUnlocked(skin)) {
 						spkmodSkinClearOnOwner("local_self");
+						if (_spkmodActiveModNativeSkinCode) spkmodSetLocalModNativeSkinCode(null);
 					}
-				} else if (_spkmodAppliedSkins.has("local_self")) {
-					spkmodSkinClearOnOwner("local_self");
+				} else {
+					if (_spkmodAppliedSkins.has("local_self")) {
+						spkmodSkinClearOnOwner("local_self");
+					}
+					if (_spkmodActiveModNativeSkinCode) {
+						spkmodSetLocalModNativeSkinCode(null);
+					}
 				}
 
 				const wTier = SPKMOD_BODY_WIDTHS_BY_ID.get(window.spkmodSkinSettings.widthId || "normal");
@@ -51174,6 +52056,7 @@ function spkmodSkinsMasterLoop(nowMs) {
 					if (key !== "local_self") spkmodPFSetTarget(key, null, 1.0);
 				}
 				_spkmodRemoteSkinStates.clear();
+				spkmodSyncRemoteModNativeSkinCodes(new Map());
 				if (hasActiveLocalCosmetic && spkmodIsSkinChatSharingEnabled()) {
 					_spkmodSkinNeedsZoneSync = true;
 					spkmodTriggerSkinSyncBroadcast({
@@ -51214,6 +52097,7 @@ function spkmodSkinsMasterLoop(nowMs) {
 			// 3. Apply & verify remote players' skins & body widths (strict 1 state per avatarRoot!)
 			const showRemote = window.spkmodSkinSettings.showRemoteSkins !== false;
 			const seenRemoteKeys = new Set();
+			const nextRemoteNativeMap = new Map();
 			if (showRemote && rMap && _spkmodRemoteSkinStates.size > 0) {
 				// First deduplicate by avatarRoot so only the newest state per remote avatar can ever apply
 				const winnersByRoot = new Map(); // rpRoot -> { ownerKey, state, rp, canonicalKey }
@@ -51242,14 +52126,14 @@ function spkmodSkinsMasterLoop(nowMs) {
 				}
 
 				for (const [rpRoot, win] of winnersByRoot) {
-					const { ownerKey, state, rp } = win;
+					const { ownerKey, state, rp, canonicalKey } = win;
 					seenRemoteKeys.add(ownerKey);
 					const rpCtrl = rp.avatar.animationController || null;
 					const rpLevel = rp.info?.level ?? 0;
 					const rpName = rp.info?.__spkmodOrigName || rp.info?.name || state.playerName || "";
 
 					// Never overlay SpeakiMod skins or fat body onto native in-game costumes (Pure Pumpkin / Witch / Ner)
-					if (spkmodHasNativeRemoteSkin(rp)) {
+					if (spkmodHasNativeRemoteSkin(rp, canonicalKey)) {
 						spkmodSkinClearOnOwner(ownerKey);
 						spkmodSkinClearOnRoot(rpRoot);
 						spkmodPFSetTarget(ownerKey, null, 1.0);
@@ -51260,9 +52144,14 @@ function spkmodSkinsMasterLoop(nowMs) {
 					if (state.skinId) {
 						const skin = SPKMOD_SKINS_BY_ID.get(state.skinId);
 						if (skin && spkmodCheckRemoteLevelAllowed(skin.level, rpLevel, rpName)) {
-							const cur = _spkmodAppliedSkins.get(ownerKey);
-							if (!cur || cur.skinId !== skin.id || cur.root !== rpRoot || _spkmodAvatarSkinOwner.get(rpRoot) !== cur) {
-								spkmodApplySkinToAvatar(ownerKey, skin.id, rpRoot, rpCtrl);
+							if (skin.nativeSkinCode) {
+								spkmodSkinClearOnOwner(ownerKey);
+								nextRemoteNativeMap.set(String(canonicalKey), skin.nativeSkinCode);
+							} else {
+								const cur = _spkmodAppliedSkins.get(ownerKey);
+								if (!cur || cur.skinId !== skin.id || cur.root !== rpRoot || _spkmodAvatarSkinOwner.get(rpRoot) !== cur) {
+									spkmodApplySkinToAvatar(ownerKey, skin.id, rpRoot, rpCtrl);
+								}
 							}
 						} else {
 							spkmodSkinClearOnOwner(ownerKey);
@@ -51280,6 +52169,7 @@ function spkmodSkinsMasterLoop(nowMs) {
 					}
 				}
 			}
+			spkmodSyncRemoteModNativeSkinCodes(nextRemoteNativeMap);
 			for (const key of [..._spkmodAppliedSkins.keys()]) {
 				if (key !== "local_self" && (!showRemote || !seenRemoteKeys.has(key))) {
 					spkmodSkinClearOnOwner(key);
@@ -51875,14 +52765,18 @@ function spkmodRenderSkinsGrid() {
 		return true;
 	});
 
-	// Pin favorited skins to the top while preserving catalog order within favorites and non-favorites
+	// Pin favorited skins to the top; sort by category group + level so Lv.50 Burger Staff sits with Lv.50 outfits
 	if (filtered.length > 1) {
+		const catRank = { color: 0, outfit: 1, fx: 2 };
+		const cmp = (a, b) => ((catRank[a.category] ?? 9) - (catRank[b.category] ?? 9)) || (a.level - b.level);
 		const favs = [];
 		const rest = [];
 		for (const s of filtered) {
 			if (spkmodIsSkinFavorite(s.id)) favs.push(s);
 			else rest.push(s);
 		}
+		favs.sort(cmp);
+		rest.sort(cmp);
 		filtered.length = 0;
 		filtered.push(...favs, ...rest);
 	}
@@ -53667,9 +54561,11 @@ const SPKMOD_CART_SKIN_STORAGE_KEYS = {
 	enabled: "spkmod-cart-skin-enabled",
 	equipped: "spkmod-cart-skin-equipped",
 	showRemote: "spkmod-cart-skin-show-remote",
-	shareInChat: "spkmod-cart-skin-share-chat"
+	shareInChat: "spkmod-cart-skin-share-chat",
+	unlockAll: "spkmod-cart-skin-unlock-all-test"
 };
 
+const SPKMOD_CART_DISCORD_URL = "https://discord.gg/bruZhcwqRx";
 const SPKMOD_HW_CART_FBX_URL = "/models/mount_pumpkin_cart_halloween/HW_skin.fbx";
 const SPKMOD_HW_CART_ORIG_TEX_URL = "https://speakirpg.overture.io.kr/models/mount_pumpkin_cart_halloween/HW_Map_Body.png";
 
@@ -53677,6 +54573,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "uifi",
 		code: 1,
+		level: 10,
 		icon: ":SPK_88:",
 		emojiFallback: "🎃",
 		accent: "#4ade80",
@@ -53688,6 +54585,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "1",
 		code: 2,
+		level: 20,
 		icon: "1️⃣",
 		accent: "#fbbf24",
 		file: "test2.png",
@@ -53698,6 +54596,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "2",
 		code: 3,
+		level: 30,
 		icon: "2️⃣",
 		accent: "#818cf8",
 		file: "test3.png",
@@ -53708,6 +54607,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "3",
 		code: 4,
+		level: 40,
 		icon: "3️⃣",
 		accent: "#38bdf8",
 		file: "test4.png",
@@ -53718,6 +54618,8 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "4",
 		code: 5,
+		level: 50,
+		milestone: true,
 		icon: "4️⃣",
 		accent: "#f472b6",
 		file: "dancing.webp",
@@ -53728,6 +54630,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "5",
 		code: 6,
+		level: 60,
 		icon: "5️⃣",
 		accent: "#f43f5e",
 		file: "yuki.png",
@@ -53782,7 +54685,10 @@ window.spkmodCartSkinSettings = {
 		: true,
 	shareInChat: (typeof window !== "undefined" && window.localStorage)
 		? localStorage.getItem(SPKMOD_CART_SKIN_STORAGE_KEYS.shareInChat) !== "false"
-		: true
+		: true,
+	unlockAllTest: (typeof window !== "undefined" && window.localStorage)
+		? localStorage.getItem(SPKMOD_CART_SKIN_STORAGE_KEYS.unlockAll) === "true"
+		: false
 };
 if (window.spkmodCartSkinSettings.equippedId && !SPKMOD_CART_SKINS_BY_ID.has(window.spkmodCartSkinSettings.equippedId)) {
 	window.spkmodCartSkinSettings.equippedId = null;
@@ -53799,28 +54705,61 @@ function spkmodIsCartSkinChatSharingEnabled() {
 	return spkmodIsCartSkinsSystemEnabled() && window.spkmodCartSkinSettings.shareInChat !== false;
 }
 
+function spkmodGetCartPlayerLevel() {
+	if (typeof gameState !== "undefined" && gameState?.myStat?.level) {
+		return Number(gameState.myStat.level) || 1;
+	}
+	return 1;
+}
+
+function spkmodIsCartSkinUnlocked(skin) {
+	if (!skin) return false;
+	if (window.spkmodCartSkinSettings.unlockAllTest) return true;
+	return spkmodGetCartPlayerLevel() >= (skin.level || 1);
+}
+
+function spkmodCheckCartRemoteLevelAllowed(requiredLevel, remoteLevel, senderName) {
+	if (!requiredLevel || requiredLevel <= 1) return true;
+	if (senderName && typeof spkmodIsVipUser === "function" && spkmodIsVipUser(senderName)) {
+		return true;
+	}
+	const lvl = Number(remoteLevel);
+	if (!isFinite(lvl) || lvl <= 0) return false;
+	return lvl >= requiredLevel;
+}
+
 // ============================================================================
 // 1. MULTI-LANGUAGE UI STRINGS (translations.json)
 // ============================================================================
 const SPKMOD_CART_SKIN_UI_FALLBACK_EN = {
 	cartSkinsBtnTooltip: "Cart Skins Wardrobe (Alt+C)",
 	cartSkinsModalTitle: "🛒 SpeakiMod+ Pumpkin Cart Skins",
+	myLevelLabel: "Your Level",
+	unlockedLabel: "Unlocked",
 	activeLabel: "Active Cart Skin",
 	noneEquipped: "Original Cart",
 	worksOnBothHint: "Works identically on both Normal & Halloween Pumpkin Carts!",
 	btnEquip: "Equip",
 	btnEquipped: "Equipped ✓",
 	btnUnequip: "Restore Original",
+	btnLocked: "Locked (Lv.{0})",
 	btnResync: "📡 Sync Map",
 	animatedBadge: "🎬 Animated",
 	staticBadge: "🖼️ Texture",
 	toggleRemoteCartSkins: "👁️ Show Others' Cart Skins",
 	toggleShareInChat: "📡 Share My Cart Skin with Other Players",
 	shareInChatDisabledToast: "📡 Cart skin sharing is OFF. Enable 'Share My Cart Skin' to sync with others.",
-	equippedToast: "🛒 Equipped Cart Skin: {0}!",
+	equippedToast: "🛒 Equipped Cart Skin: {0} (Lv.{1})!",
 	unequippedToast: "🛒 Cart skin removed (Original Cart restored).",
+	lockedToast: "🔒 Requires Level {0} to equip {1}!",
 	broadcastToast: "📡 Broadcasted active cart skin to nearby mod players!",
 	unknownCartSkinToast: "❌ Unknown cart skin: {0}",
+	testUnlockEnabledToast: "🔓 [Cart Skin Test] All cart skins UNLOCKED for testing!",
+	testUnlockDisabledToast: "🔒 [Cart Skin Test] Normal level requirements restored.",
+	submissionBannerText: "We're looking for skin submissions! Please join our Support Discord to find the blueprint and tutorial on how to design your own!",
+	submissionBannerBtn: "📋 Copy Discord Link",
+	submissionBannerCopied: "✅ Copied!",
+	submissionBannerCopiedToast: "📋 Support Discord link copied to clipboard: {0}",
 	systemDisabledToast: "🛒 Cart Skins System is disabled. Enable it in Settings.",
 	systemEnabledToast: "🛒 Cart Skins System enabled."
 };
@@ -54605,29 +55544,40 @@ function spkmodResolveDesiredCartSkinForDriver(driverKey) {
 	const myId = typeof gameState !== "undefined" ? gameState?.myPlayerId : null;
 	const isLocal = (myId != null && String(driverKey) === String(myId));
 	if (isLocal) {
-		return window.spkmodCartSkinSettings.equippedId || null;
+		const eq = window.spkmodCartSkinSettings.equippedId || null;
+		if (!eq) return null;
+		const skin = SPKMOD_CART_SKINS_BY_ID.get(eq);
+		return (skin && spkmodIsCartSkinUnlocked(skin)) ? skin.id : null;
 	}
 	if (window.spkmodCartSkinSettings.showRemoteCartSkins === false) return null;
 
 	const keyStr = String(driverKey);
-	const direct = _spkmodRemoteCartSkinStates.get(keyStr);
-	if (direct && direct.cartId) return direct.cartId;
-
-	// Fallback match by remote player name
 	const rMap = typeof gameState !== "undefined" ? gameState?.remotePlayers?.remotePlayers : null;
 	const rp = rMap ? (rMap.get(driverKey) || rMap.get(Number(driverKey)) || rMap.get(keyStr)) : null;
-	const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim().toLowerCase();
-	if (rName) {
-		const byName = _spkmodRemoteCartSkinStates.get(`name:${rName}`);
+	const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim();
+	const rLower = rName.toLowerCase();
+	const rLevel = rp?.info?.level ?? rp?.level ?? 0;
+
+	const validate = (cartId, fallbackName) => {
+		if (!cartId) return null;
+		const skin = SPKMOD_CART_SKINS_BY_ID.get(cartId);
+		if (!skin) return null;
+		return spkmodCheckCartRemoteLevelAllowed(skin.level, rLevel, rName || fallbackName) ? skin.id : null;
+	};
+
+	const direct = _spkmodRemoteCartSkinStates.get(keyStr);
+	if (direct && direct.cartId) return validate(direct.cartId, direct.playerName);
+
+	if (rLower) {
+		const byName = _spkmodRemoteCartSkinStates.get(`name:${rLower}`);
 		if (byName && byName.cartId) {
-			// Promote to canonical ID key
-			_spkmodRemoteCartSkinStates.delete(`name:${rName}`);
+			_spkmodRemoteCartSkinStates.delete(`name:${rLower}`);
 			_spkmodRemoteCartSkinStates.set(keyStr, Object.assign({}, byName, { playerId: keyStr }));
-			return byName.cartId;
+			return validate(byName.cartId, byName.playerName);
 		}
 		for (const st of _spkmodRemoteCartSkinStates.values()) {
-			if (st && st.cartId && st.playerName && st.playerName.trim().toLowerCase() === rName) {
-				return st.cartId;
+			if (st && st.cartId && st.playerName && st.playerName.trim().toLowerCase() === rLower) {
+				return validate(st.cartId, st.playerName);
 			}
 		}
 	}
@@ -54813,6 +55763,13 @@ function spkmodEquipLocalCartSkin(skinId, broadcast = true, silentToast = false)
 		return false;
 	}
 
+	if (!spkmodIsCartSkinUnlocked(skin)) {
+		if (!silentToast && typeof chatLog === "function") {
+			chatLog(spkmodGetCartSkinUiText("lockedToast", skin.level, spkmodGetCartSkinDisplayName(skin)));
+		}
+		return false;
+	}
+
 	// Preload texture & FBX template immediately
 	spkmodCartGetOrLoadSkinResource(skin.id, () => {
 		_spkmodCartForceReconcile = true;
@@ -54840,7 +55797,7 @@ function spkmodEquipLocalCartSkin(skinId, broadcast = true, silentToast = false)
 		});
 	}
 	if (!silentToast && typeof chatLog === "function") {
-		chatLog(spkmodGetCartSkinUiText("equippedToast", spkmodGetCartSkinDisplayName(skin)));
+		chatLog(spkmodGetCartSkinUiText("equippedToast", spkmodGetCartSkinDisplayName(skin), skin.level));
 	}
 	spkmodRefreshCartSkinsModalUI();
 	return true;
@@ -54980,6 +55937,15 @@ function spkmodBuildCartSkinsModal() {
 				background: rgba(20, 83, 45, 0.35);
 				box-shadow: 0 0 14px rgba(74, 222, 128, 0.28);
 			}
+			.spkmod-cart-card.locked {
+				opacity: 0.62;
+				cursor: not-allowed;
+			}
+			.spkmod-cart-card.locked:hover {
+				transform: none;
+				border-color: rgba(148, 163, 184, 0.25);
+				box-shadow: none;
+			}
 			.spkmod-cart-thumb-wrap {
 				position: relative;
 				width: 100%;
@@ -55040,6 +56006,10 @@ function spkmodBuildCartSkinsModal() {
 	grid.className = "spkmod-cart-grid";
 	gridScroll.appendChild(grid);
 
+	const footerBanner = document.createElement("div");
+	footerBanner.id = "spkmod-cart-skins-footer";
+	footerBanner.style.cssText = "display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 14px; background: linear-gradient(135deg, rgba(88, 101, 242, 0.22), rgba(245, 158, 11, 0.16)); border-top: 1px solid rgba(129, 140, 248, 0.45); font-size: 11.5px; color: #e2e8f0;";
+
 	const resizeHandle = document.createElement("div");
 	resizeHandle.id = "spkmod-cart-skins-resize";
 	resizeHandle.style.cssText = "position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px; cursor: nwse-resize; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 11px; user-select: none;";
@@ -55049,6 +56019,7 @@ function spkmodBuildCartSkinsModal() {
 	modal.appendChild(statusBar);
 	modal.appendChild(controlsBar);
 	modal.appendChild(gridScroll);
+	modal.appendChild(footerBanner);
 	modal.appendChild(resizeHandle);
 	document.body.appendChild(modal);
 
@@ -55059,7 +56030,7 @@ function spkmodBuildCartSkinsModal() {
 		makeDraggable(modal, [header]);
 	}
 	if (typeof makeResizable === "function") {
-		makeResizable(modal, resizeHandle, 340, 300);
+		makeResizable(modal, resizeHandle, 340, 320);
 	}
 
 	gridScroll.addEventListener("wheel", (e) => { e.stopPropagation(); }, { passive: true });
@@ -55070,7 +56041,7 @@ function spkmodBuildCartSkinsModal() {
 			try { document.exitPointerLock(); } catch (_) {}
 		}
 	});
-	for (const el of [statusBar, controlsBar, gridScroll]) {
+	for (const el of [statusBar, controlsBar, gridScroll, footerBanner]) {
 		el.addEventListener("pointerdown", (e) => e.stopPropagation());
 		el.addEventListener("mousedown", (e) => e.stopPropagation());
 	}
@@ -55094,11 +56065,17 @@ function spkmodRefreshCartSkinsModalUI() {
 	const statusBar = document.getElementById("spkmod-cart-skins-status-bar");
 	if (statusBar) {
 		statusBar.innerHTML = "";
+		const lvl = spkmodGetCartPlayerLevel();
+		const unlockedCount = SPKMOD_CART_SKIN_CATALOG.filter(spkmodIsCartSkinUnlocked).length;
 		const infoDiv = document.createElement("div");
-		infoDiv.style.cssText = "display: flex; flex-direction: column; gap: 2px;";
+		infoDiv.style.cssText = "display: flex; flex-direction: column; gap: 3px;";
 		const activeRow = document.createElement("div");
-		activeRow.style.cssText = "display: flex; align-items: center; gap: 6px; font-weight: 700;";
-		activeRow.innerHTML = `<span style="color:#94a3b8;">${spkmodGetCartSkinUiText("activeLabel")}:</span> <span style="color:${activeSkin ? "#4ade80" : "#cbd5e1"};">${activeSkin ? spkmodGetCartSkinDisplayName(activeSkin) : spkmodGetCartSkinUiText("noneEquipped")}</span>`;
+		activeRow.style.cssText = "display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-weight: 700;";
+		activeRow.innerHTML = `
+			<span>⭐ ${spkmodGetCartSkinUiText("myLevelLabel")}: <strong style="color:#ffd54a;">Lv.${lvl}</strong></span>
+			<span>🔓 ${spkmodGetCartSkinUiText("unlockedLabel")}: <strong style="color:#7dd3fc;">${unlockedCount}/${SPKMOD_CART_SKIN_CATALOG.length}</strong></span>
+			<span><span style="color:#94a3b8;">${spkmodGetCartSkinUiText("activeLabel")}:</span> <strong style="color:${activeSkin ? "#4ade80" : "#cbd5e1"};">${activeSkin ? spkmodGetCartSkinDisplayName(activeSkin) : spkmodGetCartSkinUiText("noneEquipped")}</strong></span>
+		`;
 		const hintRow = document.createElement("div");
 		hintRow.style.cssText = "font-size: 10.5px; color: #94a3b8;";
 		hintRow.innerText = "✨ " + spkmodGetCartSkinUiText("worksOnBothHint");
@@ -55204,9 +56181,10 @@ function spkmodRefreshCartSkinsModalUI() {
 	if (grid) {
 		grid.innerHTML = "";
 		for (const skin of SPKMOD_CART_SKIN_CATALOG) {
+			const unlocked = spkmodIsCartSkinUnlocked(skin);
 			const isEquipped = window.spkmodCartSkinSettings.equippedId === skin.id;
 			const card = document.createElement("div");
-			card.className = "spkmod-cart-card" + (isEquipped ? " equipped" : "");
+			card.className = "spkmod-cart-card" + (isEquipped ? " equipped" : "") + (!unlocked ? " locked" : "");
 
 			const thumbWrap = document.createElement("div");
 			thumbWrap.className = "spkmod-cart-thumb-wrap";
@@ -55214,7 +56192,13 @@ function spkmodRefreshCartSkinsModalUI() {
 			img.src = skin.url;
 			img.alt = spkmodGetCartSkinDisplayName(skin);
 			img.loading = "lazy";
+			if (!unlocked) img.style.filter = "grayscale(0.6) brightness(0.65)";
 			thumbWrap.appendChild(img);
+
+			const lvlBadge = document.createElement("span");
+			lvlBadge.style.cssText = `position: absolute; top: 5px; left: 5px; padding: 2px 6px; border-radius: 6px; font-size: 9.5px; font-weight: 800; background: rgba(15,23,42,0.88); color: ${unlocked ? "#7dd3fc" : "#f87171"}; border: 1px solid rgba(255,255,255,0.16);`;
+			lvlBadge.innerText = `Lv.${skin.level || 1}` + (skin.milestone ? " ★" : "");
+			thumbWrap.appendChild(lvlBadge);
 
 			const badge = document.createElement("span");
 			badge.style.cssText = `position: absolute; top: 5px; right: 5px; padding: 2px 6px; border-radius: 6px; font-size: 9.5px; font-weight: 800; background: rgba(15,23,42,0.85); color: ${skin.animated ? "#f472b6" : "#94a3b8"}; border: 1px solid rgba(255,255,255,0.14);`;
@@ -55240,11 +56224,19 @@ function spkmodRefreshCartSkinsModalUI() {
 			btn.className = "spkmod-panel-btn";
 			btn.style.cssText = isEquipped
 				? "width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 800; color: #bbf7d0; border-color: #4ade80; background: rgba(22, 163, 74, 0.35); cursor: pointer;"
-				: "width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 700; color: #f8fafc; cursor: pointer;";
-			btn.innerText = spkmodGetCartSkinUiText(isEquipped ? "btnEquipped" : "btnEquip");
+				: (unlocked
+					? "width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 700; color: #f8fafc; cursor: pointer;"
+					: "width: 100%; padding: 5px 8px; font-size: 10.5px; font-weight: 700; color: #94a3b8; cursor: not-allowed;");
+			btn.innerText = !unlocked
+				? spkmodGetCartSkinUiText("btnLocked", skin.level || 1)
+				: spkmodGetCartSkinUiText(isEquipped ? "btnEquipped" : "btnEquip");
 
 			const onSelect = (e) => {
 				if (e) e.stopPropagation();
+				if (!unlocked) {
+					if (typeof chatLog === "function") chatLog(spkmodGetCartSkinUiText("lockedToast", skin.level || 1, spkmodGetCartSkinDisplayName(skin)));
+					return;
+				}
 				if (isEquipped) {
 					spkmodEquipLocalCartSkin(null, true, false);
 				} else {
@@ -55259,6 +56251,58 @@ function spkmodRefreshCartSkinsModalUI() {
 			card.appendChild(btn);
 			grid.appendChild(card);
 		}
+	}
+
+	// Community submission Discord footer banner
+	const footerBanner = document.getElementById("spkmod-cart-skins-footer");
+	if (footerBanner) {
+		footerBanner.innerHTML = "";
+		const msg = document.createElement("div");
+		msg.style.cssText = "flex: 1 1 260px; line-height: 1.35; font-weight: 600;";
+		msg.innerText = "🎨 " + spkmodGetCartSkinUiText("submissionBannerText");
+
+		const discordBtn = document.createElement("button");
+		discordBtn.type = "button";
+		discordBtn.className = "spkmod-panel-btn";
+		discordBtn.style.cssText = "padding: 5px 12px; font-size: 11px; font-weight: 800; color: #ffffff; background: #5865F2; border-color: #818cf8; border-radius: 7px; cursor: pointer; white-space: nowrap;";
+		discordBtn.innerText = spkmodGetCartSkinUiText("submissionBannerBtn");
+		discordBtn.title = SPKMOD_CART_DISCORD_URL;
+		discordBtn.onclick = () => {
+			const onCopied = () => {
+				discordBtn.innerText = spkmodGetCartSkinUiText("submissionBannerCopied");
+				discordBtn.style.background = "#16a34a";
+				discordBtn.style.borderColor = "#4ade80";
+				if (typeof chatLog === "function") {
+					chatLog(spkmodGetCartSkinUiText("submissionBannerCopiedToast", SPKMOD_CART_DISCORD_URL));
+				}
+				setTimeout(() => {
+					discordBtn.innerText = spkmodGetCartSkinUiText("submissionBannerBtn");
+					discordBtn.style.background = "#5865F2";
+					discordBtn.style.borderColor = "#818cf8";
+				}, 2000);
+			};
+			const fallbackCopy = () => {
+				try {
+					const ta = document.createElement("textarea");
+					ta.value = SPKMOD_CART_DISCORD_URL;
+					ta.style.cssText = "position:fixed;left:-9999px;top:-9999px;";
+					document.body.appendChild(ta);
+					ta.focus();
+					ta.select();
+					document.execCommand("copy");
+					document.body.removeChild(ta);
+				} catch (_) {}
+				onCopied();
+			};
+			if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+				navigator.clipboard.writeText(SPKMOD_CART_DISCORD_URL).then(onCopied, fallbackCopy);
+			} else {
+				fallbackCopy();
+			}
+		};
+
+		footerBanner.appendChild(msg);
+		footerBanner.appendChild(discordBtn);
 	}
 }
 window.spkmodRefreshCartSkinsModalUI = spkmodRefreshCartSkinsModalUI;
@@ -55303,7 +56347,20 @@ window.spkmodCartSkins = {
 	unequip: () => spkmodEquipLocalCartSkin(null, true, false),
 	toggleModal: (force) => window.spkmodToggleCartSkinsModal(force),
 	reconcile: () => spkmodReconcileAllCartSkins(),
-	setEnabled: (val) => window.spkmodSetCartSkinsSystemEnabled(val)
+	setEnabled: (val) => window.spkmodSetCartSkinsSystemEnabled(val),
+	unlockAll: (force) => {
+		const next = force !== undefined ? !!force : !window.spkmodCartSkinSettings.unlockAllTest;
+		window.spkmodCartSkinSettings.unlockAllTest = next;
+		if (typeof window !== "undefined" && window.localStorage) {
+			try { localStorage.setItem(SPKMOD_CART_SKIN_STORAGE_KEYS.unlockAll, next ? "true" : "false"); } catch (_) {}
+		}
+		if (typeof chatLog === "function") {
+			chatLog(spkmodGetCartSkinUiText(next ? "testUnlockEnabledToast" : "testUnlockDisabledToast"));
+		}
+		_spkmodCartForceReconcile = true;
+		spkmodRefreshCartSkinsModalUI();
+		return next;
+	}
 };
 
 // Auto-start loop if enabled & preload saved skin
@@ -55442,7 +56499,7 @@ const SPKMOD_SPARK_CATALOG = [
 	{ level: 1,  id: "stars",            tier: 1, icon: "⭐", accent: "#ffd700", defaultName: "Golden Stars",          shape: "star4",     colors: ["#ffd700", "#fff3a1", "#ffb703"], motion: "burst",    additive: true,  count: 8,  size: 0.34, life: 0.72, speed: 1.4, gravity: 1.6 },
 	{ level: 2,  id: "rainbow",          tier: 1, icon: "🌈", accent: "#ec4899", defaultName: "Rainbow Prism",         shape: "star4",     colors: ["#ff0055", "#ff8800", "#ffd700", "#00ff88", "#00d4ff", "#b347ff"], motion: "fountain", additive: true,  count: 9,  size: 0.36, life: 0.85, speed: 1.8, gravity: 2.0, cycleColors: true },
 	{ level: 3,  id: "hearts",           tier: 1, icon: "💖", accent: "#f43f5e", defaultName: "Sweet Hearts",          shape: "heart",     colors: ["#ff5c8a", "#ff85a8", "#ffb3c6"], motion: "rise",     additive: false, count: 6,  size: 0.36, life: 1.15, speed: 1.1, gravity: -0.3 },
-	{ level: 4,  id: "bubbles",          tier: 1, icon: "🫧", accent: "#7dd3fc", defaultName: "Soap Bubbles",          shape: "bubble",    colors: ["#bae6fd", "#e0f2fe", "#c4b5fd", "#fbcfe8"], motion: "rise",     additive: false, count: 6,  size: 0.38, life: 1.25, speed: 0.9, gravity: -0.4 },
+	{ level: 4,  id: "bubbles",          tier: 1, icon: "⚪", accent: "#7dd3fc", defaultName: "Soap Bubbles",          shape: "bubble",    colors: ["#bae6fd", "#e0f2fe", "#c4b5fd", "#fbcfe8"], motion: "rise",     additive: false, count: 6,  size: 0.38, life: 1.25, speed: 0.9, gravity: -0.4 },
 	{ level: 5,  id: "confetti",         tier: 1, icon: "🎉", accent: "#f59e0b", defaultName: "Party Confetti",        shape: "pixel",     colors: ["#ff4d6d", "#ffbe0b", "#3a86ff", "#06d6a0", "#c77dff"], motion: "fountain", additive: false, count: 10, size: 0.26, life: 0.95, speed: 2.1, gravity: 2.8, spin: 5 },
 	{ level: 6,  id: "pastel_stars",     tier: 1, icon: "🌟", accent: "#f9a8d4", defaultName: "Pastel Twinkles",       shape: "star5",     colors: ["#fbcfe8", "#fde68a", "#a7f3d0", "#bfdbfe", "#ddd6fe"], motion: "burst",    additive: true,  count: 8,  size: 0.34, life: 0.85, speed: 1.2, gravity: 0.8 },
 	{ level: 7,  id: "paw_prints",       tier: 1, icon: "🐾", accent: "#fb923c", defaultName: "Puppy Paws",            shape: "paw",       colors: ["#fdba74", "#fb923c", "#fde68a"], motion: "ring",     additive: false, count: 5,  size: 0.34, life: 1.10, speed: 0.4, gravity: 0.0 },
@@ -55467,16 +56524,16 @@ const SPKMOD_SPARK_CATALOG = [
 	{ level: 24, id: "morning_dew",      tier: 2, icon: "💧", accent: "#38bdf8", defaultName: "Morning Dewdrops",      shape: "drop",      colors: ["#7dd3fc", "#bae6fd", "#38bdf8"], motion: "fountain", additive: true,  count: 8,  size: 0.30, life: 0.85, speed: 1.6, gravity: 2.3 },
 	{ level: 25, id: "meadow_butterfly", tier: 2, icon: "🦋", accent: "#60a5fa", defaultName: "Meadow Butterflies",    shape: "butterfly", colors: ["#60a5fa", "#f472b6", "#facc15", "#a78bfa"], motion: "flutter",  additive: false, count: 5,  size: 0.44, life: 1.40, speed: 1.1, gravity: -0.25 },
 	{ level: 26, id: "dandelion_fluff",  tier: 2, icon: "🌾", accent: "#fef3c7", defaultName: "Dandelion Wishes",      shape: "glow",      colors: ["#ffffff", "#fef9c3", "#fde68a"], motion: "flutter",  additive: true,  count: 9,  size: 0.28, life: 1.45, speed: 0.6, gravity: -0.18 },
-	{ level: 27, id: "summer_fireflies", tier: 2, icon: "🪲", accent: "#bef264", defaultName: "Twilight Fireflies",    shape: "glow",      colors: ["#d9f99d", "#bef264", "#facc15"], motion: "orbit",    additive: true,  count: 8,  size: 0.34, life: 1.30, speed: 0.8, gravity: -0.1 },
+	{ level: 27, id: "summer_fireflies", tier: 2, icon: "🐞", accent: "#bef264", defaultName: "Twilight Fireflies",    shape: "glow",      colors: ["#d9f99d", "#bef264", "#facc15"], motion: "orbit",    additive: true,  count: 8,  size: 0.34, life: 1.30, speed: 0.8, gravity: -0.1 },
 	{ level: 28, id: "rain_ripples",     tier: 2, icon: "🌧️", accent: "#60a5fa", defaultName: "Raindrop Ripples",      shape: "ring",      colors: ["#60a5fa", "#93c5fd", "#bae6fd"], motion: "ring",     additive: true,  count: 4,  size: 0.62, life: 0.85, speed: 0.2, gravity: 0.0 },
 	{ level: 29, id: "ocean_spray",      tier: 2, icon: "🌊", accent: "#06b6d4", defaultName: "Ocean Foam",            shape: "bubble",    colors: ["#22d3ee", "#67e8f9", "#ecfeff"], motion: "fountain", additive: true,  count: 9,  size: 0.34, life: 0.90, speed: 1.7, gravity: 1.5 },
 	{ level: 30, id: "sunset_glow",      tier: 2, icon: "🌇", accent: "#fb923c", defaultName: "Golden Sunset",         shape: "star5",     colors: ["#fb7185", "#fb923c", "#facc15", "#c084fc"], motion: "rise",     additive: true,  count: 8,  size: 0.38, life: 1.05, speed: 1.0, gravity: -0.15, milestone: true },
 	{ level: 31, id: "autumn_maple",     tier: 2, icon: "🍁", accent: "#ea580c", defaultName: "Autumn Maple Leaves",   shape: "maple",     colors: ["#ef4444", "#f97316", "#f59e0b", "#dc2626"], motion: "flutter",  additive: false, count: 7,  size: 0.40, life: 1.35, speed: 0.9, gravity: 0.45, spin: 3.2 },
 	{ level: 32, id: "amber_wind",       tier: 2, icon: "🍂", accent: "#d97706", defaultName: "Amber Harvest Wind",    shape: "leaf",      colors: ["#f59e0b", "#d97706", "#fde047"], motion: "helix",    additive: false, count: 7,  size: 0.36, life: 1.15, speed: 1.2, gravity: 0.2, spin: 3 },
 	{ level: 33, id: "forest_mist",      tier: 2, icon: "🌲", accent: "#10b981", defaultName: "Emerald Forest Mist",   shape: "glow",      colors: ["#10b981", "#34d399", "#a7f3d0"], motion: "rise",     additive: true,  count: 8,  size: 0.46, life: 1.15, speed: 0.7, gravity: -0.15 },
-	{ level: 34, id: "angel_feathers",   tier: 2, icon: "🪶", accent: "#f8fafc", defaultName: "Soft White Feathers",   shape: "feather",   colors: ["#ffffff", "#e2e8f0", "#fef9c3"], motion: "flutter",  additive: false, count: 6,  size: 0.42, life: 1.45, speed: 0.75, gravity: 0.22, spin: 2 },
+	{ level: 34, id: "angel_feathers",   tier: 2, icon: "🕊️", accent: "#f8fafc", defaultName: "Soft White Feathers",   shape: "feather",   colors: ["#ffffff", "#e2e8f0", "#fef9c3"], motion: "flutter",  additive: false, count: 6,  size: 0.42, life: 1.45, speed: 0.75, gravity: 0.22, spin: 2 },
 	{ level: 35, id: "rose_petals",      tier: 2, icon: "🌹", accent: "#e11d48", defaultName: "Crimson Rose Petals",   shape: "petal",     colors: ["#e11d48", "#f43f5e", "#fda4af"], motion: "flutter",  additive: false, count: 8,  size: 0.38, life: 1.35, speed: 0.9, gravity: 0.38, spin: 3.5 },
-	{ level: 36, id: "lavender_drift",   tier: 2, icon: "🪻", accent: "#a855f7", defaultName: "Lavender Breeze",       shape: "petal",     colors: ["#c084fc", "#a855f7", "#e9d5ff"], motion: "flutter",  additive: true,  count: 8,  size: 0.36, life: 1.25, speed: 0.85, gravity: 0.2, spin: 2.5 },
+	{ level: 36, id: "lavender_drift",   tier: 2, icon: "💐", accent: "#a855f7", defaultName: "Lavender Breeze",       shape: "petal",     colors: ["#c084fc", "#a855f7", "#e9d5ff"], motion: "flutter",  additive: true,  count: 8,  size: 0.36, life: 1.25, speed: 0.85, gravity: 0.2, spin: 2.5 },
 	{ level: 37, id: "first_snow",       tier: 2, icon: "❄️", accent: "#bae6fd", defaultName: "First Snowflakes",      shape: "snow",      colors: ["#ffffff", "#e0f2fe", "#bae6fd"], motion: "flutter",  additive: true,  count: 8,  size: 0.36, life: 1.40, speed: 0.7, gravity: 0.30, spin: 2 },
 	{ level: 38, id: "winter_icicles",   tier: 2, icon: "🧊", accent: "#38bdf8", defaultName: "Crystal Icicles",       shape: "crystal",   colors: ["#7dd3fc", "#38bdf8", "#f0f9ff"], motion: "burst",    additive: true,  count: 8,  size: 0.36, life: 0.90, speed: 1.5, gravity: 1.6 },
 	{ level: 39, id: "moon_butterflies", tier: 2, icon: "🌙", accent: "#818cf8", defaultName: "Moonlit Butterflies",   shape: "butterfly", colors: ["#818cf8", "#c4b5fd", "#38bdf8"], motion: "orbit",    additive: true,  count: 6,  size: 0.44, life: 1.35, speed: 1.1, gravity: -0.25 },
@@ -55522,7 +56579,7 @@ const SPKMOD_SPARK_CATALOG = [
 	{ level: 75, id: "witch_brew",       tier: 4, icon: "🧙", accent: "#a3e635", defaultName: "Witch Cauldron Bubbles",shape: "bubble",    colors: ["#a3e635", "#c084fc", "#4ade80"], motion: "rise",     additive: true,  count: 9,  size: 0.38, life: 1.20, speed: 1.1, gravity: -0.45 },
 	{ level: 76, id: "blood_moon",       tier: 4, icon: "🩸", accent: "#dc2626", defaultName: "Crimson Moon Petals",   shape: "petal",     colors: ["#dc2626", "#991b1b", "#f43f5e"], motion: "helix",    additive: true,  count: 9,  size: 0.40, life: 1.25, speed: 1.3, gravity: -0.1, spin: 3 },
 	{ level: 77, id: "phantom_wisps",    tier: 4, icon: "🏮", accent: "#38bdf8", defaultName: "Spectral Lantern Wisps",shape: "flame",     colors: ["#38bdf8", "#818cf8", "#2dd4bf"], motion: "orbit",    additive: true,  count: 8,  size: 0.42, life: 1.30, speed: 1.0, gravity: -0.3 },
-	{ level: 78, id: "dark_feathers",    tier: 4, icon: "🐦‍⬛", accent: "#6366f1", defaultName: "Raven Shadow Feathers", shape: "feather",   colors: ["#4f46e5", "#312e81", "#a78bfa"], motion: "flutter",  additive: false, count: 7,  size: 0.44, life: 1.40, speed: 0.9, gravity: 0.25, spin: 2.5 },
+	{ level: 78, id: "dark_feathers",    tier: 4, icon: "🦅", accent: "#6366f1", defaultName: "Raven Shadow Feathers", shape: "feather",   colors: ["#4f46e5", "#312e81", "#a78bfa"], motion: "flutter",  additive: false, count: 7,  size: 0.44, life: 1.40, speed: 0.9, gravity: 0.25, spin: 2.5 },
 	{ level: 79, id: "electro_beats",    tier: 4, icon: "⚡", accent: "#22d3ee", defaultName: "Hyper Electro Bolts",   shape: "bolt",      colors: ["#00f0ff", "#ff2a85", "#fde047"], motion: "burst",    additive: true,  count: 10, size: 0.42, life: 0.65, speed: 2.4, gravity: 0.3 },
 	{ level: 80, id: "neon_cyberpunk",   tier: 4, icon: "🌃", accent: "#00f0ff", defaultName: "Cyberpunk Overdrive",   shape: "glitch",    colors: ["#00f0ff", "#ff007f", "#facc15", "#a855f7"], motion: "legend",   additive: true,  count: 9,  size: 0.46, life: 0.85, speed: 2.0, gravity: 0.1, secondaryShape: "ring", secondaryColors: ["#00f0ff", "#ff007f"], milestone: true },
 
@@ -57388,5 +58445,3568 @@ if (typeof window !== "undefined") {
 		spkmodStartSparksLoopIfEnabled();
 	}
 }
+
+
+// ============================================================================
+// IN-GAME 3D VEHICLES WARDROBE & STEALTH BOX SYSTEM (LEVELS 10-100 + SYNC)
+// ============================================================================
+
+const SPKMOD_VEHICLE_STORAGE_KEYS = {
+	enabled: "spkmod-car-enabled",
+	equipped: "spkmod-vehicle-equipped",
+	lastEquipped: "spkmod-vehicle-last-equipped",
+	color: "spkmod-vehicle-color",
+	showRemote: "spkmod-vehicle-show-remote",
+	shareInChat: "spkmod-vehicle-share-chat",
+	favorites: "spkmod-vehicle-favorites",
+	unlockAll: "spkmod-vehicle-unlock-all-test"
+};
+
+const SPKMOD_VEHICLE_COLORS = [
+	{ idx: 0, id: "red",    hex: 0xd0564a, css: "#d0564a", defaultName: "Crimson Red" },
+	{ idx: 1, id: "blue",   hex: 0x3c7fd0, css: "#3c7fd0", defaultName: "Cobalt Blue" },
+	{ idx: 2, id: "green",  hex: 0x4caf7a, css: "#4caf7a", defaultName: "Mint Green" },
+	{ idx: 3, id: "yellow", hex: 0xe8c547, css: "#e8c547", defaultName: "Sunshine Yellow" },
+	{ idx: 4, id: "orange", hex: 0xe88a3c, css: "#e88a3c", defaultName: "Pumpkin Orange" },
+	{ idx: 5, id: "white",  hex: 0xf1f1ec, css: "#f1f1ec", defaultName: "Pearl White" },
+	{ idx: 6, id: "cyan",   hex: 0x6ec6e8, css: "#6ec6e8", defaultName: "Sky Cyan" },
+	{ idx: 7, id: "purple", hex: 0x8a63c9, css: "#8a63c9", defaultName: "Royal Purple" }
+];
+
+// Keep code 1 = sedan (Lv.20) & code 2 = van (Lv.30) for full compatibility with legacy :car_1_X: / :car_2_X:
+const SPKMOD_VEHICLE_CATALOG = [
+	{
+		code: 1, id: "sedan", level: 20, category: "street", icon: "🚗", accent: "#ef4444",
+		defaultName: "City Sedan", paintable: true, pose: "sit", sfxType: "car_horn",
+		spec: { kind: "burger_glb", modelName: "Vehicle_Sedan" }
+	},
+	{
+		code: 2, id: "van", level: 30, category: "street", icon: "🚐", accent: "#f59e0b",
+		defaultName: "Delivery Van", paintable: true, pose: "sit", sfxType: "car_horn",
+		spec: { kind: "burger_glb", modelName: "Vehicle_Van" }
+	},
+	{
+		code: 3, id: "mgs_box", level: 10, category: "stealth", icon: "📦", accent: "#d97706",
+		defaultName: "Tactical Cardboard Box", paintable: false, pose: "none", hidePlayer: true, sfxType: "mgs_alert",
+		spec: { kind: "procedural", builder: "mgsBox" }
+	},
+	{
+		code: 4, id: "shopping_cart", level: 15, category: "stealth", icon: "🛒", accent: "#94a3b8",
+		defaultName: "Supermarket Cart", paintable: true, pose: "sit", sfxType: "bell",
+		spec: { kind: "procedural", builder: "shoppingCart" }
+	},
+	{
+		code: 5, id: "spring_rider", level: 25, category: "stealth", icon: "🎠", accent: "#fb7185",
+		defaultName: "Playground Spring Rider", paintable: false, pose: "sit", sfxType: "boing",
+		spec: { kind: "glb", url: "/models/playground/playground-spring-rider.glb", targetHeight: 1.05, seatOffsetY: 0.72, rockAmp: 0.16 }
+	},
+	{
+		code: 6, id: "scooter", level: 35, category: "street", icon: "🛵", accent: "#38bdf8",
+		defaultName: "Retro Street Scooter", paintable: true, pose: "sit", sfxType: "scooter",
+		spec: { kind: "procedural", builder: "scooter" }
+	},
+	{
+		code: 7, id: "duck_floatie", level: 40, category: "stealth", icon: "🦆", accent: "#facc15",
+		defaultName: "Giant Duck Floatie", paintable: false, pose: "sit", sfxType: "quack",
+		spec: { kind: "procedural", builder: "duckFloatie" }
+	},
+	{
+		code: 8, id: "sports_coupe", level: 45, category: "street", icon: "🏎️", accent: "#f43f5e",
+		defaultName: "GT Turbo Coupe", paintable: true, pose: "sit", sfxType: "car_horn",
+		spec: { kind: "procedural", builder: "sportsCoupe" }
+	},
+	{
+		code: 9, id: "police_cruiser", level: 50, category: "street", icon: "🚓", accent: "#3b82f6",
+		defaultName: "Monatium Police Cruiser", paintable: false, pose: "sit", milestone: true, sfxType: "siren",
+		spec: { kind: "procedural", builder: "policeCruiser" }
+	},
+	{
+		code: 10, id: "magic_broom", level: 55, category: "air", icon: "🧹", accent: "#a855f7",
+		defaultName: "Enchanted Witch Broom", paintable: false, pose: "sit", sfxType: "magic",
+		spec: { kind: "procedural", builder: "magicBroom" }
+	},
+	{
+		code: 11, id: "hoverboard", level: 60, category: "air", icon: "🛹", accent: "#06b6d4",
+		defaultName: "Cyber Neon Hoverboard", paintable: true, pose: "stand", sfxType: "scifi",
+		spec: { kind: "procedural", builder: "hoverboard" }
+	},
+	{
+		code: 12, id: "monster_truck", level: 65, category: "street", icon: "🚚", accent: "#ea580c",
+		defaultName: "Crusher Monster Truck", paintable: true, pose: "sit", sfxType: "car_horn",
+		spec: { kind: "procedural", builder: "monsterTruck" }
+	},
+	{
+		code: 13, id: "rocket_kart", level: 70, category: "street", icon: "🏁", accent: "#ef4444",
+		defaultName: "Pumpkin Rocket Racer", paintable: false, pose: "sit", sfxType: "turbo",
+		spec: { kind: "glb", url: "/models/racing/racer_rocket.glb", targetLength: 2.35, seatOffsetY: 0.78, flameZ: -1.18, flameY: 0.42 }
+	},
+	{
+		code: 14, id: "mini_tank", level: 75, category: "street", icon: "💣", accent: "#65a30d",
+		defaultName: "Pocket Battle Tank", paintable: true, pose: "sit", sfxType: "cannon",
+		spec: { kind: "procedural", builder: "miniTank" }
+	},
+	{
+		code: 15, id: "santa_sleigh", level: 80, category: "air", icon: "🛷", accent: "#dc2626",
+		defaultName: "Flying Santa Sleigh", paintable: false, pose: "sit", sfxType: "magic",
+		spec: { kind: "glb", url: "/models/winter-town/santa-sleigh-set.glb", fallbackUrl: "/models/winter-town/santa-sleigh-flying.glb", targetLength: 4.0, keepLocalZ: true, hoverY: 0.36, hoverAmp: 0.10, seatOffsetY: 0.88 }
+	},
+	{
+		code: 16, id: "town_train", level: 85, category: "street", icon: "🚂", accent: "#16a34a",
+		defaultName: "Worldtree Express Train", paintable: false, pose: "sit", sfxType: "train",
+		spec: { kind: "glb", url: "/models/town-train/worldtree-town-train.glb", targetLength: 2.95, seatOffsetY: 1.38, chugAmp: 0.045 }
+	},
+	{
+		code: 17, id: "ufo_saucer", level: 90, category: "air", icon: "🛸", accent: "#22d3ee",
+		defaultName: "Alien Flying Saucer", paintable: true, pose: "sit", sfxType: "scifi",
+		spec: { kind: "procedural", builder: "ufoSaucer" }
+	},
+	{
+		code: 18, id: "nimbus_cloud", level: 95, category: "air", icon: "☁️", accent: "#fde047",
+		defaultName: "Golden Nimbus Cloud", paintable: false, pose: "stand", sfxType: "magic",
+		spec: { kind: "procedural", builder: "nimbusCloud" }
+	},
+	{
+		code: 19, id: "battlecruiser", level: 100, category: "air", icon: "🚀", accent: "#f59e0b",
+		defaultName: "Galactic Battlecruiser", paintable: false, pose: "stand", milestone: true, sfxType: "scifi",
+		spec: { kind: "glb", url: "/models/battlecruiser/battlecruiser.opt.glb", targetLength: 3.45, hoverY: 0.58, hoverAmp: 0.12, seatOffsetY: 1.28 }
+	},
+	// --- 35 FUNNY, STEALTH, UTILITY & FANTASY VEHICLES (BALANCED SPREAD LV 12 -> 100) ---
+	{
+		code: 20, id: "chicken_mech", level: 100, category: "street", icon: "🦾", accent: "#64748b",
+		defaultName: "Bipedal Chicken-Walker Mech", paintable: true, pose: "sit", milestone: true, sfxType: "mech",
+		spec: { kind: "procedural", builder: "chickenMech" }
+	},
+	{
+		code: 21, id: "chibi_heli", level: 97, category: "air", icon: "🚁", accent: "#ef4444",
+		defaultName: "Chibi Attack Helicopter", paintable: true, pose: "sit", sfxType: "heli",
+		spec: { kind: "procedural", builder: "chibiHeli" }
+	},
+	{
+		code: 22, id: "pirate_galleon", level: 94, category: "air", icon: "⛵", accent: "#92400e",
+		defaultName: "Mini Pirate Galleon", paintable: false, pose: "stand", sfxType: "cannon",
+		spec: { kind: "procedural", builder: "pirateGalleon" }
+	},
+	{
+		code: 23, id: "hot_air_balloon", level: 87, category: "air", icon: "🎈", accent: "#ec4899",
+		defaultName: "Mini Hot Air Balloon", paintable: true, pose: "stand", sfxType: "magic",
+		spec: { kind: "procedural", builder: "hotAirBalloon" }
+	},
+	{
+		code: 24, id: "magic_carpet", level: 92, category: "air", icon: "🧞", accent: "#a855f7",
+		defaultName: "Flying Magic Carpet", paintable: false, pose: "stand", sfxType: "magic",
+		spec: { kind: "procedural", builder: "magicCarpet" }
+	},
+	{
+		code: 25, id: "cyber_lightcycle", level: 83, category: "street", icon: "🏍️", accent: "#06b6d4",
+		defaultName: "Neon Cyberpunk Lightcycle", paintable: true, pose: "sit", sfxType: "scifi",
+		spec: { kind: "procedural", builder: "cyberLightcycle" }
+	},
+	{
+		code: 26, id: "jet_turtle", level: 79, category: "air", icon: "🐢", accent: "#16a34a",
+		defaultName: "Jet-Boosted Turtle", paintable: false, pose: "sit", sfxType: "turbo",
+		spec: { kind: "procedural", builder: "jetTurtle" }
+	},
+	{
+		code: 27, id: "paper_airplane", level: 76, category: "air", icon: "✈️", accent: "#f8fafc",
+		defaultName: "Giant Paper Airplane", paintable: false, pose: "stand", sfxType: "magic",
+		spec: { kind: "procedural", builder: "paperAirplane" }
+	},
+	{
+		code: 28, id: "land_shark", level: 72, category: "stealth", icon: "🦈", accent: "#64748b",
+		defaultName: "Land Shark Fin", paintable: false, pose: "sit", sfxType: "jaws",
+		spec: { kind: "procedural", builder: "landShark" }
+	},
+	{
+		code: 29, id: "bouncy_frog", level: 64, category: "stealth", icon: "🐸", accent: "#22c55e",
+		defaultName: "Giant Bouncy Frog", paintable: false, pose: "sit", sfxType: "ribbit",
+		spec: { kind: "procedural", builder: "bouncyFrog" }
+	},
+	{
+		code: 30, id: "stealth_moai", level: 69, category: "stealth", icon: "🗿", accent: "#94a3b8",
+		defaultName: "Moai Stone Head", paintable: false, pose: "none", hidePlayer: true, sfxType: "vine_boom",
+		spec: { kind: "procedural", builder: "stealthMoai" }
+	},
+	{
+		code: 31, id: "golden_toilet", level: 67, category: "stealth", icon: "🚽", accent: "#facc15",
+		defaultName: "Golden Turbo Toilet", paintable: false, pose: "sit", sfxType: "flush",
+		spec: { kind: "procedural", builder: "goldenToilet" }
+	},
+	{
+		code: 32, id: "grand_piano", level: 62, category: "stealth", icon: "🎹", accent: "#1e293b",
+		defaultName: "Rolling Grand Piano", paintable: false, pose: "sit", sfxType: "piano",
+		spec: { kind: "procedural", builder: "grandPiano" }
+	},
+	{
+		code: 33, id: "burger_mobile", level: 57, category: "street", icon: "🍔", accent: "#f59e0b",
+		defaultName: "Cheeseburger Patty-Mobile", paintable: false, pose: "sit", sfxType: "car_horn",
+		spec: { kind: "procedural", builder: "burgerMobile" }
+	},
+	{
+		code: 34, id: "hotdog_mobile", level: 49, category: "street", icon: "🌭", accent: "#ea580c",
+		defaultName: "Giant Hot Dog Mobile", paintable: false, pose: "sit", sfxType: "car_horn",
+		spec: { kind: "procedural", builder: "hotdogMobile" }
+	},
+	{
+		code: 35, id: "flying_bed", level: 59, category: "air", icon: "🛏️", accent: "#818cf8",
+		defaultName: "Hovering Comfy Bed", paintable: true, pose: "sit", sfxType: "magic",
+		spec: { kind: "procedural", builder: "flyingBed" }
+	},
+	{
+		code: 36, id: "fire_engine", level: 54, category: "street", icon: "🚒", accent: "#dc2626",
+		defaultName: "Fire Engine", paintable: false, pose: "sit", sfxType: "siren",
+		spec: { kind: "procedural", builder: "fireEngine" }
+	},
+	{
+		code: 37, id: "ambulance", level: 52, category: "street", icon: "🚑", accent: "#f8fafc",
+		defaultName: "Chibi Ambulance", paintable: false, pose: "sit", sfxType: "siren",
+		spec: { kind: "procedural", builder: "ambulance" }
+	},
+	{
+		code: 38, id: "ice_cream_truck", level: 48, category: "street", icon: "🍦", accent: "#f472b6",
+		defaultName: "Ice Cream Truck", paintable: true, pose: "sit", sfxType: "ice_cream",
+		spec: { kind: "procedural", builder: "iceCreamTruck" }
+	},
+	{
+		code: 39, id: "school_bus", level: 46, category: "street", icon: "🚌", accent: "#eab308",
+		defaultName: "Mini Yellow School Bus", paintable: false, pose: "sit", sfxType: "car_horn",
+		spec: { kind: "procedural", builder: "schoolBus" }
+	},
+	{
+		code: 40, id: "bubble_bathtub", level: 43, category: "stealth", icon: "🛁", accent: "#7dd3fc",
+		defaultName: "Rolling Bubble Bathtub", paintable: false, pose: "sit", sfxType: "quack",
+		spec: { kind: "procedural", builder: "bubbleBathtub" }
+	},
+	{
+		code: 41, id: "giant_roomba", level: 38, category: "stealth", icon: "🤖", accent: "#22c55e",
+		defaultName: "Giant Robot Vacuum", paintable: true, pose: "sit", sfxType: "scifi",
+		spec: { kind: "procedural", builder: "giantRoomba" }
+	},
+	{
+		code: 42, id: "swivel_chair", level: 19, category: "stealth", icon: "🪑", accent: "#ef4444",
+		defaultName: "Spinning Office Swivel Chair", paintable: true, pose: "sit", sfxType: "squeak",
+		spec: { kind: "procedural", builder: "swivelChair" }
+	},
+	{
+		code: 43, id: "banana_car", level: 36, category: "street", icon: "🍌", accent: "#facc15",
+		defaultName: "Giant Banana Car", paintable: false, pose: "sit", sfxType: "car_horn",
+		spec: { kind: "procedural", builder: "bananaCar" }
+	},
+	{
+		code: 44, id: "sneaker_car", level: 28, category: "street", icon: "👟", accent: "#ef4444",
+		defaultName: "Giant Sneaker Car", paintable: true, pose: "sit", sfxType: "squeak",
+		spec: { kind: "procedural", builder: "sneakerCar" }
+	},
+	{
+		code: 45, id: "watermelon_boat", level: 32, category: "stealth", icon: "🍉", accent: "#f43f5e",
+		defaultName: "Watermelon Slice Glider", paintable: false, pose: "sit", sfxType: "boing",
+		spec: { kind: "procedural", builder: "watermelonBoat" }
+	},
+	{
+		code: 46, id: "mini_forklift", level: 41, category: "street", icon: "🏗️", accent: "#facc15",
+		defaultName: "Forklift Certified", paintable: true, pose: "sit", sfxType: "scooter",
+		spec: { kind: "procedural", builder: "miniForklift" }
+	},
+	{
+		code: 47, id: "farm_tractor", level: 34, category: "street", icon: "🚜", accent: "#16a34a",
+		defaultName: "Farm Tractor", paintable: true, pose: "sit", sfxType: "car_horn",
+		spec: { kind: "procedural", builder: "farmTractor" }
+	},
+	{
+		code: 48, id: "penny_farthing", level: 24, category: "street", icon: "🚲", accent: "#b45309",
+		defaultName: "Vintage Penny-Farthing", paintable: true, pose: "sit", sfxType: "bell",
+		spec: { kind: "procedural", builder: "pennyFarthing" }
+	},
+	{
+		code: 49, id: "stealth_gift", level: 29, category: "stealth", icon: "🎁", accent: "#ec4899",
+		defaultName: "Mystery Gift Box", paintable: true, pose: "none", hidePlayer: true, sfxType: "mgs_alert",
+		spec: { kind: "procedural", builder: "stealthGift" }
+	},
+	{
+		code: 50, id: "stealth_snowman", level: 26, category: "stealth", icon: "⛄", accent: "#bae6fd",
+		defaultName: "Suspicious Snowman", paintable: false, pose: "none", hidePlayer: true, sfxType: "boing",
+		spec: { kind: "procedural", builder: "stealthSnowman" }
+	},
+	{
+		code: 51, id: "stealth_trashcan", level: 22, category: "stealth", icon: "🗑️", accent: "#94a3b8",
+		defaultName: "Alley Trash Can", paintable: false, pose: "none", hidePlayer: true, sfxType: "clang",
+		spec: { kind: "procedural", builder: "stealthTrashcan" }
+	},
+	{
+		code: 52, id: "stealth_barrel", level: 17, category: "stealth", icon: "🛢️", accent: "#92400e",
+		defaultName: "Pirate Wooden Barrel", paintable: false, pose: "none", hidePlayer: true, sfxType: "mgs_alert",
+		spec: { kind: "procedural", builder: "stealthBarrel" }
+	},
+	{
+		code: 53, id: "stealth_cone", level: 14, category: "stealth", icon: "🚧", accent: "#f97316",
+		defaultName: "Oversized Traffic Cone", paintable: false, pose: "none", hidePlayer: true, sfxType: "mgs_alert",
+		spec: { kind: "procedural", builder: "stealthCone" }
+	},
+	{
+		code: 54, id: "stealth_bush", level: 12, category: "stealth", icon: "🌿", accent: "#22c55e",
+		defaultName: "Stealth Bush", paintable: false, pose: "none", hidePlayer: true, sfxType: "mgs_alert",
+		spec: { kind: "procedural", builder: "stealthBush" }
+	}
+];
+
+const SPKMOD_VEHICLES_BY_ID = new Map(SPKMOD_VEHICLE_CATALOG.map(v => [v.id, v]));
+const SPKMOD_VEHICLES_BY_CODE = new Map(SPKMOD_VEHICLE_CATALOG.map(v => [v.code, v]));
+
+function spkmodVehicleIdToCode(idOrCode) {
+	if (idOrCode === null || idOrCode === undefined || idOrCode === "" || idOrCode === "none" || idOrCode === "off") return 0;
+	const key = String(idOrCode).trim().toLowerCase();
+	const byId = SPKMOD_VEHICLES_BY_ID.get(key);
+	if (byId) return byId.code;
+	if (/^\d+$/.test(key)) {
+		const n = Number(key);
+		if (SPKMOD_VEHICLES_BY_CODE.has(n)) return n;
+	}
+	return 0;
+}
+
+function spkmodVehicleCodeToId(code) {
+	const n = Number(code);
+	if (!Number.isInteger(n) || n <= 0) return "none";
+	const found = SPKMOD_VEHICLES_BY_CODE.get(n);
+	return found ? found.id : null;
+}
+
+if (typeof window !== "undefined") {
+	window.spkmodVehicleIdToCode = spkmodVehicleIdToCode;
+	window.spkmodVehicleCodeToId = spkmodVehicleCodeToId;
+}
+
+// ============================================================================
+// 1. PERSISTENT SETTINGS & FAVORITES
+// ============================================================================
+function spkmodLoadVehicleFavorites() {
+	const set = new Set();
+	try {
+		if (typeof window !== "undefined" && window.localStorage) {
+			const raw = localStorage.getItem(SPKMOD_VEHICLE_STORAGE_KEYS.favorites);
+			if (raw) {
+				const arr = JSON.parse(raw);
+				if (Array.isArray(arr)) {
+					for (const id of arr) {
+						if (typeof id === "string" && SPKMOD_VEHICLES_BY_ID.has(id.trim())) {
+							set.add(id.trim());
+						}
+					}
+				}
+			}
+		}
+	} catch (_) {}
+	return set;
+}
+
+function spkmodSaveVehicleFavorites(favSet) {
+	try {
+		if (typeof window !== "undefined" && window.localStorage) {
+			localStorage.setItem(SPKMOD_VEHICLE_STORAGE_KEYS.favorites, JSON.stringify([...favSet]));
+		}
+	} catch (_) {}
+}
+
+function spkmodClampVehicleColorIdx(idx) {
+	const n = Number(idx);
+	if (!Number.isFinite(n)) return 0;
+	return ((Math.floor(n) % SPKMOD_VEHICLE_COLORS.length) + SPKMOD_VEHICLE_COLORS.length) % SPKMOD_VEHICLE_COLORS.length;
+}
+
+window.spkmodVehicleSettings = {
+	enabled: (typeof window !== "undefined" && window.localStorage)
+		? localStorage.getItem(SPKMOD_VEHICLE_STORAGE_KEYS.enabled) !== "false"
+		: (window.spkmodCarSystemEnabled !== false),
+	equippedId: (typeof window !== "undefined" && window.localStorage && localStorage.getItem(SPKMOD_VEHICLE_STORAGE_KEYS.equipped)) || null,
+	lastEquippedId: (typeof window !== "undefined" && window.localStorage && (localStorage.getItem(SPKMOD_VEHICLE_STORAGE_KEYS.lastEquipped) || localStorage.getItem(SPKMOD_VEHICLE_STORAGE_KEYS.equipped))) || null,
+	colorIdx: (typeof window !== "undefined" && window.localStorage && localStorage.getItem(SPKMOD_VEHICLE_STORAGE_KEYS.color) != null)
+		? spkmodClampVehicleColorIdx(localStorage.getItem(SPKMOD_VEHICLE_STORAGE_KEYS.color))
+		: 0,
+	showRemoteVehicles: (typeof window !== "undefined" && window.localStorage)
+		? localStorage.getItem(SPKMOD_VEHICLE_STORAGE_KEYS.showRemote) !== "false"
+		: true,
+	shareInChat: (typeof window !== "undefined" && window.localStorage)
+		? localStorage.getItem(SPKMOD_VEHICLE_STORAGE_KEYS.shareInChat) !== "false"
+		: true,
+	favorites: spkmodLoadVehicleFavorites(),
+	unlockAllTest: (typeof window !== "undefined" && window.localStorage)
+		? localStorage.getItem(SPKMOD_VEHICLE_STORAGE_KEYS.unlockAll) === "true"
+		: false
+};
+window.spkmodCarSystemEnabled = window.spkmodVehicleSettings.enabled !== false;
+window.BurgerCarColorIdx = window.spkmodVehicleSettings.colorIdx;
+
+function spkmodIsVehiclesSystemEnabled() {
+	return window.spkmodVehicleSettings.enabled !== false && window.spkmodCarSystemEnabled !== false;
+}
+
+function spkmodIsVehicleChatSharingEnabled() {
+	return spkmodIsVehiclesSystemEnabled() && window.spkmodVehicleSettings.shareInChat !== false;
+}
+
+function spkmodIsVehicleFavorite(vehicleId) {
+	const favs = window.spkmodVehicleSettings?.favorites;
+	return !!(favs && typeof favs.has === "function" && favs.has(vehicleId));
+}
+
+function spkmodToggleVehicleFavorite(vehicleId) {
+	if (!vehicleId || !SPKMOD_VEHICLES_BY_ID.has(vehicleId)) return false;
+	if (!(window.spkmodVehicleSettings.favorites instanceof Set)) {
+		window.spkmodVehicleSettings.favorites = spkmodLoadVehicleFavorites();
+	}
+	const favs = window.spkmodVehicleSettings.favorites;
+	const nowFav = !favs.has(vehicleId);
+	if (nowFav) favs.add(vehicleId);
+	else favs.delete(vehicleId);
+	spkmodSaveVehicleFavorites(favs);
+	return nowFav;
+}
+
+function spkmodGetVehiclePlayerLevel() {
+	if (typeof gameState !== "undefined" && gameState?.myStat?.level) {
+		return Number(gameState.myStat.level) || 1;
+	}
+	return 1;
+}
+
+function spkmodIsVehicleUnlocked(vehicle) {
+	if (!vehicle) return false;
+	if (window.spkmodVehicleSettings.unlockAllTest) return true;
+	return spkmodGetVehiclePlayerLevel() >= (Number(vehicle.level) || 1);
+}
+
+function spkmodCheckVehicleRemoteLevelAllowed(requiredLevel, remoteLevel, senderName) {
+	if (!requiredLevel || requiredLevel <= 1) return true;
+	if (senderName && typeof spkmodIsVipUser === "function" && spkmodIsVipUser(senderName)) {
+		return true;
+	}
+	const lvl = Number(remoteLevel);
+	if (!isFinite(lvl) || lvl <= 0) return false;
+	return lvl >= requiredLevel;
+}
+
+// ============================================================================
+// 2. MULTI-LANGUAGE UI STRINGS (translations.json)
+// ============================================================================
+const SPKMOD_VEHICLE_UI_FALLBACK_EN = {
+	vehiclesBtnTooltip: "Vehicles & Stealth Box Garage (Alt+V)",
+	quickToggleOn: "{0} Vehicle: ON",
+	quickToggleOff: "{0} Vehicle: OFF",
+	quickToggleTooltip: "Quick Toggle {0} (Alt+X)",
+	quickTogglePickTooltip: "Pick a vehicle in Garage (Alt+V / Alt+X)",
+	modalTitle: "🚗 SpeakiMod+ Vehicles & Stealth Garage",
+	myLevelLabel: "Your Level",
+	unlockedLabel: "Unlocked",
+	equippedLabel: "Active Vehicle",
+	noneEquipped: "On Foot",
+	paintColorLabel: "Paint Color",
+	btnRandomColor: "🎲 Random",
+	btnEquip: "Drive",
+	btnEquipStealth: "Hide Inside",
+	btnEquipped: "Active ✓",
+	btnUnequip: "Exit Vehicle",
+	btnLocked: "Locked (Lv.{0})",
+	btnResync: "📡 Sync Map",
+	btnHonk: "🎺 Horn / ! Alert (F/G)",
+	searchPlaceholder: "Search vehicles by name, type, or level...",
+	toggleRemote: "👁️ Show Others' Vehicles",
+	toggleShareInChat: "📡 Share My Vehicle with Other Players",
+	tabAll: "All",
+	tabUnlocked: "Unlocked",
+	tabFavorites: "⭐ Favorites",
+	tabStreet: "🚗 Street",
+	tabStealth: "📦 Stealth & Fun",
+	tabAir: "🛸 Air & Sci-Fi",
+	catStreet: "Street",
+	catStealth: "Stealth & Fun",
+	catAir: "Air & Sci-Fi",
+	tagStealthHide: "Hides Player",
+	tagPaintable: "Paintable",
+	tagStanding: "Surf Pose",
+	milestoneBadge: "★ MILESTONE",
+	favAddTooltip: "Add to Favorites",
+	favRemoveTooltip: "Remove from Favorites",
+	favEmptyHint: "No favorite vehicles yet! Click ☆ on any vehicle card to pin it here.",
+	hypeTitle: "Keep leveling up to expand your garage!",
+	hypeDesc: "{0} more vehicles await up to Lv.100! Reach Lv.{1} to unlock your next ride!",
+	equippedToast: "🚗 Riding {0} (Lv.{1})! Press F / G for Horn or Special Action!",
+	equippedBoxToast: "📦 Hidden inside {0}! Move to sneak-waddle, press F / G for ! / ? Alert!",
+	unequippedToast: "🚶 Exited vehicle.",
+	lockedToast: "🔒 Requires Level {0} to drive {1}!",
+	unknownVehicleToast: "❌ Unknown vehicle: {0}",
+	colorSetToast: "🎨 Vehicle paint set to: {0}",
+	broadcastToast: "📡 Broadcasted active vehicle to nearby mod players!",
+	shareDisabledToast: "📡 Vehicle sharing is OFF. Enable 'Share My Vehicle' in the Garage to sync.",
+	systemDisabledToast: "🚗 Vehicles System is disabled. Enable it in Settings (under Pets).",
+	systemEnabledToast: "🚗 Vehicles display & sync enabled.",
+	testUnlockEnabledToast: "🔓 [Vehicles Test] All vehicles UNLOCKED for testing!",
+	testUnlockDisabledToast: "🔒 [Vehicles Test] Normal vehicle level requirements restored."
+};
+
+function spkmodGetVehicleActiveLang() {
+	if (typeof spkmodGetActiveLang === "function") return spkmodGetActiveLang();
+	const raw = (typeof spkmodLang !== "undefined" && spkmodLang) ? spkmodLang : "en";
+	if (typeof spkmodTranslations !== "undefined" && spkmodTranslations[raw]) return raw;
+	if (raw === "zh") return "zh-CN";
+	if (raw === "es") return "es-419";
+	return raw || "en";
+}
+
+function spkmodGetVehicleUiText(key, ...args) {
+	const lang = spkmodGetVehicleActiveLang();
+	const tr = typeof spkmodTranslations !== "undefined" ? spkmodTranslations : null;
+	let str = (tr && tr[lang] && tr[lang].vehicleUi && tr[lang].vehicleUi[key])
+		|| (tr && tr.en && tr.en.vehicleUi && tr.en.vehicleUi[key])
+		|| SPKMOD_VEHICLE_UI_FALLBACK_EN[key]
+		|| key;
+	args.forEach((a, i) => {
+		str = str.split(`{${i}}`).join(a);
+	});
+	return str;
+}
+window.spkmodGetVehicleUiText = spkmodGetVehicleUiText;
+
+function spkmodGetVehicleDisplayName(vehicle) {
+	if (!vehicle) return "";
+	const lang = spkmodGetVehicleActiveLang();
+	const tr = typeof spkmodTranslations !== "undefined" ? spkmodTranslations : null;
+	return (tr && tr[lang] && tr[lang].vehicleNames && tr[lang].vehicleNames[vehicle.id])
+		|| (tr && tr.en && tr.en.vehicleNames && tr.en.vehicleNames[vehicle.id])
+		|| vehicle.defaultName
+		|| vehicle.id;
+}
+
+function spkmodGetVehicleColorName(colorObj) {
+	if (!colorObj) return "";
+	const lang = spkmodGetVehicleActiveLang();
+	const tr = typeof spkmodTranslations !== "undefined" ? spkmodTranslations : null;
+	return (tr && tr[lang] && tr[lang].vehicleColors && tr[lang].vehicleColors[colorObj.id])
+		|| (tr && tr.en && tr.en.vehicleColors && tr.en.vehicleColors[colorObj.id])
+		|| colorObj.defaultName
+		|| colorObj.id;
+}
+
+// ============================================================================
+// 3. SYNTHESIZED SOUND EFFECTS & MGS ALERT AUDIO (F / G KEYS)
+// ============================================================================
+let _spkmodVehicleAudioCtx = null;
+
+function spkmodGetVehicleAudioCtx() {
+	try {
+		const Ctx = window.AudioContext || window.webkitAudioContext;
+		if (!Ctx) return null;
+		if (!_spkmodVehicleAudioCtx) _spkmodVehicleAudioCtx = new Ctx();
+		if (_spkmodVehicleAudioCtx.state === "suspended") {
+			_spkmodVehicleAudioCtx.resume().catch(() => {});
+		}
+		return _spkmodVehicleAudioCtx;
+	} catch (_) {
+		return null;
+	}
+}
+
+function spkmodGetVehicleSfxVol() {
+	if (typeof window.spkmodGetEffectiveSfxVolume === "function") {
+		return window.spkmodGetEffectiveSfxVolume();
+	}
+	if (typeof isGameMuted === "function" && isGameMuted()) return 0;
+	return 0.5;
+}
+
+function spkmodPlaySynthTone(ctx, type, startFreq, endFreq, startAt, duration, vol) {
+	const osc = ctx.createOscillator();
+	const gain = ctx.createGain();
+	osc.type = type;
+	osc.frequency.setValueAtTime(Math.max(30, startFreq), startAt);
+	if (endFreq !== startFreq) {
+		osc.frequency.exponentialRampToValueAtTime(Math.max(30, endFreq), startAt + duration);
+	}
+	gain.gain.setValueAtTime(0.0001, startAt);
+	gain.gain.linearRampToValueAtTime(vol, startAt + Math.min(0.018, duration * 0.2));
+	gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+	osc.connect(gain);
+	gain.connect(ctx.destination);
+	osc.start(startAt);
+	osc.stop(startAt + duration + 0.02);
+}
+
+function spkmodPlayVehicleSfx(vehicle, secondary = false) {
+	if (!vehicle) return;
+	const vol = spkmodGetVehicleSfxVol();
+	if (vol <= 0.001) return;
+
+	if (vehicle.sfxType === "car_horn") {
+		if (typeof spkmodPlayBurgerCarAudio === "function") {
+			spkmodPlayBurgerCarAudio(
+				secondary ? "/audio/sfx/burger_shop/carHornDouble.mp3" : "/audio/sfx/burger_shop/carHorn.mp3"
+			);
+			return;
+		}
+	}
+
+	const ctx = spkmodGetVehicleAudioCtx();
+	if (!ctx) return;
+	const now = ctx.currentTime + 0.01;
+	const v = Math.max(0.04, Math.min(0.28, vol * 0.32));
+
+	try {
+		switch (vehicle.sfxType) {
+			case "mgs_alert":
+				if (!secondary) {
+					// Iconic dramatic stealth "!" alert brassy sting
+					spkmodPlaySynthTone(ctx, "sawtooth", 880, 932, now, 0.14, v * 0.95);
+					spkmodPlaySynthTone(ctx, "square", 1175, 1244, now, 0.14, v * 0.65);
+					spkmodPlaySynthTone(ctx, "sawtooth", 1480, 1568, now + 0.05, 0.24, v * 0.90);
+					spkmodPlaySynthTone(ctx, "triangle", 440, 392, now + 0.05, 0.26, v * 0.65);
+				} else {
+					// Curious "?" stealth guard notice chime
+					spkmodPlaySynthTone(ctx, "sine", 520, 780, now, 0.15, v * 0.75);
+					spkmodPlaySynthTone(ctx, "triangle", 780, 980, now + 0.12, 0.16, v * 0.55);
+				}
+				break;
+			case "siren":
+				spkmodPlaySynthTone(ctx, "sawtooth", 680, 1180, now, 0.22, v * 0.65);
+				spkmodPlaySynthTone(ctx, "sawtooth", 1180, 680, now + 0.22, 0.22, v * 0.65);
+				if (secondary) {
+					spkmodPlaySynthTone(ctx, "sawtooth", 680, 1180, now + 0.44, 0.20, v * 0.6);
+				}
+				break;
+			case "quack":
+				spkmodPlaySynthTone(ctx, "sawtooth", 760, 480, now, 0.12, v * 0.7);
+				if (secondary) spkmodPlaySynthTone(ctx, "sawtooth", 820, 500, now + 0.15, 0.12, v * 0.7);
+				break;
+			case "train":
+				spkmodPlaySynthTone(ctx, "triangle", 392, 392, now, 0.36, v * 0.8);
+				spkmodPlaySynthTone(ctx, "triangle", 494, 494, now, 0.36, v * 0.65);
+				spkmodPlaySynthTone(ctx, "triangle", 587, 587, now, 0.36, v * 0.55);
+				break;
+			case "scifi":
+				spkmodPlaySynthTone(ctx, "sine", secondary ? 920 : 420, secondary ? 320 : 1240, now, 0.28, v * 0.7);
+				spkmodPlaySynthTone(ctx, "triangle", 280, 640, now + 0.06, 0.24, v * 0.45);
+				break;
+			case "magic":
+				spkmodPlaySynthTone(ctx, "sine", 784, 1046, now, 0.16, v * 0.65);
+				spkmodPlaySynthTone(ctx, "sine", 1046, 1568, now + 0.08, 0.24, v * 0.65);
+				spkmodPlaySynthTone(ctx, "triangle", 1568, 2093, now + 0.15, 0.22, v * 0.45);
+				break;
+			case "cannon":
+				spkmodPlaySynthTone(ctx, "sawtooth", 160, 42, now, 0.28, v * 1.1);
+				spkmodPlaySynthTone(ctx, "square", 110, 35, now, 0.22, v * 0.8);
+				break;
+			case "boing":
+				spkmodPlaySynthTone(ctx, "sine", 240, 620, now, 0.18, v * 0.75);
+				spkmodPlaySynthTone(ctx, "sine", 620, 340, now + 0.15, 0.18, v * 0.6);
+				break;
+			case "bell":
+				spkmodPlaySynthTone(ctx, "sine", 1320, 1320, now, 0.22, v * 0.7);
+				spkmodPlaySynthTone(ctx, "sine", 1980, 1980, now + 0.06, 0.20, v * 0.55);
+				break;
+			case "turbo":
+				spkmodPlaySynthTone(ctx, "sawtooth", 180, 560, now, 0.30, v * 0.7);
+				break;
+			case "vine_boom":
+				// Deep dramatic sub-bass Moai vine boom!
+				spkmodPlaySynthTone(ctx, "sine", 130, 34, now, 0.52, v * 1.4);
+				spkmodPlaySynthTone(ctx, "triangle", 95, 28, now, 0.45, v * 1.1);
+				break;
+			case "flush":
+				spkmodPlaySynthTone(ctx, "sawtooth", 440, 140, now, 0.45, v * 0.55);
+				spkmodPlaySynthTone(ctx, "sine", 780, 220, now + 0.08, 0.40, v * 0.5);
+				break;
+			case "piano": {
+				const notes = secondary ? [261.6, 311.1, 392.0, 523.3] : [261.6, 329.6, 392.0, 523.3];
+				notes.forEach((f, idx) => spkmodPlaySynthTone(ctx, "triangle", f, f, now + idx * 0.045, 0.42, v * 0.65));
+				break;
+			}
+			case "ice_cream": {
+				const mel = [523, 659, 784, 659, 880];
+				mel.forEach((f, idx) => spkmodPlaySynthTone(ctx, "sine", f, f, now + idx * 0.09, 0.12, v * 0.65));
+				break;
+			}
+			case "ribbit":
+				spkmodPlaySynthTone(ctx, "sawtooth", 210, 480, now, 0.11, v * 0.75);
+				spkmodPlaySynthTone(ctx, "sawtooth", 230, 520, now + 0.14, 0.13, v * 0.75);
+				break;
+			case "jaws":
+				spkmodPlaySynthTone(ctx, "sawtooth", 82, 82, now, 0.18, v * 0.95);
+				spkmodPlaySynthTone(ctx, "sawtooth", 87, 87, now + 0.22, 0.22, v * 1.0);
+				break;
+			case "clang":
+				spkmodPlaySynthTone(ctx, "square", 640, 290, now, 0.18, v * 0.75);
+				spkmodPlaySynthTone(ctx, "triangle", 1180, 740, now, 0.24, v * 0.55);
+				break;
+			case "squeak":
+				spkmodPlaySynthTone(ctx, "sine", 950, 1650, now, 0.10, v * 0.6);
+				if (secondary) spkmodPlaySynthTone(ctx, "sine", 1450, 880, now + 0.11, 0.10, v * 0.6);
+				break;
+			case "heli":
+				spkmodPlaySynthTone(ctx, "triangle", 140, 90, now, 0.10, v * 0.8);
+				spkmodPlaySynthTone(ctx, "triangle", 140, 90, now + 0.12, 0.10, v * 0.8);
+				spkmodPlaySynthTone(ctx, "triangle", 140, 90, now + 0.24, 0.10, v * 0.8);
+				break;
+			case "mech":
+				spkmodPlaySynthTone(ctx, "sawtooth", 120, 48, now, 0.22, v * 1.0);
+				spkmodPlaySynthTone(ctx, "sine", 880, 1320, now + 0.08, 0.16, v * 0.5);
+				break;
+			case "scooter":
+			default:
+				spkmodPlaySynthTone(ctx, "square", 520, 540, now, 0.12, v * 0.55);
+				if (secondary) spkmodPlaySynthTone(ctx, "square", 520, 540, now + 0.16, 0.12, v * 0.55);
+				break;
+		}
+	} catch (_) {}
+}
+
+// ============================================================================
+// 4. 3D ASSET LOADER & PROCEDURAL VEHICLE BUILDERS (INCLUDING MGS BOX)
+// ============================================================================
+const _spkmodVehicleGlbCache = new Map();
+let _spkmodMgsBoxTextures = null;
+const _spkmodAlertTextures = new Map(); // "!" | "?" -> CanvasTexture
+
+async function spkmodLoadVehicleGlbScene(url, fallbackUrl) {
+	if (!url) return null;
+	const tryLoad = async (targetUrl) => {
+		if (_spkmodVehicleGlbCache.has(targetUrl)) {
+			return _spkmodVehicleGlbCache.get(targetUrl);
+		}
+		const p = (async () => {
+			if (typeof spkmodLoadGlbScene === "function") {
+				const gltf = await spkmodLoadGlbScene(targetUrl);
+				if (gltf && gltf.scene) return gltf.scene;
+			}
+			if (typeof spkmodEnsureGLTFLoader !== "function") return null;
+			const GLTFLoader = await spkmodEnsureGLTFLoader();
+			if (!GLTFLoader) return null;
+			const loader = new GLTFLoader();
+			const meshopt = (typeof _spkmodMeshoptDecoder !== "undefined" && _spkmodMeshoptDecoder) || window.THREE?.MeshoptDecoder;
+			if (meshopt) {
+				if (meshopt.ready) await meshopt.ready;
+				loader.setMeshoptDecoder(meshopt);
+			}
+			const gltf = await loader.loadAsync(targetUrl);
+			return gltf?.scene || null;
+		})().catch(() => {
+			_spkmodVehicleGlbCache.delete(targetUrl);
+			return null;
+		});
+		_spkmodVehicleGlbCache.set(targetUrl, p);
+		return p;
+	};
+	const scene = await tryLoad(url);
+	if (scene) return scene;
+	if (fallbackUrl) return tryLoad(fallbackUrl);
+	return null;
+}
+
+function spkmodVehMat(THREE, color, extra = {}) {
+	if (THREE.MeshToonMaterial) {
+		return new THREE.MeshToonMaterial(Object.assign({ color }, extra));
+	}
+	return new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.55, metalness: 0.1 }, extra));
+}
+
+function spkmodGetMgsBoxTextures(THREE) {
+	if (_spkmodMgsBoxTextures) return _spkmodMgsBoxTextures;
+	if (typeof document === "undefined") return null;
+
+	const makeKraftBase = (ctx, w, h) => {
+		const grad = ctx.createLinearGradient(0, 0, 0, h);
+		grad.addColorStop(0, "#cfa26b");
+		grad.addColorStop(0.5, "#bd8d56");
+		grad.addColorStop(1, "#a47440");
+		ctx.fillStyle = grad;
+		ctx.fillRect(0, 0, w, h);
+
+		// Corrugated vertical cardboard grain lines
+		ctx.fillStyle = "rgba(92, 58, 24, 0.075)";
+		for (let x = 0; x < w; x += 6) {
+			ctx.fillRect(x, 0, 2, h);
+		}
+		// Subtle paper speckles
+		for (let i = 0; i < 420; i++) {
+			const sx = (i * 73) % w;
+			const sy = (i * 137) % h;
+			ctx.fillStyle = (i % 2 === 0) ? "rgba(74,46,18,0.12)" : "rgba(255,235,200,0.08)";
+			ctx.fillRect(sx, sy, 3, 2);
+		}
+		// Edge border shadow
+		ctx.strokeStyle = "rgba(72, 42, 16, 0.42)";
+		ctx.lineWidth = 10;
+		ctx.strokeRect(5, 5, w - 10, h - 10);
+	};
+
+	// Side / Front stencil face
+	const sideCanvas = document.createElement("canvas");
+	sideCanvas.width = 512;
+	sideCanvas.height = 512;
+	const sCtx = sideCanvas.getContext("2d");
+	makeKraftBase(sCtx, 512, 512);
+
+	// Top packing tape overhang
+	sCtx.fillStyle = "rgba(222, 192, 144, 0.72)";
+	sCtx.fillRect(0, 0, 512, 34);
+	sCtx.fillStyle = "rgba(110, 72, 32, 0.25)";
+	sCtx.fillRect(0, 34, 512, 3);
+
+	// Classic MGS stencil print ("THE HOBAGI" + "SPEAKI GEAR")
+	sCtx.fillStyle = "#2b1c10";
+	sCtx.strokeStyle = "#2b1c10";
+	sCtx.textAlign = "center";
+
+	sCtx.font = "900 32px Impact, Arial Black, sans-serif";
+	sCtx.fillText("SPEAKI GEAR SOLID", 256, 98);
+
+	// Thick rectangular orange-box frame
+	sCtx.lineWidth = 7;
+	sCtx.strokeRect(46, 126, 420, 142);
+	sCtx.fillStyle = "#c2410c";
+	sCtx.fillRect(58, 138, 396, 118);
+	sCtx.fillStyle = "#fff7ed";
+	sCtx.font = "900 58px Impact, Arial Black, sans-serif";
+	sCtx.fillText("THE HOBAGI", 256, 214);
+	sCtx.font = "bold 19px monospace";
+	sCtx.fillText("MONATIUM FRESH — GRADE A+", 256, 245);
+
+	// Caution & handling stencil strip
+	sCtx.fillStyle = "#2b1c10";
+	sCtx.font = "900 22px Arial Black, sans-serif";
+	sCtx.fillText("⚠ HANDLE WITH CARE  ↑ THIS SIDE UP ↑", 256, 326);
+
+	// Little stencil handling boxes (fragile / umbrella / no-peek)
+	sCtx.lineWidth = 4;
+	sCtx.strokeRect(64, 354, 72, 72);
+	sCtx.strokeRect(152, 354, 72, 72);
+	sCtx.strokeRect(240, 354, 72, 72);
+	sCtx.font = "900 42px Arial, sans-serif";
+	sCtx.fillText("↑↑", 100, 405);
+	sCtx.fillText("!", 188, 405);
+	sCtx.fillText("☂", 276, 405);
+
+	// Barcode on bottom right
+	let bx = 338;
+	const bars = [4, 2, 6, 2, 3, 5, 2, 4, 2, 7, 3, 2, 5, 2, 4, 3];
+	for (let i = 0; i < bars.length; i++) {
+		if (i % 2 === 0) sCtx.fillRect(bx, 358, bars[i], 54);
+		bx += bars[i] + 3;
+	}
+	sCtx.font = "bold 15px monospace";
+	sCtx.fillText("BOX-00140.85", 398, 430);
+
+	// Top face with center folded flap seam & packing tape
+	const topCanvas = document.createElement("canvas");
+	topCanvas.width = 512;
+	topCanvas.height = 512;
+	const tCtx = topCanvas.getContext("2d");
+	makeKraftBase(tCtx, 512, 512);
+	// Center seam line
+	tCtx.fillStyle = "rgba(45, 26, 10, 0.65)";
+	tCtx.fillRect(0, 252, 512, 8);
+	// Translucent tan packing tape across the center seam
+	tCtx.fillStyle = "rgba(232, 204, 155, 0.72)";
+	tCtx.fillRect(0, 212, 512, 88);
+	tCtx.strokeStyle = "rgba(145, 106, 56, 0.45)";
+	tCtx.lineWidth = 3;
+	tCtx.strokeRect(0, 212, 512, 88);
+	// Tape specular streak
+	tCtx.fillStyle = "rgba(255, 248, 232, 0.24)";
+	tCtx.fillRect(0, 224, 512, 16);
+
+	const sideTex = new THREE.CanvasTexture(sideCanvas);
+	const topTex = new THREE.CanvasTexture(topCanvas);
+	if (THREE.SRGBColorSpace) {
+		sideTex.colorSpace = THREE.SRGBColorSpace;
+		topTex.colorSpace = THREE.SRGBColorSpace;
+	}
+	sideTex.needsUpdate = true;
+	topTex.needsUpdate = true;
+	_spkmodMgsBoxTextures = { sideTex, topTex };
+	return _spkmodMgsBoxTextures;
+}
+
+function spkmodGetAlertSpriteTexture(THREE, symbol) {
+	const key = symbol === "?" ? "?" : "!";
+	if (_spkmodAlertTextures.has(key)) return _spkmodAlertTextures.get(key);
+	if (typeof document === "undefined") return null;
+
+	const c = document.createElement("canvas");
+	c.width = 192;
+	c.height = 192;
+	const ctx = c.getContext("2d");
+	ctx.clearRect(0, 0, 192, 192);
+
+	// Dramatic radial glow
+	const glow = ctx.createRadialGradient(96, 96, 12, 96, 96, 86);
+	if (key === "!") {
+		glow.addColorStop(0, "rgba(254, 202, 202, 0.95)");
+		glow.addColorStop(0.45, "rgba(239, 68, 68, 0.65)");
+		glow.addColorStop(1, "rgba(239, 68, 68, 0)");
+	} else {
+		glow.addColorStop(0, "rgba(254, 249, 195, 0.95)");
+		glow.addColorStop(0.45, "rgba(234, 179, 8, 0.6)");
+		glow.addColorStop(1, "rgba(234, 179, 8, 0)");
+	}
+	ctx.fillStyle = glow;
+	ctx.fillRect(0, 0, 192, 192);
+
+	ctx.textAlign = "center";
+	ctx.textBaseline = "middle";
+	ctx.font = "900 132px Impact, Arial Black, sans-serif";
+	ctx.lineWidth = 14;
+	ctx.strokeStyle = "#111827";
+	ctx.strokeText(key, 96, 102);
+	ctx.fillStyle = key === "!" ? "#ef4444" : "#facc15";
+	ctx.fillText(key, 96, 102);
+
+	const tex = new THREE.CanvasTexture(c);
+	if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+	tex.needsUpdate = true;
+	_spkmodAlertTextures.set(key, tex);
+	return tex;
+}
+
+function spkmodAddWheelPair(THREE, parent, xHalf, y, z, radius, width, tireMat, rimMat, wheelsOut) {
+	const makeWheel = (side) => {
+		const grp = new THREE.Group();
+		grp.position.set(side * xHalf, y, z);
+		const tire = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, width, 16), tireMat);
+		tire.rotation.z = Math.PI / 2;
+		grp.add(tire);
+		const rim = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.56, radius * 0.56, width + 0.02, 12), rimMat);
+		rim.rotation.z = Math.PI / 2;
+		grp.add(rim);
+		// Spoke bar so wheel rotation is super visible while driving
+		const spoke = new THREE.Mesh(new THREE.BoxGeometry(width + 0.03, radius * 0.95, radius * 0.16), tireMat);
+		grp.add(spoke);
+		parent.add(grp);
+		wheelsOut.push(grp);
+	};
+	makeWheel(-1);
+	makeWheel(1);
+}
+
+function spkmodBuildProceduralVehicle(THREE, builderName, colorHex) {
+	const root = new THREE.Group();
+	const bodyGroup = new THREE.Group();
+	root.add(bodyGroup);
+
+	const wheels = [];
+	const animParts = [];
+	const tireMat = spkmodVehMat(THREE, 0x1e293b);
+	const rimMat = spkmodVehMat(THREE, 0xe2e8f0);
+	const paintMat = spkmodVehMat(THREE, colorHex);
+	const chromeMat = spkmodVehMat(THREE, 0xcbd5e1);
+	const glassMat = spkmodVehMat(THREE, 0x38bdf8, { transparent: true, opacity: 0.62 });
+	const darkMat = spkmodVehMat(THREE, 0x111827);
+	const headLightMat = spkmodVehMat(THREE, 0xfef08a, { emissive: 0xfacc15, emissiveIntensity: 0.7 });
+	const tailLightMat = spkmodVehMat(THREE, 0xf87171, { emissive: 0xef4444, emissiveIntensity: 0.65 });
+
+	let seatOffsetY = 0.85;
+	let wheelRadius = 0.30;
+	let hoverY = 0;
+	let hoverAmp = 0;
+	let extra = {};
+
+	if (builderName === "mgsBox") {
+		const tex = spkmodGetMgsBoxTextures(THREE);
+		const sideMat = tex
+			? new THREE.MeshStandardMaterial({ map: tex.sideTex, roughness: 0.88, metalness: 0.02 })
+			: spkmodVehMat(THREE, 0xc49a6c);
+		const topMat = tex
+			? new THREE.MeshStandardMaterial({ map: tex.topTex, roughness: 0.85, metalness: 0.02 })
+			: spkmodVehMat(THREE, 0xcba171);
+		const innerDarkMat = new THREE.MeshBasicMaterial({ color: 0x26180d, side: THREE.DoubleSide });
+
+		// 6-face textured corrugated cardboard box (slightly taller & wider than Speaki to hide completely!)
+		const boxW = 1.18;
+		const boxH = 1.24;
+		const boxD = 1.18;
+		const boxMesh = new THREE.Mesh(
+			new THREE.BoxGeometry(boxW, boxH, boxD),
+			[sideMat, sideMat, topMat, innerDarkMat, sideMat, sideMat]
+		);
+		boxMesh.position.y = boxH * 0.5;
+		bodyGroup.add(boxMesh);
+
+		// Subtle slightly-lifted top cardboard flap edges for authentic silhouette
+		const flapMat = spkmodVehMat(THREE, 0xb88650);
+		const flapL = new THREE.Mesh(new THREE.BoxGeometry(boxW * 0.49, 0.024, boxD + 0.015), flapMat);
+		flapL.position.set(-boxW * 0.25, boxH + 0.012, 0);
+		flapL.rotation.z = 0.03;
+		bodyGroup.add(flapL);
+		const flapR = new THREE.Mesh(new THREE.BoxGeometry(boxW * 0.49, 0.024, boxD + 0.015), flapMat);
+		flapR.position.set(boxW * 0.25, boxH + 0.012, 0);
+		flapR.rotation.z = -0.03;
+		bodyGroup.add(flapR);
+
+		// Tiny stealth feet underneath the box — only visible while sneak-waddling!
+		const shoeMat = spkmodVehMat(THREE, 0x3b2a22);
+		const leftFoot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), shoeMat);
+		leftFoot.scale.set(0.95, 0.65, 1.35);
+		leftFoot.position.set(-0.22, 0.08, 0.08);
+		leftFoot.visible = false;
+		root.add(leftFoot);
+
+		const rightFoot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), shoeMat);
+		rightFoot.scale.set(0.95, 0.65, 1.35);
+		rightFoot.position.set(0.22, 0.08, -0.08);
+		rightFoot.visible = false;
+		root.add(rightFoot);
+
+		// Alert sprite ("!" / "?") above the box triggered by F/G
+		const alertTex = spkmodGetAlertSpriteTexture(THREE, "!");
+		const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false });
+		const alertSprite = new THREE.Sprite(alertMat);
+		alertSprite.position.set(0, 1.92, 0);
+		alertSprite.scale.set(0.75, 0.75, 1);
+		alertSprite.visible = false;
+		root.add(alertSprite);
+
+		seatOffsetY = 0;
+		extra = { isMgsBox: true, leftFoot, rightFoot, alertSprite };
+	} else if (builderName === "shoppingCart") {
+		// Chrome supermarket basket + colored handle & corner bumpers + 4 caster wheels
+		const baseFrame = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.08, 1.24), chromeMat);
+		baseFrame.position.set(0, 0.22, 0);
+		bodyGroup.add(baseFrame);
+
+		// Wire basket cage (semi-transparent metallic sides + solid chrome rails)
+		const cageMat = spkmodVehMat(THREE, 0xe2e8f0, { wireframe: true });
+		const cage = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.68, 1.18, 5, 4, 6), cageMat);
+		cage.position.set(0, 0.68, 0.06);
+		bodyGroup.add(cage);
+
+		// Bottom basket floor
+		const basketFloor = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.05, 1.14), chromeMat);
+		basketFloor.position.set(0, 0.35, 0.06);
+		bodyGroup.add(basketFloor);
+
+		// Top colored rim + push handle bar
+		const rimFront = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.07, 0.07), paintMat);
+		rimFront.position.set(0, 1.02, 0.65);
+		bodyGroup.add(rimFront);
+		const handleBar = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.96, 12), paintMat);
+		handleBar.rotation.z = Math.PI / 2;
+		handleBar.position.set(0, 1.18, -0.64);
+		bodyGroup.add(handleBar);
+		for (const sx of [-0.44, 0.44]) {
+			const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.96, 8), chromeMat);
+			arm.position.set(sx, 0.72, -0.58);
+			arm.rotation.x = -0.18;
+			bodyGroup.add(arm);
+		}
+		wheelRadius = 0.14;
+		spkmodAddWheelPair(THREE, bodyGroup, 0.38, 0.14, 0.48, wheelRadius, 0.09, tireMat, paintMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.38, 0.14, -0.48, wheelRadius, 0.09, tireMat, paintMat, wheels);
+		seatOffsetY = 0.56;
+	} else if (builderName === "scooter") {
+		// Retro Vespa-style scooter
+		const floorboard = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.10, 1.16), darkMat);
+		floorboard.position.set(0, 0.32, 0);
+		bodyGroup.add(floorboard);
+
+		const rearBody = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.46, 0.86), paintMat);
+		rearBody.position.set(0, 0.58, -0.34);
+		bodyGroup.add(rearBody);
+
+		const seat = new THREE.Mesh(new THREE.BoxGeometry(0.50, 0.16, 0.68), spkmodVehMat(THREE, 0x7c2d12));
+		seat.position.set(0, 0.86, -0.24);
+		bodyGroup.add(seat);
+
+		const frontShield = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.82, 0.20), paintMat);
+		frontShield.position.set(0, 0.72, 0.52);
+		frontShield.rotation.x = -0.22;
+		bodyGroup.add(frontShield);
+
+		const handleBar = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.88, 10), chromeMat);
+		handleBar.rotation.z = Math.PI / 2;
+		handleBar.position.set(0, 1.14, 0.42);
+		bodyGroup.add(handleBar);
+
+		const headLight = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), headLightMat);
+		headLight.position.set(0, 1.06, 0.58);
+		bodyGroup.add(headLight);
+
+		const tailLight = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.10, 0.06), tailLightMat);
+		tailLight.position.set(0, 0.66, -0.78);
+		bodyGroup.add(tailLight);
+
+		// 2 inline wheels (front + rear)
+		wheelRadius = 0.26;
+		const makeCenterWheel = (zPos) => {
+			const g = new THREE.Group();
+			g.position.set(0, wheelRadius, zPos);
+			const t = new THREE.Mesh(new THREE.CylinderGeometry(wheelRadius, wheelRadius, 0.16, 16), tireMat);
+			t.rotation.z = Math.PI / 2;
+			g.add(t);
+			const r = new THREE.Mesh(new THREE.CylinderGeometry(wheelRadius * 0.55, wheelRadius * 0.55, 0.18, 12), rimMat);
+			r.rotation.z = Math.PI / 2;
+			g.add(r);
+			bodyGroup.add(g);
+			wheels.push(g);
+		};
+		makeCenterWheel(0.68);
+		makeCenterWheel(-0.56);
+		seatOffsetY = 0.94;
+	} else if (builderName === "duckFloatie") {
+		const yellowMat = spkmodVehMat(THREE, 0xfacc15);
+		const beakMat = spkmodVehMat(THREE, 0xf97316);
+		const ring = new THREE.Mesh(new THREE.TorusGeometry(0.68, 0.28, 14, 24), yellowMat);
+		ring.rotation.x = Math.PI / 2;
+		ring.position.set(0, 0.34, 0);
+		bodyGroup.add(ring);
+
+		const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.25, 0.42, 12), yellowMat);
+		neck.position.set(0, 0.64, 0.66);
+		neck.rotation.x = 0.15;
+		bodyGroup.add(neck);
+
+		const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 14), yellowMat);
+		head.position.set(0, 0.96, 0.72);
+		bodyGroup.add(head);
+
+		const beak = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.32, 12), beakMat);
+		beak.rotation.x = Math.PI / 2;
+		beak.position.set(0, 0.92, 1.06);
+		bodyGroup.add(beak);
+
+		for (const sx of [-0.13, 0.13]) {
+			const eye = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), darkMat);
+			eye.position.set(sx, 1.04, 0.97);
+			bodyGroup.add(eye);
+		}
+		// Side wings & cute tail tuft
+		for (const sx of [-0.88, 0.88]) {
+			const wing = new THREE.Mesh(new THREE.SphereGeometry(0.26, 12, 10), yellowMat);
+			wing.scale.set(0.45, 0.85, 1.4);
+			wing.position.set(sx, 0.46, -0.05);
+			bodyGroup.add(wing);
+		}
+		const tail = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.42, 10), yellowMat);
+		tail.rotation.x = -0.85;
+		tail.position.set(0, 0.56, -0.86);
+		bodyGroup.add(tail);
+
+		seatOffsetY = 0.54;
+		extra = { waddleAmp: 0.085 };
+	} else if (builderName === "sportsCoupe") {
+		const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.42, 2.55), paintMat);
+		chassis.position.set(0, 0.46, 0);
+		bodyGroup.add(chassis);
+
+		// Racing stripes
+		const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.435, 2.57), spkmodVehMat(THREE, 0xffffff));
+		stripe.position.set(0, 0.46, 0);
+		bodyGroup.add(stripe);
+
+		// Sloped cabin
+		const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.16, 0.38, 1.14), glassMat);
+		cabin.position.set(0, 0.80, -0.10);
+		bodyGroup.add(cabin);
+
+		// Rear GT spoiler wing
+		const wing = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.07, 0.30), darkMat);
+		wing.position.set(0, 0.94, -1.16);
+		bodyGroup.add(wing);
+		for (const sx of [-0.46, 0.46]) {
+			const strut = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.30, 0.14), darkMat);
+			strut.position.set(sx, 0.78, -1.14);
+			bodyGroup.add(strut);
+		}
+		// Headlights & taillights
+		for (const sx of [-0.50, 0.50]) {
+			const hl = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.12, 0.08), headLightMat);
+			hl.position.set(sx, 0.50, 1.28);
+			bodyGroup.add(hl);
+			const tl = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.12, 0.08), tailLightMat);
+			tl.position.set(sx, 0.52, -1.28);
+			bodyGroup.add(tl);
+		}
+		wheelRadius = 0.30;
+		spkmodAddWheelPair(THREE, bodyGroup, 0.76, wheelRadius, 0.78, wheelRadius, 0.22, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.76, wheelRadius, -0.78, wheelRadius, 0.24, tireMat, rimMat, wheels);
+		seatOffsetY = 1.02;
+	} else if (builderName === "policeCruiser") {
+		const blackMat = spkmodVehMat(THREE, 0x0f172a);
+		const whiteMat = spkmodVehMat(THREE, 0xf8fafc);
+
+		const lowerBody = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.48, 2.62), blackMat);
+		lowerBody.position.set(0, 0.52, 0);
+		bodyGroup.add(lowerBody);
+
+		const doorBand = new THREE.Mesh(new THREE.BoxGeometry(1.54, 0.44, 1.08), whiteMat);
+		doorBand.position.set(0, 0.53, -0.05);
+		bodyGroup.add(doorBand);
+
+		const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.30, 0.46, 1.20), whiteMat);
+		cabin.position.set(0, 0.96, -0.08);
+		bodyGroup.add(cabin);
+
+		const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.36, 1.24), glassMat);
+		windshield.position.set(0, 0.96, -0.08);
+		bodyGroup.add(windshield);
+
+		// Front push bullbar
+		const bullbar = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.34, 0.14), chromeMat);
+		bullbar.position.set(0, 0.46, 1.36);
+		bodyGroup.add(bullbar);
+
+		// Flashing Red / Blue Police Roof Lightbar!
+		const sirenBar = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.08, 0.22), darkMat);
+		sirenBar.position.set(0, 1.22, 0.02);
+		bodyGroup.add(sirenBar);
+
+		const redMat = new THREE.MeshBasicMaterial({ color: 0xff2233 });
+		const blueMat = new THREE.MeshBasicMaterial({ color: 0x2277ff });
+		const sirenRed = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.20), redMat);
+		sirenRed.position.set(-0.24, 1.32, 0.02);
+		bodyGroup.add(sirenRed);
+		const sirenBlue = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.20), blueMat);
+		sirenBlue.position.set(0.24, 1.32, 0.02);
+		bodyGroup.add(sirenBlue);
+		animParts.push({ type: "siren", red: sirenRed, blue: sirenBlue });
+
+		for (const sx of [-0.52, 0.52]) {
+			const hl = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.14, 0.08), headLightMat);
+			hl.position.set(sx, 0.56, 1.32);
+			bodyGroup.add(hl);
+			const tl = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.14, 0.08), tailLightMat);
+			tl.position.set(sx, 0.56, -1.32);
+			bodyGroup.add(tl);
+		}
+		wheelRadius = 0.33;
+		spkmodAddWheelPair(THREE, bodyGroup, 0.78, wheelRadius, 0.80, wheelRadius, 0.22, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.78, wheelRadius, -0.80, wheelRadius, 0.22, tireMat, rimMat, wheels);
+		seatOffsetY = 1.28;
+	} else if (builderName === "magicBroom") {
+		const woodMat = spkmodVehMat(THREE, 0x78350f);
+		const strawMat = spkmodVehMat(THREE, 0xeab308);
+		const ribbonMat = spkmodVehMat(THREE, 0xec4899);
+		const starMat = spkmodVehMat(THREE, 0xfef08a, { emissive: 0xf59e0b, emissiveIntensity: 0.75 });
+
+		const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.075, 2.35, 12), woodMat);
+		pole.rotation.x = Math.PI / 2;
+		pole.position.set(0, 0.06, 0.12);
+		bodyGroup.add(pole);
+
+		const bristles = new THREE.Mesh(new THREE.ConeGeometry(0.36, 0.96, 14), strawMat);
+		bristles.rotation.x = Math.PI / 2;
+		bristles.position.set(0, 0.06, -1.16);
+		bodyGroup.add(bristles);
+
+		const band = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.15, 0.14, 12), ribbonMat);
+		band.rotation.x = Math.PI / 2;
+		band.position.set(0, 0.06, -0.72);
+		bodyGroup.add(band);
+
+		const tipGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 0), starMat);
+		tipGem.position.set(0, 0.06, 1.34);
+		bodyGroup.add(tipGem);
+		animParts.push({ type: "spinY", node: tipGem, speed: 3.2 });
+
+		hoverY = 0.56;
+		hoverAmp = 0.12;
+		seatOffsetY = 0.62;
+	} else if (builderName === "hoverboard") {
+		const neonMat = spkmodVehMat(THREE, 0x22d3ee, { emissive: 0x06b6d4, emissiveIntensity: 0.9 });
+		const deck = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.10, 1.72), paintMat);
+		deck.position.set(0, 0, 0);
+		bodyGroup.add(deck);
+
+		// Tapered nose & tail
+		const nose = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.10, 16), paintMat);
+		nose.position.set(0, 0, 0.84);
+		bodyGroup.add(nose);
+		const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.10, 16), paintMat);
+		tail.position.set(0, 0, -0.84);
+		bodyGroup.add(tail);
+
+		// Neon edge strips
+		for (const sx of [-0.36, 0.36]) {
+			const strip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.08, 1.66), neonMat);
+			strip.position.set(sx, 0, 0);
+			bodyGroup.add(strip);
+		}
+		// Under-thruster glow discs
+		for (const sz of [-0.52, 0.52]) {
+			const thruster = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.24, 0.08, 14), neonMat);
+			thruster.position.set(0, -0.08, sz);
+			bodyGroup.add(thruster);
+			animParts.push({ type: "pulseScale", node: thruster, speed: 9.0, amp: 0.14 });
+		}
+		hoverY = 0.36;
+		hoverAmp = 0.09;
+		seatOffsetY = 0.42;
+	} else if (builderName === "monsterTruck") {
+		// Lifted body
+		const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.56, 2.75), paintMat);
+		chassis.position.set(0, 1.06, 0);
+		bodyGroup.add(chassis);
+
+		const cab = new THREE.Mesh(new THREE.BoxGeometry(1.44, 0.56, 1.15), paintMat);
+		cab.position.set(0, 1.56, 0.24);
+		bodyGroup.add(cab);
+
+		const cabGlass = new THREE.Mesh(new THREE.BoxGeometry(1.38, 0.38, 1.18), glassMat);
+		cabGlass.position.set(0, 1.58, 0.24);
+		bodyGroup.add(cabGlass);
+
+		// Suspension under-frame
+		const axleBox = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.30, 2.0), darkMat);
+		axleBox.position.set(0, 0.64, 0);
+		bodyGroup.add(axleBox);
+
+		// Roof lightbar & dual exhaust pipes
+		const lightbar = new THREE.Mesh(new THREE.BoxGeometry(1.04, 0.12, 0.14), headLightMat);
+		lightbar.position.set(0, 1.90, 0.68);
+		bodyGroup.add(lightbar);
+		for (const sx of [-0.62, 0.62]) {
+			const exhaust = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.96, 10), chromeMat);
+			exhaust.position.set(sx, 1.56, -0.44);
+			bodyGroup.add(exhaust);
+		}
+		wheelRadius = 0.56;
+		spkmodAddWheelPair(THREE, bodyGroup, 0.96, wheelRadius, 0.88, wheelRadius, 0.42, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.96, wheelRadius, -0.88, wheelRadius, 0.42, tireMat, rimMat, wheels);
+		seatOffsetY = 1.88;
+	} else if (builderName === "miniTank") {
+		const treadMat = spkmodVehMat(THREE, 0x1f2937);
+		// Armored hull
+		const hull = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.54, 2.15), paintMat);
+		hull.position.set(0, 0.54, 0);
+		bodyGroup.add(hull);
+
+		// Twin armored side treads
+		for (const sx of [-0.82, 0.82]) {
+			const tread = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.46, 2.28), treadMat);
+			tread.position.set(sx, 0.26, 0);
+			bodyGroup.add(tread);
+		}
+		// Road wheels along treads
+		wheelRadius = 0.20;
+		for (const sz of [-0.74, 0, 0.74]) {
+			spkmodAddWheelPair(THREE, bodyGroup, 0.84, wheelRadius, sz, wheelRadius, 0.36, treadMat, rimMat, wheels);
+		}
+
+		// Turret & cannon barrel
+		const turret = new THREE.Group();
+		turret.position.set(0, 0.94, -0.05);
+		const turretDome = new THREE.Mesh(new THREE.CylinderGeometry(0.56, 0.66, 0.42, 12), paintMat);
+		turret.add(turretDome);
+		const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 1.48, 12), darkMat);
+		barrel.rotation.x = Math.PI / 2;
+		barrel.position.set(0, 0.04, 0.96);
+		turret.add(barrel);
+		const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.16, 12), chromeMat);
+		muzzle.rotation.x = Math.PI / 2;
+		muzzle.position.set(0, 0.04, 1.66);
+		turret.add(muzzle);
+		bodyGroup.add(turret);
+
+		seatOffsetY = 1.18;
+	} else if (builderName === "ufoSaucer") {
+		const saucerSpin = new THREE.Group();
+		bodyGroup.add(saucerSpin);
+
+		const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.56, 0.30, 24), paintMat);
+		disc.position.set(0, 0.15, 0);
+		saucerSpin.add(disc);
+
+		const underDisc = new THREE.Mesh(new THREE.CylinderGeometry(1.56, 0.72, 0.24, 24), chromeMat);
+		underDisc.position.set(0, -0.10, 0);
+		saucerSpin.add(underDisc);
+
+		// Rotating perimeter glowing alien lights
+		const lightColors = [0x22d3ee, 0xf472b6, 0xa3e635, 0xfacc15];
+		for (let i = 0; i < 8; i++) {
+			const ang = (i / 8) * Math.PI * 2;
+			const lMat = new THREE.MeshBasicMaterial({ color: lightColors[i % lightColors.length] });
+			const orb = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8), lMat);
+			orb.position.set(Math.cos(ang) * 1.42, 0.04, Math.sin(ang) * 1.42);
+			saucerSpin.add(orb);
+		}
+		animParts.push({ type: "spinY", node: saucerSpin, speed: 1.6 });
+
+		// Translucent glass cockpit dome
+		const dome = new THREE.Mesh(new THREE.SphereGeometry(0.84, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), glassMat);
+		dome.position.set(0, 0.28, 0);
+		bodyGroup.add(dome);
+
+		// Glowing tractor beam ring underneath
+		const beamMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.42, side: THREE.DoubleSide });
+		const beamRing = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.78, 20), beamMat);
+		beamRing.rotation.x = Math.PI / 2;
+		beamRing.position.set(0, -0.34, 0);
+		bodyGroup.add(beamRing);
+		animParts.push({ type: "pulseScale", node: beamRing, speed: 4.5, amp: 0.18 });
+
+		hoverY = 0.62;
+		hoverAmp = 0.14;
+		seatOffsetY = 0.82;
+	} else if (builderName === "nimbusCloud") {
+		const cloudMat = spkmodVehMat(THREE, 0xfde047, { emissive: 0xf59e0b, emissiveIntensity: 0.28 });
+		const puffs = [
+			[0, 0.10, 0.08, 0.56],
+			[-0.48, 0.04, 0.02, 0.44],
+			[0.48, 0.04, 0.02, 0.44],
+			[0, 0.08, 0.58, 0.42],
+			[-0.36, 0.02, -0.44, 0.40],
+			[0.36, 0.02, -0.44, 0.40],
+			[0, 0.00, -0.82, 0.34],
+			[0, -0.02, -1.16, 0.24]
+		];
+		for (const [px, py, pz, pr] of puffs) {
+			const puff = new THREE.Mesh(new THREE.SphereGeometry(pr, 14, 12), cloudMat);
+			puff.scale.set(1.15, 0.72, 1.15);
+			puff.position.set(px, py, pz);
+			bodyGroup.add(puff);
+		}
+		hoverY = 0.48;
+		hoverAmp = 0.14;
+		seatOffsetY = 0.82;
+	} else {
+		const ext = spkmodBuildExtendedProceduralVehicle(THREE, builderName, colorHex, root, bodyGroup, {
+			tireMat, rimMat, paintMat, chromeMat, glassMat, darkMat, headLightMat, tailLightMat
+		}, wheels, animParts);
+		if (ext) {
+			if (ext.seatOffsetY !== undefined) seatOffsetY = ext.seatOffsetY;
+			if (ext.wheelRadius !== undefined) wheelRadius = ext.wheelRadius;
+			if (ext.hoverY !== undefined) hoverY = ext.hoverY;
+			if (ext.hoverAmp !== undefined) hoverAmp = ext.hoverAmp;
+			extra = Object.assign(extra, ext.extra || {});
+		}
+	}
+
+	return Object.assign({
+		root,
+		bodyGroup,
+		wheels,
+		wheelRadius,
+		seatOffsetY,
+		hoverY,
+		hoverAmp,
+		animParts
+	}, extra);
+}
+
+function spkmodAttachStealthRig(THREE, root, alertY = 1.92) {
+	const shoeMat = spkmodVehMat(THREE, 0x3b2a22);
+	const leftFoot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), shoeMat);
+	leftFoot.scale.set(0.95, 0.65, 1.35);
+	leftFoot.position.set(-0.22, 0.08, 0.08);
+	leftFoot.visible = false;
+	root.add(leftFoot);
+
+	const rightFoot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), shoeMat);
+	rightFoot.scale.set(0.95, 0.65, 1.35);
+	rightFoot.position.set(0.22, 0.08, -0.08);
+	rightFoot.visible = false;
+	root.add(rightFoot);
+
+	const alertTex = spkmodGetAlertSpriteTexture(THREE, "!");
+	const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false });
+	const alertSprite = new THREE.Sprite(alertMat);
+	alertSprite.position.set(0, alertY, 0);
+	alertSprite.scale.set(0.75, 0.75, 1);
+	alertSprite.visible = false;
+	root.add(alertSprite);
+	return { isMgsBox: true, leftFoot, rightFoot, alertSprite };
+}
+
+function spkmodBuildExtendedProceduralVehicle(THREE, builderName, colorHex, root, bodyGroup, mats, wheels, animParts) {
+	const { tireMat, rimMat, paintMat, chromeMat, glassMat, darkMat, headLightMat, tailLightMat } = mats;
+	const put = (parent, geo, mat, pos = null, rot = null, scale = null) => {
+		const m = new THREE.Mesh(geo, mat);
+		if (pos) m.position.set(pos[0], pos[1], pos[2]);
+		if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
+		if (scale) m.scale.set(scale[0], scale[1], scale[2]);
+		parent.add(m);
+		return m;
+	};
+
+	// --- 7 NEW STEALTH / PLAYER-HIDING PROPS ---
+	if (builderName === "stealthBush") {
+		const grn1 = spkmodVehMat(THREE, 0x16a34a), grn2 = spkmodVehMat(THREE, 0x22c55e), berry = spkmodVehMat(THREE, 0xef4444);
+		const puffs = [[0, 0.62, 0, 0.68], [-0.46, 0.48, 0.18, 0.48], [0.46, 0.48, 0.18, 0.48], [-0.36, 0.50, -0.34, 0.48], [0.36, 0.50, -0.34, 0.48], [0, 0.96, 0, 0.46], [0, 0.46, 0.46, 0.44]];
+		puffs.forEach(([x, y, z, r], i) => put(bodyGroup, new THREE.SphereGeometry(r, 12, 10), i % 2 ? grn2 : grn1, [x, y, z]));
+		for (const [x, y, z] of [[-0.25, 0.78, 0.56], [0.34, 0.62, 0.48], [0.08, 1.02, 0.34], [-0.48, 0.62, 0.25]]) {
+			put(bodyGroup, new THREE.SphereGeometry(0.06, 8, 8), berry, [x, y, z]);
+		}
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 1.98) };
+	} else if (builderName === "stealthBarrel") {
+		const wood = spkmodVehMat(THREE, 0x92400e), band = spkmodVehMat(THREE, 0x334155);
+		put(bodyGroup, new THREE.CylinderGeometry(0.56, 0.56, 1.24, 18), wood, [0, 0.62, 0]);
+		put(bodyGroup, new THREE.SphereGeometry(0.62, 18, 12), wood, [0, 0.62, 0], null, [1, 1.04, 1]);
+		for (const y of [0.22, 0.62, 1.02]) {
+			put(bodyGroup, new THREE.TorusGeometry(y === 0.62 ? 0.62 : 0.57, 0.04, 8, 22), band, [0, y, 0], [Math.PI / 2, 0, 0]);
+		}
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 1.92) };
+	} else if (builderName === "stealthTrashcan") {
+		const bin = spkmodVehMat(THREE, 0x94a3b8), rib = spkmodVehMat(THREE, 0x64748b);
+		put(bodyGroup, new THREE.CylinderGeometry(0.58, 0.50, 1.18, 18), bin, [0, 0.59, 0]);
+		for (const y of [0.26, 0.58, 0.90]) put(bodyGroup, new THREE.TorusGeometry(0.53 + y * 0.05, 0.03, 6, 20), rib, [0, y, 0], [Math.PI / 2, 0, 0]);
+		const lid = new THREE.Group();
+		lid.position.set(0, 1.20, 0);
+		put(lid, new THREE.CylinderGeometry(0.62, 0.62, 0.09, 18), bin);
+		put(lid, new THREE.TorusGeometry(0.12, 0.03, 8, 12, Math.PI), rib, [0, 0.05, 0]);
+		bodyGroup.add(lid);
+		animParts.push({ type: "lidBounce", node: lid, baseY: 1.20 });
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.02) };
+	} else if (builderName === "stealthSnowman") {
+		const snow = spkmodVehMat(THREE, 0xf8fafc), scarf = spkmodVehMat(THREE, 0xef4444), carrot = spkmodVehMat(THREE, 0xf97316);
+		put(bodyGroup, new THREE.SphereGeometry(0.58, 16, 14), snow, [0, 0.50, 0]);
+		put(bodyGroup, new THREE.SphereGeometry(0.44, 14, 12), snow, [0, 1.12, 0]);
+		put(bodyGroup, new THREE.SphereGeometry(0.32, 14, 12), snow, [0, 1.62, 0]);
+		put(bodyGroup, new THREE.TorusGeometry(0.32, 0.065, 8, 18), scarf, [0, 1.38, 0], [Math.PI / 2, 0, 0]);
+		put(bodyGroup, new THREE.ConeGeometry(0.06, 0.30, 10), carrot, [0, 1.62, 0.38], [Math.PI / 2, 0, 0]);
+		for (const s of [-0.11, 0.11]) put(bodyGroup, new THREE.SphereGeometry(0.045, 8, 8), darkMat, [s, 1.70, 0.27]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.24, 0.24, 0.34, 14), darkMat, [0, 2.04, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.38, 0.38, 0.05, 16), darkMat, [0, 1.88, 0]);
+		return { seatOffsetY: 0, extra: Object.assign(spkmodAttachStealthRig(THREE, root, 2.55), { hopAmp: 0.16 }) };
+	} else if (builderName === "stealthGift") {
+		const rib = spkmodVehMat(THREE, 0xfacc15);
+		put(bodyGroup, new THREE.BoxGeometry(1.18, 1.22, 1.18), paintMat, [0, 0.61, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.24, 0.20, 1.24), paintMat, [0, 1.16, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(0.20, 1.28, 1.26), rib, [0, 0.64, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.26, 1.28, 0.20), rib, [0, 0.64, 0]);
+		for (const s of [-1, 1]) put(bodyGroup, new THREE.TorusGeometry(0.22, 0.07, 8, 14), rib, [s * 0.20, 1.38, 0], [0, 0, s * 0.4]);
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.05) };
+	} else if (builderName === "stealthMoai") {
+		const stone = spkmodVehMat(THREE, 0x78716c), shade = spkmodVehMat(THREE, 0x57534e);
+		// Iconic Easter Island Moai stone head!
+		put(bodyGroup, new THREE.BoxGeometry(1.06, 1.62, 1.04), stone, [0, 0.81, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.16, 0.26, 0.36), stone, [0, 1.38, 0.42]); // heavy brow ridge
+		put(bodyGroup, new THREE.BoxGeometry(0.28, 0.64, 0.36), stone, [0, 0.96, 0.56], [-0.15, 0, 0]); // long Moai nose
+		for (const s of [-1, 1]) {
+			put(bodyGroup, new THREE.BoxGeometry(0.26, 0.18, 0.12), shade, [s * 0.28, 1.22, 0.48]); // deep eye sockets
+			put(bodyGroup, new THREE.BoxGeometry(0.14, 0.52, 0.24), stone, [s * 0.58, 0.88, -0.02]); // tall stone ears
+		}
+		put(bodyGroup, new THREE.BoxGeometry(0.56, 0.12, 0.18), shade, [0, 0.46, 0.52]); // stoic mouth
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.15) };
+	} else if (builderName === "stealthCone") {
+		const org = spkmodVehMat(THREE, 0xf97316), wht = spkmodVehMat(THREE, 0xf8fafc);
+		put(bodyGroup, new THREE.BoxGeometry(1.36, 0.14, 1.36), org, [0, 0.07, 0]);
+		put(bodyGroup, new THREE.ConeGeometry(0.64, 1.72, 20), org, [0, 0.98, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.28, 0.40, 0.28, 20), wht, [0, 1.02, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.12, 0.20, 0.20, 20), wht, [0, 1.44, 0]);
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.25) };
+	}
+
+	// --- 11 RIDICULOUS & MEME RIDES ---
+	if (builderName === "giantRoomba") {
+		const discGrp = new THREE.Group();
+		bodyGroup.add(discGrp);
+		put(discGrp, new THREE.CylinderGeometry(1.06, 1.12, 0.28, 28), darkMat, [0, 0.16, 0]);
+		put(discGrp, new THREE.CylinderGeometry(0.92, 0.92, 0.05, 24), paintMat, [0, 0.31, 0]);
+		put(discGrp, new THREE.CylinderGeometry(0.18, 0.18, 0.08, 16), spkmodVehMat(THREE, 0x22c55e, { emissive: 0x4ade80, emissiveIntensity: 0.9 }), [0, 0.33, 0.45]);
+		put(discGrp, new THREE.TorusGeometry(1.10, 0.06, 8, 28, Math.PI), chromeMat, [0, 0.14, 0], [Math.PI / 2, 0, 0]);
+		for (const s of [-1, 1]) {
+			const brush = new THREE.Group();
+			brush.position.set(s * 0.85, 0.06, 0.68);
+			for (let k = 0; k < 3; k++) put(brush, new THREE.BoxGeometry(0.42, 0.03, 0.04), headLightMat, null, [0, (k / 3) * Math.PI, 0]);
+			discGrp.add(brush);
+			animParts.push({ type: "spinY", node: brush, speed: s * 9.0 });
+		}
+		animParts.push({ type: "spinMoveY", node: discGrp, speed: 2.2 });
+		return { seatOffsetY: 0.46 };
+	} else if (builderName === "swivelChair") {
+		const spinTop = new THREE.Group();
+		bodyGroup.add(spinTop);
+		put(bodyGroup, new THREE.CylinderGeometry(0.08, 0.08, 0.54, 10), chromeMat, [0, 0.34, 0]);
+		for (let i = 0; i < 5; i++) {
+			const a = (i / 5) * Math.PI * 2;
+			put(bodyGroup, new THREE.BoxGeometry(0.10, 0.07, 0.62), darkMat, [Math.sin(a) * 0.30, 0.14, Math.cos(a) * 0.30], [0, a, 0]);
+			put(bodyGroup, new THREE.SphereGeometry(0.08, 8, 8), tireMat, [Math.sin(a) * 0.56, 0.08, Math.cos(a) * 0.56]);
+		}
+		put(spinTop, new THREE.BoxGeometry(0.92, 0.16, 0.88), paintMat, [0, 0.66, 0]);
+		put(spinTop, new THREE.BoxGeometry(0.88, 1.04, 0.16), paintMat, [0, 1.22, -0.40]);
+		for (const s of [-1, 1]) put(spinTop, new THREE.BoxGeometry(0.10, 0.08, 0.58), darkMat, [s * 0.48, 0.96, 0.04]);
+		animParts.push({ type: "spinMoveY", node: spinTop, speed: 6.5 });
+		return { seatOffsetY: 0.88 };
+	} else if (builderName === "goldenToilet") {
+		const gld = spkmodVehMat(THREE, 0xfacc15, { emissive: 0xd97706, emissiveIntensity: 0.25 }), wht = spkmodVehMat(THREE, 0xfef9c3);
+		put(bodyGroup, new THREE.CylinderGeometry(0.46, 0.34, 0.50, 16), gld, [0, 0.38, 0.10]);
+		put(bodyGroup, new THREE.TorusGeometry(0.42, 0.10, 10, 20), wht, [0, 0.64, 0.10], [Math.PI / 2, 0, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(0.84, 0.92, 0.36), gld, [0, 0.98, -0.44]);
+		put(bodyGroup, new THREE.BoxGeometry(0.92, 0.10, 0.42), gld, [0, 1.46, -0.44]);
+		put(bodyGroup, new THREE.BoxGeometry(0.22, 0.05, 0.06), chromeMat, [0.50, 1.28, -0.32]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.42, 0.14, 0.34, 0.14, 0.10, tireMat, gld, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.42, 0.14, -0.46, 0.14, 0.10, tireMat, gld, wheels);
+		return { seatOffsetY: 0.86, wheelRadius: 0.14 };
+	} else if (builderName === "bubbleBathtub") {
+		const tub = spkmodVehMat(THREE, 0xf8fafc), bub = spkmodVehMat(THREE, 0xbae6fd, { transparent: true, opacity: 0.78 });
+		put(bodyGroup, new THREE.BoxGeometry(1.18, 0.64, 1.98), tub, [0, 0.56, 0]);
+		put(bodyGroup, new THREE.TorusGeometry(0.68, 0.10, 10, 22), tub, [0, 0.88, 0], [Math.PI / 2, 0, 0], [0.9, 1.45, 1]);
+		for (let i = 0; i < 10; i++) {
+			const a = (i / 10) * Math.PI * 2;
+			put(bodyGroup, new THREE.SphereGeometry(0.18 + (i % 3) * 0.06, 10, 8), bub, [Math.cos(a) * 0.44, 0.92 + (i % 2) * 0.12, Math.sin(a) * 0.78]);
+		}
+		put(bodyGroup, new THREE.SphereGeometry(0.16, 10, 8), spkmodVehMat(THREE, 0xfacc15), [0.38, 1.04, 0.86]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.56, 0.18, 0.72, 0.18, 0.12, tireMat, spkmodVehMat(THREE, 0xfacc15), wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.56, 0.18, -0.72, 0.18, 0.12, tireMat, spkmodVehMat(THREE, 0xfacc15), wheels);
+		return { seatOffsetY: 0.88, wheelRadius: 0.18 };
+	} else if (builderName === "hotdogMobile") {
+		const bun = spkmodVehMat(THREE, 0xeab308), dog = spkmodVehMat(THREE, 0xb91c1c), mus = spkmodVehMat(THREE, 0xfef08a);
+		put(bodyGroup, new THREE.CylinderGeometry(0.56, 0.56, 2.35, 16), bun, [0, 0.64, 0], [Math.PI / 2, 0, 0], [1.18, 1, 0.88]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.36, 0.36, 2.75, 16), dog, [0, 0.90, 0], [Math.PI / 2, 0, 0]);
+		for (const sz of [-1.38, 1.38]) put(bodyGroup, new THREE.SphereGeometry(0.36, 12, 10), dog, [0, 0.90, sz]);
+		for (let i = -4; i <= 4; i++) put(bodyGroup, new THREE.SphereGeometry(0.085, 8, 8), mus, [Math.sin(i * 1.1) * 0.14, 1.24, i * 0.28]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.72, 0.30, 0.82, 0.30, 0.22, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.72, 0.30, -0.82, 0.30, 0.22, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.26, wheelRadius: 0.30 };
+	} else if (builderName === "bananaCar") {
+		const yel = spkmodVehMat(THREE, 0xfacc15), brn = spkmodVehMat(THREE, 0x78350f);
+		put(bodyGroup, new THREE.CylinderGeometry(0.46, 0.46, 2.15, 16), yel, [0, 0.58, 0], [Math.PI / 2, 0, 0]);
+		put(bodyGroup, new THREE.ConeGeometry(0.46, 0.88, 14), yel, [0, 0.78, 1.44], [1.12, 0, 0]);
+		put(bodyGroup, new THREE.ConeGeometry(0.46, 0.92, 14), yel, [0, 0.84, -1.44], [-1.12, 0, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.08, 0.12, 0.26, 8), brn, [0, 1.12, -1.86], [-0.8, 0, 0]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.64, 0.28, 0.76, 0.28, 0.20, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.64, 0.28, -0.76, 0.28, 0.20, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.02, wheelRadius: 0.28 };
+	} else if (builderName === "flyingBed") {
+		const frame = spkmodVehMat(THREE, 0x92400e), sheet = spkmodVehMat(THREE, 0xf8fafc);
+		put(bodyGroup, new THREE.BoxGeometry(1.56, 0.22, 2.30), frame, [0, 0.12, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.48, 0.32, 2.18), sheet, [0, 0.36, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.52, 0.34, 1.44), paintMat, [0, 0.38, -0.34]);
+		put(bodyGroup, new THREE.BoxGeometry(1.56, 0.96, 0.14), frame, [0, 0.64, -1.14]);
+		for (const sx of [-0.36, 0.36]) put(bodyGroup, new THREE.BoxGeometry(0.56, 0.18, 0.40), sheet, [sx, 0.58, -0.82]);
+		return { seatOffsetY: 0.76, hoverY: 0.48, hoverAmp: 0.14 };
+	} else if (builderName === "watermelonBoat") {
+		const grn = spkmodVehMat(THREE, 0x16a34a), red = spkmodVehMat(THREE, 0xf43f5e);
+		put(bodyGroup, new THREE.CylinderGeometry(1.16, 1.16, 0.78, 20, 1, false, 0, Math.PI), grn, [0, 0.96, 0], [0, Math.PI / 2, Math.PI]);
+		put(bodyGroup, new THREE.CylinderGeometry(1.02, 1.02, 0.80, 20, 1, false, 0, Math.PI), red, [0, 0.96, 0], [0, Math.PI / 2, Math.PI]);
+		for (const [y, z] of [[0.62, 0.36], [0.62, -0.36], [0.46, 0], [0.76, 0.62], [0.76, -0.62]]) {
+			put(bodyGroup, new THREE.SphereGeometry(0.06, 6, 6), darkMat, [0.40, y, z]);
+			put(bodyGroup, new THREE.SphereGeometry(0.06, 6, 6), darkMat, [-0.40, y, z]);
+		}
+		return { seatOffsetY: 0.94, extra: { waddleAmp: 0.08 } };
+	} else if (builderName === "burgerMobile") {
+		const bun = spkmodVehMat(THREE, 0xeab308), meat = spkmodVehMat(THREE, 0x7c2d12), chz = spkmodVehMat(THREE, 0xfde047), letM = spkmodVehMat(THREE, 0x22c55e), pkl = spkmodVehMat(THREE, 0x15803d);
+		put(bodyGroup, new THREE.CylinderGeometry(0.98, 0.94, 0.32, 20), bun, [0, 0.44, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(1.04, 1.04, 0.24, 20), meat, [0, 0.70, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.62, 0.08, 1.62), chz, [0, 0.84, 0], [0, Math.PI / 4, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(1.08, 1.08, 0.12, 16), letM, [0, 0.92, 0]);
+		put(bodyGroup, new THREE.SphereGeometry(0.98, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.48), bun, [0, 0.96, 0], null, [1, 0.65, 1]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.96, 0.34, 0.64, 0.34, 0.22, pkl, spkmodVehMat(THREE, 0x86efac), wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.96, 0.34, -0.64, 0.34, 0.22, pkl, spkmodVehMat(THREE, 0x86efac), wheels);
+		return { seatOffsetY: 1.56, wheelRadius: 0.34 };
+	} else if (builderName === "sneakerCar") {
+		const sole = spkmodVehMat(THREE, 0xf8fafc);
+		put(bodyGroup, new THREE.BoxGeometry(1.24, 0.26, 2.52), sole, [0, 0.36, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.16, 0.56, 2.28), paintMat, [0, 0.76, -0.06]);
+		put(bodyGroup, new THREE.BoxGeometry(1.14, 0.58, 1.04), paintMat, [0, 1.24, -0.64]);
+		put(bodyGroup, new THREE.SphereGeometry(0.58, 14, 10), sole, [0, 0.64, 1.06], null, [1.0, 0.62, 0.9]);
+		for (let i = 0; i < 4; i++) put(bodyGroup, new THREE.BoxGeometry(0.76, 0.06, 0.10), sole, [0, 1.08 + i * 0.08, 0.66 - i * 0.22]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.66, 0.24, 0.80, 0.24, 0.18, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.66, 0.24, -0.80, 0.24, 0.18, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.28, wheelRadius: 0.24 };
+	} else if (builderName === "grandPiano") {
+		const blk = spkmodVehMat(THREE, 0x0f172a), keyW = spkmodVehMat(THREE, 0xf8fafc);
+		put(bodyGroup, new THREE.BoxGeometry(1.64, 0.54, 1.98), blk, [0, 0.82, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.42, 0.12, 0.42), keyW, [0, 0.72, 1.04]);
+		// Open angled grand piano lid + support prop stick
+		put(bodyGroup, new THREE.BoxGeometry(1.58, 0.07, 1.88), blk, [-0.14, 1.44, -0.04], [0, 0, 0.42]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.03, 0.03, 0.88, 8), spkmodVehMat(THREE, 0xfacc15), [0.56, 1.28, 0.34], [0, 0, -0.22]);
+		for (const [x, z] of [[-0.66, 0.78], [0.66, 0.78], [0, -0.80]]) put(bodyGroup, new THREE.CylinderGeometry(0.08, 0.06, 0.56, 10), blk, [x, 0.32, z]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.66, 0.14, 0.78, 0.14, 0.10, tireMat, spkmodVehMat(THREE, 0xfacc15), wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.42, 0.14, -0.80, 0.14, 0.10, tireMat, spkmodVehMat(THREE, 0xfacc15), wheels);
+		return { seatOffsetY: 1.26, wheelRadius: 0.14 };
+	}
+
+	// --- 8 STREET, WORK & UTILITY VEHICLES ---
+	if (builderName === "farmTractor") {
+		put(bodyGroup, new THREE.BoxGeometry(0.96, 0.62, 1.44), paintMat, [0, 0.78, 0.52]);
+		put(bodyGroup, new THREE.BoxGeometry(1.16, 0.92, 1.02), paintMat, [0, 1.18, -0.56]);
+		put(bodyGroup, new THREE.BoxGeometry(1.26, 0.10, 1.14), paintMat, [0, 1.66, -0.56]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.08, 0.10, 0.92, 10), darkMat, [0.36, 1.42, 0.86]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.62, 0.32, 0.98, 0.32, 0.22, tireMat, spkmodVehMat(THREE, 0xfacc15), wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.76, 0.58, -0.58, 0.58, 0.34, tireMat, spkmodVehMat(THREE, 0xfacc15), wheels);
+		return { seatOffsetY: 1.66, wheelRadius: 0.45, extra: { chugAmp: 0.045 } };
+	} else if (builderName === "miniForklift") {
+		const crate = spkmodVehMat(THREE, 0xc49a6c), amber = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+		put(bodyGroup, new THREE.BoxGeometry(1.24, 0.62, 1.68), paintMat, [0, 0.56, -0.14]);
+		for (const [x, z] of [[-0.56, 0.56], [0.56, 0.56], [-0.56, -0.82], [0.56, -0.82]]) {
+			put(bodyGroup, new THREE.CylinderGeometry(0.05, 0.05, 1.18, 8), darkMat, [x, 1.34, z]);
+		}
+		put(bodyGroup, new THREE.BoxGeometry(1.24, 0.08, 1.46), darkMat, [0, 1.92, -0.14]);
+		const beacon = put(bodyGroup, new THREE.CylinderGeometry(0.10, 0.12, 0.16, 10), amber, [0, 2.04, -0.14]);
+		animParts.push({ type: "pulseScale", node: beacon, speed: 9.0, amp: 0.22 });
+		// Front mast, twin forks & cute cargo crate
+		for (const sx of [-0.36, 0.36]) {
+			put(bodyGroup, new THREE.BoxGeometry(0.10, 1.56, 0.12), darkMat, [sx, 0.96, 0.82]);
+			put(bodyGroup, new THREE.BoxGeometry(0.12, 0.07, 1.06), chromeMat, [sx, 0.28, 1.38]);
+		}
+		put(bodyGroup, new THREE.BoxGeometry(0.86, 0.68, 0.76), crate, [0, 0.66, 1.42]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.66, 0.28, 0.46, 0.28, 0.20, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.62, 0.24, -0.68, 0.24, 0.18, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.96, wheelRadius: 0.26 };
+	} else if (builderName === "fireEngine") {
+		const red = spkmodVehMat(THREE, 0xdc2626), redL = new THREE.MeshBasicMaterial({ color: 0xff2233 }), whtL = new THREE.MeshBasicMaterial({ color: 0xffffff });
+		put(bodyGroup, new THREE.BoxGeometry(1.56, 1.12, 3.05), red, [0, 0.92, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.48, 0.48, 0.88), glassMat, [0, 1.24, 1.02]);
+		// Roof extendable silver ladder
+		for (const sx of [-0.26, 0.26]) put(bodyGroup, new THREE.BoxGeometry(0.08, 0.10, 2.30), chromeMat, [sx, 1.58, -0.26]);
+		for (let i = -4; i <= 4; i++) put(bodyGroup, new THREE.BoxGeometry(0.56, 0.06, 0.06), chromeMat, [0, 1.58, -0.26 + i * 0.24]);
+		const l1 = put(bodyGroup, new THREE.BoxGeometry(0.36, 0.18, 0.20), redL, [-0.30, 1.58, 1.22]);
+		const l2 = put(bodyGroup, new THREE.BoxGeometry(0.36, 0.18, 0.20), whtL, [0.30, 1.58, 1.22]);
+		animParts.push({ type: "siren", red: l1, blue: l2 });
+		spkmodAddWheelPair(THREE, bodyGroup, 0.80, 0.36, 0.96, 0.36, 0.24, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.80, 0.36, -0.96, 0.36, 0.24, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.72, wheelRadius: 0.36 };
+	} else if (builderName === "ambulance") {
+		const wht = spkmodVehMat(THREE, 0xf8fafc), red = spkmodVehMat(THREE, 0xef4444);
+		put(bodyGroup, new THREE.BoxGeometry(1.54, 1.18, 2.68), wht, [0, 0.92, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.58, 0.22, 2.70), red, [0, 0.68, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.44, 0.46, 0.78), glassMat, [0, 1.22, 0.96]);
+		for (const s of [-1, 1]) {
+			put(bodyGroup, new THREE.BoxGeometry(0.04, 0.42, 0.14), red, [s * 0.78, 1.14, -0.34]);
+			put(bodyGroup, new THREE.BoxGeometry(0.04, 0.14, 0.42), red, [s * 0.78, 1.14, -0.34]);
+		}
+		const r1 = put(bodyGroup, new THREE.BoxGeometry(0.34, 0.18, 0.20), new THREE.MeshBasicMaterial({ color: 0xff2233 }), [-0.28, 1.60, 0.92]);
+		const b1 = put(bodyGroup, new THREE.BoxGeometry(0.34, 0.18, 0.20), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }), [0.28, 1.60, 0.92]);
+		animParts.push({ type: "siren", red: r1, blue: b1 });
+		spkmodAddWheelPair(THREE, bodyGroup, 0.78, 0.34, 0.82, 0.34, 0.22, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.78, 0.34, -0.82, 0.34, 0.22, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.66, wheelRadius: 0.34 };
+	} else if (builderName === "iceCreamTruck") {
+		const wht = spkmodVehMat(THREE, 0xfefce8), coneM = spkmodVehMat(THREE, 0xd97706), pnk = spkmodVehMat(THREE, 0xf9a8d4);
+		put(bodyGroup, new THREE.BoxGeometry(1.54, 1.18, 2.66), wht, [0, 0.92, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.58, 0.34, 2.68), paintMat, [0, 0.62, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.44, 0.44, 0.78), glassMat, [0, 1.22, 0.94]);
+		// Giant spinning roof ice cream cone!
+		const roofCone = new THREE.Group();
+		roofCone.position.set(0, 1.62, -0.20);
+		put(roofCone, new THREE.ConeGeometry(0.28, 0.64, 14), coneM, [0, 0.32, 0], [Math.PI, 0, 0]);
+		put(roofCone, new THREE.SphereGeometry(0.34, 14, 12), pnk, [0, 0.68, 0]);
+		put(roofCone, new THREE.SphereGeometry(0.10, 8, 8), tailLightMat, [0, 1.02, 0]);
+		bodyGroup.add(roofCone);
+		animParts.push({ type: "spinY", node: roofCone, speed: 2.2 });
+		spkmodAddWheelPair(THREE, bodyGroup, 0.78, 0.34, 0.82, 0.34, 0.22, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.78, 0.34, -0.82, 0.34, 0.22, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.64, wheelRadius: 0.34 };
+	} else if (builderName === "schoolBus") {
+		const busY = spkmodVehMat(THREE, 0xeab308), stopR = spkmodVehMat(THREE, 0xdc2626);
+		put(bodyGroup, new THREE.BoxGeometry(1.58, 1.22, 3.02), busY, [0, 0.94, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.62, 0.14, 3.04), darkMat, [0, 0.76, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.62, 0.44, 2.54), glassMat, [0, 1.24, 0.04]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.22, 0.22, 0.04, 8), stopR, [-0.94, 1.10, 0.88], [0, 0, Math.PI / 2]);
+		const a1 = put(bodyGroup, new THREE.SphereGeometry(0.11, 8, 8), headLightMat, [-0.46, 1.56, 1.50]);
+		const a2 = put(bodyGroup, new THREE.SphereGeometry(0.11, 8, 8), headLightMat, [0.46, 1.56, 1.50]);
+		animParts.push({ type: "siren", red: a1, blue: a2 });
+		spkmodAddWheelPair(THREE, bodyGroup, 0.80, 0.34, 0.96, 0.34, 0.22, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.80, 0.34, -0.96, 0.34, 0.22, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.72, wheelRadius: 0.34 };
+	} else if (builderName === "pennyFarthing") {
+		const bigR = 0.82, smR = 0.26;
+		const mkCycleWheel = (r, z) => {
+			const g = new THREE.Group();
+			g.position.set(0, r, z);
+			put(g, new THREE.TorusGeometry(r, 0.055, 8, 24), tireMat, null, [0, Math.PI / 2, 0]);
+			for (let i = 0; i < 4; i++) put(g, new THREE.CylinderGeometry(0.016, 0.016, r * 1.95, 6), chromeMat, null, [i * Math.PI / 4, 0, 0]);
+			bodyGroup.add(g);
+			wheels.push(g);
+		};
+		mkCycleWheel(bigR, 0.46);
+		mkCycleWheel(smR, -0.74);
+		put(bodyGroup, new THREE.CylinderGeometry(0.04, 0.04, 1.55, 10), paintMat, [0, 0.92, -0.14], [0.85, 0, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.036, 0.036, 0.92, 10), chromeMat, [0, 1.66, 0.42], [0, 0, Math.PI / 2]);
+		put(bodyGroup, new THREE.BoxGeometry(0.36, 0.10, 0.44), spkmodVehMat(THREE, 0x78350f), [0, 1.58, 0.16]);
+		return { seatOffsetY: 1.66, wheelRadius: bigR };
+	} else if (builderName === "cyberLightcycle") {
+		const neon = spkmodVehMat(THREE, colorHex, { emissive: colorHex, emissiveIntensity: 0.95 });
+		put(bodyGroup, new THREE.BoxGeometry(0.68, 0.48, 2.28), darkMat, [0, 0.56, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(0.74, 0.10, 2.34), neon, [0, 0.64, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(0.56, 0.28, 0.96), glassMat, [0, 0.88, 0.22], [-0.25, 0, 0]);
+		for (const sz of [0.88, -0.88]) {
+			const w = new THREE.Group();
+			w.position.set(0, 0.36, sz);
+			put(w, new THREE.TorusGeometry(0.34, 0.09, 10, 22), darkMat, null, [0, Math.PI / 2, 0]);
+			put(w, new THREE.TorusGeometry(0.28, 0.045, 8, 22), neon, null, [0, Math.PI / 2, 0]);
+			bodyGroup.add(w);
+			wheels.push(w);
+		}
+		return { seatOffsetY: 0.96, wheelRadius: 0.36 };
+	}
+
+	// --- 9 FANTASY, ANIMAL & SCI-FI MOUNTS ---
+	if (builderName === "magicCarpet") {
+		const rug = spkmodVehMat(THREE, 0x7e22ce), border = spkmodVehMat(THREE, 0xfacc15), inner = spkmodVehMat(THREE, 0xe11d48);
+		put(bodyGroup, new THREE.BoxGeometry(1.56, 0.07, 2.28), rug, [0, 0, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.36, 0.08, 2.04), border, [0, 0.005, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.12, 0.09, 1.74), inner, [0, 0.01, 0]);
+		for (const [x, z] of [[-0.78, 1.14], [0.78, 1.14], [-0.78, -1.14], [0.78, -1.14]]) {
+			put(bodyGroup, new THREE.ConeGeometry(0.10, 0.28, 6), border, [x, -0.10, z], [Math.PI, 0, 0]);
+		}
+		return { seatOffsetY: 0.56, hoverY: 0.50, hoverAmp: 0.14 };
+	} else if (builderName === "landShark") {
+		const shark = spkmodVehMat(THREE, 0x64748b), foam = spkmodVehMat(THREE, 0xbae6fd, { transparent: true, opacity: 0.65, side: THREE.DoubleSide });
+		put(bodyGroup, new THREE.ConeGeometry(0.46, 1.24, 4), shark, [0, 0.54, -0.05], [-0.36, 0, 0], [0.32, 1, 1.35]);
+		const ring1 = put(bodyGroup, new THREE.RingGeometry(0.46, 0.88, 22), foam, [0, 0.04, 0], [Math.PI / 2, 0, 0]);
+		animParts.push({ type: "pulseScale", node: ring1, speed: 6.5, amp: 0.18 });
+		return { seatOffsetY: 0.72, extra: { waddleAmp: 0.10 } };
+	} else if (builderName === "bouncyFrog") {
+		const grn = spkmodVehMat(THREE, 0x22c55e), belly = spkmodVehMat(THREE, 0xbef264), wht = spkmodVehMat(THREE, 0xffffff);
+		put(bodyGroup, new THREE.SphereGeometry(0.84, 16, 14), grn, [0, 0.62, 0], null, [1.15, 0.82, 1.25]);
+		put(bodyGroup, new THREE.SphereGeometry(0.68, 14, 12), belly, [0, 0.42, 0.20], null, [1.05, 0.65, 1.05]);
+		for (const s of [-1, 1]) {
+			put(bodyGroup, new THREE.SphereGeometry(0.24, 12, 10), grn, [s * 0.44, 1.18, 0.54]);
+			put(bodyGroup, new THREE.SphereGeometry(0.16, 10, 8), wht, [s * 0.44, 1.22, 0.68]);
+			put(bodyGroup, new THREE.SphereGeometry(0.08, 8, 8), darkMat, [s * 0.44, 1.22, 0.78]);
+			put(bodyGroup, new THREE.SphereGeometry(0.32, 10, 8), grn, [s * 0.82, 0.28, -0.44], null, [0.7, 0.6, 1.3]);
+		}
+		return { seatOffsetY: 1.18, extra: { hopAmp: 0.28 } };
+	} else if (builderName === "jetTurtle") {
+		const shell = spkmodVehMat(THREE, 0x15803d), skin = spkmodVehMat(THREE, 0x4ade80), red = spkmodVehMat(THREE, 0xdc2626), flameM = new THREE.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.88 });
+		put(bodyGroup, new THREE.SphereGeometry(0.92, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.56), shell, [0, 0.34, 0], null, [1.05, 0.85, 1.25]);
+		put(bodyGroup, new THREE.SphereGeometry(0.34, 12, 10), skin, [0, 0.56, 1.24]);
+		for (const s of [-1, 1]) {
+			put(bodyGroup, new THREE.CylinderGeometry(0.16, 0.18, 0.84, 12), red, [s * 0.86, 0.66, -0.20], [Math.PI / 2, 0, 0]);
+			const fl = put(bodyGroup, new THREE.ConeGeometry(0.15, 0.62, 10), flameM, [s * 0.86, 0.66, -0.92], [-Math.PI / 2, 0, 0]);
+			animParts.push({ type: "flamePulse", node: fl });
+		}
+		return { seatOffsetY: 1.06, hoverY: 0.34, hoverAmp: 0.10 };
+	} else if (builderName === "paperAirplane") {
+		const paper = spkmodVehMat(THREE, 0xf8fafc, { side: THREE.DoubleSide }), fold = spkmodVehMat(THREE, 0xe2e8f0, { side: THREE.DoubleSide });
+		put(bodyGroup, new THREE.ConeGeometry(1.25, 2.75, 3), paper, [0, 0.08, 0.10], [Math.PI / 2, 0, 0], [1.05, 1, 0.12]);
+		put(bodyGroup, new THREE.BoxGeometry(0.06, 0.36, 2.30), fold, [0, -0.10, -0.04]);
+		return { seatOffsetY: 0.58, hoverY: 0.52, hoverAmp: 0.14 };
+	} else if (builderName === "hotAirBalloon") {
+		const wicker = spkmodVehMat(THREE, 0xb45309), strp = spkmodVehMat(THREE, 0xfacc15);
+		put(bodyGroup, new THREE.BoxGeometry(1.16, 0.78, 1.16), wicker, [0, 0.40, 0]);
+		for (const [x, z] of [[-0.50, 0.50], [0.50, 0.50], [-0.50, -0.50], [0.50, -0.50]]) {
+			put(bodyGroup, new THREE.CylinderGeometry(0.025, 0.025, 1.95, 6), chromeMat, [x, 1.62, z]);
+		}
+		put(bodyGroup, new THREE.SphereGeometry(1.32, 20, 16), paintMat, [0, 3.35, 0], null, [1.0, 1.18, 1.0]);
+		put(bodyGroup, new THREE.TorusGeometry(1.30, 0.10, 8, 24), strp, [0, 3.35, 0], [Math.PI / 2, 0, 0]);
+		return { seatOffsetY: 0.62, hoverY: 0.44, hoverAmp: 0.18 };
+	} else if (builderName === "pirateGalleon") {
+		const hull = spkmodVehMat(THREE, 0x78350f), sail = spkmodVehMat(THREE, 0xf8fafc), wave = spkmodVehMat(THREE, 0x38bdf8, { transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+		put(bodyGroup, new THREE.BoxGeometry(1.36, 0.68, 2.55), hull, [0, 0.44, 0]);
+		put(bodyGroup, new THREE.ConeGeometry(0.84, 0.96, 4), hull, [0, 0.44, 1.72], [Math.PI / 2, Math.PI / 4, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.06, 0.08, 2.45, 10), hull, [0, 1.84, -0.10]);
+		put(bodyGroup, new THREE.BoxGeometry(1.52, 1.18, 0.08), sail, [0, 1.98, 0.08]);
+		put(bodyGroup, new THREE.BoxGeometry(0.46, 0.30, 0.04), darkMat, [0, 2.94, -0.10]);
+		const wRing = put(bodyGroup, new THREE.RingGeometry(1.15, 1.68, 22), wave, [0, 0.06, 0], [Math.PI / 2, 0, 0]);
+		animParts.push({ type: "pulseScale", node: wRing, speed: 3.8, amp: 0.10 });
+		return { seatOffsetY: 0.92, hoverY: 0.16, hoverAmp: 0.09 };
+	} else if (builderName === "chibiHeli") {
+		put(bodyGroup, new THREE.SphereGeometry(0.86, 18, 14), paintMat, [0, 0.84, 0.12], null, [0.95, 0.85, 1.25]);
+		put(bodyGroup, new THREE.SphereGeometry(0.68, 14, 10), glassMat, [0, 0.92, 0.56], null, [0.9, 0.75, 0.8]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.14, 0.24, 1.62, 10), paintMat, [0, 0.92, -1.26], [Math.PI / 2, 0, 0]);
+		for (const sx of [-0.62, 0.62]) put(bodyGroup, new THREE.CylinderGeometry(0.05, 0.05, 1.76, 8), chromeMat, [sx, 0.12, 0.12], [Math.PI / 2, 0, 0]);
+		// Fast-spinning overhead rotor & tail rotor!
+		const mainRotor = new THREE.Group();
+		mainRotor.position.set(0, 1.74, 0.10);
+		put(mainRotor, new THREE.BoxGeometry(2.75, 0.05, 0.20), darkMat);
+		put(mainRotor, new THREE.BoxGeometry(0.20, 0.05, 2.75), darkMat);
+		bodyGroup.add(mainRotor);
+		animParts.push({ type: "spinY", node: mainRotor, speed: 18.0 });
+
+		const tailRotor = new THREE.Group();
+		tailRotor.position.set(0.18, 0.96, -2.04);
+		put(tailRotor, new THREE.BoxGeometry(0.05, 0.72, 0.10), darkMat);
+		bodyGroup.add(tailRotor);
+		animParts.push({ type: "spinX", node: tailRotor, speed: 22.0 });
+		return { seatOffsetY: 1.56, hoverY: 0.42, hoverAmp: 0.11 };
+	} else if (builderName === "chickenMech") {
+		const visor = spkmodVehMat(THREE, 0x22d3ee, { emissive: 0x06b6d4, emissiveIntensity: 0.9 });
+		put(bodyGroup, new THREE.BoxGeometry(1.48, 1.12, 1.44), paintMat, [0, 1.72, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.16, 0.34, 0.18), visor, [0, 1.84, 0.70]);
+		for (const s of [-1, 1]) {
+			// Side twin cannons
+			put(bodyGroup, new THREE.CylinderGeometry(0.10, 0.12, 0.96, 10), darkMat, [s * 0.88, 1.66, 0.36], [Math.PI / 2, 0, 0]);
+			// Articulated stomping mechanical legs!
+			const leg = new THREE.Group();
+			leg.position.set(s * 0.56, 1.16, 0);
+			put(leg, new THREE.BoxGeometry(0.26, 0.68, 0.30), chromeMat, [0, -0.30, -0.14], [0.35, 0, 0]);
+			put(leg, new THREE.BoxGeometry(0.24, 0.68, 0.28), darkMat, [0, -0.82, 0.06], [-0.25, 0, 0]);
+			put(leg, new THREE.BoxGeometry(0.42, 0.16, 0.66), paintMat, [0, -1.08, 0.18]);
+			bodyGroup.add(leg);
+			animParts.push({ type: "legWalk", node: leg, side: s });
+		}
+		return { seatOffsetY: 2.30 };
+	}
+	return null;
+}
+
+async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
+	if (!vehicle) return null;
+	const THREE = window.THREE;
+	if (!THREE) return null;
+	const safeColorIdx = spkmodClampVehicleColorIdx(colorIdx);
+	const colorHex = SPKMOD_VEHICLE_COLORS[safeColorIdx].hex;
+	const spec = vehicle.spec || {};
+
+	// 1. Authentic Burger Shop Sedan / Van GLB
+	if (spec.kind === "burger_glb") {
+		if (typeof spkmodLoadBurgerVehiclesScene !== "function" || typeof spkmodCreateBurgerCarInstance !== "function") return null;
+		const scene = await spkmodLoadBurgerVehiclesScene();
+		if (!scene) return null;
+		const inst = spkmodCreateBurgerCarInstance(scene, spec.modelName, colorHex);
+		if (!inst) return null;
+		const root = new THREE.Group();
+		root.add(inst.carObj);
+		return {
+			root,
+			bodyGroup: inst.carObj,
+			wheels: inst.wheels || [],
+			wheelRadius: inst.wheelRadius || 0.42,
+			seatOffsetY: inst.seatOffsetY || 1.30,
+			hoverY: 0,
+			hoverAmp: 0,
+			animParts: []
+		};
+	}
+
+	// 2. Authentic Game World GLB Vehicles (normalized by Box3 footprint, SkinnedMesh-safe)
+	if (spec.kind === "glb") {
+		const scene = await spkmodLoadVehicleGlbScene(spec.url, spec.fallbackUrl);
+		if (!scene) return null;
+		const root = new THREE.Group();
+		const bodyGroup = new THREE.Group();
+		root.add(bodyGroup);
+
+		const cloned = (typeof spkmodCloneSceneWithSkins === "function")
+			? spkmodCloneSceneWithSkins(scene)
+			: scene.clone(true);
+		if (!cloned) return null;
+		cloned.visible = true;
+		cloned.position.set(0, 0, 0);
+		cloned.rotation.set(0, 0, 0);
+		cloned.scale.set(1, 1, 1);
+		cloned.traverse(node => {
+			if (!node) return;
+			node.visible = true;
+			if (node.isMesh || node.isSkinnedMesh) {
+				node.frustumCulled = false;
+			}
+		});
+		if (typeof cloned.updateMatrixWorld === "function") cloned.updateMatrixWorld(true);
+
+		const box = new THREE.Box3().setFromObject(cloned);
+		if (!box.isEmpty()) {
+			const size = new THREE.Vector3();
+			box.getSize(size);
+			const maxHoriz = Math.max(size.x, size.z, 0.001);
+			const maxH = Math.max(size.y, 0.001);
+			let scale = 1;
+			if (spec.targetLength) {
+				scale = spec.targetLength / maxHoriz;
+			} else if (spec.targetHeight) {
+				scale = spec.targetHeight / maxH;
+			}
+			if (isFinite(scale) && scale > 0.01 && scale < 100) {
+				cloned.scale.multiplyScalar(scale);
+			}
+			if (typeof cloned.updateMatrixWorld === "function") cloned.updateMatrixWorld(true);
+			// Recompute bounds after scaling and align bottom to y = 0 (keepLocalZ keeps rider in sleigh seat!)
+			const box2 = new THREE.Box3().setFromObject(cloned);
+			if (!box2.isEmpty()) {
+				const center2 = new THREE.Vector3();
+				box2.getCenter(center2);
+				cloned.position.x -= center2.x;
+				if (!spec.keepLocalZ) cloned.position.z -= center2.z;
+				cloned.position.y -= box2.min.y;
+			}
+		}
+		bodyGroup.add(cloned);
+
+		const animParts = [];
+		if (spec.flameZ != null) {
+			const flameMat = new THREE.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.85 });
+			const flame = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.62, 10), flameMat);
+			flame.rotation.x = -Math.PI / 2;
+			flame.position.set(0, spec.flameY || 0.4, spec.flameZ);
+			bodyGroup.add(flame);
+			animParts.push({ type: "flamePulse", node: flame });
+		}
+
+		return {
+			root,
+			bodyGroup,
+			wheels: [],
+			wheelRadius: 0.36,
+			seatOffsetY: spec.seatOffsetY || 0.90,
+			hoverY: spec.hoverY || 0,
+			hoverAmp: spec.hoverAmp || 0,
+			rockAmp: spec.rockAmp || 0,
+			chugAmp: spec.chugAmp || 0,
+			animParts
+		};
+	}
+
+	// 3. Procedural 3D Vehicles & MGS Stealth Cardboard Box
+	if (spec.kind === "procedural") {
+		return spkmodBuildProceduralVehicle(THREE, spec.builder, colorHex);
+	}
+	return null;
+}
+
+// ============================================================================
+// 5. LIVE VEHICLE RUNTIME (LOCAL + REMOTE SPAWN, STEALTH HIDE, ANIMATIONS)
+// ============================================================================
+let _spkmodLocalVehicleEntry = null;
+let _spkmodLocalVehicleSeq = 0;
+let _spkmodVehicleDidInitialRestore = false;
+
+const _spkmodRemoteVehicleStates = new Map(); // ownerKey -> { vehicleId, colorIdx, playerId, playerName, updatedAtMs }
+const _spkmodRemoteVehicleInstances = new Map(); // ownerKey -> entry
+const _spkmodRemoteVehicleSeq = new Map();
+const _spkmodRemoteVehicleInFlight = new Map();
+
+let _spkmodVehicleLoopRafId = null;
+let _spkmodVehicleLoopLastMs = performance.now();
+let _spkmodVehicleLastReconcileMs = 0;
+let _spkmodVehicleForceSyncNow = false;
+let _spkmodVehicleHadBroadcast = false;
+let _spkmodVehicleNeedsZoneSync = false;
+let _spkmodVehicleLastZoneId = null;
+let _spkmodVehicleLastRemoteCount = 0;
+let _spkmodVehicleLastObservedLevel = 1;
+let _spkmodVehicleKeyHooked = false;
+
+window.spkmodHasRemoteVehicle = function(ownerKey) {
+	return _spkmodRemoteVehicleInstances.has(String(ownerKey));
+};
+
+function spkmodTriggerBoxAlert(entry, symbol = "!") {
+	if (!entry || !entry.alertSprite || !window.THREE) return;
+	const tex = spkmodGetAlertSpriteTexture(window.THREE, symbol);
+	if (tex && entry.alertSprite.material) {
+		entry.alertSprite.material.map = tex;
+		entry.alertSprite.material.needsUpdate = true;
+	}
+	entry.alertSprite.visible = true;
+	entry.alertStartMs = performance.now();
+	entry.alertUntilMs = entry.alertStartMs + 1350;
+}
+
+function spkmodRestoreVehicleEntry(entry, isLocal) {
+	if (!entry) return;
+	if (entry.root && entry.root.parent) {
+		entry.root.parent.remove(entry.root);
+	}
+	// Unconditionally restore any avatar hidden by MGS Cardboard Box!
+	if (entry.hiddenAvatarRoot) {
+		entry.hiddenAvatarRoot.visible = true;
+		entry.hiddenAvatarRoot = null;
+	}
+	if (typeof gameState !== "undefined" && gameState) {
+		if (isLocal) {
+			if (entry.vehicle?.hidePlayer && gameState.localAvatar?.root && !window.lunFirstPersonActive) {
+				gameState.localAvatar.root.visible = true;
+			}
+			const pc = gameState.playerContainer;
+			const myId = gameState.myPlayerId;
+			if (typeof spkmodSetNativeCartVisible === "function") {
+				spkmodSetNativeCartVisible(pc, myId, true);
+			}
+			const stillMounted = typeof spkmodHasActiveNativeMount === "function" && spkmodHasActiveNativeMount(pc, myId);
+			if (!stillMounted) {
+				if (gameState.localAvatarPose?.position) {
+					gameState.localAvatarPose.position.set(0, 0, 0);
+				}
+				const ctrl = typeof spkmodGetLocalAnimController === "function"
+					? spkmodGetLocalAnimController()
+					: (gameState.localAnimationController || gameState.localAvatar?.animationController || null);
+				if (ctrl && typeof ctrl.exitMountPose === "function") {
+					try { ctrl.exitMountPose(); } catch (_) {}
+				}
+			}
+		} else {
+			const rp = entry.resolveRp ? entry.resolveRp() : null;
+			if (entry.vehicle?.hidePlayer && rp?.avatar?.root) {
+				rp.avatar.root.visible = true;
+			}
+			const container = rp?.container || entry.lastContainer;
+			const rpId = entry.lastRpKey ?? entry.playerId;
+			if (container) {
+				if (typeof spkmodSetNativeCartVisible === "function") {
+					spkmodSetNativeCartVisible(container, rpId, true);
+				}
+				const stillMounted = typeof spkmodHasActiveNativeMount === "function" && spkmodHasActiveNativeMount(container, rpId);
+				if (!stillMounted) {
+					const posePos = rp?.avatarPose?.position || rp?.avatar?.root?.position || entry.lastPosePos;
+					if (posePos) posePos.set(0, 0, 0);
+					const ctrl = rp?.avatar?.animationController || rp?.container?.controller || entry.lastCtrl;
+					if (ctrl && typeof ctrl.exitMountPose === "function") {
+						try { ctrl.exitMountPose(); } catch (_) {}
+					}
+				}
+			}
+		}
+	}
+}
+
+function spkmodRemoveLocalVehicle() {
+	_spkmodLocalVehicleSeq++;
+	if (_spkmodLocalVehicleEntry) {
+		spkmodRestoreVehicleEntry(_spkmodLocalVehicleEntry, true);
+		_spkmodLocalVehicleEntry = null;
+	}
+	if (typeof gameState !== "undefined" && gameState?.playerContainer?.children) {
+		const ch = gameState.playerContainer.children;
+		for (let i = ch.length - 1; i >= 0; i--) {
+			if (ch[i] && ch[i].name === "spkmod_local_vehicle") {
+				gameState.playerContainer.remove(ch[i]);
+			}
+		}
+	}
+	window.BurgerCarMode = 0;
+}
+
+function spkmodEnsureVehicleKeyHooks() {
+	if (_spkmodVehicleKeyHooked) return;
+	_spkmodVehicleKeyHooked = true;
+	const isTypingTarget = el =>
+		el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+
+	window.addEventListener("keydown", e => {
+		if (!spkmodIsVehiclesSystemEnabled() || !_spkmodLocalVehicleEntry || isTypingTarget(e.target)) return;
+		if (e.code === "KeyF" || e.code === "KeyG") {
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			if (!e.repeat) {
+				const isSecondary = e.code === "KeyG";
+				spkmodPlayVehicleSfx(_spkmodLocalVehicleEntry.vehicle, isSecondary);
+				if (_spkmodLocalVehicleEntry.alertSprite) {
+					spkmodTriggerBoxAlert(_spkmodLocalVehicleEntry, isSecondary ? "?" : "!");
+				}
+			}
+		}
+	}, true);
+
+	window.addEventListener("keyup", e => {
+		if (!spkmodIsVehiclesSystemEnabled() || !_spkmodLocalVehicleEntry || isTypingTarget(e.target)) return;
+		if (e.code === "KeyF" || e.code === "KeyG") {
+			e.preventDefault();
+			e.stopImmediatePropagation();
+		}
+	}, true);
+}
+
+async function spkmodSpawnLocalVehicle(vehicleId, colorIdx) {
+	if (!spkmodIsVehiclesSystemEnabled()) {
+		spkmodRemoveLocalVehicle();
+		return false;
+	}
+	const vehicle = SPKMOD_VEHICLES_BY_ID.get(vehicleId);
+	if (!vehicle || !spkmodIsVehicleUnlocked(vehicle)) {
+		spkmodRemoveLocalVehicle();
+		return false;
+	}
+	if (typeof gameState === "undefined" || !gameState?.playerContainer) return false;
+
+	spkmodEnsureVehicleKeyHooks();
+	if (typeof window.spkmodResetCarsEveryone === "function") {
+		window.spkmodResetCarsEveryone(true, false);
+	}
+
+	const mySeq = ++_spkmodLocalVehicleSeq;
+	const safeColor = spkmodClampVehicleColorIdx(colorIdx);
+	const built = await spkmodCreateVehicleModelInstance(vehicle, safeColor);
+	if (!built || mySeq !== _spkmodLocalVehicleSeq || !spkmodIsVehiclesSystemEnabled()) return false;
+	if (window.spkmodVehicleSettings.equippedId !== vehicle.id) return false;
+
+	if (_spkmodLocalVehicleEntry) {
+		spkmodRestoreVehicleEntry(_spkmodLocalVehicleEntry, true);
+		_spkmodLocalVehicleEntry = null;
+	}
+	if (gameState.playerContainer.children) {
+		for (let i = gameState.playerContainer.children.length - 1; i >= 0; i--) {
+			if (gameState.playerContainer.children[i]?.name === "spkmod_local_vehicle") {
+				gameState.playerContainer.remove(gameState.playerContainer.children[i]);
+			}
+		}
+	}
+
+	built.root.name = "spkmod_local_vehicle";
+	gameState.playerContainer.add(built.root);
+	window.BurgerCarMode = vehicle.code;
+	window.BurgerCarColorIdx = safeColor;
+
+	_spkmodLocalVehicleEntry = Object.assign({
+		vehicle,
+		colorIdx: safeColor,
+		hiddenAvatarRoot: null,
+		lastX: gameState.playerContainer.position ? gameState.playerContainer.position.x : 0,
+		lastZ: gameState.playerContainer.position ? gameState.playerContainer.position.z : 0,
+		walkPhase: 0,
+		stealthLift: 0,
+		alertStartMs: 0,
+		alertUntilMs: 0
+	}, built);
+
+	spkmodTickVehicleEntry(_spkmodLocalVehicleEntry, true, gameState.playerContainer, gameState.myPlayerId, gameState.localAvatar?.root || null, gameState.localAvatarPose?.position || null, (typeof spkmodGetLocalAnimController === "function" ? spkmodGetLocalAnimController() : gameState.localAnimationController), 0.016, performance.now());
+	spkmodStartVehiclesLoopIfEnabled();
+	return true;
+}
+
+function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot, posePos, ctrl, dt, nowMs) {
+	if (!entry || !container) return;
+	if (entry.root.parent !== container) {
+		container.add(entry.root);
+	}
+	if (typeof spkmodSetNativeCartVisible === "function") {
+		spkmodSetNativeCartVisible(container, playerId, false);
+	}
+
+	// Calculate horizontal travel speed since last frame
+	let dist = 0;
+	if (container.position) {
+		const dx = container.position.x - entry.lastX;
+		const dz = container.position.z - entry.lastZ;
+		dist = Math.hypot(dx, dz);
+		if (dist > 0.0001) {
+			entry.lastX = container.position.x;
+			entry.lastZ = container.position.z;
+		}
+	}
+	const isMoving = dist > 0.004;
+	const tSec = nowMs * 0.001;
+
+	// Spin wheels proportionally to ground distance covered
+	if (dist > 0.0001 && entry.wheels && entry.wheels.length > 0) {
+		const angle = dist / (entry.wheelRadius || 0.34);
+		for (let i = 0; i < entry.wheels.length; i++) {
+			entry.wheels[i].rotation.x += angle;
+		}
+	}
+
+	// Hover / Bob / Rock / Chug motion
+	let hoverDelta = 0;
+	if (entry.hoverY > 0 || entry.hoverAmp > 0) {
+		hoverDelta = Math.sin(tSec * 2.6) * (entry.hoverAmp || 0.08);
+		entry.bodyGroup.position.y = (entry.hoverY || 0) + hoverDelta;
+		entry.bodyGroup.rotation.x = isMoving ? 0.08 : Math.sin(tSec * 1.4) * 0.025;
+	} else if (entry.waddleAmp) {
+		if (isMoving) entry.walkPhase += dt * 11;
+		entry.bodyGroup.rotation.z = isMoving ? Math.sin(entry.walkPhase) * entry.waddleAmp : Math.sin(tSec * 2.0) * 0.02;
+		entry.bodyGroup.position.y = isMoving ? Math.abs(Math.sin(entry.walkPhase)) * 0.06 : 0;
+	} else if (entry.rockAmp) {
+		if (isMoving) entry.walkPhase += dt * 12;
+		entry.bodyGroup.rotation.x = isMoving ? Math.sin(entry.walkPhase) * entry.rockAmp : Math.sin(tSec * 2.5) * 0.04;
+	} else if (entry.chugAmp) {
+		if (isMoving) entry.walkPhase += dt * 14;
+		entry.bodyGroup.position.y = isMoving ? Math.abs(Math.sin(entry.walkPhase)) * entry.chugAmp : 0;
+		entry.bodyGroup.rotation.z = isMoving ? Math.sin(entry.walkPhase * 0.5) * 0.035 : 0;
+	} else if (entry.hopAmp && !entry.vehicle.hidePlayer) {
+		if (isMoving) entry.walkPhase += dt * 9;
+		hoverDelta = isMoving ? Math.abs(Math.sin(entry.walkPhase)) * entry.hopAmp : 0;
+		entry.bodyGroup.position.y = hoverDelta;
+		entry.bodyGroup.rotation.x = isMoving ? Math.cos(entry.walkPhase) * 0.10 : 0;
+	}
+
+	// Animated subparts (police siren lights, UFO disc, heli rotors, mech legs, spinning chairs/Roomba, trash lid)
+	if (entry.animParts && entry.animParts.length > 0) {
+		for (let i = 0; i < entry.animParts.length; i++) {
+			const p = entry.animParts[i];
+			if (!p) continue;
+			if (p.type === "siren") {
+				const phase = Math.floor(tSec * 7) % 2 === 0;
+				if (p.red) p.red.scale.setScalar(phase ? 1.18 : 0.72);
+				if (p.blue) p.blue.scale.setScalar(phase ? 0.72 : 1.18);
+			} else if (p.type === "spinY" && p.node) {
+				p.node.rotation.y = tSec * (p.speed || 2.0);
+			} else if (p.type === "spinX" && p.node) {
+				p.node.rotation.x = tSec * (p.speed || 16.0);
+			} else if (p.type === "spinMoveY" && p.node) {
+				p.node.rotation.y += dt * (isMoving ? (p.speed || 5.0) : 0.45);
+			} else if (p.type === "legWalk" && p.node) {
+				if (isMoving) p.node.rotation.x = Math.sin(tSec * 10 + (p.side === 1 ? Math.PI : 0)) * 0.48;
+				else p.node.rotation.x *= 0.82;
+			} else if (p.type === "lidBounce" && p.node) {
+				p.node.position.y = (p.baseY || 1.2) + (isMoving ? Math.abs(Math.sin(tSec * 12)) * 0.14 : 0);
+				p.node.rotation.z = isMoving ? Math.sin(tSec * 12) * 0.16 : 0;
+			} else if (p.type === "pulseScale" && p.node) {
+				const s = 1 + Math.sin(tSec * (p.speed || 6)) * (p.amp || 0.12);
+				p.node.scale.set(s, 1, s);
+			} else if (p.type === "flamePulse" && p.node) {
+				const s = (isMoving ? 1.15 : 0.72) + Math.sin(tSec * 22) * 0.25;
+				p.node.scale.set(1, s, 1);
+			}
+		}
+	}
+
+	// Stealth MGS Cardboard Box mode vs normal mount vehicle
+	if (entry.vehicle.hidePlayer) {
+		if (avatarRoot) {
+			if (entry.hiddenAvatarRoot && entry.hiddenAvatarRoot !== avatarRoot) {
+				entry.hiddenAvatarRoot.visible = true;
+			}
+			entry.hiddenAvatarRoot = avatarRoot;
+			if (avatarRoot.visible !== false) avatarRoot.visible = false;
+		}
+		if (posePos && posePos.y !== 0) posePos.set(0, 0, 0);
+		if (ctrl && ctrl.mountSitPlaying && typeof ctrl.exitMountPose === "function") {
+			try { ctrl.exitMountPose(); } catch (_) {}
+		}
+
+		const targetLift = isMoving ? 0.14 : 0;
+		entry.stealthLift += (targetLift - entry.stealthLift) * Math.min(1, dt * 16);
+		if (isMoving) entry.walkPhase += dt * 13;
+		const hop = isMoving ? Math.abs(Math.sin(entry.walkPhase)) * (entry.hopAmp || 0.04) : 0;
+		entry.bodyGroup.position.y = entry.stealthLift + hop;
+		entry.bodyGroup.rotation.z = isMoving ? Math.sin(entry.walkPhase) * 0.075 : 0;
+		entry.bodyGroup.rotation.x = isMoving ? Math.sin(entry.walkPhase * 2) * 0.03 : 0;
+
+		const showFeet = entry.stealthLift > 0.02;
+		if (entry.leftFoot && entry.rightFoot) {
+			entry.leftFoot.visible = showFeet;
+			entry.rightFoot.visible = showFeet;
+			if (showFeet) {
+				const stride = Math.sin(entry.walkPhase) * 0.16;
+				entry.leftFoot.position.z = stride;
+				entry.rightFoot.position.z = -stride;
+				entry.leftFoot.position.y = 0.08 + Math.max(0, Math.cos(entry.walkPhase)) * 0.05;
+				entry.rightFoot.position.y = 0.08 + Math.max(0, -Math.cos(entry.walkPhase)) * 0.05;
+			}
+		}
+
+		if (entry.alertSprite) {
+			if (entry.alertUntilMs > nowMs) {
+				entry.alertSprite.visible = true;
+				const elapsed = (nowMs - entry.alertStartMs) / 1000;
+				const pop = elapsed < 0.14 ? (0.4 + (elapsed / 0.14) * 0.95) : (elapsed < 0.25 ? 1.35 - ((elapsed - 0.14) / 0.11) * 0.35 : 1.0);
+				entry.alertSprite.scale.set(0.72 * pop, 0.72 * pop, 1);
+				entry.alertSprite.position.y = 1.92 + Math.sin(elapsed * 12) * 0.05;
+			} else if (entry.alertSprite.visible) {
+				entry.alertSprite.visible = false;
+			}
+		}
+	} else {
+		if (entry.hiddenAvatarRoot) {
+			entry.hiddenAvatarRoot.visible = true;
+			entry.hiddenAvatarRoot = null;
+		}
+		if (posePos) {
+			posePos.set(0, (entry.seatOffsetY || 0) + hoverDelta, 0);
+		}
+		if (entry.vehicle.pose === "sit") {
+			if (ctrl && !ctrl.mountSitPlaying && typeof ctrl.enterMountPose === "function") {
+				try { ctrl.enterMountPose("sit"); } catch (_) {}
+			}
+		} else if (entry.vehicle.pose === "stand") {
+			if (ctrl && ctrl.mountSitPlaying && typeof ctrl.exitMountPose === "function") {
+				try { ctrl.exitMountPose(); } catch (_) {}
+			}
+		}
+	}
+}
+
+// ============================================================================
+// 6. REMOTE VEHICLES RESOLUTION & UNIFIED :m_v<codeNum>c<colorIdx>: SYNC
+// ============================================================================
+function spkmodResolveRemotePlayerForVehicle(playerId, playerName) {
+	if (typeof gameState === "undefined" || !gameState?.remotePlayers?.remotePlayers) return null;
+	const rMap = gameState.remotePlayers.remotePlayers;
+	if (playerId != null && typeof playerId !== "object") {
+		const rawStr = String(playerId).trim();
+		const stripped = rawStr.replace(/^(?:remote|player|user|bubble)[_:-]+/i, "");
+		for (const k of [playerId, Number(playerId), rawStr, stripped, Number(stripped)]) {
+			if (k === "" || (typeof k === "number" && Number.isNaN(k))) continue;
+			const byId = rMap.get(k);
+			if (byId) return { key: String(k), rpKey: k, rp: byId };
+		}
+	}
+	const lower = typeof playerName === "string" ? playerName.trim().toLowerCase() : "";
+	if (lower) {
+		for (const [k, rp] of rMap) {
+			const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim().toLowerCase();
+			if (rName && rName === lower) return { key: String(k), rpKey: k, rp };
+		}
+	}
+	return null;
+}
+
+function spkmodClearRemoteVehicleOwner(ownerKey) {
+	_spkmodRemoteVehicleSeq.set(ownerKey, (_spkmodRemoteVehicleSeq.get(ownerKey) || 0) + 1);
+	_spkmodRemoteVehicleInFlight.delete(ownerKey);
+	const existing = _spkmodRemoteVehicleInstances.get(ownerKey);
+	if (existing) {
+		spkmodRestoreVehicleEntry(existing, false);
+		_spkmodRemoteVehicleInstances.delete(ownerKey);
+	}
+}
+
+async function spkmodSpawnOrUpdateRemoteVehicle(ownerKey, state, resolved) {
+	if (!spkmodIsVehiclesSystemEnabled() || window.spkmodVehicleSettings.showRemoteVehicles === false) return;
+	const vehicle = SPKMOD_VEHICLES_BY_ID.get(state.vehicleId);
+	if (!vehicle || !resolved || !resolved.rp || !resolved.rp.container) return;
+
+	const safeColor = spkmodClampVehicleColorIdx(state.colorIdx);
+	const token = `${vehicle.id}:${safeColor}`;
+	const existing = _spkmodRemoteVehicleInstances.get(ownerKey);
+	if ((existing && existing.vehicle.id === vehicle.id && existing.colorIdx === safeColor) || _spkmodRemoteVehicleInFlight.get(ownerKey) === token) {
+		return;
+	}
+
+	const mySeq = (_spkmodRemoteVehicleSeq.get(ownerKey) || 0) + 1;
+	_spkmodRemoteVehicleSeq.set(ownerKey, mySeq);
+	_spkmodRemoteVehicleInFlight.set(ownerKey, token);
+
+	const built = await spkmodCreateVehicleModelInstance(vehicle, safeColor);
+	if (_spkmodRemoteVehicleInFlight.get(ownerKey) === token) {
+		_spkmodRemoteVehicleInFlight.delete(ownerKey);
+	}
+	if (!built || !spkmodIsVehiclesSystemEnabled() || _spkmodRemoteVehicleSeq.get(ownerKey) !== mySeq) return;
+
+	const live = spkmodResolveRemotePlayerForVehicle(state.playerId, state.playerName);
+	if (!live || !live.rp || !live.rp.container) return;
+
+	const prev = _spkmodRemoteVehicleInstances.get(ownerKey);
+	if (prev) {
+		spkmodRestoreVehicleEntry(prev, false);
+		_spkmodRemoteVehicleInstances.delete(ownerKey);
+	}
+	if (Array.isArray(live.rp.container.children)) {
+		for (let i = live.rp.container.children.length - 1; i >= 0; i--) {
+			const ch = live.rp.container.children[i];
+			if (ch && typeof ch.name === "string" && (ch.name.startsWith("spkmod_remote_vehicle_") || ch.name.startsWith("spkmod_remote_car_"))) {
+				live.rp.container.remove(ch);
+			}
+		}
+	}
+
+	built.root.name = "spkmod_remote_vehicle_" + ownerKey;
+	live.rp.container.add(built.root);
+
+	const resolveRp = () => spkmodResolveRemotePlayerForVehicle(state.playerId, state.playerName)?.rp || null;
+	const entry = Object.assign({
+		ownerKey,
+		playerId: state.playerId,
+		playerName: state.playerName,
+		vehicle,
+		colorIdx: safeColor,
+		resolveRp,
+		lastRpKey: live.rpKey,
+		lastContainer: live.rp.container,
+		lastPosePos: live.rp.avatarPose?.position || live.rp.avatar?.root?.position || null,
+		lastCtrl: live.rp.avatar?.animationController || live.rp.container?.controller || null,
+		hiddenAvatarRoot: null,
+		lastX: live.rp.container.position ? live.rp.container.position.x : 0,
+		lastZ: live.rp.container.position ? live.rp.container.position.z : 0,
+		walkPhase: 0,
+		stealthLift: 0,
+		alertStartMs: 0,
+		alertUntilMs: 0
+	}, built);
+
+	_spkmodRemoteVehicleInstances.set(ownerKey, entry);
+	spkmodTickVehicleEntry(entry, false, live.rp.container, live.rpKey, live.rp.avatar?.root || null, entry.lastPosePos, entry.lastCtrl, 0.016, performance.now());
+}
+
+window.spkmodGetActiveCarBroadcastState = function() {
+	const enabled = spkmodIsVehiclesSystemEnabled();
+	const shareInChat = spkmodIsVehicleChatSharingEnabled();
+	const eqId = enabled ? window.spkmodVehicleSettings.equippedId : null;
+	const vehicle = eqId ? SPKMOD_VEHICLES_BY_ID.get(eqId) : null;
+	const modeIdx = (vehicle && spkmodIsVehicleUnlocked(vehicle)) ? vehicle.code : 0;
+	const colorIdx = modeIdx > 0 ? spkmodClampVehicleColorIdx(window.spkmodVehicleSettings.colorIdx) : 0;
+	return {
+		enabled,
+		shareInChat,
+		modeIdx,
+		colorIdx,
+		hadBroadcastCar: _spkmodVehicleHadBroadcast
+	};
+};
+
+window.spkmodMarkCarBroadcastSent = function(hasVehicle) {
+	_spkmodVehicleHadBroadcast = !!hasVehicle;
+	_spkmodVehicleNeedsZoneSync = false;
+};
+
+function spkmodTriggerVehicleSyncBroadcast(opts = {}) {
+	if (!spkmodIsVehicleChatSharingEnabled()) return;
+	const rCount = (typeof spkmodGetRemotePlayerCount === "function")
+		? spkmodGetRemotePlayerCount()
+		: ((typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.size) || 0);
+	if (window.spkmodVehicleSettings.equippedId && rCount === 0) {
+		_spkmodVehicleNeedsZoneSync = true;
+	}
+	if (typeof window.spkmodQueueUnifiedModSyncBroadcast === "function") {
+		window.spkmodQueueUnifiedModSyncBroadcast(Object.assign({
+			includeCarState: true
+		}, opts));
+	}
+}
+
+window.spkmodHandleIncomingCarState = function(playerId, playerName, modeIdx, colorIdx) {
+	if (!spkmodIsVehiclesSystemEnabled()) return;
+	if (playerId != null && typeof playerId === "object") {
+		if (!playerName) playerName = playerId.info?.__spkmodOrigName || playerId.info?.name || playerId.name || "";
+		playerId = playerId.info?.playerId ?? playerId.info?.id ?? playerId.playerId ?? playerId.id ?? null;
+	}
+	const myId = typeof gameState !== "undefined" ? gameState?.myPlayerId : null;
+	const myName = (typeof gameState !== "undefined" && (gameState?.myPlayerName || gameState?.myStat?.name)) || "";
+	const isSelf = (myId != null && playerId != null && String(playerId) === String(myId))
+		|| (myName && playerName && myName.trim().toLowerCase() === playerName.trim().toLowerCase());
+	if (isSelf) return;
+
+	let cleanName = typeof playerName === "string" ? playerName.trim() : "";
+	let cleanId = (playerId != null && String(playerId).trim() !== "") ? playerId : null;
+	const resolved = spkmodResolveRemotePlayerForVehicle(cleanId, cleanName);
+	if (resolved) {
+		cleanId = resolved.key;
+		const rName = (resolved.rp?.info?.__spkmodOrigName || resolved.rp?.info?.name || "").trim();
+		if (rName) cleanName = rName;
+	}
+	const lowerName = cleanName.toLowerCase();
+	const ownerKey = (cleanId != null && String(cleanId).trim() !== "")
+		? String(cleanId).trim()
+		: (lowerName ? `name:${lowerName}` : "");
+	if (!ownerKey) return;
+
+	// Evict any stale alias entries belonging to the same remote player
+	for (const [k, st] of [..._spkmodRemoteVehicleStates.entries()]) {
+		if (k === ownerKey || !st) continue;
+		const stLower = (st.playerName || "").trim().toLowerCase();
+		if ((lowerName && stLower === lowerName) || (cleanId != null && st.playerId != null && String(st.playerId) === String(cleanId))) {
+			_spkmodRemoteVehicleStates.delete(k);
+			spkmodClearRemoteVehicleOwner(k);
+		}
+	}
+
+	const codeNum = Number(modeIdx) || 0;
+	const vehicle = codeNum > 0 ? SPKMOD_VEHICLES_BY_CODE.get(codeNum) : null;
+	if (!vehicle) {
+		_spkmodRemoteVehicleStates.delete(ownerKey);
+		spkmodClearRemoteVehicleOwner(ownerKey);
+		_spkmodVehicleForceSyncNow = true;
+		return;
+	}
+
+	_spkmodRemoteVehicleStates.set(ownerKey, {
+		playerId: cleanId,
+		playerName: cleanName,
+		vehicleId: vehicle.id,
+		colorIdx: spkmodClampVehicleColorIdx(colorIdx),
+		updatedAtMs: Date.now()
+	});
+	_spkmodVehicleForceSyncNow = true;
+	spkmodStartVehiclesLoopIfEnabled();
+};
+
+window.spkmodHandleIncomingCarTrigger = function(playerId, playerName, rawMsg) {
+	if (!spkmodIsVehiclesSystemEnabled() || typeof rawMsg !== "string") return;
+	const trimmed = rawMsg.trim();
+	if (/^:car_(?:none|off):$/i.test(trimmed)) {
+		window.spkmodHandleIncomingCarState(playerId, playerName, 0, 0);
+		return;
+	}
+	const m = trimmed.match(/^:car_(\d+)_(\d+):$/i);
+	if (!m) return;
+	window.spkmodHandleIncomingCarState(playerId, playerName, parseInt(m[1], 10), parseInt(m[2], 10));
+};
+
+// ============================================================================
+// 7. EQUIP / UNEQUIP / COLOR / MASTER LOOP
+// ============================================================================
+async function spkmodEquipLocalVehicle(idOrCode, broadcast = true, silentToast = false) {
+	if (!spkmodIsVehiclesSystemEnabled()) {
+		if (!silentToast && typeof chatLog === "function") chatLog(spkmodGetVehicleUiText("systemDisabledToast"));
+		return false;
+	}
+	if (idOrCode === null || idOrCode === undefined || idOrCode === "" || idOrCode === "none" || idOrCode === "off" || idOrCode === 0 || idOrCode === "0") {
+		const hadPrev = !!window.spkmodVehicleSettings.equippedId;
+		window.spkmodVehicleSettings.equippedId = null;
+		if (typeof window !== "undefined" && window.localStorage) {
+			localStorage.removeItem(SPKMOD_VEHICLE_STORAGE_KEYS.equipped);
+		}
+		spkmodRemoveLocalVehicle();
+		if (broadcast && hadPrev) {
+			spkmodTriggerVehicleSyncBroadcast({
+				priority: "explicit",
+				delayMs: 1000,
+				forceResend: true,
+				reason: "vehicle_unequip"
+			});
+		}
+		if (!silentToast && hadPrev && typeof chatLog === "function") {
+			chatLog(spkmodGetVehicleUiText("unequippedToast"));
+		}
+		spkmodUpdateVehicleQuickToggleBtn();
+		spkmodRefreshVehiclesModalUI();
+		return true;
+	}
+
+	const key = String(idOrCode).trim().toLowerCase();
+	const vehicle = SPKMOD_VEHICLES_BY_ID.get(key)
+		|| (/^\d+$/.test(key) ? SPKMOD_VEHICLES_BY_CODE.get(Number(key)) : null)
+		|| (key === "box" || key === "cardboard" || key === "mgs" ? SPKMOD_VEHICLES_BY_ID.get("mgs_box") : null);
+
+	if (!vehicle) {
+		if (!silentToast && typeof chatLog === "function") chatLog(spkmodGetVehicleUiText("unknownVehicleToast", idOrCode));
+		return false;
+	}
+
+	const dispName = spkmodGetVehicleDisplayName(vehicle);
+	if (!spkmodIsVehicleUnlocked(vehicle)) {
+		if (!silentToast && typeof chatLog === "function") {
+			chatLog(spkmodGetVehicleUiText("lockedToast", vehicle.level, dispName));
+		}
+		return false;
+	}
+
+	window.spkmodVehicleSettings.equippedId = vehicle.id;
+	window.spkmodVehicleSettings.lastEquippedId = vehicle.id;
+	if (typeof window !== "undefined" && window.localStorage) {
+		localStorage.setItem(SPKMOD_VEHICLE_STORAGE_KEYS.equipped, vehicle.id);
+		localStorage.setItem(SPKMOD_VEHICLE_STORAGE_KEYS.lastEquipped, vehicle.id);
+	}
+	await spkmodSpawnLocalVehicle(vehicle.id, window.spkmodVehicleSettings.colorIdx);
+
+	if (broadcast) {
+		spkmodTriggerVehicleSyncBroadcast({
+			priority: "explicit",
+			delayMs: 1000,
+			forceResend: true,
+			reason: "vehicle_equip"
+		});
+	}
+	if (!silentToast && typeof chatLog === "function") {
+		const toastKey = vehicle.hidePlayer ? "equippedBoxToast" : "equippedToast";
+		chatLog(spkmodGetVehicleUiText(toastKey, `${vehicle.icon} ${dispName}`, vehicle.level));
+	}
+	spkmodUpdateVehicleQuickToggleBtn();
+	spkmodRefreshVehiclesModalUI();
+	return true;
+}
+
+function spkmodGetVehicleQuickToggleLabel() {
+	const eqId = window.spkmodVehicleSettings.equippedId;
+	const activeVeh = eqId ? SPKMOD_VEHICLES_BY_ID.get(eqId) : null;
+	const lastVeh = (!activeVeh && window.spkmodVehicleSettings.lastEquippedId)
+		? SPKMOD_VEHICLES_BY_ID.get(window.spkmodVehicleSettings.lastEquippedId)
+		: null;
+	const icon = activeVeh?.icon || lastVeh?.icon || "🚗";
+	return spkmodGetVehicleUiText(activeVeh ? "quickToggleOn" : "quickToggleOff", icon);
+}
+window.spkmodGetVehicleQuickToggleLabel = spkmodGetVehicleQuickToggleLabel;
+
+function spkmodUpdateVehicleQuickToggleBtn() {
+	const enabled = spkmodIsVehiclesSystemEnabled();
+	const eqId = window.spkmodVehicleSettings.equippedId;
+	const activeVeh = eqId ? SPKMOD_VEHICLES_BY_ID.get(eqId) : null;
+	const targetVeh = activeVeh || (window.spkmodVehicleSettings.lastEquippedId ? SPKMOD_VEHICLES_BY_ID.get(window.spkmodVehicleSettings.lastEquippedId) : null);
+	const label = spkmodGetVehicleQuickToggleLabel();
+	const tip = targetVeh
+		? spkmodGetVehicleUiText("quickToggleTooltip", `${targetVeh.icon} ${spkmodGetVehicleDisplayName(targetVeh)}`)
+		: spkmodGetVehicleUiText("quickTogglePickTooltip");
+
+	const targets = [];
+	if (typeof lunPanelElements !== "undefined" && lunPanelElements?.vehicleToggleBtn) {
+		targets.push(lunPanelElements.vehicleToggleBtn);
+	}
+	const byId = typeof document !== "undefined" ? document.getElementById("spkmod-vehicle-toggle-btn") : null;
+	if (byId && !targets.includes(byId)) targets.push(byId);
+
+	for (const btn of targets) {
+		if (typeof setText === "function") setText(btn, label);
+		else btn.innerText = label;
+		btn.title = tip;
+		btn.classList.toggle("hidden", !enabled);
+	}
+}
+window.spkmodUpdateVehicleQuickToggleBtn = spkmodUpdateVehicleQuickToggleBtn;
+
+async function spkmodToggleActiveVehicle() {
+	if (!spkmodIsVehiclesSystemEnabled()) {
+		if (typeof chatLog === "function") chatLog(spkmodGetVehicleUiText("systemDisabledToast"));
+		return false;
+	}
+	if (window.spkmodVehicleSettings.equippedId) {
+		return spkmodEquipLocalVehicle(null, true, false);
+	}
+	const lastId = window.spkmodVehicleSettings.lastEquippedId;
+	const lastVeh = lastId ? SPKMOD_VEHICLES_BY_ID.get(lastId) : null;
+	if (lastVeh && spkmodIsVehicleUnlocked(lastVeh)) {
+		return spkmodEquipLocalVehicle(lastVeh.id, true, false);
+	}
+	if (typeof window.spkmodOpenVehiclesModal === "function") {
+		window.spkmodOpenVehiclesModal();
+	}
+	return false;
+}
+window.spkmodToggleActiveVehicle = spkmodToggleActiveVehicle;
+
+async function spkmodSetLocalVehicleColor(colorIdx, broadcast = true, silentToast = false) {
+	const safeIdx = spkmodClampVehicleColorIdx(colorIdx);
+	window.spkmodVehicleSettings.colorIdx = safeIdx;
+	window.BurgerCarColorIdx = safeIdx;
+	if (typeof window !== "undefined" && window.localStorage) {
+		localStorage.setItem(SPKMOD_VEHICLE_STORAGE_KEYS.color, String(safeIdx));
+	}
+	const eqId = window.spkmodVehicleSettings.equippedId;
+	if (eqId && spkmodIsVehiclesSystemEnabled()) {
+		const veh = SPKMOD_VEHICLES_BY_ID.get(eqId);
+		if (veh && spkmodIsVehicleUnlocked(veh)) {
+			if (veh.paintable) {
+				await spkmodSpawnLocalVehicle(veh.id, safeIdx);
+			}
+			if (broadcast) {
+				spkmodTriggerVehicleSyncBroadcast({
+					priority: "explicit",
+					delayMs: 900,
+					forceResend: true,
+					reason: "vehicle_color"
+				});
+			}
+		}
+	}
+	if (!silentToast && typeof chatLog === "function") {
+		chatLog(spkmodGetVehicleUiText("colorSetToast", spkmodGetVehicleColorName(SPKMOD_VEHICLE_COLORS[safeIdx])));
+	}
+	spkmodRefreshVehiclesModalUI();
+	return safeIdx;
+}
+
+function spkmodStartVehiclesLoopIfEnabled() {
+	if (!spkmodIsVehiclesSystemEnabled()) return;
+	if (_spkmodVehicleLoopRafId !== null) return;
+	_spkmodVehicleLoopLastMs = performance.now();
+	_spkmodVehicleLoopRafId = requestAnimationFrame(spkmodVehiclesMasterLoop);
+}
+
+function spkmodStopVehiclesLoop() {
+	if (_spkmodVehicleLoopRafId !== null) {
+		cancelAnimationFrame(_spkmodVehicleLoopRafId);
+		_spkmodVehicleLoopRafId = null;
+	}
+}
+
+function spkmodSyncVehiclesSystemUIState() {
+	const enabled = spkmodIsVehiclesSystemEnabled();
+	if (typeof lunPanelElements !== "undefined" && lunPanelElements) {
+		if (lunPanelElements.carSystemToggleInput) {
+			lunPanelElements.carSystemToggleInput.checked = enabled;
+		}
+		if (lunPanelElements.vehiclesBtn) {
+			lunPanelElements.vehiclesBtn.classList.toggle("hidden", !enabled);
+		}
+	}
+	const btnById = document.getElementById("spkmod-vehicles-btn");
+	if (btnById) btnById.classList.toggle("hidden", !enabled);
+	spkmodUpdateVehicleQuickToggleBtn();
+}
+
+window.spkmodSetCarSystemEnabled = function(nextEnabled, silentToast = false) {
+	const enabled = !!nextEnabled;
+	window.spkmodVehicleSettings.enabled = enabled;
+	window.spkmodCarSystemEnabled = enabled;
+	if (typeof window !== "undefined" && window.localStorage) {
+		try {
+			localStorage.setItem(SPKMOD_VEHICLE_STORAGE_KEYS.enabled, enabled ? "true" : "false");
+		} catch (_) {}
+	}
+	spkmodSyncVehiclesSystemUIState();
+
+	if (!enabled) {
+		spkmodStopVehiclesLoop();
+		spkmodRemoveLocalVehicle();
+		for (const k of [..._spkmodRemoteVehicleInstances.keys()]) {
+			spkmodClearRemoteVehicleOwner(k);
+		}
+		_spkmodRemoteVehicleStates.clear();
+		if (typeof window.spkmodResetCarsEveryone === "function") {
+			window.spkmodResetCarsEveryone(true, false);
+		}
+		const modal = document.getElementById("spkmod-vehicles-modal");
+		if (modal) modal.classList.add("hidden");
+	} else {
+		_spkmodVehicleLastZoneId = null;
+		_spkmodVehicleLastRemoteCount = 0;
+		_spkmodVehicleForceSyncNow = true;
+		_spkmodVehicleDidInitialRestore = false;
+		spkmodStartVehiclesLoopIfEnabled();
+	}
+
+	if (!silentToast && typeof chatLog === "function") {
+		chatLog(spkmodGetVehicleUiText(enabled ? "systemEnabledToast" : "systemDisabledToast"));
+	}
+	return enabled;
+};
+window.spkmodSetVehiclesSystemEnabled = window.spkmodSetCarSystemEnabled;
+
+function spkmodVehiclesMasterLoop(nowMs) {
+	_spkmodVehicleLoopRafId = null;
+	if (!spkmodIsVehiclesSystemEnabled()) return;
+
+	const dt = Math.min(0.1, Math.max(0.001, (nowMs - _spkmodVehicleLoopLastMs) / 1000));
+	_spkmodVehicleLoopLastMs = nowMs;
+
+	if (!document.hidden && typeof gameState !== "undefined" && gameState) {
+		const pc = gameState.playerContainer || null;
+		const inMinigame = (typeof spkmodIsInIsolatedMinigame === "function") ? spkmodIsInIsolatedMinigame() : false;
+
+		// 1. Tick active local vehicle every frame
+		if (_spkmodLocalVehicleEntry && pc) {
+			if (inMinigame) {
+				if (_spkmodLocalVehicleEntry.root.visible) _spkmodLocalVehicleEntry.root.visible = false;
+				if (_spkmodLocalVehicleEntry.hiddenAvatarRoot) {
+					_spkmodLocalVehicleEntry.hiddenAvatarRoot.visible = true;
+					_spkmodLocalVehicleEntry.hiddenAvatarRoot = null;
+				}
+			} else {
+				if (!_spkmodLocalVehicleEntry.root.visible) _spkmodLocalVehicleEntry.root.visible = true;
+				const ctrl = typeof spkmodGetLocalAnimController === "function"
+					? spkmodGetLocalAnimController()
+					: (gameState.localAnimationController || gameState.localAvatar?.animationController || null);
+				spkmodTickVehicleEntry(
+					_spkmodLocalVehicleEntry,
+					true,
+					pc,
+					gameState.myPlayerId,
+					gameState.localAvatar?.root || null,
+					gameState.localAvatarPose?.position || null,
+					ctrl,
+					dt,
+					nowMs
+				);
+			}
+		}
+
+		// 2. Tick active remote vehicles every frame
+		if (_spkmodRemoteVehicleInstances.size > 0) {
+			for (const [ownerKey, entry] of [..._spkmodRemoteVehicleInstances.entries()]) {
+				const rp = entry.resolveRp ? entry.resolveRp() : null;
+				if (!rp || !rp.container) {
+					spkmodClearRemoteVehicleOwner(ownerKey);
+					continue;
+				}
+				entry.lastContainer = rp.container;
+				const posePos = rp.avatarPose?.position || rp.avatar?.root?.position || null;
+				const ctrl = rp.avatar?.animationController || rp.container?.controller || null;
+				entry.lastPosePos = posePos;
+				entry.lastCtrl = ctrl;
+				spkmodTickVehicleEntry(entry, false, rp.container, entry.lastRpKey ?? entry.playerId, rp.avatar?.root || null, posePos, ctrl, dt, nowMs);
+			}
+		}
+
+		// 3. Reconcile auto-restore, zone changes, remote-join sync, remote spawn & level updates every ~200ms
+		if (_spkmodVehicleForceSyncNow || (nowMs - _spkmodVehicleLastReconcileMs >= 200)) {
+			_spkmodVehicleForceSyncNow = false;
+			_spkmodVehicleLastReconcileMs = nowMs;
+
+			// Auto-restore saved vehicle once player container & level are loaded
+			const eqId = window.spkmodVehicleSettings.equippedId;
+			if (pc && eqId && !_spkmodLocalVehicleEntry && !_spkmodVehicleDidInitialRestore) {
+				const veh = SPKMOD_VEHICLES_BY_ID.get(eqId);
+				const statLoaded = !!(gameState.myStat && gameState.myStat.level != null);
+				if (veh && (statLoaded || window.spkmodVehicleSettings.unlockAllTest)) {
+					_spkmodVehicleDidInitialRestore = true;
+					if (spkmodIsVehicleUnlocked(veh)) {
+						spkmodSpawnLocalVehicle(veh.id, window.spkmodVehicleSettings.colorIdx);
+					}
+				}
+			}
+
+			// Zone change cleanup & passive broadcast
+			const rMap = gameState.remotePlayers?.remotePlayers;
+			const rCount = rMap ? rMap.size : 0;
+			if (gameState.zoneId != null && gameState.zoneId !== _spkmodVehicleLastZoneId) {
+				_spkmodVehicleLastZoneId = gameState.zoneId;
+				for (const k of [..._spkmodRemoteVehicleInstances.keys()]) {
+					spkmodClearRemoteVehicleOwner(k);
+				}
+				_spkmodRemoteVehicleStates.clear();
+				if (eqId && spkmodIsVehicleChatSharingEnabled()) {
+					_spkmodVehicleNeedsZoneSync = true;
+					spkmodTriggerVehicleSyncBroadcast({
+						priority: "passive",
+						delayMs: 2000,
+						forceResend: true,
+						reason: "vehicle_zone"
+					});
+				}
+			}
+
+			if (rCount > 0 && eqId && spkmodIsVehicleChatSharingEnabled() && !inMinigame) {
+				if (_spkmodVehicleNeedsZoneSync) {
+					_spkmodVehicleNeedsZoneSync = false;
+					spkmodTriggerVehicleSyncBroadcast({
+						priority: "passive",
+						delayMs: 2000,
+						forceResend: true,
+						reason: "vehicle_zone"
+					});
+				} else if (rCount > _spkmodVehicleLastRemoteCount) {
+					spkmodTriggerVehicleSyncBroadcast({
+						priority: "passive",
+						delayMs: 2800,
+						forceResend: true,
+						reason: "vehicle_remote_join"
+					});
+				}
+			}
+			_spkmodVehicleLastRemoteCount = rCount;
+
+			// Reconcile remote vehicles (level-checked + showRemote toggle)
+			const showRemote = window.spkmodVehicleSettings.showRemoteVehicles !== false;
+			const seenRemote = new Set();
+			if (showRemote && rMap && _spkmodRemoteVehicleStates.size > 0) {
+				for (const [ownerKey, st] of _spkmodRemoteVehicleStates) {
+					const resolved = spkmodResolveRemotePlayerForVehicle(st.playerId, st.playerName);
+					if (!resolved || !resolved.rp || !resolved.rp.container) continue;
+					const vehicle = SPKMOD_VEHICLES_BY_ID.get(st.vehicleId);
+					if (!vehicle) continue;
+					const rpLevel = resolved.rp.info?.level ?? 0;
+					const rpName = resolved.rp.info?.__spkmodOrigName || resolved.rp.info?.name || st.playerName || "";
+					if (!spkmodCheckVehicleRemoteLevelAllowed(vehicle.level, rpLevel, rpName)) {
+						spkmodClearRemoteVehicleOwner(ownerKey);
+						continue;
+					}
+					seenRemote.add(ownerKey);
+					spkmodSpawnOrUpdateRemoteVehicle(ownerKey, st, resolved);
+				}
+			}
+			for (const k of [..._spkmodRemoteVehicleInstances.keys()]) {
+				if (!showRemote || !seenRemote.has(k)) {
+					spkmodClearRemoteVehicleOwner(k);
+				}
+			}
+
+			// Refresh modal if player leveled up while garage is open
+			const modal = document.getElementById("spkmod-vehicles-modal");
+			if (modal && !modal.classList.contains("hidden")) {
+				const curLvl = spkmodGetVehiclePlayerLevel();
+				if (curLvl !== _spkmodVehicleLastObservedLevel) {
+					_spkmodVehicleLastObservedLevel = curLvl;
+					spkmodRefreshVehiclesModalUI();
+				}
+			}
+		}
+	}
+
+	if (spkmodIsVehiclesSystemEnabled()) {
+		_spkmodVehicleLoopRafId = requestAnimationFrame(spkmodVehiclesMasterLoop);
+	}
+}
+
+// ============================================================================
+// 8. VEHICLES & STEALTH GARAGE MODAL UI (#spkmod-vehicles-modal, Alt+V)
+// ============================================================================
+let _spkmodVehicleFilterTab = "all";
+let _spkmodVehicleSearchQuery = "";
+
+function spkmodInjectVehiclesStyles() {
+	if (document.getElementById("spkmod-vehicles-styles")) return;
+	const st = document.createElement("style");
+	st.id = "spkmod-vehicles-styles";
+	st.textContent = `
+		#spkmod-vehicles-modal {
+			width: 780px;
+			height: 640px;
+			max-width: 95vw;
+			max-height: 86vh;
+			display: flex;
+			flex-direction: column;
+			background: rgba(15, 20, 32, 0.96);
+			border: 1.5px solid rgba(56, 189, 248, 0.45);
+			border-radius: 14px;
+			box-shadow: 0 20px 55px rgba(0,0,0,0.72);
+			color: #f8fafc;
+			font-family: inherit;
+			overflow: hidden;
+			z-index: 2147483610;
+		}
+		#spkmod-vehicles-modal.hidden { display: none !important; }
+		.spkmod-veh-header {
+			display: flex; align-items: center; justify-content: space-between;
+			padding: 12px 16px;
+			background: linear-gradient(90deg, rgba(14,165,233,0.22), rgba(245,158,11,0.18));
+			border-bottom: 1px solid rgba(255,255,255,0.1);
+			cursor: grab; user-select: none; flex-shrink: 0;
+		}
+		.spkmod-veh-status {
+			display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+			padding: 9px 14px; background: rgba(255,255,255,0.035);
+			border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 12px; flex-shrink: 0;
+		}
+		.spkmod-veh-colors {
+			display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+			padding: 8px 14px; background: rgba(0,0,0,0.22);
+			border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 11px; flex-shrink: 0;
+		}
+		.spkmod-veh-swatch {
+			width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+			border: 2px solid rgba(255,255,255,0.28); transition: transform 0.12s, box-shadow 0.12s;
+			padding: 0;
+		}
+		.spkmod-veh-swatch:hover { transform: scale(1.16); }
+		.spkmod-veh-swatch.active {
+			border-color: #ffffff;
+			box-shadow: 0 0 0 2px #38bdf8, 0 0 10px rgba(56,189,248,0.65);
+			transform: scale(1.18);
+		}
+		.spkmod-veh-controls {
+			display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+			padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0;
+		}
+		.spkmod-veh-tabs {
+			display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px;
+			border-bottom: 1px solid rgba(255,255,255,0.07); background: rgba(0,0,0,0.16); flex-shrink: 0;
+		}
+		.spkmod-veh-tab {
+			background: rgba(255,255,255,0.06); color: #cbd5e1;
+			border: 1px solid rgba(255,255,255,0.12); border-radius: 999px;
+			padding: 4px 11px; font-size: 11px; font-weight: 700; cursor: pointer;
+		}
+		.spkmod-veh-tab.active {
+			background: linear-gradient(90deg, #0284c7, #2563eb); color: #fff; border-color: #38bdf8;
+		}
+		.spkmod-veh-grid {
+			display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+			align-content: start;
+			gap: 10px; padding: 12px 14px; overflow-y: auto; flex: 1 1 0; min-height: 0;
+			overscroll-behavior: contain;
+		}
+		.spkmod-veh-card {
+			position: relative; display: flex; flex-direction: column; align-items: center;
+			padding: 12px 10px 10px; border-radius: 12px;
+			background: rgba(30, 41, 59, 0.72); border: 1.5px solid rgba(255,255,255,0.11);
+			transition: transform 0.14s, border-color 0.14s, box-shadow 0.14s;
+			text-align: center; gap: 5px;
+		}
+		.spkmod-veh-card:hover { transform: translateY(-2px); border-color: rgba(56,189,248,0.55); }
+		.spkmod-veh-card.equipped {
+			border-color: #38bdf8; box-shadow: 0 0 16px rgba(56,189,248,0.35);
+			background: linear-gradient(180deg, rgba(14,165,233,0.22), rgba(30,41,59,0.85));
+		}
+		.spkmod-veh-card.locked { opacity: 0.62; filter: grayscale(0.35); }
+		.spkmod-veh-card.milestone { border-color: rgba(250, 204, 21, 0.55); }
+		.spkmod-veh-lvl {
+			position: absolute; top: 7px; left: 8px; font-size: 10px; font-weight: 800;
+			padding: 2px 6px; border-radius: 6px; background: rgba(15,23,42,0.85); color: #7dd3fc;
+			border: 1px solid rgba(56,189,248,0.3);
+		}
+		.spkmod-veh-card.milestone .spkmod-veh-lvl {
+			background: linear-gradient(90deg, #b45309, #eab308); color: #111827; border-color: #fde047;
+		}
+		.spkmod-veh-fav {
+			position: absolute; top: 5px; right: 7px; background: none; border: none;
+			font-size: 15px; cursor: pointer; color: #94a3b8; padding: 0 2px; line-height: 1;
+		}
+		.spkmod-veh-fav.active { color: #facc15; text-shadow: 0 0 8px rgba(250,204,21,0.6); }
+		.spkmod-veh-icon { font-size: 34px; margin-top: 12px; line-height: 1.1; }
+		.spkmod-veh-name { font-size: 12px; font-weight: 800; color: #f8fafc; line-height: 1.25; min-height: 30px; display: flex; align-items: center; }
+		.spkmod-veh-tags { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+		.spkmod-veh-tag {
+			font-size: 9.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px;
+			background: rgba(255,255,255,0.09); color: #cbd5e1;
+		}
+		.spkmod-veh-tag.stealth { background: rgba(217, 119, 6, 0.28); color: #fcd34d; border: 1px solid rgba(245,158,11,0.45); }
+		.spkmod-veh-btn {
+			margin-top: auto; width: 100%; padding: 6px 8px; border-radius: 8px;
+			border: none; font-size: 11px; font-weight: 800; cursor: pointer;
+			background: linear-gradient(90deg, #0284c7, #2563eb); color: #fff;
+		}
+		.spkmod-veh-btn.equipped { background: linear-gradient(90deg, #059669, #10b981); }
+		.spkmod-veh-btn.locked { background: rgba(71, 85, 105, 0.65); color: #94a3b8; cursor: not-allowed; }
+		.spkmod-veh-hype {
+			grid-column: 1 / -1; margin-top: 4px; padding: 12px 14px; border-radius: 10px;
+			background: linear-gradient(90deg, rgba(245,158,11,0.16), rgba(14,165,233,0.16));
+			border: 1px dashed rgba(250,204,21,0.45); text-align: center;
+		}
+	`;
+	document.head.appendChild(st);
+}
+
+function spkmodEnsureVehiclesModal() {
+	let modal = document.getElementById("spkmod-vehicles-modal");
+	if (modal) return modal;
+	spkmodInjectVehiclesStyles();
+
+	modal = document.createElement("div");
+	modal.id = "spkmod-vehicles-modal";
+	modal.className = "spkmod-modal hidden";
+	modal.style.position = "fixed";
+
+	const header = document.createElement("div");
+	header.className = "spkmod-veh-header";
+	const title = document.createElement("span");
+	title.id = "spkmod-vehicles-title";
+	title.style.cssText = "font-size: 14px; font-weight: 900; letter-spacing: 0.2px;";
+	title.innerText = spkmodGetVehicleUiText("modalTitle");
+
+	const closeBtn = document.createElement("button");
+	closeBtn.type = "button";
+	closeBtn.innerText = "✕";
+	closeBtn.style.cssText = "background: rgba(255,255,255,0.12); color: #fff; border: none; border-radius: 6px; width: 26px; height: 26px; font-weight: 900; cursor: pointer;";
+	closeBtn.onclick = () => modal.classList.add("hidden");
+	header.appendChild(title);
+	header.appendChild(closeBtn);
+
+	const statusBar = document.createElement("div");
+	statusBar.id = "spkmod-vehicles-status";
+	statusBar.className = "spkmod-veh-status";
+
+	const colorBar = document.createElement("div");
+	colorBar.id = "spkmod-vehicles-colors";
+	colorBar.className = "spkmod-veh-colors";
+
+	const controlsBar = document.createElement("div");
+	controlsBar.id = "spkmod-vehicles-controls";
+	controlsBar.className = "spkmod-veh-controls";
+
+	const tabsBar = document.createElement("div");
+	tabsBar.id = "spkmod-vehicles-tabs";
+	tabsBar.className = "spkmod-veh-tabs";
+
+	const grid = document.createElement("div");
+	grid.id = "spkmod-vehicles-grid";
+	grid.className = "spkmod-veh-grid";
+
+	const resizeHandle = document.createElement("div");
+	resizeHandle.id = "spkmod-vehicles-resize-handle";
+	resizeHandle.style.cssText = "position: absolute; right: 0; bottom: 0; width: 16px; height: 16px; cursor: nwse-resize; z-index: 2; background: linear-gradient(135deg, transparent 50%, rgba(56,189,248,0.6) 50%); border-bottom-right-radius: 12px;";
+
+	modal.appendChild(header);
+	modal.appendChild(statusBar);
+	modal.appendChild(colorBar);
+	modal.appendChild(controlsBar);
+	modal.appendChild(tabsBar);
+	modal.appendChild(grid);
+	modal.appendChild(resizeHandle);
+	document.body.appendChild(modal);
+
+	if (typeof lunHudElements !== "undefined" && lunHudElements) {
+		lunHudElements.vehiclesModal = modal;
+	}
+	if (typeof makeDraggable === "function") {
+		makeDraggable(modal, [header]);
+	}
+	if (typeof makeResizable === "function") {
+		makeResizable(modal, resizeHandle, 460, 420);
+	}
+
+	const scrollDelta = (e) => (e.deltaMode === 1 ? e.deltaY * 33 : (e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY));
+	grid.addEventListener("wheel", (e) => { e.stopPropagation(); }, { passive: true });
+	grid.addEventListener("touchmove", (e) => { e.stopPropagation(); }, { passive: true });
+	modal.addEventListener("wheel", (e) => {
+		e.stopPropagation();
+		if (grid && e.target !== grid && !grid.contains(e.target)) {
+			grid.scrollTop += scrollDelta(e);
+		}
+	}, { passive: true });
+	modal.addEventListener("touchmove", (e) => { e.stopPropagation(); }, { passive: true });
+	modal.addEventListener("mouseenter", () => {
+		if (document.pointerLockElement) {
+			try { document.exitPointerLock(); } catch (_) {}
+		}
+	});
+	for (const el of [statusBar, colorBar, controlsBar, tabsBar, grid]) {
+		el.addEventListener("pointerdown", (e) => e.stopPropagation());
+		el.addEventListener("mousedown", (e) => e.stopPropagation());
+	}
+	modal.addEventListener("mousedown", () => {
+		if (typeof bringToFront === "function") bringToFront(modal);
+	});
+	return modal;
+}
+
+function spkmodRenderVehiclesStatusBar() {
+	const bar = document.getElementById("spkmod-vehicles-status");
+	if (!bar) return;
+	const lvl = spkmodGetVehiclePlayerLevel();
+	const unlockedCount = SPKMOD_VEHICLE_CATALOG.filter(v => spkmodIsVehicleUnlocked(v)).length;
+	const eqVeh = window.spkmodVehicleSettings.equippedId ? SPKMOD_VEHICLES_BY_ID.get(window.spkmodVehicleSettings.equippedId) : null;
+	const eqLabel = eqVeh ? `${eqVeh.icon} ${spkmodGetVehicleDisplayName(eqVeh)}` : spkmodGetVehicleUiText("noneEquipped");
+
+	bar.innerHTML = "";
+	const makePill = (label, val, color) => {
+		const sp = document.createElement("span");
+		sp.innerHTML = `<strong style="color:#94a3b8;">${label}:</strong> <strong style="color:${color};">${val}</strong>`;
+		return sp;
+	};
+	bar.appendChild(makePill(spkmodGetVehicleUiText("myLevelLabel"), `Lv.${lvl}`, "#7dd3fc"));
+	bar.appendChild(makePill(spkmodGetVehicleUiText("unlockedLabel"), `${unlockedCount} / ${SPKMOD_VEHICLE_CATALOG.length}`, "#4ade80"));
+	bar.appendChild(makePill(spkmodGetVehicleUiText("equippedLabel"), eqLabel, "#fde047"));
+}
+
+function spkmodRenderVehiclesColorBar() {
+	const bar = document.getElementById("spkmod-vehicles-colors");
+	if (!bar) return;
+	bar.innerHTML = "";
+
+	const lbl = document.createElement("strong");
+	lbl.style.cssText = "color: #cbd5e1; margin-right: 4px;";
+	lbl.innerText = "🎨 " + spkmodGetVehicleUiText("paintColorLabel") + ":";
+	bar.appendChild(lbl);
+
+	const curIdx = spkmodClampVehicleColorIdx(window.spkmodVehicleSettings.colorIdx);
+	for (const c of SPKMOD_VEHICLE_COLORS) {
+		const sw = document.createElement("button");
+		sw.type = "button";
+		sw.className = "spkmod-veh-swatch" + (c.idx === curIdx ? " active" : "");
+		sw.style.background = c.css;
+		sw.title = spkmodGetVehicleColorName(c);
+		sw.onclick = () => spkmodSetLocalVehicleColor(c.idx, true, false);
+		bar.appendChild(sw);
+	}
+
+	const randBtn = document.createElement("button");
+	randBtn.type = "button";
+	randBtn.innerText = spkmodGetVehicleUiText("btnRandomColor");
+	randBtn.style.cssText = "margin-left: 4px; background: rgba(255,255,255,0.1); color: #f8fafc; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 700; cursor: pointer;";
+	randBtn.onclick = () => {
+		let next = Math.floor(Math.random() * SPKMOD_VEHICLE_COLORS.length);
+		if (next === curIdx) next = (next + 1) % SPKMOD_VEHICLE_COLORS.length;
+		spkmodSetLocalVehicleColor(next, true, false);
+	};
+	bar.appendChild(randBtn);
+
+	const honkBtn = document.createElement("button");
+	honkBtn.type = "button";
+	honkBtn.innerText = spkmodGetVehicleUiText("btnHonk");
+	honkBtn.style.cssText = "margin-left: auto; background: rgba(245,158,11,0.22); color: #fef3c7; border: 1px solid rgba(245,158,11,0.5); border-radius: 6px; padding: 3px 9px; font-size: 11px; font-weight: 800; cursor: pointer;";
+	honkBtn.onclick = () => {
+		if (_spkmodLocalVehicleEntry) {
+			spkmodPlayVehicleSfx(_spkmodLocalVehicleEntry.vehicle, false);
+			if (_spkmodLocalVehicleEntry.alertSprite) spkmodTriggerBoxAlert(_spkmodLocalVehicleEntry, "!");
+		}
+	};
+	bar.appendChild(honkBtn);
+}
+
+function spkmodRenderVehiclesControlsBar() {
+	const bar = document.getElementById("spkmod-vehicles-controls");
+	if (!bar) return;
+	bar.innerHTML = "";
+
+	const search = document.createElement("input");
+	search.type = "text";
+	search.value = _spkmodVehicleSearchQuery;
+	search.placeholder = spkmodGetVehicleUiText("searchPlaceholder");
+	search.style.cssText = "flex: 1; min-width: 170px; background: rgba(15,23,42,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.18); border-radius: 7px; padding: 5px 9px; font-size: 11.5px;";
+	search.oninput = (e) => {
+		_spkmodVehicleSearchQuery = e.target.value || "";
+		spkmodRenderVehiclesGrid();
+	};
+	search.addEventListener("keydown", (e) => e.stopPropagation());
+	search.addEventListener("keyup", (e) => e.stopPropagation());
+	bar.appendChild(search);
+
+	const makeCheck = (checked, labelKey, onChange) => {
+		const lbl = document.createElement("label");
+		lbl.style.cssText = "display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #e2e8f0; cursor: pointer; user-select: none;";
+		const cb = document.createElement("input");
+		cb.type = "checkbox";
+		cb.checked = checked;
+		cb.onchange = (e) => onChange(e.target.checked);
+		lbl.appendChild(cb);
+		lbl.appendChild(document.createTextNode(spkmodGetVehicleUiText(labelKey)));
+		return lbl;
+	};
+
+	bar.appendChild(makeCheck(window.spkmodVehicleSettings.showRemoteVehicles !== false, "toggleRemote", (v) => {
+		window.spkmodVehicleSettings.showRemoteVehicles = !!v;
+		if (window.localStorage) localStorage.setItem(SPKMOD_VEHICLE_STORAGE_KEYS.showRemote, v ? "true" : "false");
+		_spkmodVehicleForceSyncNow = true;
+	}));
+
+	bar.appendChild(makeCheck(window.spkmodVehicleSettings.shareInChat !== false, "toggleShareInChat", (v) => {
+		window.spkmodVehicleSettings.shareInChat = !!v;
+		if (window.localStorage) localStorage.setItem(SPKMOD_VEHICLE_STORAGE_KEYS.shareInChat, v ? "true" : "false");
+		if (v && window.spkmodVehicleSettings.equippedId) {
+			spkmodTriggerVehicleSyncBroadcast({ priority: "explicit", delayMs: 600, forceResend: true, reason: "vehicle_share_on" });
+		}
+	}));
+
+	const syncBtn = document.createElement("button");
+	syncBtn.type = "button";
+	syncBtn.innerText = spkmodGetVehicleUiText("btnResync");
+	syncBtn.style.cssText = "background: rgba(56,189,248,0.2); color: #e0f2fe; border: 1px solid rgba(56,189,248,0.45); border-radius: 7px; padding: 4px 9px; font-size: 11px; font-weight: 800; cursor: pointer;";
+	syncBtn.onclick = () => {
+		if (!spkmodIsVehicleChatSharingEnabled()) {
+			if (typeof chatLog === "function") chatLog(spkmodGetVehicleUiText("shareDisabledToast"));
+			return;
+		}
+		spkmodTriggerVehicleSyncBroadcast({ priority: "explicit", delayMs: 250, forceResend: true, reason: "vehicle_manual_sync" });
+		if (typeof chatLog === "function") chatLog(spkmodGetVehicleUiText("broadcastToast"));
+	};
+	bar.appendChild(syncBtn);
+
+	const exitBtn = document.createElement("button");
+	exitBtn.type = "button";
+	exitBtn.innerText = spkmodGetVehicleUiText("btnUnequip");
+	exitBtn.style.cssText = "background: rgba(239,68,68,0.22); color: #fecaca; border: 1px solid rgba(239,68,68,0.45); border-radius: 7px; padding: 4px 9px; font-size: 11px; font-weight: 800; cursor: pointer;";
+	exitBtn.onclick = () => spkmodEquipLocalVehicle(null, true, false);
+	bar.appendChild(exitBtn);
+}
+
+function spkmodRenderVehiclesTabs() {
+	const bar = document.getElementById("spkmod-vehicles-tabs");
+	if (!bar) return;
+	bar.innerHTML = "";
+	const favCount = window.spkmodVehicleSettings.favorites ? window.spkmodVehicleSettings.favorites.size : 0;
+	const tabs = [
+		{ id: "all", label: `${spkmodGetVehicleUiText("tabAll")} (${SPKMOD_VEHICLE_CATALOG.length})` },
+		{ id: "unlocked", label: spkmodGetVehicleUiText("tabUnlocked") },
+		{ id: "favorites", label: `${spkmodGetVehicleUiText("tabFavorites")} (${favCount})` },
+		{ id: "street", label: spkmodGetVehicleUiText("tabStreet") },
+		{ id: "stealth", label: spkmodGetVehicleUiText("tabStealth") },
+		{ id: "air", label: spkmodGetVehicleUiText("tabAir") }
+	];
+	for (const tb of tabs) {
+		const btn = document.createElement("button");
+		btn.type = "button";
+		btn.className = "spkmod-veh-tab" + (_spkmodVehicleFilterTab === tb.id ? " active" : "");
+		btn.innerText = tb.label;
+		btn.onclick = () => {
+			_spkmodVehicleFilterTab = tb.id;
+			spkmodRenderVehiclesTabs();
+			spkmodRenderVehiclesGrid();
+		};
+		bar.appendChild(btn);
+	}
+}
+
+function spkmodRenderVehiclesGrid() {
+	const grid = document.getElementById("spkmod-vehicles-grid");
+	if (!grid) return;
+	grid.innerHTML = "";
+
+	const q = _spkmodVehicleSearchQuery.trim().toLowerCase();
+	const eqId = window.spkmodVehicleSettings.equippedId;
+	const list = SPKMOD_VEHICLE_CATALOG.filter(v => {
+		if (_spkmodVehicleFilterTab === "unlocked" && !spkmodIsVehicleUnlocked(v)) return false;
+		if (_spkmodVehicleFilterTab === "favorites" && !spkmodIsVehicleFavorite(v.id)) return false;
+		if (_spkmodVehicleFilterTab === "street" && v.category !== "street") return false;
+		if (_spkmodVehicleFilterTab === "stealth" && v.category !== "stealth") return false;
+		if (_spkmodVehicleFilterTab === "air" && v.category !== "air") return false;
+		if (q) {
+			const disp = spkmodGetVehicleDisplayName(v).toLowerCase();
+			const hay = `${disp} ${v.id} ${v.category} lv${v.level} ${v.level}`;
+			if (!hay.includes(q)) return false;
+		}
+		return true;
+	}).sort((a, b) => {
+		const fa = spkmodIsVehicleFavorite(a.id) ? 0 : 1;
+		const fb = spkmodIsVehicleFavorite(b.id) ? 0 : 1;
+		if (fa !== fb) return fa - fb;
+		return (a.level - b.level) || (a.code - b.code);
+	});
+
+	if (list.length === 0 && _spkmodVehicleFilterTab === "favorites") {
+		const empty = document.createElement("div");
+		empty.style.cssText = "grid-column: 1 / -1; text-align: center; padding: 28px 16px; color: #94a3b8; font-size: 12.5px;";
+		empty.innerText = spkmodGetVehicleUiText("favEmptyHint");
+		grid.appendChild(empty);
+		return;
+	}
+
+	for (const v of list) {
+		const unlocked = spkmodIsVehicleUnlocked(v);
+		const isEq = eqId === v.id;
+		const isFav = spkmodIsVehicleFavorite(v.id);
+		const dispName = spkmodGetVehicleDisplayName(v);
+
+		const card = document.createElement("div");
+		card.className = "spkmod-veh-card" + (isEq ? " equipped" : "") + (!unlocked ? " locked" : "") + (v.milestone ? " milestone" : "");
+
+		const lvlBadge = document.createElement("span");
+		lvlBadge.className = "spkmod-veh-lvl";
+		lvlBadge.innerText = v.milestone ? `★ Lv.${v.level}` : `Lv.${v.level}`;
+		card.appendChild(lvlBadge);
+
+		const favBtn = document.createElement("button");
+		favBtn.type = "button";
+		favBtn.className = "spkmod-veh-fav" + (isFav ? " active" : "");
+		favBtn.innerText = isFav ? "★" : "☆";
+		favBtn.title = spkmodGetVehicleUiText(isFav ? "favRemoveTooltip" : "favAddTooltip");
+		favBtn.onclick = (e) => {
+			e.stopPropagation();
+			spkmodToggleVehicleFavorite(v.id);
+			spkmodRenderVehiclesTabs();
+			spkmodRenderVehiclesGrid();
+		};
+		card.appendChild(favBtn);
+
+		const iconEl = document.createElement("div");
+		iconEl.className = "spkmod-veh-icon";
+		iconEl.innerText = v.icon;
+		card.appendChild(iconEl);
+
+		const nameEl = document.createElement("div");
+		nameEl.className = "spkmod-veh-name";
+		nameEl.innerText = dispName;
+		card.appendChild(nameEl);
+
+		const tags = document.createElement("div");
+		tags.className = "spkmod-veh-tags";
+		const catTag = document.createElement("span");
+		catTag.className = "spkmod-veh-tag";
+		catTag.innerText = spkmodGetVehicleUiText(v.category === "street" ? "catStreet" : (v.category === "stealth" ? "catStealth" : "catAir"));
+		tags.appendChild(catTag);
+
+		if (v.hidePlayer) {
+			const hideTag = document.createElement("span");
+			hideTag.className = "spkmod-veh-tag stealth";
+			hideTag.innerText = "🙈 " + spkmodGetVehicleUiText("tagStealthHide");
+			tags.appendChild(hideTag);
+		} else if (v.paintable) {
+			const paintTag = document.createElement("span");
+			paintTag.className = "spkmod-veh-tag";
+			paintTag.innerText = "🎨 " + spkmodGetVehicleUiText("tagPaintable");
+			tags.appendChild(paintTag);
+		} else if (v.pose === "stand") {
+			const surfTag = document.createElement("span");
+			surfTag.className = "spkmod-veh-tag";
+			surfTag.innerText = "🏄 " + spkmodGetVehicleUiText("tagStanding");
+			tags.appendChild(surfTag);
+		}
+		card.appendChild(tags);
+
+		const actionBtn = document.createElement("button");
+		actionBtn.type = "button";
+		actionBtn.className = "spkmod-veh-btn" + (isEq ? " equipped" : (!unlocked ? " locked" : ""));
+		if (!unlocked) {
+			actionBtn.innerText = "🔒 " + spkmodGetVehicleUiText("btnLocked", v.level);
+		} else if (isEq) {
+			actionBtn.innerText = spkmodGetVehicleUiText("btnEquipped");
+		} else {
+			actionBtn.innerText = spkmodGetVehicleUiText(v.hidePlayer ? "btnEquipStealth" : "btnEquip");
+		}
+		actionBtn.onclick = () => {
+			if (!unlocked) {
+				if (typeof chatLog === "function") chatLog(spkmodGetVehicleUiText("lockedToast", v.level, dispName));
+				return;
+			}
+			if (isEq) spkmodEquipLocalVehicle(null, true, false);
+			else spkmodEquipLocalVehicle(v.id, true, false);
+		};
+		card.appendChild(actionBtn);
+		grid.appendChild(card);
+	}
+
+	// Hype card if locked vehicles remain
+	const lockedRemaining = SPKMOD_VEHICLE_CATALOG.filter(v => !spkmodIsVehicleUnlocked(v)).sort((a, b) => a.level - b.level);
+	if (lockedRemaining.length > 0 && !q) {
+		const hype = document.createElement("div");
+		hype.className = "spkmod-veh-hype";
+		hype.innerHTML = `<div style="font-weight:900; color:#fde047; font-size:12.5px;">✨ ${spkmodGetVehicleUiText("hypeTitle")}</div>`
+			+ `<div style="font-size:11.5px; color:#e2e8f0; margin-top:3px;">${spkmodGetVehicleUiText("hypeDesc", lockedRemaining.length, lockedRemaining[0].level)}</div>`;
+		grid.appendChild(hype);
+	}
+}
+
+function spkmodRefreshVehiclesModalUI() {
+	const modal = document.getElementById("spkmod-vehicles-modal");
+	if (!modal || modal.classList.contains("hidden")) return;
+	const titleEl = document.getElementById("spkmod-vehicles-title");
+	if (titleEl) titleEl.innerText = spkmodGetVehicleUiText("modalTitle");
+	spkmodRenderVehiclesStatusBar();
+	spkmodRenderVehiclesColorBar();
+	spkmodRenderVehiclesControlsBar();
+	spkmodRenderVehiclesTabs();
+	spkmodRenderVehiclesGrid();
+}
+window.spkmodRefreshVehiclesModalUI = spkmodRefreshVehiclesModalUI;
+
+window.spkmodOpenVehiclesModal = function() {
+	if (!spkmodIsVehiclesSystemEnabled()) {
+		const existing = document.getElementById("spkmod-vehicles-modal");
+		if (existing) existing.classList.add("hidden");
+		if (typeof chatLog === "function") chatLog(spkmodGetVehicleUiText("systemDisabledToast"));
+		return;
+	}
+	const modal = spkmodEnsureVehiclesModal();
+	modal.classList.remove("hidden");
+	_spkmodVehicleLastObservedLevel = spkmodGetVehiclePlayerLevel();
+	spkmodRefreshVehiclesModalUI();
+	if (typeof positionModalNicely === "function") positionModalNicely(modal);
+	if (typeof bringToFront === "function") bringToFront(modal);
+};
+
+window.spkmodToggleVehiclesModal = function() {
+	if (!spkmodIsVehiclesSystemEnabled()) {
+		const existing = document.getElementById("spkmod-vehicles-modal");
+		if (existing) existing.classList.add("hidden");
+		if (typeof chatLog === "function") chatLog(spkmodGetVehicleUiText("systemDisabledToast"));
+		return;
+	}
+	const modal = spkmodEnsureVehiclesModal();
+	if (modal.classList.contains("hidden")) window.spkmodOpenVehiclesModal();
+	else modal.classList.add("hidden");
+};
+
+// Hotkey Alt+V to open Vehicles Garage, Alt+X to quick-toggle active/last vehicle ON/OFF
+window.addEventListener("keydown", e => {
+	if (!spkmodIsVehiclesSystemEnabled()) return;
+	if (e.altKey && !e.ctrlKey && !e.metaKey) {
+		const active = document.activeElement;
+		if (active) {
+			const tag = active.tagName ? active.tagName.toLowerCase() : "";
+			if (tag === "input" || tag === "textarea" || active.isContentEditable) return;
+		}
+		if (e.key === "v" || e.key === "V" || e.code === "KeyV") {
+			e.preventDefault();
+			window.spkmodToggleVehiclesModal();
+		} else if (e.key === "x" || e.key === "X" || e.code === "KeyX") {
+			e.preventDefault();
+			spkmodToggleActiveVehicle();
+		}
+	}
+});
+
+if (typeof spkmodI18nRenderers !== "undefined" && Array.isArray(spkmodI18nRenderers)) {
+	spkmodI18nRenderers.push(() => {
+		spkmodSyncVehiclesSystemUIState();
+		spkmodRefreshVehiclesModalUI();
+	});
+}
+
+spkmodSyncVehiclesSystemUIState();
+spkmodStartVehiclesLoopIfEnabled();
+
+// ============================================================================
+// 9. DEVELOPER & USER CONSOLE COMMANDS API (window.spkmodVehicles)
+// ============================================================================
+window.spkmodVehicles = {
+	catalog: SPKMOD_VEHICLE_CATALOG,
+	colors: SPKMOD_VEHICLE_COLORS,
+	isEnabled: () => spkmodIsVehiclesSystemEnabled(),
+	setEnabled: (enable, silentToast = false) => window.spkmodSetCarSystemEnabled(!!enable, silentToast),
+	open: () => window.spkmodOpenVehiclesModal(),
+	toggle: () => window.spkmodToggleVehiclesModal(),
+	quickToggle: () => spkmodToggleActiveVehicle(),
+	equip: (idOrCode, broadcast = true, silentToast = false) => spkmodEquipLocalVehicle(idOrCode, broadcast, silentToast),
+	unequip: (broadcast = true, silentToast = false) => spkmodEquipLocalVehicle(null, broadcast, silentToast),
+	setColor: (colorIdx, broadcast = true, silentToast = false) => spkmodSetLocalVehicleColor(colorIdx, broadcast, silentToast),
+	honk: (secondary = false) => {
+		if (_spkmodLocalVehicleEntry) {
+			spkmodPlayVehicleSfx(_spkmodLocalVehicleEntry.vehicle, !!secondary);
+			if (_spkmodLocalVehicleEntry.alertSprite) spkmodTriggerBoxAlert(_spkmodLocalVehicleEntry, secondary ? "?" : "!");
+		}
+	},
+	toggleFavorite: (id) => {
+		const next = spkmodToggleVehicleFavorite(id);
+		spkmodRefreshVehiclesModalUI();
+		return next;
+	},
+	getFavorites: () => [...(window.spkmodVehicleSettings.favorites || [])],
+	unlockAll: (enable) => {
+		const next = enable !== undefined ? !!enable : !window.spkmodVehicleSettings.unlockAllTest;
+		window.spkmodVehicleSettings.unlockAllTest = next;
+		if (window.localStorage) localStorage.setItem(SPKMOD_VEHICLE_STORAGE_KEYS.unlockAll, next ? "true" : "false");
+		spkmodRefreshVehiclesModalUI();
+		if (typeof chatLog === "function") {
+			chatLog(spkmodGetVehicleUiText(next ? "testUnlockEnabledToast" : "testUnlockDisabledToast"));
+		}
+		return next;
+	},
+	list: () => {
+		console.table(SPKMOD_VEHICLE_CATALOG.map(v => ({
+			Code: v.code,
+			Level: v.level,
+			ID: v.id,
+			Category: v.category,
+			Icon: v.icon,
+			StealthHide: !!v.hidePlayer,
+			Name: spkmodGetVehicleDisplayName(v)
+		})));
+	}
+};
 
 

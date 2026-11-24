@@ -1,5 +1,8 @@
 import os
 import sys
+import json
+import re
+import hashlib
 import subprocess
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -59,3 +62,13 @@ else:
     print("Syntax check: FAIL")
     print(result.stderr)
     sys.exit(1)
+
+# Write deterministic lightweight version.json for live update detection
+build_hash = hashlib.sha256(bundled_code.encode("utf-8")).hexdigest()[:16]
+proto_match = re.search(r'const\s+SPKMOD_PROTOCOL_VERSION\s*=\s*(\d+)', bundled_code)
+protocol_ver = int(proto_match.group(1)) if proto_match else 1
+version_path = os.path.join(REPO_ROOT, "version.json")
+with open(version_path, "w", encoding="utf-8") as vf:
+    json.dump({"build": build_hash, "protocol": protocol_ver}, vf, indent=2)
+    vf.write("\n")
+print(f"[2/2] Updated version.json (build={build_hash}, protocol={protocol_ver})\n")

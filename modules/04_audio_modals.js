@@ -861,6 +861,7 @@ function positionModalNicely(modal) {
 		modal === lunHudElements.petsModal || modal.id === "spkmod-pets-modal" ||
 		modal === lunHudElements.skinsModal || modal.id === "spkmod-skins-modal" ||
 		modal === lunHudElements.cartSkinsModal || modal.id === "spkmod-cart-skins-modal" ||
+		modal === lunHudElements.vehiclesModal || modal.id === "spkmod-vehicles-modal" ||
 		modal === lunHudElements.sparksModal || modal.id === "spkmod-sparks-modal" ||
 		modal.id === "spkmod-cinema-modal") {
 		const safeLeft = Math.max(10, Math.min(window.innerWidth - targetW - 10, (modal.id === "spkmod-cinema-modal" && !isMobile) ? (window.innerWidth - targetW - 25) : Math.round((window.innerWidth - targetW) / 2)));
@@ -979,6 +980,7 @@ function resetWindowPositions() {
 		lunHudElements.petsModal || document.getElementById("spkmod-pets-modal"),
 		lunHudElements.skinsModal || document.getElementById("spkmod-skins-modal"),
 		lunHudElements.cartSkinsModal || document.getElementById("spkmod-cart-skins-modal"),
+		lunHudElements.vehiclesModal || document.getElementById("spkmod-vehicles-modal"),
 		lunHudElements.sparksModal || document.getElementById("spkmod-sparks-modal"),
 		typeof lunEmojiPickerPanel !== "undefined" ? lunEmojiPickerPanel : null,
 		typeof mapModalElements !== "undefined" ? mapModalElements.modalWindow : null,
@@ -1034,6 +1036,7 @@ function resetWindowPositions() {
 		lunHudElements.petsModal || document.getElementById("spkmod-pets-modal"),
 		lunHudElements.skinsModal || document.getElementById("spkmod-skins-modal"),
 		lunHudElements.cartSkinsModal || document.getElementById("spkmod-cart-skins-modal"),
+		lunHudElements.vehiclesModal || document.getElementById("spkmod-vehicles-modal"),
 		lunHudElements.sparksModal || document.getElementById("spkmod-sparks-modal")
 	];
 
@@ -1104,6 +1107,12 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-party-highlight-enabled",
 	"spkmod-burger-fat-customers",
 	"spkmod-car-enabled",
+	"spkmod-vehicle-equipped",
+	"spkmod-vehicle-last-equipped",
+	"spkmod-vehicle-color",
+	"spkmod-vehicle-share-chat",
+	"spkmod-vehicle-show-remote",
+	"spkmod-vehicle-favorites",
 	"spkmod-pet-enabled",
 	"spkmod-pet-equipped",
 	"spkmod-pet-my-sfx",
@@ -1140,6 +1149,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-pos-spkmod-pets-modal",
 	"spkmod-pos-spkmod-skins-modal",
 	"spkmod-pos-spkmod-cart-skins-modal",
+	"spkmod-pos-spkmod-vehicles-modal",
 	"spkmod-pos-spkmod-sparks-modal",
 	"spkmod-pos-spkmod-quests-modal",
 	"spkmod-pos-spkmod-settings-modal",

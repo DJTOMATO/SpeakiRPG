@@ -214,6 +214,13 @@ MODULE_SPECS = [
             "// ============================================================================\n// IN-GAME 3D SPARK FX WALKING TRAILS SYSTEM (100 LEVELS PROGRESSION + SYNC)",
             "const SPKMOD_SPARK_STORAGE_KEYS = {"
         ]
+    },
+    {
+        "name": "26_vehicles.js",
+        "anchors": [
+            "// ============================================================================\n// IN-GAME 3D VEHICLES WARDROBE & STEALTH BOX SYSTEM (LEVELS 10-100 + SYNC)",
+            "const SPKMOD_VEHICLE_STORAGE_KEYS = {"
+        ]
     }
 ]
 

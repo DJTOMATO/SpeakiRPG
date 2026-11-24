@@ -479,7 +479,7 @@ const SPKMOD_PET_CATALOG = [
 	{ level: 52, id: "mon_1302", icon: "✉️", moveMode: "fly", voiceType: "ghost", targetHeight: 0.66, monsterId: 1302, defaultName: "Mail Ghost", source: "Ghost Village", spec: { kind: "monster", monsterId: 1302 } },
 	{ level: 53, id: "mon_1303", icon: "💧", moveMode: "bounce", voiceType: "slime", targetHeight: 0.60, monsterId: 1303, defaultName: "Puddle Jelly", source: "Ghost Village", spec: { kind: "monster", monsterId: 1303 } },
 	{ level: 54, id: "mon_1305", icon: "🦇", moveMode: "fly", voiceType: "ghost", targetHeight: 0.64, monsterId: 1305, defaultName: "Paper Lantern Bat", source: "Ghost Village", spec: { kind: "monster", monsterId: 1305 } },
-	{ level: 55, id: "mon_1306", icon: "🐦‍⬛", moveMode: "fly", voiceType: "ghost", targetHeight: 0.65, monsterId: 1306, defaultName: "Straw Hat Crow", source: "Ghost Village", spec: { kind: "monster", monsterId: 1306 } },
+	{ level: 55, id: "mon_1306", icon: "🦅", moveMode: "fly", voiceType: "ghost", targetHeight: 0.65, monsterId: 1306, defaultName: "Straw Hat Crow", source: "Ghost Village", spec: { kind: "monster", monsterId: 1306 } },
 	{ level: 56, id: "mon_1309", icon: "☂️", moveMode: "fly", voiceType: "ghost", targetHeight: 0.70, monsterId: 1309, defaultName: "Umbrella Ghost", source: "Ghost Village", spec: { kind: "monster", monsterId: 1309 } },
 	{ level: 57, id: "mon_1310", icon: "🐸", moveMode: "bounce", voiceType: "slime", targetHeight: 0.62, monsterId: 1310, defaultName: "Crybaby Toad", source: "Ghost Village", spec: { kind: "monster", monsterId: 1310 } },
 	{ level: 58, id: "mon_1316", icon: "📷", moveMode: "fly", voiceType: "drone", targetHeight: 0.64, monsterId: 1316, defaultName: "Prank Camera", source: "Ghost Village", spec: { kind: "monster", monsterId: 1316 } },
@@ -505,12 +505,12 @@ const SPKMOD_PET_CATALOG = [
 	{ level: 76, id: "mon_1107", icon: "🛸", moveMode: "fly", voiceType: "drone", targetHeight: 0.58, monsterId: 1107, defaultName: "Monatium Scout Drone", source: "Monatium Field", spec: { kind: "monster", monsterId: 1107 } },
 	{ level: 77, id: "mon_1113", icon: "🤖", moveMode: "bounce", voiceType: "drone", targetHeight: 0.62, monsterId: 1113, defaultName: "Welding Spark Impbot", source: "Monatium Factory", spec: { kind: "monster", monsterId: 1113 } },
 	{ level: 78, id: "mon_1128", icon: "🕷️", moveMode: "bounce", voiceType: "drone", targetHeight: 0.58, monsterId: 1128, defaultName: "Coil Spiderbot", source: "Monatium Factory", spec: { kind: "monster", monsterId: 1128 } },
-	{ level: 79, id: "mon_1133", icon: "🫠", moveMode: "bounce", voiceType: "slime", targetHeight: 0.62, monsterId: 1133, defaultName: "Molten Slimecore", source: "Monatium Core", spec: { kind: "monster", monsterId: 1133 } },
+	{ level: 79, id: "mon_1133", icon: "🌋", moveMode: "bounce", voiceType: "slime", targetHeight: 0.62, monsterId: 1133, defaultName: "Molten Slimecore", source: "Monatium Core", spec: { kind: "monster", monsterId: 1133 } },
 	{ level: 80, id: "mon_1134", icon: "👁️", moveMode: "fly", voiceType: "drone", targetHeight: 0.62, monsterId: 1134, defaultName: "Watcher Eye Lens", source: "Monatium Core", spec: { kind: "monster", monsterId: 1134 } },
 
 	// --- TIER 5: LV 81-100 (SPEAKOV, TRAINS, DRAGONS, RAID BOSSES, CHIBI NPCS & BATTLECRUISER) ---
 	{ level: 81, id: "speakov_rifle", icon: "🔫", moveMode: "fly", voiceType: "drone", targetHeight: 0.55, defaultName: "Floating Tactical Rifle", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/weapon-rifle.glb" } },
-	{ level: 82, id: "speakov_raider", icon: "🪖", moveMode: "bounce", voiceType: "drone", targetHeight: 0.72, defaultName: "Mini Speakov Raider", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/raider-assault.glb" } },
+	{ level: 82, id: "speakov_raider", icon: "🎖️", moveMode: "bounce", voiceType: "drone", targetHeight: 0.72, defaultName: "Mini Speakov Raider", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/raider-assault.glb" } },
 	{ level: 83, id: "speakov_commander", icon: "🎖️", moveMode: "bounce", voiceType: "drone", targetHeight: 0.75, defaultName: "Mini Raider Commander", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/raider-commander.glb" } },
 	{ level: 84, id: "mini_town_train", icon: "🚂", moveMode: "bounce", voiceType: "vehicle", targetHeight: 0.68, defaultName: "Mini Worldtree Train", source: "Town Train", spec: { kind: "glb", url: "/models/town-train/worldtree-town-train.glb" } },
 	{ level: 85, id: "mini_santa_sleigh", icon: "🛷", moveMode: "fly", voiceType: "fairy", targetHeight: 0.68, defaultName: "Flying Santa Sleigh", source: "Winter Town", spec: { kind: "glb", url: "/models/winter-town/santa-sleigh-set.glb" } },
@@ -3250,7 +3250,7 @@ function spkmodBuildUnifiedSyncCode(state = {}) {
 	if (cartCode > 0) tokens.push(`c${cartCode}`);
 	else if (prev.cart || inc.cart) tokens.push("c0");
 
-	if (carMode > 0) tokens.push(`v${carMode}${carColor}`);
+	if (carMode > 0) tokens.push(`v${carMode}c${carColor}`);
 	else if (prev.car || inc.car) tokens.push("v0");
 
 	if (sparkCode > 0) tokens.push(`t${sparkCode}`);
@@ -3368,6 +3368,7 @@ function spkmodParseUnifiedSyncMessage(rawMsg) {
 					const resolved = (typeof spkmodPetCodeToId === "function")
 						? spkmodPetCodeToId(num)
 						: (typeof window !== "undefined" && typeof window.spkmodPetCodeToId === "function" ? window.spkmodPetCodeToId(num) : null);
+					if (!resolved) res.hasUnknownToken = true;
 					res.petId = resolved || "none";
 				}
 			} else if ((tok = part.match(/^s(\d+)$/))) {
@@ -3380,6 +3381,7 @@ function spkmodParseUnifiedSyncMessage(rawMsg) {
 					const resolved = (typeof window !== "undefined" && typeof window.spkmodSkinCodeToId === "function")
 						? window.spkmodSkinCodeToId(num)
 						: null;
+					if (!resolved) res.hasUnknownToken = true;
 					res.skinId = resolved || "none";
 				}
 			} else if ((tok = part.match(/^f(\d+)$/))) {
@@ -3397,6 +3399,7 @@ function spkmodParseUnifiedSyncMessage(rawMsg) {
 					const resolved = (typeof window !== "undefined" && typeof window.spkmodCartSkinCodeToId === "function")
 						? window.spkmodCartSkinCodeToId(num)
 						: null;
+					if (!resolved) res.hasUnknownToken = true;
 					res.cartId = resolved || "none";
 				}
 			} else if (part === "v0") {
@@ -3404,7 +3407,16 @@ function spkmodParseUnifiedSyncMessage(rawMsg) {
 				res.hasCar = true;
 				res.carMode = 0;
 				res.carColorIdx = 0;
-			} else if ((tok = part.match(/^v([12])(\d+)$/))) {
+			} else if ((tok = part.match(/^v(\d+)c(\d+)$/))) {
+				recognized++;
+				res.hasCar = true;
+				res.carMode = Number(tok[1]);
+				res.carColorIdx = Number(tok[2]);
+				if (res.carMode > 0 && typeof window !== "undefined" && typeof window.spkmodVehicleCodeToId === "function" && !window.spkmodVehicleCodeToId(res.carMode)) {
+					res.hasUnknownToken = true;
+				}
+			} else if ((tok = part.match(/^v([12])(\d)$/))) {
+				// Backward compatibility with legacy 2-digit v1X / v2X sedan/van tokens
 				recognized++;
 				res.hasCar = true;
 				res.carMode = Number(tok[1]);
@@ -3419,11 +3431,13 @@ function spkmodParseUnifiedSyncMessage(rawMsg) {
 					const resolved = (typeof window !== "undefined" && typeof window.spkmodSparkCodeToId === "function")
 						? window.spkmodSparkCodeToId(num)
 						: null;
+					if (!resolved) res.hasUnknownToken = true;
 					res.sparkId = resolved || "none";
 				}
-			} else if (/^[a-z]\d+$/.test(part)) {
-				// Forward-compatible unknown compact field
+			} else if (/^[a-z]\d+(?:[a-z]\d+)*$/.test(part)) {
+				// Forward-compatible unknown compact field from a newer mod version
 				recognized++;
+				res.hasUnknownToken = true;
 			}
 		}
 		return recognized > 0 ? res : null;
@@ -4137,6 +4151,9 @@ window.spkmodHandleIncomingPetTrigger = function(playerId, playerName, rawMsg) {
 	}
 	if (parsed.hasSpark && typeof window.spkmodHandleIncomingSparkState === "function") {
 		window.spkmodHandleIncomingSparkState(playerId, playerName, parsed.sparkId);
+	}
+	if (parsed.hasUnknownToken && typeof window.spkmodNotifyUnknownSyncToken === "function") {
+		window.spkmodNotifyUnknownSyncToken();
 	}
 };
 window.spkmodHandleIncomingModSync = window.spkmodHandleIncomingPetTrigger;

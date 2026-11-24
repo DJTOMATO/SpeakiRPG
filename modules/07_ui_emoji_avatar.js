@@ -715,7 +715,13 @@ function updateHudIconTooltips() {
         setSpkmodRichTooltip(lunPanelElements.cartSkinsBtn, "🛒 " + cartTip);
     }
 
-    // 12e. Spark FX Trails button
+    // 12e. Vehicles & Stealth Box button
+    if (lunPanelElements.vehiclesBtn) {
+        const vehTip = (typeof window.spkmodGetVehicleUiText === "function" ? window.spkmodGetVehicleUiText("vehiclesBtnTooltip") : null) || "Vehicles & Stealth Box Garage (Alt+V)";
+        setSpkmodRichTooltip(lunPanelElements.vehiclesBtn, "🚗 " + vehTip);
+    }
+
+    // 12f. Spark FX Trails button
     if (lunPanelElements.sparksBtn) {
         const sparkTip = (typeof window.spkmodGetSparkUiText === "function" ? window.spkmodGetSparkUiText("sparksBtnTooltip") : null) || "Spark FX Walking Trails (Alt+F)";
         setSpkmodRichTooltip(lunPanelElements.sparksBtn, "✨ " + sparkTip);

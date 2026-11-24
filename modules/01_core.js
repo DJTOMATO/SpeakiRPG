@@ -167,6 +167,9 @@ function spkmodIsMobile() {
 }
 window.spkmodIsMobile = spkmodIsMobile;
 
+const SPKMOD_PROTOCOL_VERSION = 2;
+window.SPKMOD_PROTOCOL_VERSION = SPKMOD_PROTOCOL_VERSION;
+
 if (!isElectronEnv && !isSpeakiMobile) {
 	if (document.body) {
 		const acTranslations = {

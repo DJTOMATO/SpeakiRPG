@@ -358,7 +358,7 @@ const SPKMOD_SKIN_CATALOG = [
 		costumeBuilder: "chef"
 	},
 	{
-		id: "costume_soldier", level: 30, category: "outfit", icon: "🪖", accent: "#65a30d",
+		id: "costume_soldier", level: 30, category: "outfit", icon: "🎖️", accent: "#65a30d",
 		defaultName: "Combat Soldier Speaki",
 		recolor: { hue: 96, satMul: 1.8, satAdd: 0.14, satMax: 0.58, lightMul: 0.78, lightAdd: 0.02, lightMax: 0.52 },
 		costumeBuilder: "soldier",
@@ -506,7 +506,7 @@ const SPKMOD_SKIN_CATALOG = [
 		costumeBuilder: "mage"
 	},
 	{
-		id: "costume_ninja", level: 55, category: "outfit", icon: "🥷", accent: "#64748b",
+		id: "costume_ninja", level: 55, category: "outfit", icon: "🥋", accent: "#64748b",
 		defaultName: "Shadow Ninja Speaki",
 		recolor: { hue: 235, satMul: 0.35, satAdd: 0.04, satMax: 0.22, lightMul: 0.34, lightAdd: -0.02, lightMax: 0.26 },
 		costumeBuilder: "ninja",
@@ -725,6 +725,264 @@ const SPKMOD_SKIN_CATALOG = [
 		id: "fx_rainbow", level: 100, category: "fx", icon: "🌈", accent: "#ec4899",
 		defaultName: "Rainbow Prism Speaki",
 		fxMode: "rainbow"
+	},
+	{
+		id: "costume_burger_staff_a", level: 50, category: "outfit", icon: "🍔", accent: "#ef4444",
+		defaultName: "Burger Staff A Uniform",
+		nativeSkinCode: "SKIN_SPEAKI_BURGER_STAFF_A"
+	},
+	{
+		id: "costume_burger_staff_b", level: 50, category: "outfit", icon: "🍟", accent: "#f59e0b",
+		defaultName: "Burger Staff B Uniform",
+		nativeSkinCode: "SKIN_SPEAKI_BURGER_STAFF_B"
+	},
+	{
+		id: "costume_mouse", level: 15, category: "outfit", icon: "🐭", accent: "#94a3b8",
+		defaultName: "Squeaky Mouse Speaki",
+		recolor: { hue: 220, satMul: 0.28, satAdd: 0.04, satMax: 0.18, lightMul: 1.05, lightAdd: 0.22, lightMax: 0.78 },
+		costumeBuilder: "mouse",
+		hideMagicStaff: true
+	},
+	// --- FUNNY, FOOD, ANIMAL & MYTHIC COSTUMES (BALANCED SPREAD LV 12 -> 100) ---
+	{
+		id: "costume_plunger_knight", level: 14, category: "outfit", icon: "🚽", accent: "#ef4444",
+		defaultName: "Plunger Knight Speaki",
+		recolor: { hue: 205, satMul: 1.6, satAdd: 0.12, satMax: 0.65, lightMul: 1.18, lightAdd: 0.18, lightMax: 0.88 },
+		costumeBuilder: "plungerKnight", hideMagicStaff: true
+	},
+	{
+		id: "costume_traffic_cone", level: 12, category: "outfit", icon: "🚧", accent: "#f97316",
+		defaultName: "Traffic Cone Head Speaki",
+		recolor: { hue: 28, satMul: 3.2, satAdd: 0.25, satMax: 0.94, lightMul: 1.22, lightAdd: 0.10, lightMax: 0.82 },
+		costumeBuilder: "trafficCone", hideMagicStaff: true
+	},
+	{
+		id: "costume_trash_goblin", level: 18, category: "outfit", icon: "🗑️", accent: "#64748b",
+		defaultName: "Trash Goblin Speaki",
+		recolor: { hue: 145, satMul: 1.3, satAdd: 0.10, satMax: 0.45, lightMul: 0.90, lightAdd: 0.04, lightMax: 0.66 },
+		costumeBuilder: "trashGoblin", hideMagicStaff: true
+	},
+	{
+		id: "costume_spa_towel", level: 19, category: "outfit", icon: "🛁", accent: "#7dd3fc",
+		defaultName: "Spa Day Towel Speaki",
+		recolor: { hue: 195, satMul: 1.2, satAdd: 0.12, satMax: 0.50, lightMul: 1.32, lightAdd: 0.30, lightMax: 0.94 },
+		costumeBuilder: "spaTowel", hideMagicStaff: true
+	},
+	{
+		id: "costume_salaryman", level: 31, category: "outfit", icon: "💼", accent: "#334155",
+		defaultName: "Overworked Salaryman Speaki",
+		recolor: { hue: 222, satMul: 0.55, satAdd: 0.06, satMax: 0.30, lightMul: 0.55, lightAdd: 0.02, lightMax: 0.42 },
+		costumeBuilder: "salaryman", hideMagicStaff: true
+	},
+	{
+		id: "costume_tinfoil_hat", level: 34, category: "outfit", icon: "📡", accent: "#cbd5e1",
+		defaultName: "Tin-Foil Conspiracy Speaki",
+		recolor: { hue: 215, satMul: 0.35, satAdd: 0.04, satMax: 0.22, lightMul: 1.15, lightAdd: 0.26, lightMax: 0.86 },
+		costumeBuilder: "tinfoilHat", hideMagicStaff: true
+	},
+	{
+		id: "costume_tp_mummy", level: 24, category: "outfit", icon: "🧻", accent: "#f8fafc",
+		defaultName: "Toilet Paper Mummy Speaki",
+		recolor: { hue: 42, satMul: 0.25, satAdd: 0.03, satMax: 0.18, lightMul: 1.10, lightAdd: 0.44, lightMax: 0.94 },
+		costumeBuilder: "tpMummy", hideMagicStaff: true
+	},
+	{
+		id: "costume_frying_pan", level: 28, category: "outfit", icon: "🍳", accent: "#fbbf24",
+		defaultName: "Frying Pan Bonk Speaki",
+		recolor: { hue: 48, satMul: 2.4, satAdd: 0.18, satMax: 0.82, lightMul: 1.25, lightAdd: 0.14, lightMax: 0.86 },
+		costumeBuilder: "fryingPan", hideMagicStaff: true
+	},
+	{
+		id: "costume_cactus_pot", level: 29, category: "outfit", icon: "🌵", accent: "#22c55e",
+		defaultName: "Potted Cactus Speaki",
+		recolor: { hue: 132, satMul: 2.5, satAdd: 0.18, satMax: 0.78, lightMul: 1.05, lightAdd: 0.06, lightMax: 0.72 },
+		costumeBuilder: "cactusPot", hideMagicStaff: true
+	},
+	{
+		id: "costume_toast_head", level: 16, category: "outfit", icon: "🍞", accent: "#d97706",
+		defaultName: "Toast-Head Meme Speaki",
+		recolor: { hue: 36, satMul: 2.0, satAdd: 0.18, satMax: 0.75, lightMul: 1.26, lightAdd: 0.18, lightMax: 0.86 },
+		costumeBuilder: "toastHead", hideMagicStaff: true
+	},
+	{
+		id: "costume_banana_suit", level: 22, category: "outfit", icon: "🍌", accent: "#facc15",
+		defaultName: "Banana Suit Speaki",
+		recolor: { hue: 52, satMul: 3.1, satAdd: 0.24, satMax: 0.92, lightMul: 1.28, lightAdd: 0.16, lightMax: 0.86 },
+		costumeBuilder: "bananaSuit", hideMagicStaff: true
+	},
+	{
+		id: "costume_ice_cream", level: 36, category: "outfit", icon: "🍦", accent: "#f472b6",
+		defaultName: "Upside-Down Ice Cream Speaki",
+		recolor: { hue: 336, satMul: 2.0, satAdd: 0.18, satMax: 0.78, lightMul: 1.32, lightAdd: 0.24, lightMax: 0.90 },
+		costumeBuilder: "iceCream", hideMagicStaff: true
+	},
+	{
+		id: "costume_taco_fiesta", level: 39, category: "outfit", icon: "🌮", accent: "#eab308",
+		defaultName: "Taco Fiesta Speaki",
+		recolor: { hue: 40, satMul: 2.8, satAdd: 0.22, satMax: 0.88, lightMul: 1.22, lightAdd: 0.12, lightMax: 0.84 },
+		costumeBuilder: "tacoFiesta", hideMagicStaff: true
+	},
+	{
+		id: "costume_pizza_boy", level: 41, category: "outfit", icon: "🍕", accent: "#dc2626",
+		defaultName: "Pizza Delivery Speaki",
+		recolor: { hue: 4, satMul: 2.9, satAdd: 0.22, satMax: 0.86, lightMul: 1.14, lightAdd: 0.08, lightMax: 0.78 },
+		costumeBuilder: "pizzaBoy", hideMagicStaff: true
+	},
+	{
+		id: "costume_duckling", level: 21, category: "outfit", icon: "🦆", accent: "#fde047",
+		defaultName: "Duckling Hood Speaki",
+		recolor: { hue: 50, satMul: 3.0, satAdd: 0.24, satMax: 0.92, lightMul: 1.30, lightAdd: 0.16, lightMax: 0.88 },
+		costumeBuilder: "duckling", hideMagicStaff: true
+	},
+	{
+		id: "costume_moo_cow", level: 26, category: "outfit", icon: "🐮", accent: "#f8fafc",
+		defaultName: "Moo Cow Speaki",
+		recolor: { hue: 210, satMul: 0.15, satAdd: 0.0, satMax: 0.12, lightMul: 0.96, lightAdd: 0.48, lightMax: 0.95 },
+		costumeBuilder: "mooCow", hideMagicStaff: true
+	},
+	{
+		id: "costume_cloud_lamb", level: 33, category: "outfit", icon: "🐑", accent: "#fef3c7",
+		defaultName: "Cloud Lamb Speaki",
+		recolor: { hue: 45, satMul: 0.28, satAdd: 0.04, satMax: 0.22, lightMul: 1.08, lightAdd: 0.46, lightMax: 0.95 },
+		costumeBuilder: "cloudLamb", hideMagicStaff: true
+	},
+	{
+		id: "costume_raccoon", level: 38, category: "outfit", icon: "🦝", accent: "#64748b",
+		defaultName: "Trash Panda Raccoon Speaki",
+		recolor: { hue: 215, satMul: 0.30, satAdd: 0.04, satMax: 0.20, lightMul: 0.78, lightAdd: 0.08, lightMax: 0.62 },
+		costumeBuilder: "raccoon", hideMagicStaff: true
+	},
+	{
+		id: "costume_penguin", level: 43, category: "outfit", icon: "🐧", accent: "#38bdf8",
+		defaultName: "Chubby Penguin Speaki",
+		recolor: { hue: 220, satMul: 0.45, satAdd: 0.06, satMax: 0.28, lightMul: 0.52, lightAdd: 0.02, lightMax: 0.44 },
+		costumeBuilder: "penguin", hideMagicStaff: true
+	},
+	{
+		id: "costume_rooster", level: 44, category: "outfit", icon: "🐔", accent: "#ef4444",
+		defaultName: "Cluck Rooster Speaki",
+		recolor: { hue: 38, satMul: 0.35, satAdd: 0.05, satMax: 0.25, lightMul: 1.05, lightAdd: 0.44, lightMax: 0.94 },
+		costumeBuilder: "rooster", hideMagicStaff: true
+	},
+	{
+		id: "costume_pajamas", level: 46, category: "outfit", icon: "🌙", accent: "#818cf8",
+		defaultName: "Sleepy Pajamas Speaki",
+		recolor: { hue: 235, satMul: 1.8, satAdd: 0.16, satMax: 0.72, lightMul: 1.24, lightAdd: 0.20, lightMax: 0.88 },
+		costumeBuilder: "pajamas", hideMagicStaff: true
+	},
+	{
+		id: "costume_honk_clown", level: 48, category: "outfit", icon: "🤡", accent: "#f43f5e",
+		defaultName: "Honk Clown Speaki",
+		recolor: { hue: 350, satMul: 2.9, satAdd: 0.24, satMax: 0.90, lightMul: 1.20, lightAdd: 0.12, lightMax: 0.84 },
+		costumeBuilder: "honkClown", hideMagicStaff: true
+	},
+	{
+		id: "costume_sushi_hat", level: 51, category: "outfit", icon: "🍣", accent: "#fb7185",
+		defaultName: "Salmon Nigiri Speaki",
+		recolor: { hue: 14, satMul: 2.8, satAdd: 0.22, satMax: 0.88, lightMul: 1.24, lightAdd: 0.14, lightMax: 0.84 },
+		costumeBuilder: "sushiHat", hideMagicStaff: true
+	},
+	{
+		id: "costume_boba_tea", level: 53, category: "outfit", icon: "🥤", accent: "#d6a77a",
+		defaultName: "Boba Milk Tea Speaki",
+		recolor: { hue: 30, satMul: 1.4, satAdd: 0.14, satMax: 0.56, lightMul: 1.24, lightAdd: 0.22, lightMax: 0.86 },
+		costumeBuilder: "bobaTea", hideMagicStaff: true
+	},
+	{
+		id: "costume_toadstool", level: 56, category: "outfit", icon: "🍄", accent: "#ef4444",
+		defaultName: "Giant Toadstool Speaki",
+		recolor: { hue: 0, satMul: 2.8, satAdd: 0.22, satMax: 0.86, lightMul: 1.15, lightAdd: 0.08, lightMax: 0.80 },
+		costumeBuilder: "toadstool", hideMagicStaff: true
+	},
+	{
+		id: "costume_detective", level: 58, category: "outfit", icon: "🕵️", accent: "#b45309",
+		defaultName: "Noir Detective Speaki",
+		recolor: { hue: 32, satMul: 1.2, satAdd: 0.10, satMax: 0.48, lightMul: 0.86, lightAdd: 0.06, lightMax: 0.64 },
+		costumeBuilder: "detective", hideMagicStaff: true
+	},
+	{
+		id: "costume_mariachi", level: 61, category: "outfit", icon: "🎸", accent: "#e11d48",
+		defaultName: "Mariachi Sombrero Speaki",
+		recolor: { hue: 348, satMul: 2.8, satAdd: 0.22, satMax: 0.88, lightMul: 1.05, lightAdd: 0.05, lightMax: 0.72 },
+		costumeBuilder: "mariachi", hideMagicStaff: true
+	},
+	{
+		id: "costume_ramen_bowl", level: 63, category: "outfit", icon: "🍜", accent: "#f59e0b",
+		defaultName: "Ramen Bowl Head Speaki",
+		recolor: { hue: 6, satMul: 2.6, satAdd: 0.20, satMax: 0.84, lightMul: 1.12, lightAdd: 0.08, lightMax: 0.78 },
+		costumeBuilder: "ramenBowl", hideMagicStaff: true
+	},
+	{
+		id: "costume_cardboard_bot", level: 66, category: "outfit", icon: "🤖", accent: "#b4834e",
+		defaultName: "DIY Cardboard Robot Speaki",
+		recolor: { hue: 32, satMul: 1.3, satAdd: 0.12, satMax: 0.50, lightMul: 1.06, lightAdd: 0.14, lightMax: 0.76 },
+		costumeBuilder: "cardboardBot", hideMagicStaff: true
+	},
+	{
+		id: "costume_crt_tv", level: 69, category: "outfit", icon: "📺", accent: "#38bdf8",
+		defaultName: "CRT TV Head Speaki",
+		recolor: { hue: 40, satMul: 0.42, satAdd: 0.05, satMax: 0.28, lightMul: 1.12, lightAdd: 0.26, lightMax: 0.86 },
+		costumeBuilder: "crtTv", hideMagicStaff: true
+	},
+	{
+		id: "costume_snail", level: 68, category: "outfit", icon: "🐌", accent: "#a855f7",
+		defaultName: "Giant Snail Speaki",
+		recolor: { hue: 280, satMul: 1.8, satAdd: 0.16, satMax: 0.72, lightMul: 1.24, lightAdd: 0.18, lightMax: 0.86 },
+		costumeBuilder: "snail"
+	},
+	{
+		id: "costume_octopus", level: 72, category: "outfit", icon: "🐙", accent: "#c084fc",
+		defaultName: "Octopus Crown Speaki",
+		recolor: { hue: 276, satMul: 2.4, satAdd: 0.20, satMax: 0.84, lightMul: 1.16, lightAdd: 0.10, lightMax: 0.82 },
+		costumeBuilder: "octopus"
+	},
+	{
+		id: "costume_trex", level: 76, category: "outfit", icon: "🦖", accent: "#22c55e",
+		defaultName: "Inflatable T-Rex Speaki",
+		recolor: { hue: 122, satMul: 2.8, satAdd: 0.22, satMax: 0.86, lightMul: 1.12, lightAdd: 0.08, lightMax: 0.76 },
+		costumeBuilder: "trex"
+	},
+	{
+		id: "costume_capybara", level: 81, category: "outfit", icon: "🍊", accent: "#d97706",
+		defaultName: "Zen Capybara Speaki",
+		recolor: { hue: 28, satMul: 1.5, satAdd: 0.12, satMax: 0.56, lightMul: 0.92, lightAdd: 0.06, lightMax: 0.68 },
+		costumeBuilder: "capybara", hideMagicStaff: true
+	},
+	{
+		id: "costume_plague_doc", level: 84, category: "outfit", icon: "🦅", accent: "#10b981",
+		defaultName: "Plague Doctor Speaki",
+		recolor: { hue: 230, satMul: 0.25, satAdd: 0.02, satMax: 0.18, lightMul: 0.38, lightAdd: -0.02, lightMax: 0.30 },
+		costumeBuilder: "plagueDoc", hideMagicStaff: true
+	},
+	{
+		id: "costume_masquerade", level: 88, category: "outfit", icon: "🎭", accent: "#eab308",
+		defaultName: "Phantom Masquerade Speaki",
+		recolor: { hue: 266, satMul: 2.5, satAdd: 0.20, satMax: 0.84, lightMul: 0.84, lightAdd: 0.04, lightMax: 0.66 },
+		costumeBuilder: "masquerade", hideMagicStaff: true
+	},
+	{
+		id: "costume_voxel_hero", level: 92, category: "outfit", icon: "👾", accent: "#06b6d4",
+		defaultName: "8-Bit Voxel Hero Speaki",
+		recolor: { hue: 194, satMul: 2.8, satAdd: 0.22, satMax: 0.88, lightMul: 1.22, lightAdd: 0.12, lightMax: 0.84 },
+		costumeBuilder: "voxelHero", hideMagicStaff: true
+	},
+	{
+		id: "costume_saturn", level: 96, category: "outfit", icon: "🪐", accent: "#f59e0b",
+		defaultName: "Saturn Rings Speaki",
+		recolor: { hue: 252, satMul: 2.6, satAdd: 0.20, satMax: 0.84, lightMul: 0.90, lightAdd: 0.05, lightMax: 0.70 },
+		costumeBuilder: "saturn"
+	},
+	{
+		id: "costume_ufo_abduct", level: 98, category: "outfit", icon: "🛸", accent: "#4ade80",
+		defaultName: "Mini UFO Abduction Speaki",
+		recolor: { hue: 148, satMul: 2.6, satAdd: 0.22, satMax: 0.88, lightMul: 1.18, lightAdd: 0.10, lightMax: 0.82 },
+		costumeBuilder: "ufoAbduct"
+	},
+	{
+		id: "costume_biblical", level: 100, category: "outfit", icon: "👁️", accent: "#fde047",
+		defaultName: "Biblically Accurate Speaki",
+		recolor: { hue: 46, satMul: 2.6, satAdd: 0.22, satMax: 0.90, lightMul: 1.32, lightAdd: 0.22, lightMax: 0.92 },
+		costumeBuilder: "biblical"
 	}
 ];
 
@@ -3656,7 +3914,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 		};
 		try {
 			if (!(await spkmodBuildExtraCostumeSetA(builder, ctx))) {
-				await spkmodBuildExtraCostumeSetB(builder, ctx);
+				if (!(await spkmodBuildExtraCostumeSetB(builder, ctx))) {
+					await spkmodBuildExtraCostumeSetC(builder, ctx);
+				}
 			}
 		} catch (err) {
 			console.warn("[SpeakiMod+ Skins] Costume builder error:", builder, err);
@@ -3731,6 +3991,93 @@ async function spkmodBuildExtraCostumeSetA(builder, ctx) {
 				bamboo.add(leaf);
 			}
 			attachHandProp(rightHand, "spkmod_skin_panda_bamboo", bamboo, Q.HERO_R, [0.03, -0.07, 0.04], { hideInSpeakov: true });
+		}
+		return true;
+	} else if (builder === "mouse") {
+		addHead(anchor => {
+			const furMat = toon(0x94a3b8);
+			const rimMat = toon(0x64748b);
+			const pinkMat = toon(0xf9a8d4);
+			const band = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.024, 8, 20, Math.PI), rimMat);
+			band.position.set(0, -0.32, 0.02);
+			anchor.add(band);
+			for (const s of [-1, 1]) {
+				const ear = new THREE.Group();
+				ear.position.set(s * 0.27, 0.02, 0.02);
+				const baseRotZ = -s * 0.24;
+				ear.rotation.z = baseRotZ;
+				ear.rotation.y = -s * 0.14;
+				const outer = new THREE.Mesh(new THREE.SphereGeometry(0.205, 16, 14), furMat);
+				outer.scale.set(1.0, 0.98, 0.34);
+				outer.position.set(0, 0.11, 0);
+				ear.add(outer);
+				const inner = new THREE.Mesh(new THREE.SphereGeometry(0.142, 14, 12), pinkMat);
+				inner.scale.set(1.0, 0.96, 0.22);
+				inner.position.set(0, 0.105, 0.048);
+				ear.add(inner);
+				anchor.add(ear);
+				animParts.push({ type: "earWiggle", node: ear, side: s, baseRotZ });
+			}
+		});
+		addBody(pelvis, "spkmod_skin_mouse_tail", [0, -0.14, -0.20], tailAnchor => {
+			const tailMat = toon(0xf472b6);
+			const tipMat = toon(0xfda4af);
+			const tailRoot = new THREE.Group();
+			const segs = [
+				{ y: -0.02, z: -0.14, rx: -1.52, rTop: 0.026, rBot: 0.032, len: 0.28 },
+				{ y:  0.00, z: -0.40, rx: -1.36, rTop: 0.021, rBot: 0.026, len: 0.28 },
+				{ y:  0.08, z: -0.63, rx: -0.96, rTop: 0.017, rBot: 0.021, len: 0.24 },
+				{ y:  0.23, z: -0.77, rx: -0.42, rTop: 0.013, rBot: 0.017, len: 0.22 },
+				{ y:  0.40, z: -0.80, rx:  0.25, rTop: 0.009, rBot: 0.013, len: 0.20 }
+			];
+			segs.forEach((sg, idx) => {
+				const mat = idx === segs.length - 1 ? tipMat : tailMat;
+				const m = new THREE.Mesh(new THREE.CylinderGeometry(sg.rTop, sg.rBot, sg.len, 8), mat);
+				m.position.set(0, sg.y, sg.z);
+				m.rotation.x = sg.rx;
+				tailRoot.add(m);
+				const joint = new THREE.Mesh(new THREE.SphereGeometry(sg.rBot * 0.98, 8, 6), mat);
+				joint.position.set(0, sg.y - Math.cos(sg.rx) * sg.len * 0.48, sg.z - Math.sin(sg.rx) * sg.len * 0.48);
+				tailRoot.add(joint);
+			});
+			const tip = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), tipMat);
+			tip.position.set(0, 0.49, -0.77);
+			tailRoot.add(tip);
+			tailAnchor.add(tailRoot);
+			animParts.push({ type: "tail", node: tailRoot, speed: 5.2, amp: 0.36 });
+		});
+		if (rightHand) {
+			const cheese = new THREE.Group();
+			const cheeseMat = toon(0xfacc15, { emissive: 0xca8a04, emissiveIntensity: 0.16 });
+			const rindMat = toon(0xeab308);
+			const holeMat = toon(0xb45309);
+			// Triangular Swiss cheese wedge (3-sided cylinder prism)
+			const wedge = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.15, 3), cheeseMat);
+			wedge.scale.set(0.85, 1.0, 1.35);
+			wedge.position.set(0, 0.16, 0.04);
+			wedge.rotation.z = 0.22;
+			cheese.add(wedge);
+			// Golden cheese crust along the back edge
+			const rind = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.155, 0.045), rindMat);
+			rind.position.set(0.02, 0.16, -0.11);
+			rind.rotation.z = 0.22;
+			cheese.add(rind);
+			// Iconic Swiss cheese holes on top & sides
+			const holes = [
+				[0.02, 0.235, 0.02, 0.044],
+				[-0.07, 0.232, -0.04, 0.032],
+				[0.08, 0.230, -0.05, 0.028],
+				[0.10, 0.15, 0.08, 0.036],
+				[-0.10, 0.16, 0.07, 0.030],
+				[0.01, 0.14, 0.18, 0.034]
+			];
+			for (const [hx, hy, hz, hr] of holes) {
+				const h = new THREE.Mesh(new THREE.SphereGeometry(hr, 10, 8), holeMat);
+				h.scale.set(1, 0.55, 1);
+				h.position.set(hx, hy, hz);
+				cheese.add(h);
+			}
+			attachHandProp(rightHand, "spkmod_skin_mouse_cheese", cheese, Q.HERO_R, [0.03, -0.06, 0.05], { hideInSpeakov: true });
 		}
 		return true;
 	} else if (builder === "bee") {
@@ -5692,6 +6039,873 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 	return false;
 }
 
+// Extra 3D Costume Builders — Set C (40 High-Level Funny, Food, Animal & Mythic Costumes: Lv.61-100)
+async function spkmodBuildExtraCostumeSetC(builder, ctx) {
+	const { THREE, toon, avatarRoot, head, spine, pelvis, rightHand, leftHand, reviveHat, skeletonBones, attachments, animParts, attachHandProp, Q } = ctx;
+	const addHead = (buildFn) => {
+		if (!head) return;
+		const anchor = spkmodSkinCreateHeadAnchor(avatarRoot, head, reviveHat);
+		if (!anchor) return;
+		buildFn(anchor);
+		spkmodSkinSanitizeObject(anchor);
+		head.add(anchor);
+		attachments.push({ parent: head, node: anchor });
+	};
+	const addBody = (bone, name, offset, buildFn) => {
+		if (!bone) return;
+		const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones);
+		if (!anchor) return;
+		buildFn(anchor);
+		spkmodSkinSanitizeObject(anchor);
+		bone.add(anchor);
+		attachments.push({ parent: bone, node: anchor });
+	};
+	const put = (parent, geo, mat, pos = null, rot = null, scale = null) => {
+		const m = new THREE.Mesh(geo, mat);
+		if (pos) m.position.set(pos[0], pos[1], pos[2]);
+		if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
+		if (scale) m.scale.set(scale[0], scale[1], scale[2]);
+		parent.add(m);
+		return m;
+	};
+	const addProp = (name, buildFn, off = [0.03, -0.07, 0.04], hand = rightHand, quat = Q.HERO_R) => {
+		if (!hand) return;
+		const g = new THREE.Group();
+		buildFn(g);
+		attachHandProp(hand, name, g, quat, off, { hideInSpeakov: true });
+	};
+
+	if (builder === "plungerKnight") {
+		addHead(a => {
+			const cup = toon(0xdc2626), wood = toon(0xb45309);
+			put(a, new THREE.SphereGeometry(0.16, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.58), cup, [0, -0.02, 0]);
+			put(a, new THREE.TorusGeometry(0.155, 0.026, 8, 18), cup, [0, -0.01, 0], [Math.PI / 2, 0, 0]);
+			put(a, new THREE.CylinderGeometry(0.024, 0.028, 0.52, 10), wood, [0, 0.34, 0]);
+			put(a, new THREE.SphereGeometry(0.032, 8, 8), wood, [0, 0.60, 0]);
+		});
+		addProp("spkmod_skin_tp_wand", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.02, 0.58, 8), toon(0xb45309), [0, 0.18, 0]);
+			put(g, new THREE.CylinderGeometry(0.11, 0.11, 0.22, 14), toon(0xf8fafc), [0, 0.52, 0]);
+			put(g, new THREE.CylinderGeometry(0.038, 0.038, 0.226, 10), toon(0x94a3b8), [0, 0.52, 0]);
+		});
+		return true;
+	} else if (builder === "trafficCone") {
+		addHead(a => {
+			const org = toon(0xf97316, { emissive: 0xea580c, emissiveIntensity: 0.2 }), wht = toon(0xf8fafc);
+			put(a, new THREE.BoxGeometry(0.46, 0.045, 0.46), org, [0, -0.04, 0]);
+			put(a, new THREE.ConeGeometry(0.20, 0.58, 16), org, [0, 0.26, 0]);
+			put(a, new THREE.CylinderGeometry(0.095, 0.135, 0.11, 16), wht, [0, 0.28, 0]);
+			put(a, new THREE.CylinderGeometry(0.045, 0.072, 0.08, 16), wht, [0, 0.44, 0]);
+		});
+		addProp("spkmod_skin_stop_sign", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.02, 0.72, 8), toon(0x94a3b8), [0, 0.24, 0]);
+			put(g, new THREE.CylinderGeometry(0.20, 0.20, 0.03, 8), toon(0xdc2626), [0, 0.68, 0], [Math.PI / 2, Math.PI / 8, 0]);
+			put(g, new THREE.TorusGeometry(0.175, 0.015, 6, 8), toon(0xffffff), [0, 0.68, 0.014], [0, 0, Math.PI / 8]);
+		});
+		return true;
+	} else if (builder === "trashGoblin") {
+		addHead(a => {
+			const metal = toon(0x94a3b8), dark = toon(0x475569), bone = toon(0xf8fafc);
+			const lid = new THREE.Group();
+			lid.position.set(0.06, 0.02, 0);
+			lid.rotation.z = -0.26;
+			put(lid, new THREE.CylinderGeometry(0.28, 0.31, 0.06, 18), metal, [0, 0, 0]);
+			put(lid, new THREE.TorusGeometry(0.065, 0.018, 8, 12, Math.PI), dark, [0, 0.03, 0]);
+			// Cute fishbone perched on lid
+			put(lid, new THREE.CylinderGeometry(0.012, 0.012, 0.20, 6), bone, [0.10, 0.055, 0.06], [0, 0.4, Math.PI / 2]);
+			put(lid, new THREE.ConeGeometry(0.04, 0.06, 4), bone, [0.20, 0.055, 0.02], [0, 0, -Math.PI / 2]);
+			a.add(lid);
+		});
+		addProp("spkmod_skin_soda_wand", g => {
+			put(g, new THREE.CylinderGeometry(0.018, 0.018, 0.56, 8), toon(0x64748b), [0, 0.16, 0]);
+			put(g, new THREE.CylinderGeometry(0.085, 0.085, 0.20, 14), toon(0x22c55e, { emissive: 0x16a34a, emissiveIntensity: 0.25 }), [0, 0.50, 0]);
+			put(g, new THREE.CylinderGeometry(0.086, 0.086, 0.04, 14), toon(0xe2e8f0), [0, 0.59, 0]);
+		});
+		return true;
+	} else if (builder === "spaTowel") {
+		addHead(a => {
+			const wht = toon(0xf8fafc), cyan = toon(0xbae6fd);
+			put(a, new THREE.TorusGeometry(0.32, 0.095, 12, 20), wht, [0, -0.04, 0], [Math.PI / 2, 0, 0]);
+			put(a, new THREE.SphereGeometry(0.25, 14, 12), wht, [0, 0.14, -0.02], [1.0, 0.85, 1.0]);
+			put(a, new THREE.ConeGeometry(0.14, 0.28, 12), cyan, [0.06, 0.34, -0.06], [-0.3, 0, -0.4]);
+		});
+		addProp("spkmod_skin_spa_duck", g => {
+			const yel = toon(0xfacc15), org = toon(0xf97316);
+			put(g, new THREE.SphereGeometry(0.12, 12, 10), yel, [0, 0.12, 0], [0.9, 0.8, 1.2]);
+			put(g, new THREE.SphereGeometry(0.085, 12, 10), yel, [0, 0.23, 0.08]);
+			put(g, new THREE.ConeGeometry(0.036, 0.075, 8), org, [0, 0.22, 0.17], [Math.PI / 2, 0, 0]);
+		});
+		return true;
+	} else if (builder === "salaryman") {
+		addHead(a => {
+			const tie = toon(0xdc2626), strp = toon(0xfef08a);
+			put(a, new THREE.TorusGeometry(0.32, 0.036, 8, 20), tie, [0, -0.05, 0], [Math.PI / 2, 0, 0]);
+			const knot = new THREE.Group();
+			knot.position.set(0.22, -0.02, 0.20);
+			put(knot, new THREE.SphereGeometry(0.055, 8, 8), tie);
+			put(knot, new THREE.BoxGeometry(0.06, 0.24, 0.02), tie, [0.08, 0.12, 0], [0, 0, -0.55]);
+			put(knot, new THREE.BoxGeometry(0.064, 0.04, 0.024), strp, [0.08, 0.12, 0], [0, 0, -0.55]);
+			a.add(knot);
+			// Floating stress steam puffs
+			const puff = new THREE.Group();
+			puff.position.set(-0.26, 0.26, 0);
+			put(puff, new THREE.SphereGeometry(0.065, 8, 8), toon(0xe2e8f0, { transparent: true, opacity: 0.75 }));
+			a.add(puff);
+			animParts.push({ type: "floatY", node: puff, baseY: 0.26 });
+		});
+		addProp("spkmod_skin_briefcase", g => {
+			put(g, new THREE.BoxGeometry(0.32, 0.24, 0.10), toon(0x78350f), [0, 0.04, 0]);
+			put(g, new THREE.TorusGeometry(0.06, 0.015, 6, 10, Math.PI), toon(0x451a03), [0, 0.16, 0]);
+			put(g, new THREE.BoxGeometry(0.05, 0.04, 0.11), toon(0xfacc15), [0, 0.10, 0]);
+		});
+		return true;
+	} else if (builder === "tinfoilHat") {
+		addHead(a => {
+			const foil = toon(0xe2e8f0, { emissive: 0x94a3b8, emissiveIntensity: 0.25 });
+			put(a, new THREE.ConeGeometry(0.34, 0.50, 5), foil, [0, 0.18, 0]);
+			put(a, new THREE.TorusGeometry(0.32, 0.04, 6, 10), foil, [0, -0.05, 0], [Math.PI / 2, 0, 0]);
+			const ant = new THREE.Group();
+			ant.position.set(0, 0.42, 0);
+			put(ant, new THREE.CylinderGeometry(0.012, 0.012, 0.24, 6), foil, [0, 0.12, 0]);
+			put(ant, new THREE.SphereGeometry(0.048, 8, 8), toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.7 }), [0, 0.25, 0]);
+			a.add(ant);
+			animParts.push({ type: "earWiggle", node: ant, side: 1, baseRotZ: 0 });
+		});
+		addProp("spkmod_skin_conspiracy_glass", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.02, 0.34, 8), toon(0x475569), [0, 0.08, 0]);
+			put(g, new THREE.TorusGeometry(0.14, 0.024, 8, 18), toon(0x94a3b8), [0, 0.36, 0]);
+			put(g, new THREE.CircleGeometry(0.125, 16), toon(0x7dd3fc, { transparent: true, opacity: 0.5, side: THREE.DoubleSide }), [0, 0.36, 0]);
+		});
+		return true;
+	} else if (builder === "tpMummy") {
+		addHead(a => {
+			const wrap = toon(0xf8fafc), strip = toon(0xe2e8f0);
+			for (let i = 0; i < 4; i++) {
+				put(a, new THREE.TorusGeometry(0.33 - i * 0.025, 0.048, 8, 20), i % 2 ? strip : wrap, [0, -0.06 + i * 0.07, 0], [Math.PI / 2 + (i % 2 ? 0.12 : -0.1), 0, 0]);
+			}
+			put(a, new THREE.SphereGeometry(0.24, 12, 10), wrap, [0, 0.15, 0], [1, 0.7, 1]);
+			// Fluttering toilet paper tail from head
+			const trail = new THREE.Group();
+			trail.position.set(0, 0.05, -0.32);
+			put(trail, new THREE.BoxGeometry(0.12, 0.44, 0.015), wrap, [0, -0.22, -0.04]);
+			a.add(trail);
+			animParts.push({ type: "cape", node: trail, baseRotX: 0.25 });
+		});
+		addProp("spkmod_skin_scarab_staff", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.02, 0.66, 8), toon(0xeab308), [0, 0.22, 0]);
+			put(g, new THREE.SphereGeometry(0.10, 12, 10), toon(0x22d3ee, { emissive: 0x06b6d4, emissiveIntensity: 0.55 }), [0, 0.60, 0], [1, 1.3, 0.6]);
+		});
+		return true;
+	} else if (builder === "fryingPan") {
+		addHead(a => {
+			const iron = toon(0x1e293b), eggW = toon(0xffffff), yolk = toon(0xfacc15, { emissive: 0xeab308, emissiveIntensity: 0.3 });
+			put(a, new THREE.CylinderGeometry(0.34, 0.30, 0.08, 20), iron, [0, 0.02, 0]);
+			put(a, new THREE.BoxGeometry(0.08, 0.04, 0.42), iron, [0, 0.04, -0.44]);
+			put(a, new THREE.CylinderGeometry(0.21, 0.22, 0.025, 16), eggW, [0.02, 0.075, 0.02]);
+			put(a, new THREE.SphereGeometry(0.085, 12, 10), yolk, [0.02, 0.10, 0.02], [1, 0.6, 1]);
+		});
+		addProp("spkmod_skin_spatula", g => {
+			put(g, new THREE.CylinderGeometry(0.018, 0.018, 0.48, 8), toon(0x1e293b), [0, 0.16, 0]);
+			put(g, new THREE.BoxGeometry(0.16, 0.22, 0.02), toon(0xcbd5e1), [0, 0.50, 0]);
+		});
+		return true;
+	} else if (builder === "cactusPot") {
+		addHead(a => {
+			const pot = toon(0xc2410c), grn = toon(0x16a34a), flw = toon(0xf472b6, { emissive: 0xdb2777, emissiveIntensity: 0.3 });
+			put(a, new THREE.CylinderGeometry(0.28, 0.22, 0.18, 16), pot, [0, 0.02, 0]);
+			put(a, new THREE.CylinderGeometry(0.30, 0.30, 0.055, 16), pot, [0, 0.11, 0]);
+			put(a, new THREE.CylinderGeometry(0.14, 0.15, 0.34, 12), grn, [0, 0.28, 0]);
+			put(a, new THREE.SphereGeometry(0.14, 12, 10), grn, [0, 0.45, 0]);
+			put(a, new THREE.CylinderGeometry(0.06, 0.06, 0.18, 8), grn, [0.18, 0.34, 0], [0, 0, -0.5]);
+			put(a, new THREE.CylinderGeometry(0.055, 0.055, 0.15, 8), grn, [-0.17, 0.30, 0], [0, 0, 0.55]);
+			put(a, new THREE.SphereGeometry(0.075, 10, 8), flw, [0, 0.60, 0]);
+		});
+		addProp("spkmod_skin_watering_can", g => {
+			const can = toon(0x38bdf8);
+			put(g, new THREE.CylinderGeometry(0.12, 0.14, 0.22, 14), can, [0, 0.12, 0]);
+			put(g, new THREE.CylinderGeometry(0.022, 0.036, 0.24, 8), can, [0, 0.16, 0.18], [0.9, 0, 0]);
+			put(g, new THREE.TorusGeometry(0.09, 0.018, 6, 12), can, [0, 0.16, -0.12], [0, Math.PI / 2, 0]);
+		});
+		return true;
+	} else if (builder === "toastHead") {
+		addHead(a => {
+			const crust = toon(0xb45309), crumb = toon(0xfef3c7);
+			// Giant golden toast halo frame behind/around head
+			const frame = new THREE.Group();
+			frame.position.set(0, -0.14, -0.02);
+			put(frame, new THREE.BoxGeometry(0.76, 0.12, 0.10), crust, [0, 0.36, 0]);
+			put(frame, new THREE.BoxGeometry(0.70, 0.08, 0.11), crumb, [0, 0.31, 0]);
+			for (const s of [-1, 1]) {
+				put(frame, new THREE.BoxGeometry(0.11, 0.68, 0.10), crust, [s * 0.36, 0.02, 0]);
+				put(frame, new THREE.BoxGeometry(0.07, 0.62, 0.11), crumb, [s * 0.31, 0.02, 0]);
+			}
+			put(frame, new THREE.BoxGeometry(0.76, 0.10, 0.10), crust, [0, -0.32, 0]);
+			a.add(frame);
+		});
+		addProp("spkmod_skin_butter_knife", g => {
+			put(g, new THREE.CylinderGeometry(0.022, 0.022, 0.24, 8), toon(0x92400e), [0, 0.04, 0]);
+			put(g, new THREE.BoxGeometry(0.055, 0.42, 0.016), toon(0xe2e8f0), [0, 0.36, 0]);
+			put(g, new THREE.BoxGeometry(0.08, 0.08, 0.05), toon(0xfde047), [0.02, 0.48, 0.02]);
+		});
+		return true;
+	} else if (builder === "bananaSuit") {
+		addHead(a => {
+			const yel = toon(0xfacc15), tip = toon(0x451a03), pale = toon(0xfef9c3);
+			put(a, new THREE.CylinderGeometry(0.18, 0.24, 0.38, 12), yel, [0, 0.16, -0.04], [-0.25, 0, 0]);
+			put(a, new THREE.ConeGeometry(0.18, 0.30, 12), yel, [0, 0.44, -0.14], [-0.55, 0, 0]);
+			put(a, new THREE.CylinderGeometry(0.045, 0.06, 0.10, 8), tip, [0, 0.59, -0.22], [-0.6, 0, 0]);
+			for (const s of [-1, 1]) {
+				put(a, new THREE.BoxGeometry(0.10, 0.26, 0.04), pale, [s * 0.26, -0.02, 0.05], [0, 0, -s * 0.45]);
+			}
+		});
+		addProp("spkmod_skin_banana_bunch", g => {
+			const yel = toon(0xfacc15);
+			for (const s of [-1, 0, 1]) {
+				put(g, new THREE.TorusGeometry(0.14, 0.036, 8, 12, Math.PI * 0.75), yel, [s * 0.06, 0.16, 0], [0, s * 0.2, 0.5]);
+			}
+		});
+		return true;
+	} else if (builder === "iceCream") {
+		addHead(a => {
+			const cone = toon(0xd97706), scoop = toon(0xf9a8d4), cherry = toon(0xef4444, { emissive: 0xdc2626, emissiveIntensity: 0.3 });
+			put(a, new THREE.SphereGeometry(0.30, 16, 12), scoop, [0, 0.02, 0], [1.0, 0.72, 1.0]);
+			put(a, new THREE.ConeGeometry(0.22, 0.48, 16), cone, [0.05, 0.36, -0.02], [0, 0, -0.18]);
+			put(a, new THREE.SphereGeometry(0.068, 10, 8), cherry, [0.14, 0.62, -0.02]);
+			const sprColors = [0x38bdf8, 0xfacc15, 0x4ade80, 0xf43f5e];
+			for (let i = 0; i < 8; i++) {
+				const ang = (i / 8) * Math.PI * 2;
+				put(a, new THREE.BoxGeometry(0.03, 0.03, 0.07), toon(sprColors[i % 4]), [Math.cos(ang) * 0.27, 0.08, Math.sin(ang) * 0.27], [0, ang, 0.4]);
+			}
+		});
+		addProp("spkmod_skin_giant_spoon", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.022, 0.58, 8), toon(0xe2e8f0), [0, 0.20, 0]);
+			put(g, new THREE.SphereGeometry(0.12, 12, 10), toon(0xf1f5f9), [0, 0.56, 0], [0.9, 1.25, 0.38]);
+		});
+		return true;
+	} else if (builder === "tacoFiesta") {
+		addHead(a => {
+			const shell = toon(0xeab308), letMat = toon(0x22c55e), tom = toon(0xef4444), chz = toon(0xfde047);
+			put(a, new THREE.CylinderGeometry(0.34, 0.34, 0.24, 18, 1, false, 0, Math.PI), shell, [0, 0.02, 0], [0, 0, -Math.PI / 2]);
+			for (let i = -2; i <= 2; i++) {
+				put(a, new THREE.SphereGeometry(0.075, 8, 8), letMat, [i * 0.11, 0.14, 0.04]);
+				put(a, new THREE.BoxGeometry(0.06, 0.06, 0.06), i % 2 ? tom : chz, [i * 0.10, 0.19, -0.02]);
+			}
+		});
+		addProp("spkmod_skin_maraca", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.022, 0.26, 8), toon(0xb45309), [0, 0.08, 0]);
+			put(g, new THREE.SphereGeometry(0.11, 12, 10), toon(0xef4444), [0, 0.28, 0], [1, 1.2, 1]);
+			put(g, new THREE.TorusGeometry(0.105, 0.018, 6, 14), toon(0xfacc15), [0, 0.28, 0], [Math.PI / 2, 0, 0]);
+		});
+		return true;
+	} else if (builder === "pizzaBoy") {
+		addHead(a => {
+			const red = toon(0xdc2626), chz = toon(0xfacc15), crust = toon(0xd97706), pep = toon(0xb91c1c);
+			put(a, new THREE.SphereGeometry(0.31, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.52), red, [0, -0.05, 0]);
+			put(a, new THREE.CylinderGeometry(0.28, 0.28, 0.03, 14, 1, false, -0.9, 1.8), red, [0, -0.04, 0.16]);
+			// Giant pepperoni pizza slice on top of cap
+			put(a, new THREE.CylinderGeometry(0.24, 0.24, 0.045, 3), chz, [0, 0.24, 0.04], [0, Math.PI, 0]);
+			put(a, new THREE.BoxGeometry(0.38, 0.06, 0.06), crust, [0, 0.24, -0.11]);
+			put(a, new THREE.CylinderGeometry(0.042, 0.042, 0.052, 10), pep, [0, 0.25, 0.04]);
+			put(a, new THREE.CylinderGeometry(0.036, 0.036, 0.052, 10), pep, [-0.07, 0.25, -0.03]);
+			put(a, new THREE.CylinderGeometry(0.036, 0.036, 0.052, 10), pep, [0.07, 0.25, -0.03]);
+		});
+		addProp("spkmod_skin_pizza_boxes", g => {
+			const box = toon(0xf8fafc), badge = toon(0xef4444);
+			for (let i = 0; i < 3; i++) {
+				put(g, new THREE.BoxGeometry(0.34, 0.055, 0.34), box, [0, 0.08 + i * 0.062, 0]);
+			}
+			put(g, new THREE.CylinderGeometry(0.08, 0.08, 0.01, 12), badge, [0, 0.24, 0]);
+		});
+		return true;
+	} else if (builder === "duckling") {
+		addHead(a => {
+			const yel = toon(0xfde047), beak = toon(0xf97316);
+			put(a, new THREE.SphereGeometry(0.31, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.56), yel, [0, -0.05, 0]);
+			put(a, new THREE.SphereGeometry(0.14, 12, 8), beak, [0, -0.02, 0.32], [1.1, 0.42, 1.0]);
+			put(a, new THREE.ConeGeometry(0.05, 0.16, 6), yel, [0, 0.30, 0.02], [-0.25, 0, 0]);
+			put(a, new THREE.ConeGeometry(0.04, 0.13, 6), yel, [0.04, 0.29, -0.04], [-0.45, 0, -0.25]);
+		});
+		addBody(spine, "spkmod_skin_duck_wings", [0, 0.04, -0.64], wa => {
+			const yel = toon(0xfde047);
+			for (const s of [-1, 1]) {
+				const w = new THREE.Group();
+				w.position.set(s * 0.18, 0, 0);
+				put(w, new THREE.SphereGeometry(0.18, 12, 10), yel, [s * 0.16, 0, 0], [0, 0, -s * 0.3], [1.3, 0.7, 0.45]);
+				wa.add(w);
+				animParts.push({ type: "wing", node: w, side: s });
+			}
+		});
+		addProp("spkmod_skin_bread_basket", g => {
+			put(g, new THREE.CylinderGeometry(0.14, 0.10, 0.14, 12), toon(0xb45309), [0, 0.08, 0]);
+			put(g, new THREE.SphereGeometry(0.09, 10, 8), toon(0xfbbf24), [0, 0.17, 0], [1.2, 0.75, 0.9]);
+		});
+		return true;
+	} else if (builder === "mooCow") {
+		addHead(a => {
+			const wht = toon(0xf8fafc), blk = toon(0x18181b), pnk = toon(0xf9a8d4), horn = toon(0xfef3c7);
+			for (const s of [-1, 1]) {
+				const ear = new THREE.Group();
+				ear.position.set(s * 0.26, -0.05, 0.02);
+				const baseRotZ = s * 0.42;
+				ear.rotation.z = baseRotZ;
+				put(ear, new THREE.SphereGeometry(0.13, 12, 10), s === 1 ? blk : wht, [s * 0.06, 0, 0], null, [1.2, 0.65, 0.42]);
+				put(ear, new THREE.SphereGeometry(0.08, 10, 8), pnk, [s * 0.06, -0.005, 0.045], null, [0.95, 0.48, 0.22]);
+				a.add(ear);
+				animParts.push({ type: "earWiggle", node: ear, side: s, baseRotZ });
+				// Curved cow horns anchored deeply into skull dome (no floating gap)
+				const hGroup = new THREE.Group();
+				hGroup.position.set(s * 0.14, -0.03, 0.04);
+				hGroup.rotation.set(0.12, 0, -s * 0.30);
+				put(hGroup, new THREE.ConeGeometry(0.058, 0.18, 10), horn, [0, 0.06, 0]);
+				put(hGroup, new THREE.ConeGeometry(0.036, 0.12, 10), horn, [-s * 0.015, 0.165, 0.01], [0, 0, s * 0.32]);
+				a.add(hGroup);
+			}
+			put(a, new THREE.CylinderGeometry(0.05, 0.075, 0.09, 8), toon(0xeab308), [0, -0.34, 0.24]);
+		});
+		addBody(pelvis, "spkmod_skin_cow_tail", [0, -0.14, -0.20], ta => {
+			const tr = new THREE.Group();
+			put(tr, new THREE.CylinderGeometry(0.022, 0.026, 0.54, 8), toon(0xf8fafc), [0, -0.08, -0.28], [-1.25, 0, 0]);
+			put(tr, new THREE.SphereGeometry(0.068, 10, 8), toon(0x18181b), [0, -0.16, -0.54], null, [0.9, 1.3, 0.9]);
+			ta.add(tr);
+			animParts.push({ type: "tail", node: tr, speed: 4.0, amp: 0.3 });
+		});
+		addProp("spkmod_skin_milk_carton", g => {
+			put(g, new THREE.BoxGeometry(0.14, 0.24, 0.14), toon(0xf8fafc), [0, 0.12, 0]);
+			put(g, new THREE.BoxGeometry(0.144, 0.08, 0.144), toon(0x38bdf8), [0, 0.10, 0]);
+			put(g, new THREE.ConeGeometry(0.10, 0.10, 4), toon(0x38bdf8), [0, 0.28, 0], [0, Math.PI / 4, 0]);
+		});
+		return true;
+	} else if (builder === "cloudLamb") {
+		addHead(a => {
+			const wool = toon(0xfefce8), horn = toon(0xfbbf24), hornDark = toon(0xd97706), pnk = toon(0xf9a8d4);
+			const puffs = [[0, 0.10, 0, 0.23], [-0.18, 0.05, 0.03, 0.15], [0.18, 0.05, 0.03, 0.15], [0, 0.08, 0.16, 0.145], [0, 0.06, -0.16, 0.16], [-0.12, 0.19, -0.04, 0.145], [0.12, 0.19, -0.04, 0.145]];
+			for (const [x, y, z, r] of puffs) put(a, new THREE.SphereGeometry(r, 12, 10), wool, [x, y, z]);
+			for (const s of [-1, 1]) {
+				// Curly spiraled ram horns emerging cleanly OUTSIDE the side wool puffs
+				const h = new THREE.Group();
+				h.position.set(s * 0.32, 0.01, 0.02);
+				h.rotation.set(0.12, s * Math.PI / 2, 0);
+				put(h, new THREE.TorusGeometry(0.115, 0.038, 10, 18, Math.PI * 1.55), horn, [0, -0.02, 0.02]);
+				put(h, new THREE.TorusGeometry(0.062, 0.028, 8, 14, Math.PI * 1.25), hornDark, [0.02, -0.04, 0.068], [0, 0, 0.85]);
+				put(h, new THREE.SphereGeometry(0.028, 8, 8), hornDark, [-0.035, -0.05, 0.082]);
+				a.add(h);
+				// Cute floppy lamb ears tucked neatly under the curly horns
+				const ear = new THREE.Group();
+				ear.position.set(s * 0.27, -0.11, -0.01);
+				const baseRotZ = s * 0.82;
+				ear.rotation.z = baseRotZ;
+				put(ear, new THREE.SphereGeometry(0.095, 10, 8), wool, [s * 0.07, 0, 0], null, [1.3, 0.55, 0.42]);
+				put(ear, new THREE.SphereGeometry(0.06, 8, 8), pnk, [s * 0.07, -0.005, 0.032], null, [1.05, 0.42, 0.22]);
+				a.add(ear);
+				animParts.push({ type: "earWiggle", node: ear, side: s, baseRotZ });
+			}
+		});
+		addProp("spkmod_skin_shepherd_bell", g => {
+			put(g, new THREE.CylinderGeometry(0.02, 0.02, 0.68, 8), toon(0x92400e), [0, 0.24, 0]);
+			put(g, new THREE.TorusGeometry(0.09, 0.022, 8, 12, Math.PI), toon(0x92400e), [0.09, 0.58, 0]);
+			put(g, new THREE.SphereGeometry(0.055, 10, 8), toon(0xfacc15), [0.17, 0.50, 0]);
+		});
+		return true;
+	} else if (builder === "raccoon") {
+		addHead(a => {
+			const gry = toon(0x64748b), blk = toon(0x18181b), wht = toon(0xf1f5f9);
+			for (const s of [-1, 1]) {
+				// Seated cleanly into skull sides matching kitsune ear anchor depth
+				const ear = new THREE.Group();
+				ear.position.set(s * 0.20, -0.07, 0.02);
+				const baseRotZ = -s * 0.32;
+				ear.rotation.z = baseRotZ;
+				ear.rotation.x = 0.08;
+				put(ear, new THREE.ConeGeometry(0.125, 0.26, 6), blk, [0, 0.09, 0], [0, Math.PI / 6, 0], [1, 1, 0.52]);
+				put(ear, new THREE.ConeGeometry(0.078, 0.17, 6), wht, [0, 0.08, 0.032], [0, Math.PI / 6, 0], [1, 1, 0.38]);
+				a.add(ear);
+				animParts.push({ type: "earWiggle", node: ear, side: s, baseRotZ });
+			}
+			// Bandit goggles resting snug against the brow
+			put(a, new THREE.BoxGeometry(0.44, 0.095, 0.065), blk, [0, -0.08, 0.24]);
+			for (const s of [-1, 1]) put(a, new THREE.TorusGeometry(0.072, 0.018, 8, 14), gry, [s * 0.11, -0.08, 0.275]);
+		});
+		addBody(pelvis, "spkmod_skin_raccoon_tail", [0, -0.14, -0.22], ta => {
+			const tr = new THREE.Group(), gry = toon(0x64748b), blk = toon(0x18181b);
+			for (let i = 0; i < 6; i++) {
+				put(tr, new THREE.SphereGeometry(0.12 - i * 0.008, 12, 10), i % 2 === 0 ? gry : blk, [0, 0.02 + i * 0.07, -0.14 - i * 0.12], null, [1.0, 1.0, 1.2]);
+			}
+			ta.add(tr);
+			animParts.push({ type: "tail", node: tr, speed: 4.5, amp: 0.34 });
+		});
+		addProp("spkmod_skin_loot_bag", g => {
+			put(g, new THREE.SphereGeometry(0.15, 12, 10), toon(0xd97706), [0, 0.06, 0], null, [1, 1.15, 1]);
+			put(g, new THREE.CylinderGeometry(0.06, 0.08, 0.08, 10), toon(0xfacc15), [0, 0.21, 0]);
+		});
+		return true;
+	} else if (builder === "penguin") {
+		addHead(a => {
+			const blk = toon(0x0f172a), org = toon(0xf97316), red = toon(0xef4444);
+			put(a, new THREE.SphereGeometry(0.32, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.54), blk, [0, -0.05, 0]);
+			put(a, new THREE.ConeGeometry(0.09, 0.18, 10), org, [0, -0.03, 0.34], [Math.PI / 2, 0, 0]);
+			put(a, new THREE.TorusGeometry(0.28, 0.055, 8, 18), red, [0, -0.34, 0.02], [Math.PI / 2, 0, 0]);
+		});
+		addBody(spine, "spkmod_skin_penguin_wings", [0, 0.02, -0.60], wa => {
+			const blk = toon(0x0f172a);
+			for (const s of [-1, 1]) {
+				const w = new THREE.Group();
+				w.position.set(s * 0.22, 0, 0);
+				put(w, new THREE.SphereGeometry(0.16, 10, 8), blk, [s * 0.14, -0.06, 0], [0, 0, -s * 0.6], [1.4, 0.55, 0.45]);
+				wa.add(w);
+				animParts.push({ type: "wing", node: w, side: s });
+			}
+		});
+		addProp("spkmod_skin_fish_pop", g => {
+			put(g, new THREE.CylinderGeometry(0.018, 0.018, 0.34, 8), toon(0xfde68a), [0, 0.06, 0]);
+			put(g, new THREE.SphereGeometry(0.12, 12, 10), toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.3 }), [0, 0.34, 0], [0.7, 1.3, 0.4]);
+			put(g, new THREE.ConeGeometry(0.08, 0.12, 4), toon(0x38bdf8), [0, 0.50, 0], [Math.PI, 0, 0]);
+		});
+		return true;
+	} else if (builder === "rooster") {
+		addHead(a => {
+			const red = toon(0xef4444), org = toon(0xf97316);
+			// Dome-hugging comb ridge + 4 lobes curved tightly along Speaki's skull (zero gap)
+			put(a, new THREE.BoxGeometry(0.068, 0.11, 0.34), red, [0, -0.015, -0.02], [0.28, 0, 0]);
+			const lobes = [
+				[0, 0.065, 0.14, 0.092],
+				[0, 0.075, 0.03, 0.095],
+				[0, 0.035, -0.08, 0.086],
+				[0, -0.025, -0.18, 0.078]
+			];
+			for (const [lx, ly, lz, lr] of lobes) {
+				put(a, new THREE.SphereGeometry(lr, 10, 8), red, [lx, ly, lz], null, [0.44, 1.38, 0.92]);
+			}
+			put(a, new THREE.ConeGeometry(0.075, 0.16, 8), org, [0, -0.04, 0.31], [Math.PI / 2, 0, 0]);
+		});
+		// Prominent arching multicolored rooster tail clearing well behind long hair & hood
+		addBody(pelvis, "spkmod_skin_rooster_tail", [0, -0.06, -0.40], ta => {
+			const tr = new THREE.Group(), cols = [0xef4444, 0xf97316, 0xfacc15, 0x16a34a, 0x2563eb];
+			for (let i = 0; i < 5; i++) {
+				const off = i - 2;
+				const mat = toon(cols[i]);
+				const plume = new THREE.Group();
+				plume.position.set(off * 0.07, 0.02, -0.12);
+				plume.rotation.y = off * 0.18;
+				plume.rotation.z = -off * 0.14;
+				put(plume, new THREE.ConeGeometry(0.078, 0.50, 8), mat, [0, 0.16, -0.22], [-0.88, 0, 0], [0.65, 1.0, 1.1]);
+				put(plume, new THREE.ConeGeometry(0.066, 0.44, 8), mat, [0, 0.42, -0.42], [-0.35, 0, 0], [0.58, 1.0, 1.05]);
+				tr.add(plume);
+			}
+			ta.add(tr);
+			animParts.push({ type: "tail", node: tr, speed: 5.0, amp: 0.26 });
+		});
+		addProp("spkmod_skin_rubber_chicken", g => {
+			const yel = toon(0xfacc15), red = toon(0xef4444);
+			put(g, new THREE.SphereGeometry(0.11, 10, 8), yel, [0, 0.16, 0], null, [0.85, 1.2, 0.85]);
+			put(g, new THREE.CylinderGeometry(0.036, 0.044, 0.24, 8), yel, [0, 0.34, 0]);
+			put(g, new THREE.SphereGeometry(0.068, 10, 8), yel, [0, 0.48, 0.02]);
+			put(g, new THREE.ConeGeometry(0.038, 0.09, 6), red, [0, 0.48, 0.11], [Math.PI / 2, 0, 0]);
+		});
+		return true;
+	} else if (builder === "pajamas") {
+		addHead(a => {
+			const cap = toon(0x6366f1), dot = toon(0xfef08a), wht = toon(0xf8fafc);
+			put(a, new THREE.TorusGeometry(0.28, 0.055, 8, 18), wht, [0, -0.04, 0], [Math.PI / 2, 0, 0]);
+			put(a, new THREE.ConeGeometry(0.27, 0.46, 14), cap, [0, 0.18, -0.06], [-0.35, 0, 0]);
+			put(a, new THREE.ConeGeometry(0.11, 0.30, 10), cap, [0.16, 0.28, -0.22], [-0.85, 0, -0.9]);
+			put(a, new THREE.SphereGeometry(0.075, 10, 8), wht, [0.30, 0.20, -0.34]);
+			for (let i = 0; i < 3; i++) {
+				const orb = new THREE.Group();
+				put(orb, new THREE.SphereGeometry(0.045 + i * 0.012, 8, 8), dot);
+				a.add(orb);
+				animParts.push({ type: "orbit", node: orb, radius: 0.48, baseY: 0.18 + i * 0.08, phase: (i / 3) * Math.PI * 2 });
+			}
+		});
+		addProp("spkmod_skin_pillow", g => {
+			put(g, new THREE.BoxGeometry(0.32, 0.40, 0.12), toon(0xe0e7ff), [0, 0.18, 0]);
+			put(g, new THREE.SphereGeometry(0.05, 8, 8), toon(0xfde047), [0, 0.18, 0.07]);
+		});
+		return true;
+	} else if (builder === "honkClown") {
+		addHead(a => {
+			const cols = [0xef4444, 0xf97316, 0xfacc15, 0x22c55e, 0x3b82f6, 0xa855f7];
+			for (let i = 0; i < 12; i++) {
+				const ang = (i / 12) * Math.PI * 2;
+				put(a, new THREE.SphereGeometry(0.145, 10, 8), toon(cols[i % 6]), [Math.cos(ang) * 0.26, 0.08 + (i % 2) * 0.09, Math.sin(ang) * 0.26]);
+			}
+			put(a, new THREE.SphereGeometry(0.18, 12, 10), toon(0xf43f5e), [0, 0.22, 0]);
+			put(a, new THREE.TorusGeometry(0.28, 0.06, 8, 18), toon(0xfef08a), [0, -0.35, 0], [Math.PI / 2, 0, 0]);
+		});
+		addProp("spkmod_skin_clown_mallet", g => {
+			put(g, new THREE.CylinderGeometry(0.022, 0.022, 0.56, 8), toon(0xfacc15), [0, 0.20, 0]);
+			put(g, new THREE.CylinderGeometry(0.15, 0.15, 0.36, 16), toon(0xef4444), [0, 0.54, 0], [0, 0, Math.PI / 2]);
+			for (const s of [-1, 1]) put(g, new THREE.CylinderGeometry(0.158, 0.158, 0.04, 16), toon(0xfacc15), [s * 0.16, 0.54, 0], [0, 0, Math.PI / 2]);
+		});
+		return true;
+	} else if (builder === "sushiHat") {
+		addHead(a => {
+			const rice = toon(0xf8fafc), salmon = toon(0xfb7185), stripe = toon(0xffedd5), nori = toon(0x14532d);
+			put(a, new THREE.BoxGeometry(0.36, 0.16, 0.56), rice, [0, 0.04, 0]);
+			put(a, new THREE.BoxGeometry(0.40, 0.09, 0.64), salmon, [0, 0.15, 0]);
+			for (const sz of [-0.18, 0, 0.18]) put(a, new THREE.BoxGeometry(0.41, 0.095, 0.03), stripe, [0, 0.155, sz], [0, 0.35, 0]);
+			put(a, new THREE.BoxGeometry(0.42, 0.24, 0.14), nori, [0, 0.10, 0]);
+		});
+		addProp("spkmod_skin_soy_bottle", g => {
+			put(g, new THREE.CylinderGeometry(0.075, 0.095, 0.24, 12), toon(0x451a03), [0, 0.12, 0]);
+			put(g, new THREE.CylinderGeometry(0.04, 0.055, 0.09, 10), toon(0xdc2626), [0, 0.27, 0]);
+		});
+		return true;
+	} else if (builder === "bobaTea") {
+		addHead(a => {
+			const cup = toon(0xe6ccb2), lid = toon(0xffffff, { transparent: true, opacity: 0.65 }), straw = toon(0xf472b6), pearl = toon(0x1c1917);
+			put(a, new THREE.CylinderGeometry(0.26, 0.22, 0.20, 18), cup, [0, 0.05, 0]);
+			put(a, new THREE.SphereGeometry(0.26, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), lid, [0, 0.14, 0]);
+			put(a, new THREE.CylinderGeometry(0.045, 0.045, 0.44, 12), straw, [0.06, 0.34, 0], [0, 0, -0.18]);
+			for (let i = 0; i < 6; i++) {
+				const orb = new THREE.Group();
+				put(orb, new THREE.SphereGeometry(0.055, 10, 8), pearl);
+				a.add(orb);
+				animParts.push({ type: "orbit", node: orb, radius: 0.46, baseY: 0.04 + (i % 2) * 0.12, phase: (i / 6) * Math.PI * 2 });
+			}
+		});
+		addProp("spkmod_skin_boba_cup", g => {
+			put(g, new THREE.CylinderGeometry(0.11, 0.085, 0.26, 14), toon(0xe6ccb2), [0, 0.14, 0]);
+			put(g, new THREE.CylinderGeometry(0.025, 0.025, 0.22, 8), toon(0xf472b6), [0, 0.32, 0]);
+		});
+		return true;
+	} else if (builder === "toadstool") {
+		addHead(a => {
+			const cap = toon(0xdc2626), wht = toon(0xf8fafc), glow = toon(0x86efac, { emissive: 0x4ade80, emissiveIntensity: 0.8 });
+			put(a, new THREE.SphereGeometry(0.56, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.52), cap, [0, -0.02, 0], null, [1, 0.72, 1]);
+			put(a, new THREE.CylinderGeometry(0.52, 0.52, 0.04, 20), wht, [0, -0.03, 0]);
+			const spots = [[0, 0.36, 0, 0.12], [0.34, 0.18, 0.16, 0.10], [-0.34, 0.18, 0.16, 0.10], [0.24, 0.20, -0.30, 0.10], [-0.24, 0.20, -0.30, 0.10], [0, 0.18, 0.38, 0.10]];
+			for (const [x, y, z, r] of spots) put(a, new THREE.SphereGeometry(r, 10, 8), wht, [x, y, z], null, [1, 0.5, 1]);
+			for (let i = 0; i < 4; i++) {
+				const orb = new THREE.Group();
+				put(orb, new THREE.SphereGeometry(0.042, 8, 8), glow);
+				a.add(orb);
+				animParts.push({ type: "orbit", node: orb, radius: 0.62, baseY: 0.12, phase: (i / 4) * Math.PI * 2 });
+			}
+		});
+		addProp("spkmod_skin_shroom_wand", g => {
+			put(g, new THREE.CylinderGeometry(0.024, 0.032, 0.58, 8), toon(0xfef3c7), [0, 0.20, 0]);
+			put(g, new THREE.SphereGeometry(0.15, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), toon(0xdc2626), [0, 0.48, 0]);
+		});
+		return true;
+	} else if (builder === "detective") {
+		addHead(a => {
+			const plaid = toon(0x92400e), dark = toon(0x451a03), clue = toon(0xfacc15, { emissive: 0xeab308, emissiveIntensity: 0.65 });
+			put(a, new THREE.SphereGeometry(0.32, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), plaid, [0, -0.05, 0]);
+			put(a, new THREE.BoxGeometry(0.28, 0.035, 0.18), dark, [0, -0.04, 0.30]);
+			put(a, new THREE.BoxGeometry(0.28, 0.035, 0.18), dark, [0, -0.04, -0.30]);
+			put(a, new THREE.SphereGeometry(0.05, 8, 8), dark, [0, 0.27, 0]);
+			for (let i = 0; i < 3; i++) {
+				const orb = new THREE.Group();
+				put(orb, new THREE.OctahedronGeometry(0.055, 0), clue);
+				a.add(orb);
+				animParts.push({ type: "orbit", node: orb, radius: 0.52, baseY: 0.22, phase: (i / 3) * Math.PI * 2 });
+			}
+		});
+		addProp("spkmod_skin_detective_glass", g => {
+			put(g, new THREE.CylinderGeometry(0.024, 0.028, 0.36, 8), toon(0x78350f), [0, 0.08, 0]);
+			put(g, new THREE.TorusGeometry(0.17, 0.03, 10, 20), toon(0xf59e0b), [0, 0.40, 0]);
+			put(g, new THREE.CircleGeometry(0.155, 16), toon(0xbae6fd, { transparent: true, opacity: 0.5, side: THREE.DoubleSide }), [0, 0.40, 0]);
+		});
+		return true;
+	} else if (builder === "mariachi") {
+		addHead(a => {
+			const blk = toon(0x18181b), gld = toon(0xfacc15), red = toon(0xe11d48);
+			put(a, new THREE.CylinderGeometry(0.66, 0.62, 0.05, 24), blk, [0, -0.02, 0]);
+			put(a, new THREE.TorusGeometry(0.64, 0.035, 8, 24), gld, [0, 0.01, 0], [Math.PI / 2, 0, 0]);
+			put(a, new THREE.ConeGeometry(0.26, 0.36, 16), blk, [0, 0.16, 0]);
+			put(a, new THREE.TorusGeometry(0.25, 0.03, 8, 18), red, [0, 0.03, 0], [Math.PI / 2, 0, 0]);
+		});
+		// Use calibrated Q.GUITAR_R so the mariachi guitar faces outward cleanly
+		addProp("spkmod_skin_acoustic_guitar", g => {
+			const wood = toon(0xd97706), neck = toon(0x78350f), hole = toon(0x1c1917), gld = toon(0xfacc15), str = toon(0xfef3c7);
+			put(g, new THREE.CylinderGeometry(0.16, 0.16, 0.075, 18), wood, [0, 0.01, 0], [Math.PI / 2, 0, 0]);
+			put(g, new THREE.CylinderGeometry(0.125, 0.125, 0.075, 16), wood, [0, 0.21, 0], [Math.PI / 2, 0, 0]);
+			put(g, new THREE.CylinderGeometry(0.052, 0.052, 0.014, 14), hole, [0, 0.14, 0.036], [Math.PI / 2, 0, 0]);
+			put(g, new THREE.TorusGeometry(0.062, 0.009, 6, 16), gld, [0, 0.14, 0.042]);
+			put(g, new THREE.BoxGeometry(0.11, 0.026, 0.018), neck, [0, -0.01, 0.042]);
+			put(g, new THREE.BoxGeometry(0.056, 0.48, 0.032), neck, [0, 0.50, 0.01]);
+			put(g, new THREE.BoxGeometry(0.032, 0.56, 0.008), str, [0, 0.36, 0.034]);
+			put(g, new THREE.BoxGeometry(0.085, 0.12, 0.032), neck, [0, 0.78, 0.01]);
+			for (const s of [-1, 1]) {
+				put(g, new THREE.CylinderGeometry(0.01, 0.01, 0.04, 6), gld, [s * 0.055, 0.76, 0.01], [0, 0, Math.PI / 2]);
+				put(g, new THREE.CylinderGeometry(0.01, 0.01, 0.04, 6), gld, [s * 0.055, 0.81, 0.01], [0, 0, Math.PI / 2]);
+			}
+		}, [0.04, -0.14, 0.09], rightHand, Q.GUITAR_R);
+		return true;
+	} else if (builder === "ramenBowl") {
+		addHead(a => {
+			const bowl = toon(0xb91c1c), rim = toon(0xfacc15), broth = toon(0xf59e0b), egg = toon(0xffffff), yolk = toon(0xf97316), nori = toon(0x14532d), stick = toon(0x78350f);
+			put(a, new THREE.CylinderGeometry(0.38, 0.22, 0.26, 20), bowl, [0, 0.08, 0]);
+			put(a, new THREE.TorusGeometry(0.37, 0.025, 8, 20), rim, [0, 0.21, 0], [Math.PI / 2, 0, 0]);
+			put(a, new THREE.CylinderGeometry(0.35, 0.35, 0.02, 18), broth, [0, 0.19, 0]);
+			put(a, new THREE.SphereGeometry(0.09, 10, 8), egg, [-0.12, 0.21, 0.06], null, [1.2, 0.55, 0.9]);
+			put(a, new THREE.SphereGeometry(0.05, 8, 8), yolk, [-0.12, 0.23, 0.06]);
+			put(a, new THREE.BoxGeometry(0.16, 0.20, 0.015), nori, [0.18, 0.28, -0.14], [-0.25, -0.4, 0]);
+			put(a, new THREE.CylinderGeometry(0.012, 0.016, 0.56, 8), stick, [0.08, 0.28, 0.06], [0.25, 0, -0.85]);
+			put(a, new THREE.CylinderGeometry(0.012, 0.016, 0.56, 8), stick, [0.06, 0.30, 0.11], [0.22, 0, -0.78]);
+		});
+		// Right-side-up Japanese ramen ladle: cup opens upward (+Z under Q.HERO_R), double-sided with golden broth inside
+		addProp("spkmod_skin_ramen_ladle", g => {
+			const red = toon(0xdc2626), blk = toon(0x18181b, { side: THREE.DoubleSide }), broth = toon(0xf59e0b), cake = toon(0xf8fafc), swirl = toon(0xf472b6);
+			put(g, new THREE.CylinderGeometry(0.018, 0.022, 0.48, 8), red, [0, 0.18, 0]);
+			const cup = new THREE.Group();
+			cup.position.set(0, 0.49, -0.02);
+			cup.rotation.x = Math.PI / 2 - 0.35;
+			put(cup, new THREE.SphereGeometry(0.115, 16, 12, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5), blk, [0, 0, 0]);
+			put(cup, new THREE.TorusGeometry(0.115, 0.012, 8, 18), red, [0, 0, 0], [Math.PI / 2, 0, 0]);
+			put(cup, new THREE.CylinderGeometry(0.104, 0.104, 0.014, 16), broth, [0, -0.016, 0]);
+			put(cup, new THREE.CylinderGeometry(0.032, 0.032, 0.016, 12), cake, [0.02, -0.005, 0.01]);
+			put(cup, new THREE.SphereGeometry(0.014, 8, 8), swirl, [0.02, 0.004, 0.01]);
+			g.add(cup);
+		});
+		return true;
+	} else if (builder === "cardboardBot") {
+		addHead(a => {
+			const box = toon(0xc49a6c), tape = toon(0x94a3b8), eye = toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.7 });
+			put(a, new THREE.BoxGeometry(0.56, 0.42, 0.52), box, [0, 0.12, 0]);
+			put(a, new THREE.BoxGeometry(0.57, 0.07, 0.12), tape, [0, 0.33, 0]);
+			put(a, new THREE.BoxGeometry(0.10, 0.10, 0.03), eye, [-0.13, 0.14, 0.26]);
+			put(a, new THREE.BoxGeometry(0.10, 0.10, 0.03), eye, [0.13, 0.14, 0.26]);
+			const ant = new THREE.Group();
+			ant.position.set(0, 0.34, 0);
+			put(ant, new THREE.CylinderGeometry(0.014, 0.014, 0.22, 6), tape, [0, 0.11, 0], [0, 0, 0.22]);
+			put(ant, new THREE.SphereGeometry(0.045, 8, 8), toon(0xef4444, { emissive: 0xdc2626, emissiveIntensity: 0.7 }), [-0.04, 0.22, 0]);
+			a.add(ant);
+			animParts.push({ type: "earWiggle", node: ant, side: 1, baseRotZ: 0 });
+		});
+		addProp("spkmod_skin_robot_claw", g => {
+			put(g, new THREE.BoxGeometry(0.14, 0.26, 0.14), toon(0xc49a6c), [0, 0.12, 0]);
+			for (const s of [-1, 1]) put(g, new THREE.BoxGeometry(0.04, 0.16, 0.06), toon(0x94a3b8), [s * 0.07, 0.32, 0], [0, 0, s * 0.25]);
+		});
+		return true;
+	} else if (builder === "crtTv") {
+		addHead(a => {
+			const shell = toon(0xe7e5e4), bezel = toon(0x334155), screen = toon(0x0ea5e9, { emissive: 0x38bdf8, emissiveIntensity: 0.55 }), antMat = toon(0x94a3b8);
+			put(a, new THREE.BoxGeometry(0.62, 0.48, 0.52), shell, [0, 0.12, -0.02]);
+			put(a, new THREE.BoxGeometry(0.48, 0.34, 0.04), bezel, [-0.04, 0.12, 0.24]);
+			put(a, new THREE.BoxGeometry(0.42, 0.28, 0.046), screen, [-0.04, 0.12, 0.245]);
+			// Cute glowing pixel ^_^ on screen
+			for (const s of [-1, 1]) put(a, new THREE.BoxGeometry(0.08, 0.03, 0.055), toon(0xffffff), [-0.04 + s * 0.10, 0.16, 0.25]);
+			put(a, new THREE.BoxGeometry(0.10, 0.025, 0.055), toon(0xffffff), [-0.04, 0.07, 0.25]);
+			// Rabbit-ear antennas
+			for (const s of [-1, 1]) {
+				put(a, new THREE.CylinderGeometry(0.01, 0.012, 0.36, 6), antMat, [s * 0.12, 0.48, 0], [0, 0, -s * 0.45]);
+			}
+		});
+		addProp("spkmod_skin_tv_remote", g => {
+			put(g, new THREE.BoxGeometry(0.08, 0.28, 0.035), toon(0x1e293b), [0, 0.14, 0]);
+			put(g, new THREE.SphereGeometry(0.02, 6, 6), toon(0xef4444), [0.02, 0.24, 0.02]);
+		});
+		return true;
+	} else if (builder === "snail") {
+		addHead(a => {
+			const body = toon(0xfde68a), eye = toon(0x18181b), wht = toon(0xffffff);
+			for (const s of [-1, 1]) {
+				const stalk = new THREE.Group();
+				stalk.position.set(s * 0.16, 0.02, 0.08);
+				const baseRotZ = -s * 0.26;
+				stalk.rotation.z = baseRotZ;
+				put(stalk, new THREE.CylinderGeometry(0.022, 0.026, 0.34, 8), body, [0, 0.16, 0]);
+				put(stalk, new THREE.SphereGeometry(0.075, 10, 8), wht, [0, 0.35, 0]);
+				put(stalk, new THREE.SphereGeometry(0.038, 8, 6), eye, [0, 0.35, 0.055]);
+				a.add(stalk);
+				animParts.push({ type: "earWiggle", node: stalk, side: s, baseRotZ });
+			}
+		});
+		addBody(spine, "spkmod_skin_snail_shell", [0, 0.06, -0.78], sa => {
+			const sh = toon(0xc084fc), spiral = toon(0x7e22ce);
+			put(sa, new THREE.SphereGeometry(0.46, 18, 14), sh, [0, 0.06, -0.10], null, [0.78, 1.05, 1.05]);
+			for (const s of [-1, 1]) {
+				put(sa, new THREE.TorusGeometry(0.24, 0.045, 8, 18), spiral, [s * 0.34, 0.06, -0.10], [0, Math.PI / 2, 0]);
+				put(sa, new THREE.TorusGeometry(0.11, 0.035, 8, 14), spiral, [s * 0.36, 0.06, -0.10], [0, Math.PI / 2, 0]);
+			}
+		});
+		return true;
+	} else if (builder === "octopus") {
+		addHead(a => {
+			const oct = toon(0xa855f7), suc = toon(0xf5d0fe), eye = toon(0x18181b), wht = toon(0xffffff);
+			put(a, new THREE.SphereGeometry(0.27, 16, 14), oct, [0, 0.20, 0], [0.95, 1.15, 0.95]);
+			for (const s of [-1, 1]) {
+				put(a, new THREE.SphereGeometry(0.058, 10, 8), wht, [s * 0.11, 0.16, 0.22]);
+				put(a, new THREE.SphereGeometry(0.032, 8, 8), eye, [s * 0.11, 0.16, 0.265]);
+			}
+			for (let i = 0; i < 8; i++) {
+				const ang = (i / 8) * Math.PI * 2;
+				const tent = new THREE.Group();
+				tent.position.set(Math.cos(ang) * 0.22, 0.02, Math.sin(ang) * 0.22);
+				const baseRotZ = -Math.cos(ang) * 0.45;
+				tent.rotation.z = baseRotZ;
+				tent.rotation.x = Math.sin(ang) * 0.45;
+				put(tent, new THREE.ConeGeometry(0.055, 0.34, 8), oct, [0, -0.15, 0], [Math.PI, 0, 0]);
+				put(tent, new THREE.SphereGeometry(0.028, 6, 6), suc, [0, -0.18, 0.02]);
+				a.add(tent);
+				animParts.push({ type: "earWiggle", node: tent, side: i % 2 ? 1 : -1, baseRotZ });
+			}
+		});
+		return true;
+	} else if (builder === "trex") {
+		addHead(a => {
+			const grn = toon(0x22c55e), yel = toon(0xfef08a), wht = toon(0xffffff), eye = toon(0x18181b);
+			put(a, new THREE.BoxGeometry(0.46, 0.34, 0.56), grn, [0, 0.12, 0.12]);
+			put(a, new THREE.BoxGeometry(0.38, 0.10, 0.22), yel, [0, -0.02, 0.36]);
+			for (const s of [-1, 1]) {
+				put(a, new THREE.SphereGeometry(0.06, 8, 8), wht, [s * 0.22, 0.20, 0.22]);
+				put(a, new THREE.SphereGeometry(0.032, 6, 6), eye, [s * 0.24, 0.20, 0.26]);
+				put(a, new THREE.ConeGeometry(0.035, 0.08, 4), wht, [s * 0.12, -0.03, 0.38], [Math.PI, 0, 0]);
+			}
+		});
+		addBody(pelvis, "spkmod_skin_trex_tail", [0, -0.14, -0.22], ta => {
+			const tr = new THREE.Group(), grn = toon(0x22c55e), spineM = toon(0x15803d);
+			for (let i = 0; i < 4; i++) {
+				put(tr, new THREE.SphereGeometry(0.20 - i * 0.038, 12, 10), grn, [0, -0.04 + i * 0.03, -0.18 - i * 0.22], null, [1.0, 0.9, 1.3]);
+				put(tr, new THREE.ConeGeometry(0.055 - i * 0.008, 0.12, 4), spineM, [0, 0.14 - i * 0.01, -0.18 - i * 0.22]);
+			}
+			ta.add(tr);
+			animParts.push({ type: "tail", node: tr, speed: 3.4, amp: 0.28 });
+		});
+		return true;
+	} else if (builder === "capybara") {
+		addHead(a => {
+			const fur = toon(0x92400e), org = toon(0xf97316, { emissive: 0xea580c, emissiveIntensity: 0.18 }), leaf = toon(0x22c55e);
+			for (const s of [-1, 1]) {
+				put(a, new THREE.SphereGeometry(0.10, 10, 8), fur, [s * 0.25, 0.01, -0.02], null, [0.9, 1.0, 0.45]);
+			}
+			// Iconic stacked Zen mandarin oranges balanced on head!
+			put(a, new THREE.SphereGeometry(0.14, 14, 12), org, [0, 0.11, 0], null, [1.05, 0.88, 1.05]);
+			put(a, new THREE.SphereGeometry(0.105, 12, 10), org, [0, 0.30, 0], null, [1.05, 0.88, 1.05]);
+			put(a, new THREE.ConeGeometry(0.045, 0.11, 4), leaf, [0.04, 0.42, 0], [0, 0, -0.5]);
+		});
+		addProp("spkmod_skin_yuzu_branch", g => {
+			put(g, new THREE.SphereGeometry(0.11, 12, 10), toon(0xf97316), [0, 0.14, 0], [0, 0, 0], [1.05, 0.9, 1.05]);
+			put(g, new THREE.ConeGeometry(0.04, 0.09, 4), toon(0x22c55e), [0.04, 0.24, 0], [0, 0, -0.4]);
+		});
+		return true;
+	} else if (builder === "plagueDoc") {
+		addHead(a => {
+			const blk = toon(0x18181b), gld = toon(0xeab308), beak = toon(0xe7e5e4);
+			put(a, new THREE.CylinderGeometry(0.50, 0.52, 0.04, 22), blk, [0, 0.02, 0]);
+			put(a, new THREE.CylinderGeometry(0.24, 0.28, 0.28, 18), blk, [0, 0.16, 0]);
+			put(a, new THREE.TorusGeometry(0.27, 0.024, 8, 18), gld, [0, 0.06, 0], [Math.PI / 2, 0, 0]);
+			// Curved crow beak mask resting at front brow
+			put(a, new THREE.ConeGeometry(0.10, 0.34, 10), beak, [0, -0.14, 0.34], [1.85, 0, 0]);
+			for (const s of [-1, 1]) put(a, new THREE.TorusGeometry(0.055, 0.015, 8, 12), gld, [s * 0.10, -0.10, 0.28]);
+		});
+		addProp("spkmod_skin_plague_lantern", g => {
+			put(g, new THREE.CylinderGeometry(0.022, 0.024, 0.74, 8), toon(0x27272a), [0, 0.26, 0]);
+			put(g, new THREE.OctahedronGeometry(0.12, 0), toon(0x22c55e, { emissive: 0x4ade80, emissiveIntensity: 0.85 }), [0, 0.68, 0.08]);
+		});
+		return true;
+	} else if (builder === "masquerade") {
+		addHead(a => {
+			const gld = toon(0xfacc15, { emissive: 0xd97706, emissiveIntensity: 0.25 }), plume = toon(0xc084fc);
+			put(a, new THREE.BoxGeometry(0.46, 0.14, 0.06), gld, [0, -0.14, 0.27]);
+			for (const s of [-1, 1]) put(a, new THREE.ConeGeometry(0.09, 0.22, 4), gld, [s * 0.24, -0.06, 0.26], [0, 0, -s * 0.65]);
+			const feather = new THREE.Group();
+			feather.position.set(0.24, 0.02, 0.20);
+			put(feather, new THREE.ConeGeometry(0.08, 0.44, 6), plume, [0.06, 0.20, 0], [0, 0, -0.35], [1, 1, 0.3]);
+			a.add(feather);
+			animParts.push({ type: "earWiggle", node: feather, side: 1, baseRotZ: 0 });
+		});
+		addBody(spine, "spkmod_skin_masq_cape", [0, 0.12, -0.60], ca => {
+			const cape = new THREE.Group();
+			put(cape, new THREE.BoxGeometry(0.72, 0.88, 0.04), toon(0x3b0764), [0, -0.40, -0.06]);
+			put(cape, new THREE.BoxGeometry(0.74, 0.07, 0.05), toon(0xfacc15), [0, -0.82, -0.06]);
+			ca.add(cape);
+			animParts.push({ type: "cape", node: cape, baseRotX: 0.18 });
+		});
+		addProp("spkmod_skin_rose_wand", g => {
+			put(g, new THREE.CylinderGeometry(0.016, 0.016, 0.56, 8), toon(0x16a34a), [0, 0.18, 0]);
+			put(g, new THREE.DodecahedronGeometry(0.10, 0), toon(0xf43f5e, { emissive: 0xe11d48, emissiveIntensity: 0.45 }), [0, 0.50, 0]);
+		});
+		return true;
+	} else if (builder === "voxelHero") {
+		addHead(a => {
+			const gld = toon(0xfacc15), gem = toon(0x22d3ee, { emissive: 0x06b6d4, emissiveIntensity: 0.75 }), hrt = toon(0xf43f5e, { emissive: 0xe11d48, emissiveIntensity: 0.55 });
+			put(a, new THREE.BoxGeometry(0.46, 0.14, 0.46), gld, [0, 0.08, 0]);
+			for (const [x, z] of [[-0.18, 0.18], [0.18, 0.18], [-0.18, -0.18], [0.18, -0.18], [0, 0.20]]) {
+				put(a, new THREE.BoxGeometry(0.10, 0.14, 0.10), gld, [x, 0.21, z]);
+			}
+			put(a, new THREE.BoxGeometry(0.10, 0.10, 0.10), gem, [0, 0.12, 0.24]);
+			for (let i = 0; i < 3; i++) {
+				const orb = new THREE.Group();
+				put(orb, new THREE.BoxGeometry(0.09, 0.09, 0.09), hrt);
+				a.add(orb);
+				animParts.push({ type: "orbit", node: orb, radius: 0.56, baseY: 0.24, phase: (i / 3) * Math.PI * 2 });
+			}
+		});
+		addProp("spkmod_skin_voxel_sword", g => {
+			put(g, new THREE.BoxGeometry(0.06, 0.20, 0.06), toon(0x78350f), [0, 0.02, 0]);
+			put(g, new THREE.BoxGeometry(0.24, 0.06, 0.08), toon(0xfacc15), [0, 0.14, 0]);
+			put(g, new THREE.BoxGeometry(0.10, 0.58, 0.05), toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.45 }), [0, 0.46, 0]);
+		});
+		return true;
+	} else if (builder === "saturn") {
+		addBody(pelvis, "spkmod_skin_saturn_rings", [0, 0.16, 0], sa => {
+			const ringGrp = new THREE.Group();
+			ringGrp.rotation.x = 0.26;
+			ringGrp.rotation.z = 0.22;
+			put(ringGrp, new THREE.TorusGeometry(0.86, 0.05, 8, 36), toon(0xfde047, { emissive: 0xf59e0b, emissiveIntensity: 0.55 }), null, [Math.PI / 2, 0, 0]);
+			put(ringGrp, new THREE.TorusGeometry(1.06, 0.035, 8, 36), toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.55 }), null, [Math.PI / 2, 0, 0]);
+			const moon = new THREE.Group();
+			put(moon, new THREE.SphereGeometry(0.13, 12, 10), toon(0xe2e8f0, { emissive: 0x94a3b8, emissiveIntensity: 0.3 }), [1.14, 0.06, 0]);
+			ringGrp.add(moon);
+			sa.add(ringGrp);
+			animParts.push({ type: "spinY", node: ringGrp });
+		});
+		return true;
+	} else if (builder === "ufoAbduct") {
+		addHead(a => {
+			const disc = toon(0x94a3b8), dome = toon(0x7dd3fc, { transparent: true, opacity: 0.72 }), beam = toon(0x4ade80, { emissive: 0x22c55e, emissiveIntensity: 0.85, transparent: true, opacity: 0.34, side: THREE.DoubleSide });
+			const ufo = new THREE.Group();
+			ufo.position.set(0, 0.66, 0);
+			put(ufo, new THREE.CylinderGeometry(0.24, 0.40, 0.09, 20), disc);
+			put(ufo, new THREE.SphereGeometry(0.19, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), dome, [0, 0.04, 0]);
+			for (let i = 0; i < 6; i++) {
+				const ang = (i / 6) * Math.PI * 2;
+				put(ufo, new THREE.SphereGeometry(0.036, 8, 6), toon(0x4ade80, { emissive: 0x22c55e, emissiveIntensity: 0.9 }), [Math.cos(ang) * 0.35, 0, Math.sin(ang) * 0.35]);
+			}
+			a.add(ufo);
+			animParts.push({ type: "spinY", node: ufo });
+			put(a, new THREE.ConeGeometry(0.42, 0.76, 18, 1, true), beam, [0, 0.28, 0]);
+		});
+		return true;
+	} else if (builder === "biblical") {
+		addBody(spine, "spkmod_skin_biblical_seraph", [0, 0.16, -0.58], ba => {
+			const gld = toon(0xfde047, { emissive: 0xeab308, emissiveIntensity: 0.65 });
+			const wht = toon(0xf8fafc, { emissive: 0xfef9c3, emissiveIntensity: 0.35 });
+			const eyeIris = toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.8 });
+			// 3 Concentric rotating golden Ophanim eye-rings!
+			for (let r = 0; r < 3; r++) {
+				const ring = new THREE.Group();
+				const rad = 0.62 + r * 0.22;
+				ring.rotation.x = r * 0.45;
+				ring.rotation.z = -r * 0.35;
+				put(ring, new THREE.TorusGeometry(rad, 0.036, 8, 28), gld);
+				for (let e = 0; e < 6; e++) {
+					const ang = (e / 6) * Math.PI * 2;
+					put(ring, new THREE.SphereGeometry(0.06, 8, 8), wht, [Math.cos(ang) * rad, Math.sin(ang) * rad, 0.02]);
+					put(ring, new THREE.SphereGeometry(0.032, 6, 6), eyeIris, [Math.cos(ang) * rad, Math.sin(ang) * rad, 0.065]);
+				}
+				ba.add(ring);
+				animParts.push({ type: "spinY", node: ring });
+			}
+			// 6 Fluttering seraphim wings (3 pairs!)
+			for (let pair = 0; pair < 3; pair++) {
+				const py = 0.26 - pair * 0.24;
+				for (const s of [-1, 1]) {
+					const w = new THREE.Group();
+					w.position.set(s * 0.22, py, -0.05);
+					put(w, new THREE.ConeGeometry(0.20, 0.72, 6), wht, [s * 0.34, 0.06, 0], [0, 0, -s * (1.25 - pair * 0.22)], [1, 1, 0.22]);
+					ba.add(w);
+					animParts.push({ type: "wing", node: w, side: s });
+				}
+			}
+		});
+		return true;
+	}
+	return false;
+}
+
 // ============================================================================
 // 6. PER-PLAYER SKIN APPLICATION & CLEAN RESTORE (LOCAL + REMOTE)
 // ============================================================================
@@ -5928,15 +7142,33 @@ function spkmodSkinApplyRecolorTexture(root, tex) {
 }
 
 async function spkmodApplySkinToAvatar(ownerKey, skinId, avatarRoot, animCtrl) {
-	if (!skinId || skinId === "none" || skinId === "off" || !avatarRoot || avatarRoot.userData?.skinAvatarRoot === true) {
+	if (!skinId || skinId === "none" || skinId === "off") {
 		spkmodSkinClearOnOwner(ownerKey);
+		if (ownerKey === "local_self") spkmodSetLocalModNativeSkinCode(null);
 		if (avatarRoot) spkmodSkinClearOnRoot(avatarRoot);
 		return;
 	}
 	const skin = SPKMOD_SKINS_BY_ID.get(skinId);
 	if (!skin) {
 		spkmodSkinClearOnOwner(ownerKey);
-		spkmodSkinClearOnRoot(avatarRoot);
+		if (ownerKey === "local_self") spkmodSetLocalModNativeSkinCode(null);
+		if (avatarRoot) spkmodSkinClearOnRoot(avatarRoot);
+		return;
+	}
+	if (skin.nativeSkinCode) {
+		spkmodSkinClearOnOwner(ownerKey);
+		if (avatarRoot) spkmodSkinClearOnRoot(avatarRoot);
+		if (ownerKey === "local_self") {
+			spkmodSetLocalModNativeSkinCode(skin.nativeSkinCode);
+		}
+		return;
+	}
+	if (ownerKey === "local_self" && _spkmodActiveModNativeSkinCode) {
+		spkmodSetLocalModNativeSkinCode(null);
+	}
+	if (!avatarRoot || avatarRoot.userData?.skinAvatarRoot === true) {
+		spkmodSkinClearOnOwner(ownerKey);
+		if (avatarRoot) spkmodSkinClearOnRoot(avatarRoot);
 		return;
 	}
 
@@ -6468,6 +7700,80 @@ window.spkmodHandleIncomingSkinState = function(playerId, playerName, skinIdRaw,
 // ============================================================================
 let _spkmodUnequippingNativeSkin = false;
 let _spkmodSkinsLastObservedNativeSkin = false;
+let _spkmodActiveModNativeSkinCode = null;
+let _spkmodLastLocalNativeAppliedGs = null;
+const _spkmodRemoteModNativeSkinCodes = new Map(); // String(rpKey) -> nativeSkinCode
+const _spkmodPatchedNativeSkinGameStates = new WeakSet();
+
+function spkmodPatchGameStateForModNativeSkins(gs) {
+	if (!gs || typeof gs !== "object" || _spkmodPatchedNativeSkinGameStates.has(gs)) return;
+	_spkmodPatchedNativeSkinGameStates.add(gs);
+	if (typeof gs.effectiveLocalSkinCode === "function") {
+		const origEffectiveLocalSkinCode = gs.effectiveLocalSkinCode;
+		gs.effectiveLocalSkinCode = function(...args) {
+			const origCode = origEffectiveLocalSkinCode.apply(this, args);
+			if (origCode) return origCode;
+			if (_spkmodActiveModNativeSkinCode && Number(this.mySkinItemId || 0) === 0 && spkmodIsSkinsSystemEnabled()) {
+				return _spkmodActiveModNativeSkinCode;
+			}
+			return origCode;
+		};
+	}
+	if (typeof gs.forcedSkinCodeOf === "function") {
+		const origForcedSkinCodeOf = gs.forcedSkinCodeOf;
+		gs.forcedSkinCodeOf = function(playerId, ...rest) {
+			const orig = origForcedSkinCodeOf.call(this, playerId, ...rest);
+			if (orig) return orig;
+			if (!spkmodIsSkinsSystemEnabled() || window.spkmodSkinSettings.showRemoteSkins === false) return orig;
+			if (playerId != null) {
+				const forced = _spkmodRemoteModNativeSkinCodes.get(String(playerId));
+				if (forced) return forced;
+			}
+			return orig;
+		};
+	}
+}
+
+function spkmodSetLocalModNativeSkinCode(nextCode) {
+	const normalized = nextCode || null;
+	const gs = (typeof gameState !== "undefined" && gameState) ? gameState : null;
+	const prev = _spkmodActiveModNativeSkinCode;
+	const gsChanged = !!(gs && gs !== _spkmodLastLocalNativeAppliedGs);
+	_spkmodActiveModNativeSkinCode = normalized;
+	if (typeof window !== "undefined") {
+		window.LocalBurgerSkinMode = normalized === "SKIN_SPEAKI_BURGER_STAFF_A" ? 1 : (normalized === "SKIN_SPEAKI_BURGER_STAFF_B" ? 2 : 0);
+	}
+	if (gs) {
+		spkmodPatchGameStateForModNativeSkins(gs);
+		if ((prev !== normalized || (normalized && gsChanged)) && typeof gs.applyLocalSkin === "function") {
+			_spkmodLastLocalNativeAppliedGs = gs;
+			try { gs.applyLocalSkin(); } catch (_) {}
+		}
+	}
+}
+
+function spkmodSyncRemoteModNativeSkinCodes(nextMap) {
+	let changed = nextMap.size !== _spkmodRemoteModNativeSkinCodes.size;
+	if (!changed) {
+		for (const [k, v] of nextMap) {
+			if (_spkmodRemoteModNativeSkinCodes.get(k) !== v) {
+				changed = true;
+				break;
+			}
+		}
+	}
+	if (!changed) return;
+	_spkmodRemoteModNativeSkinCodes.clear();
+	for (const [k, v] of nextMap) {
+		_spkmodRemoteModNativeSkinCodes.set(k, v);
+	}
+	if (typeof gameState !== "undefined" && gameState) {
+		spkmodPatchGameStateForModNativeSkins(gameState);
+		if (typeof gameState.remotePlayers?.refreshForcedSkins === "function") {
+			try { gameState.remotePlayers.refreshForcedSkins(); } catch (_) {}
+		}
+	}
+}
 
 function spkmodHasNativeLocalSkin() {
 	if (typeof gameState === "undefined" || !gameState) return false;
@@ -6476,15 +7782,21 @@ function spkmodHasNativeLocalSkin() {
 	const effectiveId = (typeof gameState.effectiveLocalSkinItemId === "function")
 		? Number(gameState.effectiveLocalSkinItemId() || 0)
 		: mySkinId;
+	if (mySkinId !== 0 || installedId !== 0 || effectiveId !== 0) return true;
+	if (_spkmodActiveModNativeSkinCode) return false;
 	const rootFlag = gameState.localAvatar?.root?.userData?.skinAvatarRoot === true;
-	return mySkinId !== 0 || installedId !== 0 || effectiveId !== 0 || rootFlag;
+	return rootFlag;
 }
 
-function spkmodHasNativeRemoteSkin(rp) {
+function spkmodHasNativeRemoteSkin(rp, canonicalKey) {
 	if (!rp) return false;
 	const skinId = Number(rp.skinItemId || 0);
+	if (skinId !== 0) return true;
+	if (canonicalKey != null && _spkmodRemoteModNativeSkinCodes.has(String(canonicalKey))) {
+		return false;
+	}
 	const rootFlag = rp.avatar?.root?.userData?.skinAvatarRoot === true;
-	return skinId !== 0 || rootFlag;
+	return rootFlag;
 }
 
 async function spkmodUnequipNativeGameSkin() {
@@ -6547,6 +7859,7 @@ async function spkmodEquipLocalSkin(skinId, broadcast = true, silentToast = fals
 		window.spkmodSkinSettings.equippedId = null;
 		if (window.localStorage) localStorage.removeItem(SPKMOD_SKIN_STORAGE_KEYS.equipped);
 		spkmodSkinClearOnOwner("local_self");
+		spkmodSetLocalModNativeSkinCode(null);
 		if (broadcast) {
 			spkmodTriggerSkinSyncBroadcast({
 				priority: "explicit",
@@ -6588,9 +7901,17 @@ async function spkmodEquipLocalSkin(skinId, broadcast = true, silentToast = fals
 	window.spkmodSkinSettings.equippedId = skin.id;
 	if (window.localStorage) localStorage.setItem(SPKMOD_SKIN_STORAGE_KEYS.equipped, skin.id);
 
-	if (typeof gameState !== "undefined" && gameState?.localAvatar?.root) {
-		const ctrl = gameState.localAnimationController || gameState.localAvatar?.animationController || null;
-		await spkmodApplySkinToAvatar("local_self", skin.id, gameState.localAvatar.root, ctrl);
+	if (skin.nativeSkinCode) {
+		spkmodSkinClearOnOwner("local_self");
+		spkmodSetLocalModNativeSkinCode(skin.nativeSkinCode);
+	} else {
+		if (_spkmodActiveModNativeSkinCode) {
+			spkmodSetLocalModNativeSkinCode(null);
+		}
+		if (typeof gameState !== "undefined" && gameState?.localAvatar?.root) {
+			const ctrl = gameState.localAnimationController || gameState.localAvatar?.animationController || null;
+			await spkmodApplySkinToAvatar("local_self", skin.id, gameState.localAvatar.root, ctrl);
+		}
 	}
 
 	if (broadcast) {
@@ -6711,6 +8032,8 @@ window.spkmodSetSkinsSystemEnabled = function(nextEnabled, silentToast = false) 
 		for (const key of [..._spkmodAppliedSkins.keys()]) {
 			spkmodSkinClearOnOwner(key);
 		}
+		spkmodSetLocalModNativeSkinCode(null);
+		spkmodSyncRemoteModNativeSkinCodes(new Map());
 		spkmodPFReleaseAll();
 		const modal = document.getElementById("spkmod-skins-modal");
 		if (modal) modal.classList.add("hidden");
@@ -6754,6 +8077,7 @@ function spkmodSkinsMasterLoop(nowMs) {
 					(window.spkmodSkinSettings.widthId && window.spkmodSkinSettings.widthId !== "normal")
 				);
 				if (_spkmodAppliedSkins.has("local_self")) spkmodSkinClearOnOwner("local_self");
+				if (_spkmodActiveModNativeSkinCode) spkmodSetLocalModNativeSkinCode(null);
 				if (spkmodPlayerFat.entries.has("local_self")) spkmodPFSetTarget("local_self", null, 1.0);
 				if (hadEquippedMod) {
 					window.spkmodSkinSettings.equippedId = null;
@@ -6777,15 +8101,27 @@ function spkmodSkinsMasterLoop(nowMs) {
 				if (eqSkinId) {
 					const skin = SPKMOD_SKINS_BY_ID.get(eqSkinId);
 					if (skin && spkmodIsSkinUnlocked(skin)) {
-						const cur = _spkmodAppliedSkins.get("local_self");
-						if (!cur || cur.skinId !== skin.id || cur.root !== localRoot) {
-							spkmodApplySkinToAvatar("local_self", skin.id, localRoot, localCtrl);
+						if (skin.nativeSkinCode) {
+							if (_spkmodAppliedSkins.has("local_self")) spkmodSkinClearOnOwner("local_self");
+							spkmodSetLocalModNativeSkinCode(skin.nativeSkinCode);
+						} else {
+							if (_spkmodActiveModNativeSkinCode) spkmodSetLocalModNativeSkinCode(null);
+							const cur = _spkmodAppliedSkins.get("local_self");
+							if (!cur || cur.skinId !== skin.id || cur.root !== localRoot) {
+								spkmodApplySkinToAvatar("local_self", skin.id, localRoot, localCtrl);
+							}
 						}
 					} else if (skin && !spkmodIsSkinUnlocked(skin)) {
 						spkmodSkinClearOnOwner("local_self");
+						if (_spkmodActiveModNativeSkinCode) spkmodSetLocalModNativeSkinCode(null);
 					}
-				} else if (_spkmodAppliedSkins.has("local_self")) {
-					spkmodSkinClearOnOwner("local_self");
+				} else {
+					if (_spkmodAppliedSkins.has("local_self")) {
+						spkmodSkinClearOnOwner("local_self");
+					}
+					if (_spkmodActiveModNativeSkinCode) {
+						spkmodSetLocalModNativeSkinCode(null);
+					}
 				}
 
 				const wTier = SPKMOD_BODY_WIDTHS_BY_ID.get(window.spkmodSkinSettings.widthId || "normal");
@@ -6814,6 +8150,7 @@ function spkmodSkinsMasterLoop(nowMs) {
 					if (key !== "local_self") spkmodPFSetTarget(key, null, 1.0);
 				}
 				_spkmodRemoteSkinStates.clear();
+				spkmodSyncRemoteModNativeSkinCodes(new Map());
 				if (hasActiveLocalCosmetic && spkmodIsSkinChatSharingEnabled()) {
 					_spkmodSkinNeedsZoneSync = true;
 					spkmodTriggerSkinSyncBroadcast({
@@ -6854,6 +8191,7 @@ function spkmodSkinsMasterLoop(nowMs) {
 			// 3. Apply & verify remote players' skins & body widths (strict 1 state per avatarRoot!)
 			const showRemote = window.spkmodSkinSettings.showRemoteSkins !== false;
 			const seenRemoteKeys = new Set();
+			const nextRemoteNativeMap = new Map();
 			if (showRemote && rMap && _spkmodRemoteSkinStates.size > 0) {
 				// First deduplicate by avatarRoot so only the newest state per remote avatar can ever apply
 				const winnersByRoot = new Map(); // rpRoot -> { ownerKey, state, rp, canonicalKey }
@@ -6882,14 +8220,14 @@ function spkmodSkinsMasterLoop(nowMs) {
 				}
 
 				for (const [rpRoot, win] of winnersByRoot) {
-					const { ownerKey, state, rp } = win;
+					const { ownerKey, state, rp, canonicalKey } = win;
 					seenRemoteKeys.add(ownerKey);
 					const rpCtrl = rp.avatar.animationController || null;
 					const rpLevel = rp.info?.level ?? 0;
 					const rpName = rp.info?.__spkmodOrigName || rp.info?.name || state.playerName || "";
 
 					// Never overlay SpeakiMod skins or fat body onto native in-game costumes (Pure Pumpkin / Witch / Ner)
-					if (spkmodHasNativeRemoteSkin(rp)) {
+					if (spkmodHasNativeRemoteSkin(rp, canonicalKey)) {
 						spkmodSkinClearOnOwner(ownerKey);
 						spkmodSkinClearOnRoot(rpRoot);
 						spkmodPFSetTarget(ownerKey, null, 1.0);
@@ -6900,9 +8238,14 @@ function spkmodSkinsMasterLoop(nowMs) {
 					if (state.skinId) {
 						const skin = SPKMOD_SKINS_BY_ID.get(state.skinId);
 						if (skin && spkmodCheckRemoteLevelAllowed(skin.level, rpLevel, rpName)) {
-							const cur = _spkmodAppliedSkins.get(ownerKey);
-							if (!cur || cur.skinId !== skin.id || cur.root !== rpRoot || _spkmodAvatarSkinOwner.get(rpRoot) !== cur) {
-								spkmodApplySkinToAvatar(ownerKey, skin.id, rpRoot, rpCtrl);
+							if (skin.nativeSkinCode) {
+								spkmodSkinClearOnOwner(ownerKey);
+								nextRemoteNativeMap.set(String(canonicalKey), skin.nativeSkinCode);
+							} else {
+								const cur = _spkmodAppliedSkins.get(ownerKey);
+								if (!cur || cur.skinId !== skin.id || cur.root !== rpRoot || _spkmodAvatarSkinOwner.get(rpRoot) !== cur) {
+									spkmodApplySkinToAvatar(ownerKey, skin.id, rpRoot, rpCtrl);
+								}
 							}
 						} else {
 							spkmodSkinClearOnOwner(ownerKey);
@@ -6920,6 +8263,7 @@ function spkmodSkinsMasterLoop(nowMs) {
 					}
 				}
 			}
+			spkmodSyncRemoteModNativeSkinCodes(nextRemoteNativeMap);
 			for (const key of [..._spkmodAppliedSkins.keys()]) {
 				if (key !== "local_self" && (!showRemote || !seenRemoteKeys.has(key))) {
 					spkmodSkinClearOnOwner(key);
@@ -7515,14 +8859,18 @@ function spkmodRenderSkinsGrid() {
 		return true;
 	});
 
-	// Pin favorited skins to the top while preserving catalog order within favorites and non-favorites
+	// Pin favorited skins to the top; sort by category group + level so Lv.50 Burger Staff sits with Lv.50 outfits
 	if (filtered.length > 1) {
+		const catRank = { color: 0, outfit: 1, fx: 2 };
+		const cmp = (a, b) => ((catRank[a.category] ?? 9) - (catRank[b.category] ?? 9)) || (a.level - b.level);
 		const favs = [];
 		const rest = [];
 		for (const s of filtered) {
 			if (spkmodIsSkinFavorite(s.id)) favs.push(s);
 			else rest.push(s);
 		}
+		favs.sort(cmp);
+		rest.sort(cmp);
 		filtered.length = 0;
 		filtered.push(...favs, ...rest);
 	}

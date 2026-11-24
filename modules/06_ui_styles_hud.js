@@ -1376,22 +1376,14 @@ document.body.appendChild(
 						if (typeof toggleAutoMop === "function") toggleAutoMop(e.target);
 					}
 				}),
-				lunPanelElements.burgerSkinBtn = buildElement("button", {
-					id: "spkmod-burgerskin-btn",
-					className: "spkmod-panel-btn",
-					innerText: typeof getBurgerSkinBtnLabel === "function" ? getBurgerSkinBtnLabel() : "Burger: OFF",
-					value: "",
-					onclick: e => {
-						if (typeof cycleBurgerSkin === "function") cycleBurgerSkin(e.target);
-					}
-				}),
-				lunPanelElements.burgerCarBtn = buildElement("button", {
-					id: "spkmod-burgercar-btn",
+				lunPanelElements.vehicleToggleBtn = buildElement("button", {
+					id: "spkmod-vehicle-toggle-btn",
 					className: "spkmod-panel-btn" + (window.spkmodCarSystemEnabled === false ? " hidden" : ""),
-					innerText: typeof getBurgerCarBtnLabel === "function" ? getBurgerCarBtnLabel() : "Car: OFF",
+					innerText: typeof window.spkmodGetVehicleQuickToggleLabel === "function" ? window.spkmodGetVehicleQuickToggleLabel() : "🚗 Vehicle: OFF",
+					title: "Quick Toggle Vehicle (Alt+X)",
 					value: "",
-					onclick: e => {
-						if (typeof cycleBurgerCar === "function") cycleBurgerCar(e.target);
+					onclick: () => {
+						if (typeof window.spkmodToggleActiveVehicle === "function") window.spkmodToggleActiveVehicle();
 					}
 				})
 			]),
@@ -2238,6 +2230,16 @@ document.body.appendChild(
 						if (typeof window.spkmodToggleCartSkinsModal === "function") window.spkmodToggleCartSkinsModal();
 					}
 				}),
+				lunPanelElements.vehiclesBtn = buildElement("button", {
+					id: "spkmod-vehicles-btn",
+					className: "spkmod-panel-btn" + (window.spkmodCarSystemEnabled === false ? " hidden" : ""),
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer; position: relative;",
+					innerText: "🚗",
+					title: "Vehicles & Stealth Box Garage (Alt+V)",
+					onclick: _ => {
+						if (typeof window.spkmodToggleVehiclesModal === "function") window.spkmodToggleVehiclesModal();
+					}
+				}),
 				lunPanelElements.sparksBtn = buildElement("button", {
 					id: "spkmod-sparks-btn",
 					className: "spkmod-panel-btn" + (window.spkmodSparksSystemEnabled === false ? " hidden" : ""),
@@ -3008,7 +3010,8 @@ document.body.appendChild(
 							} else {
 								window.spkmodCarSystemEnabled = !!e.target.checked;
 								if (window.localStorage) localStorage.setItem("spkmod-car-enabled", e.target.checked ? "true" : "false");
-								if (lunPanelElements.burgerCarBtn) lunPanelElements.burgerCarBtn.classList.toggle("hidden", !e.target.checked);
+								if (lunPanelElements.vehiclesBtn) lunPanelElements.vehiclesBtn.classList.toggle("hidden", !e.target.checked);
+								if (lunPanelElements.vehicleToggleBtn) lunPanelElements.vehicleToggleBtn.classList.toggle("hidden", !e.target.checked);
 							}
 						}
 					})
