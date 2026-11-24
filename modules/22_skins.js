@@ -1905,22 +1905,28 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 			const redMat = toon(0xdc2626);
 			const furMat = toon(0xffffff);
 			const hat = new THREE.Group();
-			hat.position.set(0, -0.07, 0);
-			const brim = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.068, 10, 20), furMat);
+			hat.position.set(0, -0.19, -0.01);
+			// Big plush white fur brim hugging snugly around Speaki's dome
+			const brim = new THREE.Mesh(new THREE.TorusGeometry(0.41, 0.105, 12, 26), furMat);
 			brim.rotation.x = Math.PI / 2;
 			brim.position.y = 0.03;
 			hat.add(brim);
-			const lowerCone = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.38, 16), redMat);
-			lowerCone.position.set(0, 0.22, -0.02);
-			lowerCone.rotation.x = -0.18;
-			hat.add(lowerCone);
-			const droopTip = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.26, 12), redMat);
-			droopTip.position.set(0.14, 0.34, -0.10);
-			droopTip.rotation.z = -1.15;
-			droopTip.rotation.x = -0.35;
+			// Full tapered Santa hat crown + smooth rounded fold joint
+			const lowerBody = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.41, 0.38, 20), redMat);
+			lowerBody.position.set(0, 0.22, -0.02);
+			lowerBody.rotation.x = -0.12;
+			hat.add(lowerBody);
+			const bendJoint = new THREE.Mesh(new THREE.SphereGeometry(0.23, 16, 12), redMat);
+			bendJoint.position.set(0.02, 0.40, -0.05);
+			hat.add(bendJoint);
+			// Big floppy drooping tip + chunky fluffy pom-pom
+			const droopTip = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.46, 16), redMat);
+			droopTip.position.set(0.24, 0.35, -0.07);
+			droopTip.rotation.z = -1.85;
+			droopTip.rotation.x = -0.18;
 			hat.add(droopTip);
-			const pom = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), furMat);
-			pom.position.set(0.27, 0.28, -0.14);
+			const pom = new THREE.Mesh(new THREE.SphereGeometry(0.125, 14, 12), furMat);
+			pom.position.set(0.47, 0.27, -0.11);
 			hat.add(pom);
 			anchor.add(hat);
 			spkmodSkinSanitizeObject(anchor);

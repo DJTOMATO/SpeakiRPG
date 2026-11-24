@@ -3037,6 +3037,41 @@ document.body.appendChild(
 							}
 						}
 					})
+				]),
+
+				// Revival Capsule Fast Hotkey (Click to rebind, Backspace/Delete to unbind, Default: 7)
+				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 4px; gap: 4px;" }, [
+					lunPanelElements.reviveHotkeyLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;",
+						innerText: "💊 " + tCustom("reviveHotkeyLabel", "Revival Capsule Hotkey"),
+						title: tCustom("reviveHotkeyDesc", "Fast hotkey to use Revival Capsule without opening Inventory (click to rebind, Backspace to disable)")
+					}),
+					lunPanelElements.reviveHotkeyBtn = buildElement("button", {
+						id: "spkmod-revive-hotkey-btn",
+						type: "button",
+						className: "spkmod-panel-btn",
+						style: "min-width: 58px; padding: 2px 7px; font-size: 11px; font-weight: bold; color: #fde047;",
+						innerText: typeof window.spkmodGetReviveHotkeyDisplay === "function" ? window.spkmodGetReviveHotkeyDisplay() : "7",
+						title: tCustom("reviveHotkeyDesc", "Fast hotkey to use Revival Capsule without opening Inventory (click to rebind, Backspace to disable)"),
+						onclick: () => {
+							if (typeof window.spkmodStartReviveHotkeyCapture === "function") {
+								window.spkmodStartReviveHotkeyCapture();
+							}
+						}
+					}),
+					lunPanelElements.reviveHotkeyResetBtn = buildElement("button", {
+						id: "spkmod-revive-hotkey-reset-btn",
+						type: "button",
+						className: "spkmod-panel-btn",
+						style: "padding: 2px 6px; font-size: 11px;",
+						innerText: "↺",
+						title: "Reset (7)",
+						onclick: () => {
+							if (typeof window.spkmodReviveHotkey?.reset === "function") {
+								window.spkmodReviveHotkey.reset();
+							}
+						}
+					})
 				])
 			]),
 

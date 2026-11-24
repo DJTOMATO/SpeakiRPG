@@ -471,7 +471,12 @@ function renderHotkeysUI() {
 	const c = hotkeysModalElements.contentContainer;
 	c.innerHTML = "";
 	
+	const reviveKeyLabel = typeof window.spkmodGetReviveHotkeyDisplay === "function"
+		? window.spkmodGetReviveHotkeyDisplay()
+		: "7";
+
 	const hotkeys = [
+		{ k: reviveKeyLabel, d: (typeof tCustom === 'function' ? tCustom("hkDescReviveCapsule", "Use Revival Capsule") : ((typeof t === 'function' ? t("hkDescReviveCapsule") : "") || "Use Revival Capsule")) },
 		{ k: "P", d: (typeof t === 'function' ? t("hkDescToggleUI") : "") || "Toggle UI Visibility" },
 		{ k: "F2", d: (typeof t === 'function' ? t("hkDescModSettings") : "") || "Open Mod Settings" },
 		{ k: "F3", d: (typeof t === 'function' ? t("hkDescResetPositions") : "") || "Reset Window Positions" },

@@ -5061,6 +5061,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-pumpkin-tracker",
 	"spkmod-quests-modal-open",
 	"spkmod-reset-timer",
+	"spkmod-revive-hotkey",
 	"spkmod-separate-panel",
 	"spkmod-session-gold",
 	"spkmod-shader",
@@ -11307,6 +11308,41 @@ document.body.appendChild(
 							} else {
 								window.spkmodBurgerFatCustomersEnabled = !!e.target.checked;
 								if (window.localStorage) localStorage.setItem("spkmod-burger-fat-customers", e.target.checked ? "true" : "false");
+							}
+						}
+					})
+				]),
+
+				// Revival Capsule Fast Hotkey (Click to rebind, Backspace/Delete to unbind, Default: 7)
+				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 4px; gap: 4px;" }, [
+					lunPanelElements.reviveHotkeyLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;",
+						innerText: "💊 " + tCustom("reviveHotkeyLabel", "Revival Capsule Hotkey"),
+						title: tCustom("reviveHotkeyDesc", "Fast hotkey to use Revival Capsule without opening Inventory (click to rebind, Backspace to disable)")
+					}),
+					lunPanelElements.reviveHotkeyBtn = buildElement("button", {
+						id: "spkmod-revive-hotkey-btn",
+						type: "button",
+						className: "spkmod-panel-btn",
+						style: "min-width: 58px; padding: 2px 7px; font-size: 11px; font-weight: bold; color: #fde047;",
+						innerText: typeof window.spkmodGetReviveHotkeyDisplay === "function" ? window.spkmodGetReviveHotkeyDisplay() : "7",
+						title: tCustom("reviveHotkeyDesc", "Fast hotkey to use Revival Capsule without opening Inventory (click to rebind, Backspace to disable)"),
+						onclick: () => {
+							if (typeof window.spkmodStartReviveHotkeyCapture === "function") {
+								window.spkmodStartReviveHotkeyCapture();
+							}
+						}
+					}),
+					lunPanelElements.reviveHotkeyResetBtn = buildElement("button", {
+						id: "spkmod-revive-hotkey-reset-btn",
+						type: "button",
+						className: "spkmod-panel-btn",
+						style: "padding: 2px 6px; font-size: 11px;",
+						innerText: "↺",
+						title: "Reset (7)",
+						onclick: () => {
+							if (typeof window.spkmodReviveHotkey?.reset === "function") {
+								window.spkmodReviveHotkey.reset();
 							}
 						}
 					})
@@ -25138,7 +25174,12 @@ function renderHotkeysUI() {
 	const c = hotkeysModalElements.contentContainer;
 	c.innerHTML = "";
 	
+	const reviveKeyLabel = typeof window.spkmodGetReviveHotkeyDisplay === "function"
+		? window.spkmodGetReviveHotkeyDisplay()
+		: "7";
+
 	const hotkeys = [
+		{ k: reviveKeyLabel, d: (typeof tCustom === 'function' ? tCustom("hkDescReviveCapsule", "Use Revival Capsule") : ((typeof t === 'function' ? t("hkDescReviveCapsule") : "") || "Use Revival Capsule")) },
 		{ k: "P", d: (typeof t === 'function' ? t("hkDescToggleUI") : "") || "Toggle UI Visibility" },
 		{ k: "F2", d: (typeof t === 'function' ? t("hkDescModSettings") : "") || "Open Mod Settings" },
 		{ k: "F3", d: (typeof t === 'function' ? t("hkDescResetPositions") : "") || "Reset Window Positions" },
@@ -26259,6 +26300,13 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.burgerFatCustomersToggleLabel) {
 		setText(lunPanelElements.burgerFatCustomersToggleLabel, "🍔 " + tCustom("burgerFatCustomersToggleLabel", "Fat Burger Shop Customers"));
 		lunPanelElements.burgerFatCustomersToggleLabel.title = tCustom("burgerFatCustomersToggleDesc", "Make Burger Shop customers who order a big combo (burger + fries + drink + multiplier) wider");
+	}
+	if (lunPanelElements.reviveHotkeyLabel) {
+		setText(lunPanelElements.reviveHotkeyLabel, "💊 " + tCustom("reviveHotkeyLabel", "Revival Capsule Hotkey"));
+		lunPanelElements.reviveHotkeyLabel.title = tCustom("reviveHotkeyDesc", "Fast hotkey to use Revival Capsule without opening Inventory (click to rebind, Backspace to disable)");
+	}
+	if (typeof window.spkmodRefreshReviveHotkeyUI === "function") {
+		window.spkmodRefreshReviveHotkeyUI();
 	}
 	if (lunPanelElements.burgerFatCustomersToggleInput) {
 		lunPanelElements.burgerFatCustomersToggleInput.title = tCustom("burgerFatCustomersToggleDesc", "Make Burger Shop customers who order a big combo (burger + fries + drink + multiplier) wider");
@@ -31737,6 +31785,286 @@ window.addEventListener("keydown", e => {
 		}
 	}
 });
+
+// ============================================================================
+// FAST HOTKEY FOR REVIVAL CAPSULE (ITEM 406 -> gameState.tryUseRevive())
+// Default: Key "7" (Digit7 / Numpad7, right next to 5=Potion & 6=Return).
+// Fully rebindable in Mod Settings (Backspace/Delete to unbind, Esc to cancel).
+// ============================================================================
+const SPKMOD_REVIVE_HOTKEY_STORAGE_KEY = "spkmod-revive-hotkey";
+const SPKMOD_REVIVE_HOTKEY_DEFAULT = "Digit7";
+const SPKMOD_REVIVE_HOTKEY_DEBOUNCE_MS = 600;
+const SPKMOD_REVIVE_MODIFIER_CODES = new Set([
+	"ShiftLeft", "ShiftRight", "ControlLeft", "ControlRight",
+	"AltLeft", "AltRight", "MetaLeft", "MetaRight"
+]);
+let _spkmodReviveHotkeyLastUseMs = -Infinity;
+let _spkmodReviveHotkeyCaptureCleanup = null;
+
+function spkmodParseReviveHotkey(raw) {
+	if (raw === null || raw === undefined) raw = SPKMOD_REVIVE_HOTKEY_DEFAULT;
+	const str = String(raw).trim();
+	if (!str || str.toLowerCase() === "none" || str.toLowerCase() === "off") return null;
+	const parts = str.split("+").map(s => s.trim()).filter(Boolean);
+	if (parts.length === 0) return null;
+	const binding = { ctrl: false, alt: false, shift: false, meta: false, code: "" };
+	for (const p of parts) {
+		const low = p.toLowerCase();
+		if (low === "ctrl" || low === "control") binding.ctrl = true;
+		else if (low === "alt") binding.alt = true;
+		else if (low === "shift") binding.shift = true;
+		else if (low === "meta" || low === "cmd" || low === "win") binding.meta = true;
+		else binding.code = p;
+	}
+	if (!binding.code) return null;
+	// Normalize single alphanumeric/digit shorthand (e.g. "7" -> "Digit7", "v" -> "KeyV")
+	if (/^[0-9]$/.test(binding.code)) binding.code = "Digit" + binding.code;
+	else if (/^[a-zA-Z]$/.test(binding.code)) binding.code = "Key" + binding.code.toUpperCase();
+	return binding;
+}
+
+function spkmodSerializeReviveHotkey(binding) {
+	if (!binding || !binding.code) return "none";
+	const parts = [];
+	if (binding.ctrl) parts.push("Ctrl");
+	if (binding.alt) parts.push("Alt");
+	if (binding.shift) parts.push("Shift");
+	if (binding.meta) parts.push("Meta");
+	parts.push(binding.code);
+	return parts.join("+");
+}
+
+function spkmodFormatReviveKeyCode(code) {
+	if (!code) return "";
+	if (code.startsWith("Digit")) return code.slice(5);
+	if (code.startsWith("Key")) return code.slice(3);
+	if (code.startsWith("Numpad")) return "Num " + code.slice(6);
+	const aliases = {
+		Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]",
+		Backslash: "\\", Semicolon: ";", Quote: "'", Comma: ",",
+		Period: ".", Slash: "/", Backquote: "`", Space: "Space"
+	};
+	return aliases[code] || code;
+}
+
+function spkmodFormatReviveHotkey(binding) {
+	if (!binding || !binding.code) {
+		return typeof tCustom === "function" ? tCustom("reviveHotkeyUnbound", "Off") : "Off";
+	}
+	const parts = [];
+	if (binding.ctrl) parts.push("Ctrl");
+	if (binding.alt) parts.push("Alt");
+	if (binding.shift) parts.push("Shift");
+	if (binding.meta) parts.push("Meta");
+	parts.push(spkmodFormatReviveKeyCode(binding.code));
+	return parts.join(" + ");
+}
+
+function spkmodGetReviveHotkeyBinding() {
+	try {
+		if (typeof window !== "undefined" && window.localStorage) {
+			const saved = localStorage.getItem(SPKMOD_REVIVE_HOTKEY_STORAGE_KEY);
+			if (saved !== null) return spkmodParseReviveHotkey(saved);
+		}
+	} catch (_) {}
+	return spkmodParseReviveHotkey(SPKMOD_REVIVE_HOTKEY_DEFAULT);
+}
+
+function spkmodGetReviveHotkeyDisplay() {
+	return spkmodFormatReviveHotkey(spkmodGetReviveHotkeyBinding());
+}
+window.spkmodGetReviveHotkeyDisplay = spkmodGetReviveHotkeyDisplay;
+
+function spkmodRefreshReviveHotkeyUI() {
+	const btn = (typeof lunPanelElements !== "undefined" && lunPanelElements?.reviveHotkeyBtn)
+		|| (typeof document !== "undefined" ? document.getElementById("spkmod-revive-hotkey-btn") : null);
+	if (btn) {
+		const isCapturing = !!window.__spkmodCapturingReviveHotkey;
+		btn.innerText = isCapturing
+			? (typeof tCustom === "function" ? tCustom("reviveHotkeyPressKey", "Press key...") : "Press key...")
+			: spkmodGetReviveHotkeyDisplay();
+		btn.style.color = isCapturing ? "#38bdf8" : "#fde047";
+		const desc = typeof tCustom === "function"
+			? tCustom("reviveHotkeyDesc", "Fast hotkey to use Revival Capsule without opening Inventory (click to rebind, Backspace to disable)")
+			: "Fast hotkey to use Revival Capsule without opening Inventory";
+		btn.title = desc;
+	}
+	if (
+		typeof lunHudElements !== "undefined" &&
+		lunHudElements?.hotkeysModal &&
+		!lunHudElements.hotkeysModal.classList.contains("hidden") &&
+		typeof renderHotkeysUI === "function"
+	) {
+		renderHotkeysUI();
+	}
+}
+window.spkmodRefreshReviveHotkeyUI = spkmodRefreshReviveHotkeyUI;
+
+function spkmodSetReviveHotkey(rawOrBinding, silent = false) {
+	const binding = (rawOrBinding && typeof rawOrBinding === "object")
+		? spkmodParseReviveHotkey(spkmodSerializeReviveHotkey(rawOrBinding))
+		: spkmodParseReviveHotkey(rawOrBinding);
+	const serialized = spkmodSerializeReviveHotkey(binding);
+	try {
+		if (typeof window !== "undefined" && window.localStorage) {
+			localStorage.setItem(SPKMOD_REVIVE_HOTKEY_STORAGE_KEY, serialized);
+		}
+	} catch (_) {}
+	spkmodRefreshReviveHotkeyUI();
+	if (!silent && typeof chatLog === "function") {
+		if (binding) {
+			const tmpl = typeof tCustom === "function"
+				? tCustom("reviveHotkeySetMsg", "💊 Revival Capsule hotkey set to: {0}")
+				: "💊 Revival Capsule hotkey set to: {0}";
+			chatLog(tmpl.replace("{0}", spkmodFormatReviveHotkey(binding)));
+		} else {
+			chatLog(typeof tCustom === "function"
+				? tCustom("reviveHotkeyClearedMsg", "💊 Revival Capsule hotkey disabled.")
+				: "💊 Revival Capsule hotkey disabled.");
+		}
+	}
+	return binding;
+}
+
+function spkmodStartReviveHotkeyCapture() {
+	if (_spkmodReviveHotkeyCaptureCleanup) {
+		_spkmodReviveHotkeyCaptureCleanup();
+		return;
+	}
+	window.__spkmodCapturingReviveHotkey = true;
+	spkmodRefreshReviveHotkeyUI();
+
+	const finish = () => {
+		window.__spkmodCapturingReviveHotkey = false;
+		if (_spkmodReviveHotkeyCaptureCleanup) {
+			window.removeEventListener("keydown", onCaptureKey, true);
+			window.removeEventListener("pointerdown", onCancelClick, true);
+			_spkmodReviveHotkeyCaptureCleanup = null;
+		}
+		spkmodRefreshReviveHotkeyUI();
+	};
+	const onCaptureKey = (e) => {
+		e.preventDefault();
+		e.stopImmediatePropagation();
+		if (SPKMOD_REVIVE_MODIFIER_CODES.has(e.code)) return;
+		if (e.code === "Escape") {
+			finish();
+			return;
+		}
+		if (e.code === "Backspace" || e.code === "Delete") {
+			finish();
+			spkmodSetReviveHotkey("none", false);
+			return;
+		}
+		const nextBinding = {
+			ctrl: !!e.ctrlKey,
+			alt: !!e.altKey,
+			shift: !!e.shiftKey,
+			meta: !!e.metaKey,
+			code: e.code
+		};
+		finish();
+		spkmodSetReviveHotkey(nextBinding, false);
+	};
+	const onCancelClick = (e) => {
+		const btn = document.getElementById("spkmod-revive-hotkey-btn");
+		if (btn && (e.target === btn || btn.contains(e.target))) return;
+		finish();
+	};
+	_spkmodReviveHotkeyCaptureCleanup = finish;
+	window.addEventListener("keydown", onCaptureKey, true);
+	window.addEventListener("pointerdown", onCancelClick, true);
+}
+window.spkmodStartReviveHotkeyCapture = spkmodStartReviveHotkeyCapture;
+
+function spkmodFormatReviveCooldownRemaining(ms) {
+	const totalSec = Math.max(1, Math.ceil(ms / 1000));
+	const mins = Math.floor(totalSec / 60);
+	const secs = totalSec % 60;
+	return mins > 0 ? `${mins}m ${String(secs).padStart(2, "0")}s` : `${secs}s`;
+}
+
+function spkmodUseReviveCapsule() {
+	const now = performance.now();
+	if ((now - _spkmodReviveHotkeyLastUseMs) < SPKMOD_REVIVE_HOTKEY_DEBOUNCE_MS) return false;
+	if (typeof gameState === "undefined" || !gameState) return false;
+	if (gameState.zoneId === null || gameState.zoneId === undefined) return false;
+
+	_spkmodReviveHotkeyLastUseMs = now;
+	if (gameState.isDead) {
+		if (typeof chatLog === "function") {
+			chatLog(typeof tCustom === "function"
+				? tCustom("reviveHotkeyDeadMsg", "💊 Cannot use Revival Capsule while dead.")
+				: "💊 Cannot use Revival Capsule while dead.");
+		}
+		return false;
+	}
+
+	const cdMs = typeof gameState.getReviveCooldownRemainingMs === "function"
+		? gameState.getReviveCooldownRemainingMs()
+		: 0;
+	if (cdMs > 0) {
+		if (typeof gameState.tryUseRevive === "function") {
+			try { gameState.tryUseRevive(); } catch (_) {}
+		}
+		if (typeof chatLog === "function") {
+			const tmpl = typeof tCustom === "function"
+				? tCustom("reviveHotkeyCooldownMsg", "💊 Revival Capsule on cooldown ({0} remaining).")
+				: "💊 Revival Capsule on cooldown ({0} remaining).";
+			chatLog(tmpl.replace("{0}", spkmodFormatReviveCooldownRemaining(cdMs)));
+		}
+		return false;
+	}
+
+	if (typeof gameState.tryUseRevive === "function") {
+		gameState.tryUseRevive();
+		return true;
+	}
+	if (typeof gameState.socket?.sendUseRevive === "function") {
+		gameState.socket.sendUseRevive();
+		return true;
+	}
+	return false;
+}
+window.spkmodUseReviveCapsule = spkmodUseReviveCapsule;
+
+window.spkmodReviveHotkey = {
+	get: () => spkmodGetReviveHotkeyBinding(),
+	getDisplay: () => spkmodGetReviveHotkeyDisplay(),
+	set: (val, silent = false) => spkmodSetReviveHotkey(val, silent),
+	reset: (silent = false) => spkmodSetReviveHotkey(SPKMOD_REVIVE_HOTKEY_DEFAULT, silent),
+	use: () => spkmodUseReviveCapsule()
+};
+
+function spkmodMatchesReviveHotkey(e, binding) {
+	if (!e || !binding || !binding.code) return false;
+	if (!!e.ctrlKey !== !!binding.ctrl) return false;
+	if (!!e.altKey !== !!binding.alt) return false;
+	if (!!e.shiftKey !== !!binding.shift) return false;
+	if (!!e.metaKey !== !!binding.meta) return false;
+	if (e.code === binding.code) return true;
+	// Allow Numpad0-9 to trigger Digit0-9 binding cleanly as well
+	if (binding.code.startsWith("Digit") && e.code === ("Numpad" + binding.code.slice(5))) return true;
+	return false;
+}
+
+window.addEventListener("keydown", e => {
+	if (window.__spkmodCapturingReviveHotkey || e.repeat) return;
+	const active = typeof document !== "undefined" ? document.activeElement : null;
+	if (active) {
+		const tag = active.tagName ? active.tagName.toLowerCase() : "";
+		if (tag === "input" || tag === "textarea" || tag === "select" || active.isContentEditable) {
+			return;
+		}
+	}
+	const binding = spkmodGetReviveHotkeyBinding();
+	if (!binding || !spkmodMatchesReviveHotkey(e, binding)) return;
+	e.preventDefault();
+	e.stopPropagation();
+	spkmodUseReviveCapsule();
+});
+
+spkmodRefreshReviveHotkeyUI();
 
 window.addEventListener("keydown", e => {
 	if (e.key !== "Escape" && e.code !== "Escape") return;
@@ -45901,22 +46229,28 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 			const redMat = toon(0xdc2626);
 			const furMat = toon(0xffffff);
 			const hat = new THREE.Group();
-			hat.position.set(0, -0.07, 0);
-			const brim = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.068, 10, 20), furMat);
+			hat.position.set(0, -0.19, -0.01);
+			// Big plush white fur brim hugging snugly around Speaki's dome
+			const brim = new THREE.Mesh(new THREE.TorusGeometry(0.41, 0.105, 12, 26), furMat);
 			brim.rotation.x = Math.PI / 2;
 			brim.position.y = 0.03;
 			hat.add(brim);
-			const lowerCone = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.38, 16), redMat);
-			lowerCone.position.set(0, 0.22, -0.02);
-			lowerCone.rotation.x = -0.18;
-			hat.add(lowerCone);
-			const droopTip = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.26, 12), redMat);
-			droopTip.position.set(0.14, 0.34, -0.10);
-			droopTip.rotation.z = -1.15;
-			droopTip.rotation.x = -0.35;
+			// Full tapered Santa hat crown + smooth rounded fold joint
+			const lowerBody = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.41, 0.38, 20), redMat);
+			lowerBody.position.set(0, 0.22, -0.02);
+			lowerBody.rotation.x = -0.12;
+			hat.add(lowerBody);
+			const bendJoint = new THREE.Mesh(new THREE.SphereGeometry(0.23, 16, 12), redMat);
+			bendJoint.position.set(0.02, 0.40, -0.05);
+			hat.add(bendJoint);
+			// Big floppy drooping tip + chunky fluffy pom-pom
+			const droopTip = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.46, 16), redMat);
+			droopTip.position.set(0.24, 0.35, -0.07);
+			droopTip.rotation.z = -1.85;
+			droopTip.rotation.x = -0.18;
 			hat.add(droopTip);
-			const pom = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), furMat);
-			pom.position.set(0.27, 0.28, -0.14);
+			const pom = new THREE.Mesh(new THREE.SphereGeometry(0.125, 14, 12), furMat);
+			pom.position.set(0.47, 0.27, -0.11);
 			hat.add(pom);
 			anchor.add(hat);
 			spkmodSkinSanitizeObject(anchor);

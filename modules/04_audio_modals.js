@@ -1164,6 +1164,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-pumpkin-tracker",
 	"spkmod-quests-modal-open",
 	"spkmod-reset-timer",
+	"spkmod-revive-hotkey",
 	"spkmod-separate-panel",
 	"spkmod-session-gold",
 	"spkmod-shader",
