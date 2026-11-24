@@ -45516,6 +45516,80 @@ function spkmodSkinCreateHeadAnchor(avatarRoot, headBone, reviveHat) {
 	return anchor;
 }
 
+// Pose-independent bone orientation relative to avatarRoot, taken from the skeleton BIND pose (boneInverses).
+// The old code used the bone's CURRENT animated world quaternion, so an anchor built (or rebuilt) while an
+// emote / other clip was playing baked that pose in -> back accessories wandered to head / feet on each pose change.
+function spkmodSkinGetBoneRestQuatRelRoot(avatarRoot, bone) {
+	const THREE = window.THREE;
+	if (!THREE || !avatarRoot || !bone) return null;
+	let mesh = null, idx = -1;
+	avatarRoot.traverse(o => {
+		if (mesh || !o || !o.isSkinnedMesh || !o.skeleton || !Array.isArray(o.skeleton.bones)) return;
+		const i = o.skeleton.bones.indexOf(bone);
+		if (i >= 0 && o.skeleton.boneInverses && o.skeleton.boneInverses[i] && o.bindMatrix) {
+			mesh = o;
+			idx = i;
+		}
+	});
+	if (!mesh) return null;
+	avatarRoot.updateMatrixWorld(true);
+	// bone rest frame in mesh-local space = inverse(bindMatrix) * inverse(boneInverse)
+	// (use bindMatrix, not bindMatrixInverse: in "attached" mode bindMatrixInverse tracks the current matrixWorld)
+	const restInMesh = new THREE.Matrix4().copy(mesh.bindMatrix).invert()
+		.multiply(new THREE.Matrix4().copy(mesh.skeleton.boneInverses[idx]).invert());
+	const rel = new THREE.Matrix4().copy(avatarRoot.matrixWorld).invert()
+		.multiply(mesh.matrixWorld)
+		.multiply(restInMesh);
+	const p = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3();
+	rel.decompose(p, q, s);
+	if (!Number.isFinite(q.x) || !Number.isFinite(q.y) || !Number.isFinite(q.z) || !Number.isFinite(q.w)) return null;
+	return q.normalize();
+}
+
+// Full bind-pose matrix of a bone relative to avatarRoot (null if no skinned mesh / boneInverses).
+function spkmodSkinGetBoneRestMatrixRelRoot(avatarRoot, bone) {
+	const THREE = window.THREE;
+	if (!THREE || !avatarRoot || !bone) return null;
+	let mesh = null, idx = -1;
+	avatarRoot.traverse(o => {
+		if (mesh || !o || !o.isSkinnedMesh || !o.skeleton || !Array.isArray(o.skeleton.bones)) return;
+		const i = o.skeleton.bones.indexOf(bone);
+		if (i >= 0 && o.skeleton.boneInverses && o.skeleton.boneInverses[i] && o.bindMatrix) {
+			mesh = o;
+			idx = i;
+		}
+	});
+	if (!mesh) return null;
+	avatarRoot.updateMatrixWorld(true);
+	return new THREE.Matrix4().copy(avatarRoot.matrixWorld).invert()
+		.multiply(mesh.matrixWorld)
+		.multiply(new THREE.Matrix4().copy(mesh.bindMatrix).invert())
+		.multiply(new THREE.Matrix4().copy(mesh.skeleton.boneInverses[idx]).invert());
+}
+
+// Re-expresses an anchor built for fromBone (e.g. spine) in toBone's local space (e.g. head),
+// so it keeps the same rest-pose placement but becomes a child of toBone.
+function spkmodSkinRehostAnchor(avatarRoot, anchor, fromBone, toBone) {
+	const THREE = window.THREE;
+	if (!THREE || !anchor || !fromBone || !toBone || fromBone === toBone) return anchor;
+	let fromM = spkmodSkinGetBoneRestMatrixRelRoot(avatarRoot, fromBone);
+	let toM = spkmodSkinGetBoneRestMatrixRelRoot(avatarRoot, toBone);
+	if (!fromM || !toM) {
+		// fallback: current pose
+		avatarRoot.updateMatrixWorld(true);
+		fromM = fromBone.matrixWorld.clone();
+		toM = toBone.matrixWorld.clone();
+	}
+	anchor.updateMatrix();
+	const m = toM.invert().multiply(fromM).multiply(anchor.matrix);
+	m.decompose(anchor.position, anchor.quaternion, anchor.scale);
+	anchor.updateMatrix();
+	return anchor;
+}
+
+// Body anchors with an offset Z at or below this value count as back accessories and get parented to the head
+const SPKMOD_SKIN_BACK_ANCHOR_MAX_Z = -0.4;
+
 function spkmodSkinCreateBodyAnchor(avatarRoot, targetBone, name, localOffsetWorldM, cachedBones) {
 	const THREE = window.THREE;
 	if (!THREE || !targetBone || !avatarRoot) return null;
@@ -45525,20 +45599,31 @@ function spkmodSkinCreateBodyAnchor(avatarRoot, targetBone, name, localOffsetWor
 	}
 	const { head, reviveHat } = cachedBones || spkmodSkinFindSkeletonBones(avatarRoot);
 	const boneToMeter = spkmodSkinGetBoneToMeterScale(avatarRoot, targetBone, head, reviveHat);
-	const boneQuat = targetBone.getWorldQuaternion(new THREE.Quaternion());
-	const rootQuat = avatarRoot.getWorldQuaternion(new THREE.Quaternion());
+
+	// rootToBone = inverse(bone orientation relative to root). Prefer the bind pose (pose-independent);
+	// fall back to the live pose only if no skinned mesh / boneInverses are available.
+	let rootToBone = null;
+	const restRel = spkmodSkinGetBoneRestQuatRelRoot(avatarRoot, targetBone);
+	if (restRel) {
+		rootToBone = restRel.clone().invert();
+	} else {
+		const boneQuat = targetBone.getWorldQuaternion(new THREE.Quaternion());
+		const rootQuat = avatarRoot.getWorldQuaternion(new THREE.Quaternion());
+		rootToBone = boneQuat.invert().multiply(rootQuat);
+	}
 
 	const anchor = new THREE.Group();
 	anchor.name = name || "spkmod_skin_body_anchor";
 	anchor.userData.spkmodSkinAttachment = true;
 
 	const boneLocalOffset = localOffsetWorldM.clone()
-		.applyQuaternion(rootQuat)
-		.applyQuaternion(boneQuat.clone().invert())
+		.applyQuaternion(rootToBone)
 		.multiplyScalar(boneToMeter);
 	anchor.position.copy(boneLocalOffset);
-	anchor.quaternion.copy(boneQuat).invert().multiply(rootQuat);
+	anchor.quaternion.copy(rootToBone);
 	anchor.scale.setScalar(boneToMeter);
+	// Back accessory (wings, packs, capes, shields, shells ...): clearly behind the torso
+	if (localOffsetWorldM.z <= SPKMOD_SKIN_BACK_ANCHOR_MAX_Z) anchor.userData.spkmodBackAnchor = true;
 	return anchor;
 }
 
@@ -47837,6 +47922,16 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 	if (typeof shouldAbort === "function" && shouldAbort()) {
 		spkmodSkinRemoveAttachments({ attachments }, null);
 		return null;
+	}
+	// Move ALL back accessories that hang on the spine to the head (same rest-pose placement)
+	if (head && spine && head !== spine) {
+		for (let i = 0; i < attachments.length; i++) {
+			const a = attachments[i];
+			if (!a || !a.node || a.parent !== spine || a.node.userData?.spkmodBackAnchor !== true) continue;
+			spkmodSkinRehostAnchor(avatarRoot, a.node, spine, head);
+			head.add(a.node);
+			a.parent = head;
+		}
 	}
 	spkmodSkinOptimizeAttachments(THREE, attachments, animParts);
 	return { attachments, animParts };
