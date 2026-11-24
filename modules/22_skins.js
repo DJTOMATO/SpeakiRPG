@@ -787,7 +787,7 @@ function spkmodCheckRemoteLevelAllowed(requiredLevel, remoteLevel, senderName) {
 // 4. OUTFIT TEXTURE RECOLOR ENGINE (EXACT NATIVE Map_Body.png HSL MASK)
 // ============================================================================
 const SPKMOD_SKIN_BODY_TEX_URL = "/models/speaki/Map_Body.png";
-let _spkmodSkinBaseBodyImgPromise = null;
+let _spkmodSkinBaseBodyDataPromise = null;
 const _spkmodSkinRecolorTexCache = new Map();
 
 function spkmodSkinRgbToHsl(r, g, b) {
@@ -818,19 +818,65 @@ function spkmodSkinHslToRgb(h, s, l) {
 	return [r + m, g + m, b + m];
 }
 
-function spkmodLoadBaseBodyImage() {
-	if (_spkmodSkinBaseBodyImgPromise) return _spkmodSkinBaseBodyImgPromise;
-	_spkmodSkinBaseBodyImgPromise = new Promise((resolve, reject) => {
+// Decode Map_Body.png ONCE and pre-extract dress-mask pixel indices + HSL so every recolor runs ~15x faster with zero GPU readback stalls
+function spkmodLoadBaseBodyMaskData() {
+	if (_spkmodSkinBaseBodyDataPromise) return _spkmodSkinBaseBodyDataPromise;
+	_spkmodSkinBaseBodyDataPromise = new Promise((resolve, reject) => {
 		const img = new Image();
 		img.crossOrigin = "anonymous";
-		img.onload = () => resolve(img);
+		img.onload = () => {
+			try {
+				const w = img.naturalWidth || img.width;
+				const h = img.naturalHeight || img.height;
+				const canvas = document.createElement("canvas");
+				canvas.width = w;
+				canvas.height = h;
+				const ctx = canvas.getContext("2d", { willReadFrequently: true }) || canvas.getContext("2d");
+				if (!ctx) { resolve(null); return; }
+				ctx.drawImage(img, 0, 0);
+				const data = ctx.getImageData(0, 0, w, h).data;
+				// Map_Body.png dress pixel mask:
+				// - Right half (x >= 0.5w): outer veil, sleeves, bodice, skirt, shoes
+				// - Lower-left UV island (x >= 0.22w, y >= 0.76h): veil/gown interior lining
+				const rightHalfX = Math.floor(w * 0.5);
+				const innerMinX = Math.floor(w * 0.22);
+				const innerMinY = Math.floor(h * 0.76);
+				const hueMin = 250, hueMax = 350, maxLight = 0.55, minSat = 0.04;
+				const idxList = [];
+				const satList = [];
+				const lightList = [];
+				for (let y = 0; y < h; y++) {
+					const rowStartX = (y >= innerMinY) ? innerMinX : rightHalfX;
+					for (let x = rowStartX; x < w; x++) {
+						const idx = (y * w + x) * 4;
+						if (data[idx + 3] === 0) continue;
+						const [hh, s, l] = spkmodSkinRgbToHsl(data[idx] / 255, data[idx + 1] / 255, data[idx + 2] / 255);
+						if (s < minSat || l > maxLight || hh < hueMin || hh > hueMax) continue;
+						idxList.push(idx);
+						satList.push(s);
+						lightList.push(l);
+					}
+				}
+				resolve({
+					width: w,
+					height: h,
+					baseData: new Uint8ClampedArray(data),
+					maskIdx: new Uint32Array(idxList),
+					maskS: new Float32Array(satList),
+					maskL: new Float32Array(lightList)
+				});
+			} catch (err) {
+				_spkmodSkinBaseBodyDataPromise = null;
+				reject(err);
+			}
+		};
 		img.onerror = (err) => {
-			_spkmodSkinBaseBodyImgPromise = null;
+			_spkmodSkinBaseBodyDataPromise = null;
 			reject(err);
 		};
 		img.src = SPKMOD_SKIN_BODY_TEX_URL;
 	});
-	return _spkmodSkinBaseBodyImgPromise;
+	return _spkmodSkinBaseBodyDataPromise;
 }
 
 async function spkmodGetRecoloredBodyTexture(skinId, spec) {
@@ -843,23 +889,17 @@ async function spkmodGetRecoloredBodyTexture(skinId, spec) {
 			? window.THREE
 			: ((typeof spkmodEnsureThree === "function") ? await spkmodEnsureThree() : window.THREE);
 		if (!THREE || !THREE.CanvasTexture) return null;
-		const img = await spkmodLoadBaseBodyImage();
+		const base = await spkmodLoadBaseBodyMaskData();
+		if (!base) return null;
 		const canvas = document.createElement("canvas");
-		canvas.width = img.naturalWidth || img.width;
-		canvas.height = img.naturalHeight || img.height;
+		canvas.width = base.width;
+		canvas.height = base.height;
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return null;
-		ctx.drawImage(img, 0, 0);
-		const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+		const imgData = ctx.createImageData(base.width, base.height);
 		const data = imgData.data;
+		data.set(base.baseData);
 
-		// Map_Body.png dress pixel mask:
-		// - Right half (x >= 0.5w): outer veil, sleeves, bodice, skirt, shoes
-		// - Lower-left UV island (x >= 0.22w, y >= 0.76h): veil/gown interior lining
-		const rightHalfX = Math.floor(canvas.width * 0.5);
-		const innerMinX = Math.floor(canvas.width * 0.22);
-		const innerMinY = Math.floor(canvas.height * 0.76);
-		const hueMin = 250, hueMax = 350, maxLight = 0.55, minSat = 0.04;
 		const targetHue = spec.hue ?? 0;
 		const satMul = spec.satMul ?? 3.0;
 		const satAdd = spec.satAdd ?? 0.20;
@@ -868,20 +908,17 @@ async function spkmodGetRecoloredBodyTexture(skinId, spec) {
 		const lightAdd = spec.lightAdd ?? 0.07;
 		const lightMax = spec.lightMax ?? 0.80;
 
-		for (let y = 0; y < canvas.height; y++) {
-			const rowStartX = (y >= innerMinY) ? innerMinX : rightHalfX;
-			for (let x = rowStartX; x < canvas.width; x++) {
-				const idx = (y * canvas.width + x) * 4;
-				if (data[idx + 3] === 0) continue;
-				const [h, s, l] = spkmodSkinRgbToHsl(data[idx] / 255, data[idx + 1] / 255, data[idx + 2] / 255);
-				if (s < minSat || l > maxLight || h < hueMin || h > hueMax) continue;
-				const ns = Math.max(0, Math.min(satMax, s * satMul + satAdd));
-				const nl = Math.max(0.03, Math.min(lightMax, l * lightMul + lightAdd));
-				const [nr, ng, nb] = spkmodSkinHslToRgb(targetHue, ns, nl);
-				data[idx] = Math.round(nr * 255);
-				data[idx + 1] = Math.round(ng * 255);
-				data[idx + 2] = Math.round(nb * 255);
-			}
+		const maskIdx = base.maskIdx;
+		const maskS = base.maskS;
+		const maskL = base.maskL;
+		for (let i = 0, len = maskIdx.length; i < len; i++) {
+			const idx = maskIdx[i];
+			const ns = Math.max(0, Math.min(satMax, maskS[i] * satMul + satAdd));
+			const nl = Math.max(0.03, Math.min(lightMax, maskL[i] * lightMul + lightAdd));
+			const [nr, ng, nb] = spkmodSkinHslToRgb(targetHue, ns, nl);
+			data[idx] = (nr * 255 + 0.5) | 0;
+			data[idx + 1] = (ng * 255 + 0.5) | 0;
+			data[idx + 2] = (nb * 255 + 0.5) | 0;
 		}
 		ctx.putImageData(imgData, 0, 0);
 		const tex = new THREE.CanvasTexture(canvas);
@@ -901,6 +938,195 @@ async function spkmodGetRecoloredBodyTexture(skinId, spec) {
 // 5. 3D COSTUME & ACCESSORY BUILDERS (REAL GLBs + TOON-SHADED COSTUME PARTS)
 // ============================================================================
 const _spkmodSkinGlbCache = new Map();
+const _spkmodSkinToonMaterialPool = new Map();
+
+function spkmodSkinGetPooledToonMaterial(THREE, color, extra = {}) {
+	if (!THREE || !THREE.MeshToonMaterial) return null;
+	const hasCustomComplex = extra && (extra.map || extra.alphaMap || extra.gradientMap || extra.onBeforeCompile || extra.userData);
+	if (!hasCustomComplex) {
+		const em = extra?.emissive ?? 0;
+		const emI = extra?.emissiveIntensity ?? 1;
+		const tr = extra?.transparent ? 1 : 0;
+		const op = extra?.opacity ?? 1;
+		const sd = extra?.side ?? 0;
+		const dw = extra?.depthWrite === false ? 0 : 1;
+		const wf = extra?.wireframe ? 1 : 0;
+		const key = `${color}|${em}|${emI}|${tr}|${op}|${sd}|${dw}|${wf}`;
+		const cached = _spkmodSkinToonMaterialPool.get(key);
+		if (cached) return cached;
+		const mat = new THREE.MeshToonMaterial(Object.assign({ color }, extra));
+		mat.userData = mat.userData || {};
+		mat.userData.spkmodSkinSharedMat = true;
+		_spkmodSkinToonMaterialPool.set(key, mat);
+		return mat;
+	}
+	return new THREE.MeshToonMaterial(Object.assign({ color }, extra));
+}
+
+// Merge sibling static procedural meshes sharing the same material inside a scope root into 1 BufferGeometry per material.
+// Preserves animated pivots (animNodeSet), shared GLBs, skinned/instanced meshes, and mirrored winding order.
+function spkmodSkinMergeStaticScope(THREE, scopeRoot, animNodeSet) {
+	if (!THREE || !scopeRoot || !THREE.BufferGeometry || !THREE.BufferAttribute || !THREE.Matrix3 || !THREE.Matrix4) return;
+	const buckets = new Map(); // material -> Mesh[]
+	const collect = (node) => {
+		if (!node || !node.children) return;
+		for (let i = 0; i < node.children.length; i++) {
+			const c = node.children[i];
+			if (!c || animNodeSet.has(c)) continue;
+			if (c.isMesh) {
+				if (
+					!c.isSkinnedMesh &&
+					!c.isInstancedMesh &&
+					!c.userData?.spkmodSkinSharedGlb &&
+					!c.userData?.spkmodSkinNoMerge &&
+					c.geometry &&
+					c.geometry.attributes &&
+					c.geometry.attributes.position &&
+					c.geometry.attributes.normal &&
+					(!c.geometry.morphAttributes || Object.keys(c.geometry.morphAttributes).length === 0) &&
+					c.material &&
+					!Array.isArray(c.material)
+				) {
+					let arr = buckets.get(c.material);
+					if (!arr) { arr = []; buckets.set(c.material, arr); }
+					arr.push(c);
+				}
+			}
+			if (c.children && c.children.length > 0) collect(c);
+		}
+	};
+	collect(scopeRoot);
+	if (buckets.size === 0) return;
+
+	scopeRoot.updateMatrixWorld(true);
+	const invRoot = scopeRoot.matrixWorld.clone().invert();
+	const relMat = new THREE.Matrix4();
+	const normMat = new THREE.Matrix3();
+	const vPos = new THREE.Vector3();
+	const vNorm = new THREE.Vector3();
+
+	for (const [mat, meshes] of buckets) {
+		if (meshes.length < 2) continue;
+		// Calculate total expanded triangle vertex count
+		let totalVerts = 0;
+		const valid = [];
+		for (let i = 0; i < meshes.length; i++) {
+			const m = meshes[i];
+			const g = m.geometry;
+			const idx = g.index;
+			const count = idx ? idx.count : g.attributes.position.count;
+			if (count >= 3 && count % 3 === 0) {
+				totalVerts += count;
+				valid.push(m);
+			}
+		}
+		if (valid.length < 2 || totalVerts < 3) continue;
+
+		const positions = new Float32Array(totalVerts * 3);
+		const normals = new Float32Array(totalVerts * 3);
+		let writeOff = 0;
+		const mergedFrom = [];
+
+		for (let i = 0; i < valid.length; i++) {
+			const m = valid[i];
+			relMat.multiplyMatrices(invRoot, m.matrixWorld);
+			const det = relMat.determinant();
+			if (!Number.isFinite(det) || Math.abs(det) < 1e-10) continue;
+			const flipWinding = det < 0;
+			normMat.getNormalMatrix(relMat);
+
+			const g = m.geometry;
+			const posAttr = g.attributes.position;
+			const normAttr = g.attributes.normal;
+			const idx = g.index;
+			const count = idx ? idx.count : posAttr.count;
+
+			for (let t = 0; t < count; t += 3) {
+				const i0 = idx ? idx.getX(t) : t;
+				const i1 = idx ? idx.getX(flipWinding ? t + 2 : t + 1) : (flipWinding ? t + 2 : t + 1);
+				const i2 = idx ? idx.getX(flipWinding ? t + 1 : t + 2) : (flipWinding ? t + 1 : t + 2);
+				const tri = [i0, i1, i2];
+				for (let k = 0; k < 3; k++) {
+					const vi = tri[k];
+					vPos.set(posAttr.getX(vi), posAttr.getY(vi), posAttr.getZ(vi)).applyMatrix4(relMat);
+					vNorm.set(normAttr.getX(vi), normAttr.getY(vi), normAttr.getZ(vi)).applyMatrix3(normMat).normalize();
+					positions[writeOff] = vPos.x;
+					positions[writeOff + 1] = vPos.y;
+					positions[writeOff + 2] = vPos.z;
+					normals[writeOff] = vNorm.x;
+					normals[writeOff + 1] = vNorm.y;
+					normals[writeOff + 2] = vNorm.z;
+					writeOff += 3;
+				}
+			}
+			mergedFrom.push(m);
+		}
+		if (mergedFrom.length < 2 || writeOff < 9) continue;
+
+		const finalPos = writeOff === positions.length ? positions : positions.subarray(0, writeOff);
+		const finalNorm = writeOff === normals.length ? normals : normals.subarray(0, writeOff);
+		const mergedGeom = new THREE.BufferGeometry();
+		mergedGeom.setAttribute("position", new THREE.BufferAttribute(finalPos, 3));
+		mergedGeom.setAttribute("normal", new THREE.BufferAttribute(finalNorm, 3));
+		mergedGeom.computeBoundingSphere();
+
+		const mergedMesh = new THREE.Mesh(mergedGeom, mat);
+		mergedMesh.name = "spkmod_skin_merged";
+		mergedMesh.userData = { spkmodSkinAttachment: true, spkmodNoShadow: true };
+		mergedMesh.raycast = () => {};
+		mergedMesh.castShadow = false;
+		mergedMesh.receiveShadow = false;
+		mergedMesh.frustumCulled = true;
+		scopeRoot.add(mergedMesh);
+
+		for (let i = 0; i < mergedFrom.length; i++) {
+			const m = mergedFrom[i];
+			if (m.parent) m.parent.remove(m);
+			try { m.geometry?.dispose?.(); } catch (_) {}
+		}
+	}
+
+	// Prune empty non-animated intermediate Group nodes to keep scene graph shallow
+	const prune = (node) => {
+		if (!node || !node.children) return;
+		for (let i = node.children.length - 1; i >= 0; i--) {
+			const c = node.children[i];
+			if (!c || c.isMesh || animNodeSet.has(c)) continue;
+			prune(c);
+			if (c.children && c.children.length === 0) {
+				node.remove(c);
+			}
+		}
+	};
+	prune(scopeRoot);
+}
+
+function spkmodSkinOptimizeAttachments(THREE, attachments, animParts) {
+	if (!THREE || !Array.isArray(attachments) || attachments.length === 0) return;
+	const animNodeSet = new Set();
+	if (Array.isArray(animParts)) {
+		for (let i = 0; i < animParts.length; i++) {
+			const n = animParts[i]?.node;
+			if (n) animNodeSet.add(n);
+		}
+	}
+	for (let i = 0; i < attachments.length; i++) {
+		const root = attachments[i]?.node;
+		if (!root) continue;
+		try {
+			spkmodSkinMergeStaticScope(THREE, root, animNodeSet);
+			for (const animNode of animNodeSet) {
+				if (!animNode || animNode.isMesh) continue;
+				// Check if animNode belongs to this attachment subtree
+				let p = animNode.parent;
+				while (p && p !== root) p = p.parent;
+				if (p === root) {
+					spkmodSkinMergeStaticScope(THREE, animNode, animNodeSet);
+				}
+			}
+		} catch (_) {}
+	}
+}
 
 async function spkmodSkinLoadGlb(url) {
 	if (_spkmodSkinGlbCache.has(url)) return _spkmodSkinGlbCache.get(url);
@@ -943,7 +1169,15 @@ function spkmodSkinSanitizeObject(obj) {
 		child.userData.spkmodSkinAttachment = true;
 		if (child.isMesh) {
 			child.raycast = () => {};
-			child.frustumCulled = false;
+			// Enable frustum culling on rigid attachments so off-screen players cost zero draw calls
+			if (!child.isSkinnedMesh) {
+				if (child.geometry && !child.geometry.boundingSphere && typeof child.geometry.computeBoundingSphere === "function") {
+					try { child.geometry.computeBoundingSphere(); } catch (_) {}
+				}
+				child.frustumCulled = !!(child.geometry && child.geometry.boundingSphere && child.geometry.boundingSphere.radius > 0);
+			} else {
+				child.frustumCulled = false;
+			}
 			child.castShadow = false;
 			child.receiveShadow = false;
 			child.userData.spkmodNoShadow = true;
@@ -1075,12 +1309,14 @@ function spkmodSkinCreateHeadAnchor(avatarRoot, headBone, reviveHat) {
 	return anchor;
 }
 
-function spkmodSkinCreateBodyAnchor(avatarRoot, targetBone, name, localOffsetWorldM) {
+function spkmodSkinCreateBodyAnchor(avatarRoot, targetBone, name, localOffsetWorldM, cachedBones) {
 	const THREE = window.THREE;
 	if (!THREE || !targetBone || !avatarRoot) return null;
-	avatarRoot.updateMatrixWorld(true);
-	targetBone.updateMatrixWorld(true);
-	const { head, reviveHat } = spkmodSkinFindSkeletonBones(avatarRoot);
+	if (!cachedBones) {
+		avatarRoot.updateMatrixWorld(true);
+		targetBone.updateMatrixWorld(true);
+	}
+	const { head, reviveHat } = cachedBones || spkmodSkinFindSkeletonBones(avatarRoot);
 	const boneToMeter = spkmodSkinGetBoneToMeterScale(avatarRoot, targetBone, head, reviveHat);
 	const boneQuat = targetBone.getWorldQuaternion(new THREE.Quaternion());
 	const rootQuat = avatarRoot.getWorldQuaternion(new THREE.Quaternion());
@@ -1099,20 +1335,23 @@ function spkmodSkinCreateBodyAnchor(avatarRoot, targetBone, name, localOffsetWor
 	return anchor;
 }
 
-async function spkmodBuildCostumeAttachments(skin, avatarRoot) {
+async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 	const THREE = (window.THREE && window.THREE.Group && window.THREE.Mesh)
 		? window.THREE
 		: ((typeof spkmodEnsureThree === "function") ? await spkmodEnsureThree() : window.THREE);
 	if (!THREE || !THREE.Group || !avatarRoot) return null;
+	if (typeof shouldAbort === "function" && shouldAbort()) return null;
 
 	const builder = skin.costumeBuilder;
 	if (!builder) return null;
 
-	const { head, spine, pelvis, rightHand, leftHand, reviveHat } = spkmodSkinFindSkeletonBones(avatarRoot);
+	avatarRoot.updateMatrixWorld(true);
+	const skeletonBones = spkmodSkinFindSkeletonBones(avatarRoot);
+	const { head, spine, pelvis, rightHand, leftHand, reviveHat } = skeletonBones;
 	const attachments = []; // { parent, node }
 	const animParts = [];   // { type, node, baseY, baseRotZ, side }
 
-	const toon = (color, extra = {}) => new THREE.MeshToonMaterial(Object.assign({ color }, extra));
+	const toon = (color, extra = {}) => spkmodSkinGetPooledToonMaterial(THREE, color, extra);
 
 	// Shared hand-prop helper using calibrated FBX R_Hand & L_Hand frames (Wide-Body safe!)
 	const Q_UP_R = [0, 0, 0.7071, 0.7071];
@@ -1129,7 +1368,7 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot) {
 	const Q_SHURIKEN_L = [-0.4338, -0.4338, 0.5584, 0.5584];
 	const attachHandProp = (handBone, name, propNode, quat, offset, opts = {}) => {
 		if (!handBone || !propNode) return null;
-		avatarRoot.updateMatrixWorld(true);
+		if (typeof shouldAbort === "function" && shouldAbort()) return null;
 		const holder = new THREE.Group();
 		holder.name = name || "spkmod_skin_hand_prop";
 		holder.scale.setScalar(spkmodSkinGetBoneToMeterScale(avatarRoot, handBone, head, reviveHat));
@@ -1145,7 +1384,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot) {
 	};
 	const attachSpeakovGun = async (handBone, name, glbPath, socketName, isLeft = false, lowReady = false) => {
 		if (!handBone) return false;
+		if (typeof shouldAbort === "function" && shouldAbort()) return false;
 		const gltf = await spkmodSkinLoadGlb(glbPath);
+		if (typeof shouldAbort === "function" && shouldAbort()) return false;
 		if (!gltf || !gltf.scene) return false;
 		const gun = gltf.scene.clone(true);
 		spkmodSkinMarkSharedGlb(gun);
@@ -3365,7 +3606,7 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot) {
 	} else {
 		const ctx = {
 			THREE, toon, avatarRoot, head, spine, pelvis, rightHand, leftHand, reviveHat,
-			attachments, animParts, attachHandProp,
+			skeletonBones, attachments, animParts, attachHandProp,
 			Q: {
 				UP_R: Q_UP_R, UMBRELLA_R: Q_UMBRELLA_R, UP_TILT_R: Q_UP_TILT_R,
 				SCYTHE_R: Q_SCYTHE_R, HERO_R: Q_HERO_R, HERO_L: Q_HERO_L,
@@ -3373,17 +3614,28 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot) {
 				BOW_L: Q_BOW_L, SHIELD_L: Q_SHIELD_L, SHURIKEN_L: Q_SHURIKEN_L
 			}
 		};
-		if (!(await spkmodBuildExtraCostumeSetA(builder, ctx))) {
-			await spkmodBuildExtraCostumeSetB(builder, ctx);
+		try {
+			if (!(await spkmodBuildExtraCostumeSetA(builder, ctx))) {
+				await spkmodBuildExtraCostumeSetB(builder, ctx);
+			}
+		} catch (err) {
+			console.warn("[SpeakiMod+ Skins] Costume builder error:", builder, err);
+			spkmodSkinRemoveAttachments({ attachments }, null);
+			return null;
 		}
 	}
 
+	if (typeof shouldAbort === "function" && shouldAbort()) {
+		spkmodSkinRemoveAttachments({ attachments }, null);
+		return null;
+	}
+	spkmodSkinOptimizeAttachments(THREE, attachments, animParts);
 	return { attachments, animParts };
 }
 
 // Extra 3D Costume Builders — Set A (15 costumes: Animals, Cozy & Everyday Jobs, Beach/Miko/Archer)
 async function spkmodBuildExtraCostumeSetA(builder, ctx) {
-	const { THREE, toon, avatarRoot, head, spine, pelvis, rightHand, leftHand, reviveHat, attachments, animParts, attachHandProp, Q } = ctx;
+	const { THREE, toon, avatarRoot, head, spine, pelvis, rightHand, leftHand, reviveHat, skeletonBones, attachments, animParts, attachHandProp, Q } = ctx;
 	const addHead = (buildFn) => {
 		if (!head) return;
 		const anchor = spkmodSkinCreateHeadAnchor(avatarRoot, head, reviveHat);
@@ -3395,7 +3647,7 @@ async function spkmodBuildExtraCostumeSetA(builder, ctx) {
 	};
 	const addBody = (bone, name, offset, buildFn) => {
 		if (!bone) return;
-		const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]));
+		const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones);
 		if (!anchor) return;
 		buildFn(anchor);
 		spkmodSkinSanitizeObject(anchor);
@@ -4231,7 +4483,7 @@ async function spkmodBuildExtraCostumeSetA(builder, ctx) {
 
 // Extra 3D Costume Builders — Set B (15 costumes: Fantasy, Sci-Fi, Mythic & Legendary)
 async function spkmodBuildExtraCostumeSetB(builder, ctx) {
-	const { THREE, toon, avatarRoot, head, spine, pelvis, rightHand, leftHand, reviveHat, attachments, animParts, attachHandProp, Q } = ctx;
+	const { THREE, toon, avatarRoot, head, spine, pelvis, rightHand, leftHand, reviveHat, skeletonBones, attachments, animParts, attachHandProp, Q } = ctx;
 	const addHead = (buildFn) => {
 		if (!head) return;
 		const anchor = spkmodSkinCreateHeadAnchor(avatarRoot, head, reviveHat);
@@ -4243,7 +4495,7 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 	};
 	const addBody = (bone, name, offset, buildFn) => {
 		if (!bone) return;
-		const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]));
+		const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones);
 		if (!anchor) return;
 		buildFn(anchor);
 		spkmodSkinSanitizeObject(anchor);
@@ -5403,10 +5655,14 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 // ============================================================================
 // 6. PER-PLAYER SKIN APPLICATION & CLEAN RESTORE (LOCAL + REMOTE)
 // ============================================================================
-const _spkmodAppliedSkins = new Map(); // ownerKey -> { skinId, root, ctrl, attachments, animParts, usedReviveHat, fxMode, seq }
-const _spkmodRemoteSkinStates = new Map(); // ownerKey -> { playerId, playerName, skinId, widthId }
+const _spkmodAppliedSkins = new Map(); // ownerKey -> { skinId, root, ctrl, attachments, animParts, rainbowMats, hasSpeakovToggleParts, usedReviveHat, fxMode, seq }
+const _spkmodAvatarSkinOwner = new WeakMap(); // avatarRoot -> active entry (strict 1-skin-per-avatar lock)
+let _spkmodSkinGlobalSeq = 0;
+const _spkmodRemoteSkinStates = new Map(); // canonicalOwnerKey -> { playerId, playerName, skinId, widthId, updatedAtMs }
 const _spkmodRemoteSkinPendingByName = new Map(); // lowerName -> { skinId, widthId }
 const _spkmodRemoteSkinPendingById = new Map();   // String(id) -> { skinId, widthId }
+let _spkmodSkinForceSyncNow = true;
+let _spkmodSkinLastReconcileMs = 0;
 
 function spkmodSkinSafeCloneMat(mat) {
 	if (!mat) return mat;
@@ -5429,6 +5685,28 @@ function spkmodSkinSafeCloneMat(mat) {
 	return mat;
 }
 
+function spkmodSkinDisposeNode(node) {
+	if (!node) return;
+	if (node.parent) {
+		node.parent.remove(node);
+	}
+	if (typeof node.traverse === "function") {
+		node.traverse(c => {
+			if (c && c.isMesh && !c.userData?.spkmodSkinSharedGlb) {
+				try { c.geometry?.dispose?.(); } catch (_) {}
+				if (c.material) {
+					const mats = Array.isArray(c.material) ? c.material : [c.material];
+					for (const m of mats) {
+						if (m && !m.userData?.spkmodSkinSharedMat) {
+							try { m.dispose?.(); } catch (_) {}
+						}
+					}
+				}
+			}
+		});
+	}
+}
+
 function spkmodSkinRestoreMaterials(root) {
 	if (!root || typeof root.traverse !== "function") return;
 	root.traverse(child => {
@@ -5443,7 +5721,7 @@ function spkmodSkinRestoreMaterials(root) {
 				const arr = Array.isArray(cur) ? cur : [cur];
 				const origArr = Array.isArray(orig) ? orig : [orig];
 				for (const m of arr) {
-					if (m && !origArr.includes(m) && typeof m.dispose === "function") {
+					if (m && !m.userData?.spkmodSkinSharedMat && !origArr.includes(m) && typeof m.dispose === "function") {
 						try { m.dispose(); } catch (_) {}
 					}
 				}
@@ -5455,21 +5733,8 @@ function spkmodSkinRestoreMaterials(root) {
 function spkmodSkinRemoveAttachments(entry, root) {
 	if (entry && Array.isArray(entry.attachments)) {
 		for (const item of entry.attachments) {
-			if (item && item.node && item.node.parent) {
-				item.node.parent.remove(item.node);
-			}
-			if (item && item.node && typeof item.node.traverse === "function") {
-				item.node.traverse(c => {
-					if (c && c.isMesh && !c.userData?.spkmodSkinSharedGlb) {
-						try { c.geometry?.dispose?.(); } catch (_) {}
-						if (c.material) {
-							const mats = Array.isArray(c.material) ? c.material : [c.material];
-							for (const m of mats) {
-								try { m?.dispose?.(); } catch (_) {}
-							}
-						}
-					}
-				});
+			if (item && item.node) {
+				spkmodSkinDisposeNode(item.node);
 			}
 		}
 		entry.attachments = [];
@@ -5482,7 +5747,7 @@ function spkmodSkinRemoveAttachments(entry, root) {
 			}
 		});
 		for (const s of stale) {
-			if (s.parent) s.parent.remove(s);
+			spkmodSkinDisposeNode(s);
 		}
 	}
 }
@@ -5514,8 +5779,11 @@ function spkmodSkinRestoreMagicStaff(entry) {
 function spkmodSkinClearOnOwner(ownerKey) {
 	const prev = _spkmodAppliedSkins.get(ownerKey);
 	if (!prev) return;
-	prev.seq = (prev.seq || 0) + 1;
+	prev.seq = ++_spkmodSkinGlobalSeq;
 	if (prev.root) {
+		if (_spkmodAvatarSkinOwner.get(prev.root) === prev) {
+			_spkmodAvatarSkinOwner.delete(prev.root);
+		}
 		spkmodSkinRestoreMaterials(prev.root);
 		spkmodSkinRemoveAttachments(prev, prev.root);
 		spkmodSkinRestoreMagicStaff(prev);
@@ -5529,8 +5797,28 @@ function spkmodSkinClearOnOwner(ownerKey) {
 	_spkmodAppliedSkins.delete(ownerKey);
 }
 
+// Enforce strict 1-skin-per-avatarRoot invariant: evict any other ownerKey bound to root + unconditionally sweep root
+function spkmodSkinClearOnRoot(root, keepOwnerKey = null) {
+	if (!root) return;
+	const existingOwnerEntry = _spkmodAvatarSkinOwner.get(root);
+	if (existingOwnerEntry && existingOwnerEntry.ownerKey && existingOwnerEntry.ownerKey !== keepOwnerKey) {
+		spkmodSkinClearOnOwner(existingOwnerEntry.ownerKey);
+	}
+	for (const [k, ent] of [..._spkmodAppliedSkins.entries()]) {
+		if (ent && ent.root === root && k !== keepOwnerKey) {
+			spkmodSkinClearOnOwner(k);
+		}
+	}
+	spkmodSkinRestoreMaterials(root);
+	spkmodSkinRemoveAttachments(null, root);
+	if (!keepOwnerKey) {
+		_spkmodAvatarSkinOwner.delete(root);
+	}
+}
+
 function spkmodSkinApplyMaterialFx(root, fxMode) {
-	if (!root || typeof root.traverse !== "function") return;
+	const fxMats = [];
+	if (!root || typeof root.traverse !== "function") return fxMats;
 	root.traverse(child => {
 		if (!child || !child.isMesh || !child.material || child.userData?.spkmodSkinAttachment) return;
 		if (typeof spkmodIsOutlineMaterial === "function" && spkmodIsOutlineMaterial(child.material)) return;
@@ -5568,8 +5856,10 @@ function spkmodSkinApplyMaterialFx(root, fxMode) {
 				if (m.emissiveIntensity !== undefined) m.emissiveIntensity = 0.38;
 			}
 			m.needsUpdate = true;
+			fxMats.push(m);
 		}
 	});
+	return fxMats;
 }
 
 function spkmodSkinApplyRecolorTexture(root, tex) {
@@ -5600,16 +5890,18 @@ function spkmodSkinApplyRecolorTexture(root, tex) {
 async function spkmodApplySkinToAvatar(ownerKey, skinId, avatarRoot, animCtrl) {
 	if (!skinId || skinId === "none" || skinId === "off" || !avatarRoot || avatarRoot.userData?.skinAvatarRoot === true) {
 		spkmodSkinClearOnOwner(ownerKey);
+		if (avatarRoot) spkmodSkinClearOnRoot(avatarRoot);
 		return;
 	}
 	const skin = SPKMOD_SKINS_BY_ID.get(skinId);
 	if (!skin) {
 		spkmodSkinClearOnOwner(ownerKey);
+		spkmodSkinClearOnRoot(avatarRoot);
 		return;
 	}
 
 	const existing = _spkmodAppliedSkins.get(ownerKey);
-	if (existing && existing.skinId === skin.id && existing.root === avatarRoot) {
+	if (existing && existing.skinId === skin.id && existing.root === avatarRoot && _spkmodAvatarSkinOwner.get(avatarRoot) === existing) {
 		// Ensure revive hat stays visible if needed
 		if (existing.usedReviveHat && animCtrl && typeof animCtrl.showReviveHat === "function") {
 			if (!animCtrl.reviveHatVisible) {
@@ -5619,15 +5911,21 @@ async function spkmodApplySkinToAvatar(ownerKey, skinId, avatarRoot, animCtrl) {
 		return;
 	}
 
+	// Strictly clear any previous skin on this ownerKey AND any other ownerKey bound to the same avatarRoot,
+	// plus unconditionally sweep any orphaned skin attachments on avatarRoot!
 	spkmodSkinClearOnOwner(ownerKey);
+	spkmodSkinClearOnRoot(avatarRoot);
 
-	const seq = ((existing && existing.seq) || 0) + 1;
+	const seq = ++_spkmodSkinGlobalSeq;
 	const entry = {
+		ownerKey,
 		skinId: skin.id,
 		root: avatarRoot,
 		ctrl: animCtrl || null,
 		attachments: [],
 		animParts: [],
+		rainbowMats: null,
+		hasSpeakovToggleParts: false,
 		usedReviveHat: false,
 		hideMagicStaff: !!skin.hideMagicStaff,
 		hiddenStaffNodes: new Map(),
@@ -5635,6 +5933,12 @@ async function spkmodApplySkinToAvatar(ownerKey, skinId, avatarRoot, animCtrl) {
 		seq
 	};
 	_spkmodAppliedSkins.set(ownerKey, entry);
+	_spkmodAvatarSkinOwner.set(avatarRoot, entry);
+
+	const isAborted = () => {
+		const cur = _spkmodAppliedSkins.get(ownerKey);
+		return !cur || cur !== entry || cur.seq !== seq || cur.root !== avatarRoot || _spkmodAvatarSkinOwner.get(avatarRoot) !== entry;
+	};
 
 	if (entry.hideMagicStaff) {
 		spkmodSkinHideMagicStaff(entry);
@@ -5643,13 +5947,13 @@ async function spkmodApplySkinToAvatar(ownerKey, skinId, avatarRoot, animCtrl) {
 	// 1. Outfit Texture Recolor
 	if (skin.recolor) {
 		const tex = await spkmodGetRecoloredBodyTexture(skin.id, skin.recolor);
-		const cur = _spkmodAppliedSkins.get(ownerKey);
-		if (!cur || cur !== entry || cur.seq !== seq || cur.root !== avatarRoot) return;
+		if (isAborted()) return;
 		if (tex) spkmodSkinApplyRecolorTexture(avatarRoot, tex);
 	}
 
 	// 2. Native Revive Pumpkin Copter Hat
 	if (skin.useNativeReviveHat && animCtrl && typeof animCtrl.showReviveHat === "function") {
+		if (isAborted()) return;
 		try {
 			animCtrl.showReviveHat();
 			entry.usedReviveHat = true;
@@ -5658,21 +5962,35 @@ async function spkmodApplySkinToAvatar(ownerKey, skinId, avatarRoot, animCtrl) {
 
 	// 3. 3D Costume Attachments
 	if (skin.costumeBuilder) {
-		const built = await spkmodBuildCostumeAttachments(skin, avatarRoot);
-		const cur = _spkmodAppliedSkins.get(ownerKey);
-		if (!cur || cur !== entry || cur.seq !== seq || cur.root !== avatarRoot) {
+		if (isAborted()) return;
+		// Final pre-build sweep in case an earlier overlapped build left partial nodes
+		spkmodSkinRemoveAttachments(null, avatarRoot);
+		let built = null;
+		try {
+			built = await spkmodBuildCostumeAttachments(skin, avatarRoot, isAborted);
+		} catch (err) {
+			console.warn("[SpeakiMod+ Skins] Failed to build costume attachments:", skin.id, err);
+			if (!isAborted()) spkmodSkinRemoveAttachments(null, avatarRoot);
+			return;
+		}
+		if (isAborted()) {
 			if (built) spkmodSkinRemoveAttachments(built, null);
 			return;
 		}
 		if (built) {
 			entry.attachments = built.attachments || [];
 			entry.animParts = built.animParts || [];
+			entry.hasSpeakovToggleParts = entry.attachments.some(a => a && a.node && a.node.userData?.spkmodHideInSpeakov);
 		}
 	}
 
 	// 4. Special Material FX
 	if (skin.fxMode) {
-		spkmodSkinApplyMaterialFx(avatarRoot, skin.fxMode);
+		if (isAborted()) return;
+		const fxMats = spkmodSkinApplyMaterialFx(avatarRoot, skin.fxMode);
+		if (skin.fxMode === "rainbow") {
+			entry.rainbowMats = fxMats;
+		}
 	}
 }
 
@@ -5724,8 +6042,10 @@ function spkmodPFAxes(bone, cont) {
 	return { x: ax, z: az };
 }
 
-function spkmodPFCollectHandProps(entry) {
-	const out = [];
+const _spkmodPFScratchProps = [];
+
+function spkmodPFCollectHandProps(entry, out = []) {
+	out.length = 0;
 	const hands = entry && entry.hands;
 	if (!hands) return out;
 	for (let i = 0; i < hands.length; i++) {
@@ -5754,12 +6074,14 @@ function spkmodPFRelease(entry) {
 		entry.head.matrixAutoUpdate = true;
 		entry.head.updateMatrix();
 	}
-	const props = spkmodPFCollectHandProps(entry);
+	const props = spkmodPFCollectHandProps(entry, _spkmodPFScratchProps);
 	for (let i = 0; i < props.length; i++) {
 		props[i].matrixAutoUpdate = true;
 		props[i].updateMatrix();
 	}
-	if (entry.root) {
+	if (entry.pel) {
+		entry.pel.updateMatrixWorld(true);
+	} else if (entry.root) {
 		entry.root.updateMatrixWorld(true);
 	}
 }
@@ -5788,6 +6110,13 @@ function spkmodPFSetTarget(ownerKey, avatarRoot, widthScale) {
 	if (existing) {
 		spkmodPFRelease(existing);
 		spkmodPlayerFat.entries.delete(ownerKey);
+	}
+	// Evict any stale alias key bound to the same avatarRoot so pelvis scaling never stacks
+	for (const [k, ent] of [...spkmodPlayerFat.entries.entries()]) {
+		if (k !== ownerKey && ent && ent.root === avatarRoot) {
+			spkmodPFRelease(ent);
+			spkmodPlayerFat.entries.delete(k);
+		}
 	}
 	const bones = [];
 	avatarRoot.traverse(o => { if (o && o.isBone) bones.push(o); });
@@ -5822,6 +6151,7 @@ function spkmodPFApplyAll() {
 			if (!e.root || !e.root.parent) spkmodPlayerFat.entries.delete(key);
 			continue;
 		}
+		if (e.root.visible === false || e.root.parent.visible === false) continue;
 		const pel = e.pel, head = e.head, neck = head.parent;
 		if (!pel || !head || !neck) continue;
 		if (!_spkmodPFMatH1 || _spkmodPFMatH1.constructor !== e.M) {
@@ -5829,7 +6159,7 @@ function spkmodPFApplyAll() {
 			_spkmodPFMatInv = new e.M();
 			_spkmodPFPropMats.length = 0;
 		}
-		const props = spkmodPFCollectHandProps(e);
+		const props = spkmodPFCollectHandProps(e, _spkmodPFScratchProps);
 		e.rel = false;
 		head.matrixAutoUpdate = true;
 		for (let i = 0; i < props.length; i++) props[i].matrixAutoUpdate = true;
@@ -5856,11 +6186,11 @@ function spkmodPFApplyAll() {
 			propCount++;
 		}
 
-		// Apply wide horizontal pelvis scale
+		// Apply wide horizontal pelvis scale (update only pelvis subtree instead of re-traversing full avatarRoot)
 		pel.scale[e.ap.x] = e.p0.x * e.scale;
 		pel.scale[e.ap.z] = e.p0.z * e.scale;
 		pel.updateMatrix();
-		e.root.updateMatrixWorld(true);
+		pel.updateMatrixWorld(true);
 
 		// Keep head (and attached hats!) unstretched at its exact world neck attachment point
 		const ne = neck.matrixWorld;
@@ -5988,13 +6318,16 @@ function spkmodTriggerSkinSyncBroadcast(opts = {}) {
 function spkmodResolveRemotePlayerForSkin(playerId, playerName) {
 	if (typeof gameState === "undefined" || !gameState?.remotePlayers?.remotePlayers) return null;
 	const rMap = gameState.remotePlayers.remotePlayers;
-	if (playerId != null) {
-		for (const k of [playerId, Number(playerId), String(playerId)]) {
+	if (playerId != null && typeof playerId !== "object") {
+		const rawStr = String(playerId).trim();
+		const stripped = rawStr.replace(/^(?:remote|player|user|bubble)[_:-]+/i, "");
+		for (const k of [playerId, Number(playerId), rawStr, stripped, Number(stripped)]) {
+			if (k === "" || (typeof k === "number" && Number.isNaN(k))) continue;
 			const byId = rMap.get(k);
 			if (byId) return { key: String(k), rp: byId };
 		}
 	}
-	const lower = playerName ? playerName.trim().toLowerCase() : "";
+	const lower = typeof playerName === "string" ? playerName.trim().toLowerCase() : "";
 	if (lower) {
 		for (const [k, rp] of rMap) {
 			const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim().toLowerCase();
@@ -6005,16 +6338,57 @@ function spkmodResolveRemotePlayerForSkin(playerId, playerName) {
 }
 
 window.spkmodHandleIncomingSkinState = function(playerId, playerName, skinIdRaw, widthIdRaw, hasSkin, hasWidth) {
-	const ownerKey = (playerId != null && playerId !== "")
-		? String(playerId)
-		: `name:${(playerName || "").trim().toLowerCase()}`;
+	// Never allow raw Object3D values to become "[object Object]" owner keys
+	if (playerId != null && typeof playerId === "object") {
+		if (!playerName) playerName = playerId.info?.__spkmodOrigName || playerId.info?.name || playerId.name || "";
+		playerId = playerId.info?.playerId ?? playerId.info?.id ?? playerId.playerId ?? playerId.id ?? null;
+	}
+	let cleanName = typeof playerName === "string" ? playerName.trim() : "";
+	let cleanId = (playerId != null && String(playerId).trim() !== "") ? playerId : null;
 
-	const prev = _spkmodRemoteSkinStates.get(ownerKey) || {
-		playerId,
-		playerName: playerName || "",
-		skinId: null,
-		widthId: "normal"
-	};
+	// Canonicalize against live remotePlayers map so chatBox.append & chatBubbles.show ALWAYS share one key
+	const resolved = spkmodResolveRemotePlayerForSkin(cleanId, cleanName);
+	if (resolved) {
+		cleanId = resolved.key;
+		const rName = (resolved.rp?.info?.__spkmodOrigName || resolved.rp?.info?.name || "").trim();
+		if (rName) cleanName = rName;
+	}
+	const lowerName = cleanName.toLowerCase();
+	const ownerKey = (cleanId != null && String(cleanId).trim() !== "")
+		? String(cleanId).trim()
+		: (lowerName ? `name:${lowerName}` : "");
+	if (!ownerKey) return;
+
+	// Merge and evict any existing alias entries belonging to the exact same player (prevents multi-skin stacking!)
+	let prev = _spkmodRemoteSkinStates.get(ownerKey) || null;
+	for (const [k, st] of [..._spkmodRemoteSkinStates.entries()]) {
+		if (k === ownerKey || !st) continue;
+		const stLower = (st.playerName || "").trim().toLowerCase();
+		const sameName = !!(lowerName && stLower && stLower === lowerName);
+		const sameId = !!(cleanId != null && st.playerId != null && String(st.playerId) === String(cleanId));
+		let sameResolved = false;
+		if (!sameName && !sameId && resolved) {
+			const otherRes = spkmodResolveRemotePlayerForSkin(st.playerId, st.playerName);
+			if (otherRes && otherRes.key === resolved.key) sameResolved = true;
+		}
+		if (sameName || sameId || sameResolved) {
+			if (!prev || (st.updatedAtMs || 0) > (prev.updatedAtMs || 0)) {
+				prev = st;
+			}
+			_spkmodRemoteSkinStates.delete(k);
+			spkmodSkinClearOnOwner(k);
+			spkmodPFSetTarget(k, null, 1.0);
+		}
+	}
+	if (!prev) {
+		prev = {
+			playerId: cleanId,
+			playerName: cleanName,
+			skinId: null,
+			widthId: "normal",
+			updatedAtMs: 0
+		};
+	}
 
 	const nextSkinId = hasSkin
 		? ((!skinIdRaw || skinIdRaw === "none" || skinIdRaw === "off") ? null : skinIdRaw.toLowerCase())
@@ -6024,10 +6398,11 @@ window.spkmodHandleIncomingSkinState = function(playerId, playerName, skinIdRaw,
 		: prev.widthId;
 
 	const state = {
-		playerId: playerId != null ? playerId : prev.playerId,
-		playerName: playerName || prev.playerName,
+		playerId: cleanId != null ? cleanId : prev.playerId,
+		playerName: cleanName || prev.playerName,
 		skinId: (nextSkinId && SPKMOD_SKINS_BY_ID.has(nextSkinId)) ? nextSkinId : null,
-		widthId: (nextWidthId && SPKMOD_BODY_WIDTHS_BY_ID.has(nextWidthId)) ? nextWidthId : "normal"
+		widthId: (nextWidthId && SPKMOD_BODY_WIDTHS_BY_ID.has(nextWidthId)) ? nextWidthId : "normal",
+		updatedAtMs: Date.now()
 	};
 
 	if (!state.skinId && state.widthId === "normal") {
@@ -6035,13 +6410,16 @@ window.spkmodHandleIncomingSkinState = function(playerId, playerName, skinIdRaw,
 		if (state.playerId != null) _spkmodRemoteSkinPendingById.delete(String(state.playerId));
 		if (state.playerName) _spkmodRemoteSkinPendingByName.delete(state.playerName.trim().toLowerCase());
 		spkmodSkinClearOnOwner(ownerKey);
+		if (resolved && resolved.rp?.avatar?.root) spkmodSkinClearOnRoot(resolved.rp.avatar.root);
 		spkmodPFSetTarget(ownerKey, null, 1.0);
+		_spkmodSkinForceSyncNow = true;
 		return;
 	}
 
 	_spkmodRemoteSkinStates.set(ownerKey, state);
 	if (state.playerId != null) _spkmodRemoteSkinPendingById.set(String(state.playerId), state);
 	if (state.playerName) _spkmodRemoteSkinPendingByName.set(state.playerName.trim().toLowerCase(), state);
+	_spkmodSkinForceSyncNow = true;
 };
 
 // ============================================================================
@@ -6299,6 +6677,7 @@ window.spkmodSetSkinsSystemEnabled = function(nextEnabled, silentToast = false) 
 	} else {
 		_spkmodSkinLastObservedZoneId = null;
 		_spkmodSkinLastObservedRemoteCount = 0;
+		_spkmodSkinForceSyncNow = true;
 		spkmodStartSkinsLoopIfEnabled();
 	}
 
@@ -6318,94 +6697,85 @@ function spkmodSkinsMasterLoop(nowMs) {
 	if (!document.hidden && typeof gameState !== "undefined" && gameState && gameState.scene) {
 		spkmodEnsurePlayerFatSceneHook();
 
-		// 1. Local player skin & body width sync (handles login auto-restore, avatar rebuilds & native costume guard!)
-		const localRoot = gameState.localAvatar?.root || null;
-		const localCtrl = gameState.localAnimationController || gameState.localAvatar?.animationController || null;
-		const hasNativeLocal = spkmodHasNativeLocalSkin();
+		// 1-3. Reconcile local/remote skins, zone changes & modal level every ~150ms (or immediately on incoming event)
+		const doReconcile = _spkmodSkinForceSyncNow || (nowMs - _spkmodSkinLastReconcileMs >= 150);
+		if (doReconcile) {
+			_spkmodSkinForceSyncNow = false;
+			_spkmodSkinLastReconcileMs = nowMs;
 
-		if (hasNativeLocal && !_spkmodUnequippingNativeSkin) {
-			const hadEquippedMod = !!(
+			// 1. Local player skin & body width sync (handles login auto-restore, avatar rebuilds & native costume guard!)
+			const localRoot = gameState.localAvatar?.root || null;
+			const localCtrl = gameState.localAnimationController || gameState.localAvatar?.animationController || null;
+			const hasNativeLocal = spkmodHasNativeLocalSkin();
+
+			if (hasNativeLocal && !_spkmodUnequippingNativeSkin) {
+				const hadEquippedMod = !!(
+					window.spkmodSkinSettings.equippedId ||
+					(window.spkmodSkinSettings.widthId && window.spkmodSkinSettings.widthId !== "normal")
+				);
+				if (_spkmodAppliedSkins.has("local_self")) spkmodSkinClearOnOwner("local_self");
+				if (spkmodPlayerFat.entries.has("local_self")) spkmodPFSetTarget("local_self", null, 1.0);
+				if (hadEquippedMod) {
+					window.spkmodSkinSettings.equippedId = null;
+					window.spkmodSkinSettings.widthId = "normal";
+					if (window.localStorage) {
+						localStorage.removeItem(SPKMOD_SKIN_STORAGE_KEYS.equipped);
+						localStorage.setItem(SPKMOD_SKIN_STORAGE_KEYS.width, "normal");
+					}
+					spkmodTriggerSkinSyncBroadcast({
+						priority: "explicit",
+						delayMs: 600,
+						forceResend: true,
+						includeSkinState: true,
+						reason: "native_skin_override"
+					});
+					if (typeof chatLog === "function") chatLog(spkmodGetSkinUiText("nativeSkinClearedModToast"));
+					spkmodRefreshSkinsModalUI();
+				}
+			} else if (localRoot && !hasNativeLocal) {
+				const eqSkinId = window.spkmodSkinSettings.equippedId;
+				if (eqSkinId) {
+					const skin = SPKMOD_SKINS_BY_ID.get(eqSkinId);
+					if (skin && spkmodIsSkinUnlocked(skin)) {
+						const cur = _spkmodAppliedSkins.get("local_self");
+						if (!cur || cur.skinId !== skin.id || cur.root !== localRoot) {
+							spkmodApplySkinToAvatar("local_self", skin.id, localRoot, localCtrl);
+						}
+					} else if (skin && !spkmodIsSkinUnlocked(skin)) {
+						spkmodSkinClearOnOwner("local_self");
+					}
+				} else if (_spkmodAppliedSkins.has("local_self")) {
+					spkmodSkinClearOnOwner("local_self");
+				}
+
+				const wTier = SPKMOD_BODY_WIDTHS_BY_ID.get(window.spkmodSkinSettings.widthId || "normal");
+				if (wTier && wTier.scale > 1.001 && spkmodIsWidthUnlocked(wTier)) {
+					spkmodPFSetTarget("local_self", localRoot, wTier.scale);
+				} else {
+					spkmodPFSetTarget("local_self", null, 1.0);
+				}
+			}
+
+			// 2. Zone change & remote player join sync (piggybacked onto single pet queue!)
+			const hasActiveLocalCosmetic = !!(
 				window.spkmodSkinSettings.equippedId ||
 				(window.spkmodSkinSettings.widthId && window.spkmodSkinSettings.widthId !== "normal")
 			);
-			if (_spkmodAppliedSkins.has("local_self")) spkmodSkinClearOnOwner("local_self");
-			if (spkmodPlayerFat.entries.has("local_self")) spkmodPFSetTarget("local_self", null, 1.0);
-			if (hadEquippedMod) {
-				window.spkmodSkinSettings.equippedId = null;
-				window.spkmodSkinSettings.widthId = "normal";
-				if (window.localStorage) {
-					localStorage.removeItem(SPKMOD_SKIN_STORAGE_KEYS.equipped);
-					localStorage.setItem(SPKMOD_SKIN_STORAGE_KEYS.width, "normal");
+			const rMap = gameState.remotePlayers?.remotePlayers;
+			const rCount = rMap ? rMap.size : 0;
+
+			if (gameState.zoneId != null && gameState.zoneId !== _spkmodSkinLastObservedZoneId) {
+				_spkmodSkinLastObservedZoneId = gameState.zoneId;
+				// Clean up stale remote entries on zone change
+				for (const key of [..._spkmodAppliedSkins.keys()]) {
+					if (key !== "local_self") spkmodSkinClearOnOwner(key);
 				}
-				spkmodTriggerSkinSyncBroadcast({
-					priority: "explicit",
-					delayMs: 600,
-					forceResend: true,
-					includeSkinState: true,
-					reason: "native_skin_override"
-				});
-				if (typeof chatLog === "function") chatLog(spkmodGetSkinUiText("nativeSkinClearedModToast"));
-				spkmodRefreshSkinsModalUI();
-			}
-		} else if (localRoot && !hasNativeLocal) {
-			const eqSkinId = window.spkmodSkinSettings.equippedId;
-			if (eqSkinId) {
-				const skin = SPKMOD_SKINS_BY_ID.get(eqSkinId);
-				if (skin && spkmodIsSkinUnlocked(skin)) {
-					const cur = _spkmodAppliedSkins.get("local_self");
-					if (!cur || cur.skinId !== skin.id || cur.root !== localRoot) {
-						spkmodApplySkinToAvatar("local_self", skin.id, localRoot, localCtrl);
-					}
-				} else if (skin && !spkmodIsSkinUnlocked(skin)) {
-					spkmodSkinClearOnOwner("local_self");
+				for (const key of [...spkmodPlayerFat.entries.keys()]) {
+					if (key !== "local_self") spkmodPFSetTarget(key, null, 1.0);
 				}
-			} else if (_spkmodAppliedSkins.has("local_self")) {
-				spkmodSkinClearOnOwner("local_self");
-			}
-
-			const wTier = SPKMOD_BODY_WIDTHS_BY_ID.get(window.spkmodSkinSettings.widthId || "normal");
-			if (wTier && wTier.scale > 1.001 && spkmodIsWidthUnlocked(wTier)) {
-				spkmodPFSetTarget("local_self", localRoot, wTier.scale);
-			} else {
-				spkmodPFSetTarget("local_self", null, 1.0);
-			}
-		}
-
-		// 2. Zone change & remote player join sync (piggybacked onto single pet queue!)
-		const hasActiveLocalCosmetic = !!(
-			window.spkmodSkinSettings.equippedId ||
-			(window.spkmodSkinSettings.widthId && window.spkmodSkinSettings.widthId !== "normal")
-		);
-		const rMap = gameState.remotePlayers?.remotePlayers;
-		const rCount = rMap ? rMap.size : 0;
-
-		if (gameState.zoneId != null && gameState.zoneId !== _spkmodSkinLastObservedZoneId) {
-			_spkmodSkinLastObservedZoneId = gameState.zoneId;
-			// Clean up stale remote entries on zone change
-			for (const key of [..._spkmodAppliedSkins.keys()]) {
-				if (key !== "local_self") spkmodSkinClearOnOwner(key);
-			}
-			for (const key of [...spkmodPlayerFat.entries.keys()]) {
-				if (key !== "local_self") spkmodPFSetTarget(key, null, 1.0);
-			}
-			_spkmodRemoteSkinStates.clear();
-			if (hasActiveLocalCosmetic && spkmodIsSkinChatSharingEnabled()) {
-				_spkmodSkinNeedsZoneSync = true;
-				spkmodTriggerSkinSyncBroadcast({
-					priority: "passive",
-					delayMs: 1800,
-					forceResend: true,
-					includeSkinState: true,
-					reason: "zone"
-				});
-			}
-		}
-
-		if (rCount > 0 && hasActiveLocalCosmetic && spkmodIsSkinChatSharingEnabled()) {
-			const inMinigame = (typeof spkmodIsInIsolatedMinigame === "function") ? spkmodIsInIsolatedMinigame() : false;
-			if (!inMinigame) {
-				if (_spkmodSkinNeedsZoneSync) {
-					_spkmodSkinNeedsZoneSync = false;
+				_spkmodRemoteSkinStates.clear();
+				if (hasActiveLocalCosmetic && spkmodIsSkinChatSharingEnabled()) {
+					_spkmodSkinNeedsZoneSync = true;
 					spkmodTriggerSkinSyncBroadcast({
 						priority: "passive",
 						delayMs: 1800,
@@ -6413,85 +6783,150 @@ function spkmodSkinsMasterLoop(nowMs) {
 						includeSkinState: true,
 						reason: "zone"
 					});
-				} else if (rCount > _spkmodSkinLastObservedRemoteCount) {
-					spkmodTriggerSkinSyncBroadcast({
-						priority: "passive",
-						delayMs: 2500,
-						forceResend: true,
-						includeSkinState: true,
-						reason: "remote_join"
-					});
 				}
 			}
-		}
-		_spkmodSkinLastObservedRemoteCount = rCount;
 
-		// 3. Apply & verify remote players' skins & body widths
-		const showRemote = window.spkmodSkinSettings.showRemoteSkins !== false;
-		const seenRemoteKeys = new Set();
-		if (showRemote && rMap) {
-			for (const [ownerKey, state] of _spkmodRemoteSkinStates) {
-				const resolved = spkmodResolveRemotePlayerForSkin(state.playerId, state.playerName);
-				if (!resolved || !resolved.rp || !resolved.rp.avatar?.root) continue;
-				seenRemoteKeys.add(ownerKey);
-				const rp = resolved.rp;
-				const rpRoot = rp.avatar.root;
-				const rpCtrl = rp.avatar.animationController || null;
-				const rpLevel = rp.info?.level ?? 0;
-				const rpName = rp.info?.__spkmodOrigName || rp.info?.name || state.playerName || "";
-
-				// Never overlay SpeakiMod skins or fat body onto native in-game costumes (Pure Pumpkin / Witch / Ner)
-				if (spkmodHasNativeRemoteSkin(rp)) {
-					spkmodSkinClearOnOwner(ownerKey);
-					spkmodPFSetTarget(ownerKey, null, 1.0);
-					continue;
+			if (rCount > 0 && hasActiveLocalCosmetic && spkmodIsSkinChatSharingEnabled()) {
+				const inMinigame = (typeof spkmodIsInIsolatedMinigame === "function") ? spkmodIsInIsolatedMinigame() : false;
+				if (!inMinigame) {
+					if (_spkmodSkinNeedsZoneSync) {
+						_spkmodSkinNeedsZoneSync = false;
+						spkmodTriggerSkinSyncBroadcast({
+							priority: "passive",
+							delayMs: 1800,
+							forceResend: true,
+							includeSkinState: true,
+							reason: "zone"
+						});
+					} else if (rCount > _spkmodSkinLastObservedRemoteCount) {
+						spkmodTriggerSkinSyncBroadcast({
+							priority: "passive",
+							delayMs: 2500,
+							forceResend: true,
+							includeSkinState: true,
+							reason: "remote_join"
+						});
+					}
 				}
+			}
+			_spkmodSkinLastObservedRemoteCount = rCount;
 
-				// Validate skin level against sender's visible level (VIP bypass allowed)
-				if (state.skinId) {
-					const skin = SPKMOD_SKINS_BY_ID.get(state.skinId);
-					if (skin && spkmodCheckRemoteLevelAllowed(skin.level, rpLevel, rpName)) {
-						const cur = _spkmodAppliedSkins.get(ownerKey);
-						if (!cur || cur.skinId !== skin.id || cur.root !== rpRoot) {
-							spkmodApplySkinToAvatar(ownerKey, skin.id, rpRoot, rpCtrl);
+			// 3. Apply & verify remote players' skins & body widths (strict 1 state per avatarRoot!)
+			const showRemote = window.spkmodSkinSettings.showRemoteSkins !== false;
+			const seenRemoteKeys = new Set();
+			if (showRemote && rMap && _spkmodRemoteSkinStates.size > 0) {
+				// First deduplicate by avatarRoot so only the newest state per remote avatar can ever apply
+				const winnersByRoot = new Map(); // rpRoot -> { ownerKey, state, rp, canonicalKey }
+				const staleDuplicateKeys = [];
+				for (const [ownerKey, state] of _spkmodRemoteSkinStates) {
+					const resolved = spkmodResolveRemotePlayerForSkin(state.playerId, state.playerName);
+					if (!resolved || !resolved.rp || !resolved.rp.avatar?.root) continue;
+					const rpRoot = resolved.rp.avatar.root;
+					const prevWin = winnersByRoot.get(rpRoot);
+					if (prevWin) {
+						if ((state.updatedAtMs || 0) >= (prevWin.state.updatedAtMs || 0)) {
+							staleDuplicateKeys.push(prevWin.ownerKey);
+							winnersByRoot.set(rpRoot, { ownerKey, state, rp: resolved.rp, canonicalKey: resolved.key });
+						} else {
+							staleDuplicateKeys.push(ownerKey);
 						}
 					} else {
+						winnersByRoot.set(rpRoot, { ownerKey, state, rp: resolved.rp, canonicalKey: resolved.key });
+					}
+				}
+				for (let i = 0; i < staleDuplicateKeys.length; i++) {
+					const dk = staleDuplicateKeys[i];
+					_spkmodRemoteSkinStates.delete(dk);
+					spkmodSkinClearOnOwner(dk);
+					spkmodPFSetTarget(dk, null, 1.0);
+				}
+
+				for (const [rpRoot, win] of winnersByRoot) {
+					const { ownerKey, state, rp } = win;
+					seenRemoteKeys.add(ownerKey);
+					const rpCtrl = rp.avatar.animationController || null;
+					const rpLevel = rp.info?.level ?? 0;
+					const rpName = rp.info?.__spkmodOrigName || rp.info?.name || state.playerName || "";
+
+					// Never overlay SpeakiMod skins or fat body onto native in-game costumes (Pure Pumpkin / Witch / Ner)
+					if (spkmodHasNativeRemoteSkin(rp)) {
+						spkmodSkinClearOnOwner(ownerKey);
+						spkmodSkinClearOnRoot(rpRoot);
+						spkmodPFSetTarget(ownerKey, null, 1.0);
+						continue;
+					}
+
+					// Validate skin level against sender's visible level (VIP bypass allowed)
+					if (state.skinId) {
+						const skin = SPKMOD_SKINS_BY_ID.get(state.skinId);
+						if (skin && spkmodCheckRemoteLevelAllowed(skin.level, rpLevel, rpName)) {
+							const cur = _spkmodAppliedSkins.get(ownerKey);
+							if (!cur || cur.skinId !== skin.id || cur.root !== rpRoot || _spkmodAvatarSkinOwner.get(rpRoot) !== cur) {
+								spkmodApplySkinToAvatar(ownerKey, skin.id, rpRoot, rpCtrl);
+							}
+						} else {
+							spkmodSkinClearOnOwner(ownerKey);
+						}
+					} else if (_spkmodAppliedSkins.has(ownerKey)) {
 						spkmodSkinClearOnOwner(ownerKey);
 					}
-				} else if (_spkmodAppliedSkins.has(ownerKey)) {
-					spkmodSkinClearOnOwner(ownerKey);
-				}
 
-				// Validate body width level against sender's visible level
-				const wTier = SPKMOD_BODY_WIDTHS_BY_ID.get(state.widthId || "normal");
-				if (wTier && wTier.scale > 1.001 && spkmodCheckRemoteLevelAllowed(wTier.level, rpLevel, rpName)) {
-					spkmodPFSetTarget(ownerKey, rpRoot, wTier.scale);
-				} else {
-					spkmodPFSetTarget(ownerKey, null, 1.0);
+					// Validate body width level against sender's visible level
+					const wTier = SPKMOD_BODY_WIDTHS_BY_ID.get(state.widthId || "normal");
+					if (wTier && wTier.scale > 1.001 && spkmodCheckRemoteLevelAllowed(wTier.level, rpLevel, rpName)) {
+						spkmodPFSetTarget(ownerKey, rpRoot, wTier.scale);
+					} else {
+						spkmodPFSetTarget(ownerKey, null, 1.0);
+					}
 				}
 			}
-		}
-		for (const key of [..._spkmodAppliedSkins.keys()]) {
-			if (key !== "local_self" && (!showRemote || !seenRemoteKeys.has(key))) {
-				spkmodSkinClearOnOwner(key);
+			for (const key of [..._spkmodAppliedSkins.keys()]) {
+				if (key !== "local_self" && (!showRemote || !seenRemoteKeys.has(key))) {
+					spkmodSkinClearOnOwner(key);
+				}
 			}
-		}
-		for (const key of [...spkmodPlayerFat.entries.keys()]) {
-			if (key !== "local_self" && (!showRemote || !seenRemoteKeys.has(key))) {
-				spkmodPFSetTarget(key, null, 1.0);
+			for (const key of [...spkmodPlayerFat.entries.keys()]) {
+				if (key !== "local_self" && (!showRemote || !seenRemoteKeys.has(key))) {
+					spkmodPFSetTarget(key, null, 1.0);
+				}
+			}
+
+			// Refresh modal if player leveled up or toggled a native costume while wardrobe is open
+			const modal = document.getElementById("spkmod-skins-modal");
+			if (modal && !modal.classList.contains("hidden")) {
+				const curLvl = spkmodGetSkinPlayerLevel();
+				if (curLvl !== _spkmodSkinsLastObservedLevel || hasNativeLocal !== _spkmodSkinsLastObservedNativeSkin) {
+					_spkmodSkinsLastObservedLevel = curLvl;
+					_spkmodSkinsLastObservedNativeSkin = hasNativeLocal;
+					spkmodRefreshSkinsModalUI();
+				}
 			}
 		}
 
-		// 4. Animate active 3D costume parts & Rainbow Prism FX
+		// 4. Animate active 3D costume parts & Rainbow Prism FX (zero per-frame traverse, distance & visibility culled!)
 		const tSec = nowMs * 0.001;
-		for (const [, entry] of _spkmodAppliedSkins) {
+		const camPos = gameState.camera?.position || gameState.playerContainer?.position || null;
+		const MAX_REMOTE_ANIM_DIST_SQ = 45 * 45;
+		for (const [ownerKey, entry] of _spkmodAppliedSkins) {
 			if (!entry || !entry.root) continue;
-			if (entry.hideMagicStaff && (!entry._lastStaffCheckMs || nowMs - entry._lastStaffCheckMs >= 400)) {
+			const isLocal = ownerKey === "local_self";
+			if (!isLocal) {
+				if (entry.root.visible === false || entry.root.parent?.visible === false) continue;
+				if (camPos && entry.root.parent?.position) {
+					const rpPos = entry.root.parent.position;
+					const dx = rpPos.x - camPos.x;
+					const dy = rpPos.y - camPos.y;
+					const dz = rpPos.z - camPos.z;
+					if (dx * dx + dy * dy + dz * dz > MAX_REMOTE_ANIM_DIST_SQ) continue;
+				}
+			}
+			if (entry.hideMagicStaff && (!entry._lastStaffCheckMs || nowMs - entry._lastStaffCheckMs >= 900)) {
 				entry._lastStaffCheckMs = nowMs;
 				spkmodSkinHideMagicStaff(entry);
-				const hasSpeakovGun = !!(typeof entry.root.getObjectByName === "function" && entry.root.getObjectByName("speakov-weapon"));
-				if (entry.attachments && entry.attachments.length > 0) {
-					for (const att of entry.attachments) {
+				if (entry.hasSpeakovToggleParts && entry.attachments && entry.attachments.length > 0) {
+					const hasSpeakovGun = !!(typeof entry.root.getObjectByName === "function" && entry.root.getObjectByName("speakov-weapon"));
+					for (let i = 0; i < entry.attachments.length; i++) {
+						const att = entry.attachments[i];
 						if (att && att.node && att.node.userData?.spkmodHideInSpeakov) {
 							att.node.visible = !hasSpeakovGun;
 						}
@@ -6499,7 +6934,8 @@ function spkmodSkinsMasterLoop(nowMs) {
 				}
 			}
 			if (entry.animParts && entry.animParts.length > 0) {
-				for (const part of entry.animParts) {
+				for (let i = 0; i < entry.animParts.length; i++) {
+					const part = entry.animParts[i];
 					if (!part || !part.node) continue;
 					if (part.type === "wing") {
 						part.node.rotation.y = (0.22 + Math.sin(tSec * 3.8) * 0.18) * (part.side || 1);
@@ -6529,27 +6965,14 @@ function spkmodSkinsMasterLoop(nowMs) {
 					}
 				}
 			}
-			if (entry.fxMode === "rainbow") {
+			if (entry.fxMode === "rainbow" && entry.rainbowMats && entry.rainbowMats.length > 0) {
 				const hue = (tSec * 0.22) % 1.0;
-				entry.root.traverse(child => {
-					if (!child || !child.isMesh || !child.material || !child.userData?.__spkmodSkinFxCloned) return;
-					const mats = Array.isArray(child.material) ? child.material : [child.material];
-					for (const m of mats) {
-						if (m && m.color?.setHSL) m.color.setHSL(hue, 0.92, 0.65);
-						if (m && m.emissive?.setHSL) m.emissive.setHSL(hue, 0.92, 0.22);
-					}
-				});
-			}
-		}
-
-		// Refresh modal if player leveled up or toggled a native costume while wardrobe is open
-		const modal = document.getElementById("spkmod-skins-modal");
-		if (modal && !modal.classList.contains("hidden")) {
-			const curLvl = spkmodGetSkinPlayerLevel();
-			if (curLvl !== _spkmodSkinsLastObservedLevel || hasNativeLocal !== _spkmodSkinsLastObservedNativeSkin) {
-				_spkmodSkinsLastObservedLevel = curLvl;
-				_spkmodSkinsLastObservedNativeSkin = hasNativeLocal;
-				spkmodRefreshSkinsModalUI();
+				const rMats = entry.rainbowMats;
+				for (let i = 0; i < rMats.length; i++) {
+					const m = rMats[i];
+					if (m && m.color?.setHSL) m.color.setHSL(hue, 0.92, 0.65);
+					if (m && m.emissive?.setHSL) m.emissive.setHSL(hue, 0.92, 0.22);
+				}
 			}
 		}
 	}

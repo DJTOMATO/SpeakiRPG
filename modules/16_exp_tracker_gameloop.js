@@ -198,16 +198,68 @@ function tick() {
 	if (gameState.chatBubbles && typeof gameState.chatBubbles.show === "function" && !gameState.chatBubbles.__speakiHooked) {
 		var hkChatBubblesShow = gameState.chatBubbles.show.bind(gameState.chatBubbles);
 		window.__spkmodOrigChatBubblesShow = hkChatBubblesShow;
+		const resolveBubbleTriggerIdentity = (source, anchorObj) => {
+			if (source === gameState.playerContainer || source === gameState.localAvatar || source === gameState.myPlayerId || source === "local" || source === "self") {
+				return { isSelf: true, playerId: gameState.myPlayerId, playerName: null };
+			}
+			const rMap = gameState.remotePlayers?.remotePlayers;
+			if (rMap) {
+				if (source != null && typeof source !== "object") {
+					const rawStr = String(source).trim();
+					const stripped = rawStr.replace(/^(?:remote|player|user|bubble)[_:-]+/i, "");
+					for (const cand of [source, Number(source), rawStr, stripped, Number(stripped)]) {
+						if (cand === "" || (typeof cand === "number" && Number.isNaN(cand))) continue;
+						const rp = rMap.get(cand);
+						if (rp) {
+							const pName = rp.info?.__spkmodOrigName || rp.info?.name || null;
+							return { isSelf: false, playerId: cand, playerName: pName };
+						}
+					}
+				}
+				// Match by Object3D container / avatar root when chatBubbles.show passes an object or container
+				const matchObj = (obj) => {
+					if (!obj || typeof obj !== "object") return null;
+					let cur = obj;
+					let depth = 0;
+					while (cur && depth < 6) {
+						for (const [k, rp] of rMap) {
+							if (rp === cur || rp?.container === cur || rp?.avatar?.root === cur) {
+								return { isSelf: false, playerId: k, playerName: rp.info?.__spkmodOrigName || rp.info?.name || null };
+							}
+						}
+						cur = cur.parent;
+						depth++;
+					}
+					return null;
+				};
+				const bySrc = matchObj(source) || matchObj(anchorObj);
+				if (bySrc) return bySrc;
+				if (anchorObj && (anchorObj === gameState.playerContainer || anchorObj === gameState.localAvatar?.root)) {
+					return { isSelf: true, playerId: gameState.myPlayerId, playerName: null };
+				}
+			}
+			// Never pass a raw Object3D (which stringifies to "[object Object]") as a playerId
+			if (source != null && typeof source === "object") {
+				return { isSelf: false, playerId: null, playerName: source.info?.name || source.name || null };
+			}
+			return { isSelf: false, playerId: source, playerName: null };
+		};
 		gameState.chatBubbles.show = (e, t, n) => {
 			if (typeof n === "string" && /^:pet_[a-zA-Z0-9_-]+:$/i.test(n.trim())) {
 				if (typeof window.spkmodHandleIncomingPetTrigger === "function") {
-					window.spkmodHandleIncomingPetTrigger(e, null, n.trim());
+					const ident = resolveBubbleTriggerIdentity(e, t);
+					if (!ident.isSelf && (ident.playerId != null || ident.playerName)) {
+						window.spkmodHandleIncomingPetTrigger(ident.playerId, ident.playerName, n.trim());
+					}
 				}
 				return;
 			}
 			if (typeof n === "string" && /^:car_[a-zA-Z0-9_-]+:$/i.test(n.trim())) {
 				if (typeof window.spkmodHandleIncomingCarTrigger === "function") {
-					window.spkmodHandleIncomingCarTrigger(e, null, n.trim());
+					const ident = resolveBubbleTriggerIdentity(e, t);
+					if (!ident.isSelf && (ident.playerId != null || ident.playerName)) {
+						window.spkmodHandleIncomingCarTrigger(ident.playerId, ident.playerName, n.trim());
+					}
 				}
 				return;
 			}

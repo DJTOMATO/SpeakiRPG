@@ -3357,10 +3357,61 @@ let _spkmodLocalEquipSeq = 0;
 let _spkmodLocalEquipInFlight = false;
 let _spkmodDidInitialAutoRestore = false;
 
+function spkmodCanonicalizeRemotePetIdentity(playerId, playerName) {
+	let cleanId = (playerId != null && typeof playerId !== "object" && String(playerId).trim() !== "") ? playerId : null;
+	let cleanName = typeof playerName === "string" ? playerName.trim() : "";
+	const rMap = (typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers) || null;
+	if (rMap) {
+		if (cleanId != null) {
+			const rawStr = String(cleanId).trim();
+			const stripped = rawStr.replace(/^(?:remote|player|user|bubble)[_:-]+/i, "");
+			for (const k of [cleanId, Number(cleanId), rawStr, stripped, Number(stripped)]) {
+				if (k === "" || (typeof k === "number" && Number.isNaN(k))) continue;
+				const rp = rMap.get(k);
+				if (rp) {
+					cleanId = k;
+					if (!cleanName) cleanName = (rp.info?.__spkmodOrigName || rp.info?.name || "").trim();
+					break;
+				}
+			}
+		}
+		if (cleanName) {
+			const lower = cleanName.toLowerCase();
+			for (const [k, rp] of rMap) {
+				const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim().toLowerCase();
+				if (rName && rName === lower) {
+					cleanId = k;
+					break;
+				}
+			}
+		}
+	}
+	const ownerKey = (cleanId != null && String(cleanId).trim() !== "")
+		? String(cleanId).trim()
+		: (cleanName ? `name:${cleanName.toLowerCase()}` : "");
+	return { playerId: cleanId, playerName: cleanName, ownerKey };
+}
+
 async function spkmodSpawnOrUpdateRemotePet(playerId, playerName, petId) {
 	if (!spkmodIsPetsSystemEnabled()) return;
 	const cleanId = (petId || "").trim().toLowerCase();
-	const ownerKey = playerId != null && playerId !== "" ? String(playerId) : `name:${(playerName || "").trim().toLowerCase()}`;
+	const ident = spkmodCanonicalizeRemotePetIdentity(playerId, playerName);
+	if (!ident.ownerKey) return;
+	playerId = ident.playerId;
+	playerName = ident.playerName;
+	const ownerKey = ident.ownerKey;
+	// Evict any stale alias key (e.g. "name:alice" when canonical ID "42" resolves)
+	if (playerName) {
+		const nameAlias = `name:${playerName.toLowerCase()}`;
+		if (nameAlias !== ownerKey) {
+			const aliasInst = spkmodRemotePetInstances.get(nameAlias);
+			if (aliasInst) {
+				spkmodDisposePetInstance(aliasInst);
+				spkmodRemotePetInstances.delete(nameAlias);
+				spkmodSweepScenePetRoots("spkmod_pet_root_" + nameAlias, null, false);
+			}
+		}
+	}
 
 	if (!cleanId || cleanId === "none" || cleanId === "off") {
 		_spkmodRemoteEquipSeq.set(ownerKey, (_spkmodRemoteEquipSeq.get(ownerKey) || 0) + 1);
@@ -3459,6 +3510,12 @@ async function spkmodSpawnOrUpdateRemotePet(playerId, playerName, petId) {
 window.spkmodHandleIncomingPetTrigger = function(playerId, playerName, rawMsg) {
 	const parsed = spkmodParseCombinedPetSyncMessage(rawMsg);
 	if (!parsed) return;
+
+	// Never allow raw Object3D / non-primitive values to become "[object Object]" owner keys
+	if (playerId != null && typeof playerId === "object") {
+		if (!playerName) playerName = playerId.info?.__spkmodOrigName || playerId.info?.name || playerId.name || null;
+		playerId = playerId.info?.playerId ?? playerId.info?.id ?? playerId.playerId ?? playerId.id ?? null;
+	}
 
 	const myId = typeof gameState !== "undefined" ? gameState?.myPlayerId : null;
 	const myName = (typeof gameState !== "undefined" && (gameState?.myPlayerName || gameState?.myStat?.name)) || "";
