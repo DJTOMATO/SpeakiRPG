@@ -1,5 +1,7 @@
 // Suppress report-only CSP warnings, Three.js duplicate-instance warnings, WebGPU Windows powerPreference warnings, and unsupported iframe allow="web-share"
 try {
+	window.__spkLocalMarker = "edited " + new Date().toISOString();
+	
 	const _spkOrigWarn = console.warn;
 	console.warn = function(...args) {
 		if (typeof args[0] === 'string' && (args[0].includes('violates the following Content Security Policy directive') || args[0].includes('Content Security Policy') || args[0].includes('Multiple instances of Three.js'))) return;
@@ -21276,6 +21278,7 @@ if (typeof window !== "undefined") window.spkmodCA = spkmodCA;
 
 let _spkmodCAMatH1 = null;
 let _spkmodCAMatInv = null;
+const _spkmodPFHostPos = [];
 const _spkmodCAPropMats = [];
 
 function spkmodCACollectHandProps(e) {
@@ -50054,17 +50057,27 @@ function spkmodPFAxes(bone, cont) {
 	return { x: ax, z: az };
 }
 
+
+
+
+
+
 function spkmodPFCollectHandProps(entry) {
+	console.log("collect prop");
 	const out = [];
-	const hands = entry && entry.hands;
-	if (!hands) return out;
-	for (let i = 0; i < hands.length; i++) {
-		const hb = hands[i];
-		const ch = hb && hb.children;
+	if (!entry) return out;
+	if (!entry.back && entry.root) {                                          // bones that carry back accessories: pelvis, spine(s), neck, clavicles ...
+		const skip = /head|hand|finger|nub|toe|foot|thigh|calf/i;
+		entry.back = [];
+		entry.root.traverse(o => { if (o.isBone && o !== entry.head && !skip.test(o.name)) entry.back.push(o); });
+	}
+	const hosts = (entry.hands || []).concat(entry.back || []);
+	for (let i = 0; i < hosts.length; i++) {
+		const ch = hosts[i] && hosts[i].children;
 		if (!ch) continue;
 		for (let j = 0; j < ch.length; j++) {
 			const c = ch[j];
-			if (c && !c.isBone && (c.userData?.lunchPropHolder === true || c.userData?.speakiMagicStaff === true || c.userData?.spkmodCookingProp === true || c.userData?.spkmodSkinHandProp === true || c.name === "speakov-weapon")) {
+			if (c && !c.isBone && (c.userData?.lunchPropHolder === true || c.userData?.speakiMagicStaff === true || c.userData?.spkmodCookingProp === true || c.userData?.spkmodSkinHandProp === true || c.userData?.spkmodSkinAttachment === true || c.name === "speakov-weapon")) {
 				out.push(c);
 			}
 		}
@@ -50170,7 +50183,7 @@ function spkmodPFApplyAll() {
 		e.root.updateMatrixWorld(true);
 		_spkmodPFMatH1.copy(head.matrixWorld);
 
-		// Snapshot unstretched hand prop world matrices
+		// Snapshot unstretched world matrices of hand props and body accessories, plus the unstretched position of their host bone
 		let propCount = 0;
 		for (let i = 0; i < props.length; i++) {
 			const h = props[i];
@@ -50182,6 +50195,9 @@ function spkmodPFApplyAll() {
 				_spkmodPFPropMats[propCount] = pm;
 			}
 			pm.copy(h.matrixWorld);
+			const hp = _spkmodPFHostPos[propCount] || (_spkmodPFHostPos[propCount] = [0, 0, 0]);
+			const hw = hand.matrixWorld.elements;
+			hp[0] = hw[12]; hp[1] = hw[13]; hp[2] = hw[14];
 			props[propCount] = h;
 			propCount++;
 		}
@@ -50204,7 +50220,7 @@ function spkmodPFApplyAll() {
 			head.updateMatrixWorld(true);
 		}
 
-		// Keep held weapons / props rigid & unstretched
+		// Keep held weapons / props / body accessories rigid & unstretched
 		for (let i = 0; i < propCount; i++) {
 			const h = props[i];
 			const hand = h.parent;
@@ -50212,10 +50228,18 @@ function spkmodPFApplyAll() {
 			const hm = hand.matrixWorld;
 			if (typeof hm.determinant === "function" && Math.abs(hm.determinant()) < 1e-10) continue;
 			const pm = _spkmodPFPropMats[i];
-			const he = h.matrixWorld.elements;
-			pm.elements[12] = he[12];
-			pm.elements[13] = he[13];
-			pm.elements[14] = he[14];
+			if (h.userData?.spkmodSkinAttachment === true && h.userData?.spkmodSkinHandProp !== true) {
+				// body accessory: its offset to the host bone was built for the unwidened body (like the head), so keep that offset and only move the host origin
+				const hp = _spkmodPFHostPos[i], p = pm.elements, hh = hm.elements;
+				p[12] = hh[12] + (p[12] - hp[0]);
+				p[13] = hh[13] + (p[13] - hp[1]);
+				p[14] = hh[14] + (p[14] - hp[2]);
+			} else {
+				const he = h.matrixWorld.elements;
+				pm.elements[12] = he[12];
+				pm.elements[13] = he[13];
+				pm.elements[14] = he[14];
+			}
 			h.matrix.copy(_spkmodPFMatInv.copy(hm).invert().multiply(pm));
 			h.matrixAutoUpdate = false;
 			h.updateMatrixWorld(true);
