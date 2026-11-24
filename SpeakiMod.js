@@ -53630,10 +53630,15 @@ function spkmodRenderSkinsGrid() {
 		frag.appendChild(card);
 	}
 
-	// Render encouraging "Keep leveling up to unlock more!" Hype Banner whenever locked skins are hidden
-	if (hiddenLockedCount > 0 && _spkmodSkinsActiveTab !== "favorites" && (_spkmodSkinsActiveTab !== "unlocked" || filtered.length === 0)) {
-		const nextUnlockLvl = isFinite(nextLockedLevel) ? nextLockedLevel : Math.min(100, spkmodGetSkinPlayerLevel() + 1);
+	// Render encouraging "Keep leveling up to unlock more!" Hype Banner whenever locked skins remain (including Unlocked tab)
+	const allLockedSkins = SPKMOD_SKIN_CATALOG.filter(s => !spkmodIsSkinUnlocked(s)).sort((a, b) => a.level - b.level);
+	const bannerLockedCount = hiddenLockedCount > 0 ? hiddenLockedCount : allLockedSkins.length;
+	const bannerNextLevel = hiddenLockedCount > 0
+		? (isFinite(nextLockedLevel) ? nextLockedLevel : (allLockedSkins[0]?.level || Math.min(100, spkmodGetSkinPlayerLevel() + 1)))
+		: (allLockedSkins[0]?.level || Math.min(100, spkmodGetSkinPlayerLevel() + 1));
+	if (bannerLockedCount > 0 && !_spkmodSkinsSearchQuery && _spkmodSkinsActiveTab !== "favorites") {
 		const hypeCard = document.createElement("div");
+		hypeCard.id = "spkmod-skins-hype-banner";
 		hypeCard.style.cssText = `
 			grid-column: 1 / -1;
 			display: flex;
@@ -53655,7 +53660,7 @@ function spkmodRenderSkinsGrid() {
 				${spkmodGetSkinUiText("hypeTitle")}
 			</div>
 			<div style="font-size: 11.5px; color: #cbd5e1; max-width: 580px;">
-				${spkmodGetSkinUiText("hypeDesc", hiddenLockedCount, nextUnlockLvl)}
+				${spkmodGetSkinUiText("hypeDesc", bannerLockedCount, bannerNextLevel)}
 			</div>
 		`;
 		frag.appendChild(hypeCard);
@@ -55522,6 +55527,8 @@ const SPKMOD_CART_SKIN_UI_FALLBACK_EN = {
 	submissionBannerBtn: "📋 Copy Discord Link",
 	submissionBannerCopied: "✅ Copied!",
 	submissionBannerCopiedToast: "📋 Support Discord link copied to clipboard: {0}",
+	hypeTitle: "Keep leveling up to unlock more cart skins!",
+	hypeDesc: "{0} more mystery cart skins await you up to Lv.{2}! Reach Lv.{1} to unlock your next cart skin!",
 	systemDisabledToast: "🛒 Cart Skins System is disabled. Enable it in Settings.",
 	systemEnabledToast: "🛒 Cart Skins System enabled."
 };
@@ -56942,15 +56949,20 @@ function spkmodRefreshCartSkinsModalUI() {
 		));
 	}
 
-	// Skins grid
+	// Skins grid (hide locked cart skins and show encouraging hype banner below)
 	const grid = document.getElementById("spkmod-cart-skins-grid");
 	if (grid) {
 		grid.innerHTML = "";
+		const lockedCartSkins = [];
 		for (const skin of SPKMOD_CART_SKIN_CATALOG) {
 			const unlocked = spkmodIsCartSkinUnlocked(skin);
+			if (!unlocked) {
+				lockedCartSkins.push(skin);
+				continue;
+			}
 			const isEquipped = window.spkmodCartSkinSettings.equippedId === skin.id;
 			const card = document.createElement("div");
-			card.className = "spkmod-cart-card" + (isEquipped ? " equipped" : "") + (!unlocked ? " locked" : "");
+			card.className = "spkmod-cart-card" + (isEquipped ? " equipped" : "");
 
 			const thumbWrap = document.createElement("div");
 			thumbWrap.className = "spkmod-cart-thumb-wrap";
@@ -56958,11 +56970,10 @@ function spkmodRefreshCartSkinsModalUI() {
 			img.src = skin.url;
 			img.alt = spkmodGetCartSkinDisplayName(skin);
 			img.loading = "lazy";
-			if (!unlocked) img.style.filter = "grayscale(0.6) brightness(0.65)";
 			thumbWrap.appendChild(img);
 
 			const lvlBadge = document.createElement("span");
-			lvlBadge.style.cssText = `position: absolute; top: 5px; left: 5px; padding: 2px 6px; border-radius: 6px; font-size: 9.5px; font-weight: 800; background: rgba(15,23,42,0.88); color: ${unlocked ? "#7dd3fc" : "#f87171"}; border: 1px solid rgba(255,255,255,0.16);`;
+			lvlBadge.style.cssText = "position: absolute; top: 5px; left: 5px; padding: 2px 6px; border-radius: 6px; font-size: 9.5px; font-weight: 800; background: rgba(15,23,42,0.88); color: #7dd3fc; border: 1px solid rgba(255,255,255,0.16);";
 			lvlBadge.innerText = `Lv.${skin.level || 1}` + (skin.milestone ? " ★" : "");
 			thumbWrap.appendChild(lvlBadge);
 
@@ -56990,19 +57001,11 @@ function spkmodRefreshCartSkinsModalUI() {
 			btn.className = "spkmod-panel-btn";
 			btn.style.cssText = isEquipped
 				? "width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 800; color: #bbf7d0; border-color: #4ade80; background: rgba(22, 163, 74, 0.35); cursor: pointer;"
-				: (unlocked
-					? "width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 700; color: #f8fafc; cursor: pointer;"
-					: "width: 100%; padding: 5px 8px; font-size: 10.5px; font-weight: 700; color: #94a3b8; cursor: not-allowed;");
-			btn.innerText = !unlocked
-				? spkmodGetCartSkinUiText("btnLocked", skin.level || 1)
-				: spkmodGetCartSkinUiText(isEquipped ? "btnEquipped" : "btnEquip");
+				: "width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 700; color: #f8fafc; cursor: pointer;";
+			btn.innerText = spkmodGetCartSkinUiText(isEquipped ? "btnEquipped" : "btnEquip");
 
 			const onSelect = (e) => {
 				if (e) e.stopPropagation();
-				if (!unlocked) {
-					if (typeof chatLog === "function") chatLog(spkmodGetCartSkinUiText("lockedToast", skin.level || 1, spkmodGetCartSkinDisplayName(skin)));
-					return;
-				}
 				if (isEquipped) {
 					spkmodEquipLocalCartSkin(null, true, false);
 				} else {
@@ -57016,6 +57019,18 @@ function spkmodRefreshCartSkinsModalUI() {
 			card.appendChild(nameRow);
 			card.appendChild(btn);
 			grid.appendChild(card);
+		}
+
+		if (lockedCartSkins.length > 0) {
+			lockedCartSkins.sort((a, b) => (a.level || 1) - (b.level || 1));
+			const maxLvl = Math.max(...SPKMOD_CART_SKIN_CATALOG.map(s => s.level || 1));
+			const hypeCard = document.createElement("div");
+			hypeCard.id = "spkmod-cart-skins-hype-banner";
+			hypeCard.style.cssText = "grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; padding: 18px 16px; margin-top: 4px; border-radius: 12px; border: 1.5px dashed rgba(255, 213, 74, 0.55); background: linear-gradient(135deg, rgba(255, 213, 74, 0.10), rgba(244, 114, 182, 0.14), rgba(15, 23, 42, 0.92)); box-shadow: inset 0 0 24px rgba(255, 213, 74, 0.08);";
+			hypeCard.innerHTML = `<div style="font-size: 22px; line-height: 1;">✨🔒🛒✨</div>`
+				+ `<div style="font-size: 14px; font-weight: 800; color: #ffd54a; letter-spacing: 0.2px;">${spkmodGetCartSkinUiText("hypeTitle")}</div>`
+				+ `<div style="font-size: 11.5px; color: #cbd5e1; max-width: 580px;">${spkmodGetCartSkinUiText("hypeDesc", lockedCartSkins.length, lockedCartSkins[0].level || 1, maxLvl)}</div>`;
+			grid.appendChild(hypeCard);
 		}
 	}
 
@@ -63645,9 +63660,19 @@ function spkmodInjectVehiclesStyles() {
 		.spkmod-veh-btn.equipped { background: linear-gradient(90deg, #059669, #10b981); }
 		.spkmod-veh-btn.locked { background: rgba(71, 85, 105, 0.65); color: #94a3b8; cursor: not-allowed; }
 		.spkmod-veh-hype {
-			grid-column: 1 / -1; margin-top: 4px; padding: 12px 14px; border-radius: 10px;
-			background: linear-gradient(90deg, rgba(245,158,11,0.16), rgba(14,165,233,0.16));
-			border: 1px dashed rgba(250,204,21,0.45); text-align: center;
+			grid-column: 1 / -1;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			text-align: center;
+			gap: 6px;
+			margin-top: 4px;
+			padding: 18px 16px;
+			border-radius: 12px;
+			border: 1.5px dashed rgba(255, 213, 74, 0.55);
+			background: linear-gradient(135deg, rgba(255, 213, 74, 0.10), rgba(56, 189, 248, 0.14), rgba(15, 23, 42, 0.92));
+			box-shadow: inset 0 0 24px rgba(255, 213, 74, 0.08);
 		}
 	`;
 	document.head.appendChild(st);
@@ -63879,9 +63904,10 @@ function spkmodRenderVehiclesTabs() {
 	const bar = document.getElementById("spkmod-vehicles-tabs");
 	if (!bar) return;
 	bar.innerHTML = "";
-	const favCount = window.spkmodVehicleSettings.favorites ? window.spkmodVehicleSettings.favorites.size : 0;
+	const unlockedCount = SPKMOD_VEHICLE_CATALOG.filter(v => spkmodIsVehicleUnlocked(v)).length;
+	const favCount = SPKMOD_VEHICLE_CATALOG.filter(v => spkmodIsVehicleUnlocked(v) && spkmodIsVehicleFavorite(v.id)).length;
 	const tabs = [
-		{ id: "all", label: `${spkmodGetVehicleUiText("tabAll")} (${SPKMOD_VEHICLE_CATALOG.length})` },
+		{ id: "all", label: `${spkmodGetVehicleUiText("tabAll")} (${unlockedCount})` },
 		{ id: "unlocked", label: spkmodGetVehicleUiText("tabUnlocked") },
 		{ id: "favorites", label: `${spkmodGetVehicleUiText("tabFavorites")} (${favCount})` },
 		{ id: "street", label: spkmodGetVehicleUiText("tabStreet") },
@@ -63909,12 +63935,18 @@ function spkmodRenderVehiclesGrid() {
 
 	const q = _spkmodVehicleSearchQuery.trim().toLowerCase();
 	const eqId = window.spkmodVehicleSettings.equippedId;
+	let tabLockedRemaining = [];
 	const list = SPKMOD_VEHICLE_CATALOG.filter(v => {
-		if (_spkmodVehicleFilterTab === "unlocked" && !spkmodIsVehicleUnlocked(v)) return false;
+		const unlocked = spkmodIsVehicleUnlocked(v);
 		if (_spkmodVehicleFilterTab === "favorites" && !spkmodIsVehicleFavorite(v.id)) return false;
 		if (_spkmodVehicleFilterTab === "street" && v.category !== "street") return false;
 		if (_spkmodVehicleFilterTab === "stealth" && v.category !== "stealth") return false;
 		if (_spkmodVehicleFilterTab === "air" && v.category !== "air") return false;
+		// Never show locked vehicles — keep future unlocks as mystery rewards!
+		if (!unlocked) {
+			tabLockedRemaining.push(v);
+			return false;
+		}
 		if (q) {
 			const disp = spkmodGetVehicleDisplayName(v).toLowerCase();
 			const hay = `${disp} ${v.id} ${v.category} lv${v.level} ${v.level}`;
@@ -63937,13 +63969,12 @@ function spkmodRenderVehiclesGrid() {
 	}
 
 	for (const v of list) {
-		const unlocked = spkmodIsVehicleUnlocked(v);
 		const isEq = eqId === v.id;
 		const isFav = spkmodIsVehicleFavorite(v.id);
 		const dispName = spkmodGetVehicleDisplayName(v);
 
 		const card = document.createElement("div");
-		card.className = "spkmod-veh-card" + (isEq ? " equipped" : "") + (!unlocked ? " locked" : "") + (v.milestone ? " milestone" : "");
+		card.className = "spkmod-veh-card" + (isEq ? " equipped" : "") + (v.milestone ? " milestone" : "");
 
 		const lvlBadge = document.createElement("span");
 		lvlBadge.className = "spkmod-veh-lvl";
@@ -64000,19 +64031,13 @@ function spkmodRenderVehiclesGrid() {
 
 		const actionBtn = document.createElement("button");
 		actionBtn.type = "button";
-		actionBtn.className = "spkmod-veh-btn" + (isEq ? " equipped" : (!unlocked ? " locked" : ""));
-		if (!unlocked) {
-			actionBtn.innerText = "🔒 " + spkmodGetVehicleUiText("btnLocked", v.level);
-		} else if (isEq) {
+		actionBtn.className = "spkmod-veh-btn" + (isEq ? " equipped" : "");
+		if (isEq) {
 			actionBtn.innerText = spkmodGetVehicleUiText("btnEquipped");
 		} else {
 			actionBtn.innerText = spkmodGetVehicleUiText(v.hidePlayer ? "btnEquipStealth" : "btnEquip");
 		}
 		actionBtn.onclick = () => {
-			if (!unlocked) {
-				if (typeof chatLog === "function") chatLog(spkmodGetVehicleUiText("lockedToast", v.level, dispName));
-				return;
-			}
 			if (isEq) spkmodEquipLocalVehicle(null, true, false);
 			else spkmodEquipLocalVehicle(v.id, true, false);
 		};
@@ -64020,13 +64045,16 @@ function spkmodRenderVehiclesGrid() {
 		grid.appendChild(card);
 	}
 
-	// Hype card if locked vehicles remain
-	const lockedRemaining = SPKMOD_VEHICLE_CATALOG.filter(v => !spkmodIsVehicleUnlocked(v)).sort((a, b) => a.level - b.level);
-	if (lockedRemaining.length > 0 && !q) {
+	// Encouraging "Keep leveling up to unlock more!" Hype Banner whenever locked vehicles remain
+	const allLockedRemaining = SPKMOD_VEHICLE_CATALOG.filter(v => !spkmodIsVehicleUnlocked(v)).sort((a, b) => a.level - b.level);
+	const bannerLocked = (tabLockedRemaining.length > 0 ? tabLockedRemaining.slice().sort((a, b) => a.level - b.level) : allLockedRemaining);
+	if (bannerLocked.length > 0 && !q && _spkmodVehicleFilterTab !== "favorites") {
 		const hype = document.createElement("div");
+		hype.id = "spkmod-vehicles-hype-banner";
 		hype.className = "spkmod-veh-hype";
-		hype.innerHTML = `<div style="font-weight:900; color:#fde047; font-size:12.5px;">✨ ${spkmodGetVehicleUiText("hypeTitle")}</div>`
-			+ `<div style="font-size:11.5px; color:#e2e8f0; margin-top:3px;">${spkmodGetVehicleUiText("hypeDesc", lockedRemaining.length, lockedRemaining[0].level)}</div>`;
+		hype.innerHTML = `<div style="font-size: 22px; line-height: 1;">✨🔒🚗✨</div>`
+			+ `<div style="font-size: 14px; font-weight: 800; color: #ffd54a; letter-spacing: 0.2px;">${spkmodGetVehicleUiText("hypeTitle")}</div>`
+			+ `<div style="font-size: 11.5px; color: #cbd5e1; max-width: 580px;">${spkmodGetVehicleUiText("hypeDesc", bannerLocked.length, bannerLocked[0].level)}</div>`;
 		grid.appendChild(hype);
 	}
 }

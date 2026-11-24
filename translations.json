@@ -1322,7 +1322,9 @@
       "submissionBannerText": "We're looking for skin submissions! Please join our Support Discord to find the blueprint and tutorial on how to design your own!",
       "submissionBannerBtn": "📋 Copy Discord Link",
       "submissionBannerCopied": "✅ Copied!",
-      "submissionBannerCopiedToast": "📋 Support Discord link copied to clipboard: {0}"
+      "submissionBannerCopiedToast": "📋 Support Discord link copied to clipboard: {0}",
+      "hypeTitle": "Keep leveling up to unlock more cart skins!",
+      "hypeDesc": "{0} more mystery cart skins await you up to Lv.{2}! Reach Lv.{1} to unlock your next cart skin!"
     },
     "cartSkinNames": {
       "1": "Wide Speaki Cart",
@@ -3013,7 +3015,9 @@
       "submissionBannerText": "オリジナルカートスキンを募集中です！サポートDiscordに参加して、設計図（ブループリント）と作成チュートリアルをチェックしよう！",
       "submissionBannerBtn": "📋 Discordリンクをコピー",
       "submissionBannerCopied": "✅ コピーしました！",
-      "submissionBannerCopiedToast": "📋 サポートDiscordのリンクをコピーしました: {0}"
+      "submissionBannerCopiedToast": "📋 サポートDiscordのリンクをコピーしました: {0}",
+      "hypeTitle": "レベルアップしてもっとカートスキンを解放しよう！",
+      "hypeDesc": "Lv.{2}までにあと{0}種のカートスキンが待っています！Lv.{1}で次のスキンが解放されます！"
     },
     "cartSkinNames": {
       "1": "ワイドスピキカート",
@@ -4674,7 +4678,9 @@
       "submissionBannerText": "마차 스킨 출품작을 모집하고 있습니다! 지원 Discord에 참여하여 블루프린트와 나만의 스킨 제작 튜토리얼을 확인해 보세요!",
       "submissionBannerBtn": "📋 Discord 링크 복사",
       "submissionBannerCopied": "✅ 복사됨!",
-      "submissionBannerCopiedToast": "📋 지원 Discord 링크가 클립보드에 복사되었습니다: {0}"
+      "submissionBannerCopiedToast": "📋 지원 Discord 링크가 클립보드에 복사되었습니다: {0}",
+      "hypeTitle": "레벨업해서 더 많은 카트 스킨을 해금하세요!",
+      "hypeDesc": "Lv.{2}까지 {0}종의 카트 스킨이 더 기다리고 있어요! Lv.{1}에 도달해 다음 카트 스킨을 해금하세요!"
     },
     "cartSkinNames": {
       "1": "와이드 스피키 마차",
@@ -6335,7 +6341,9 @@
       "submissionBannerText": "我們正在徵集玩家自製推車外觀！歡迎加入我們的支援 Discord，獲取設計藍圖與自製外觀教學！",
       "submissionBannerBtn": "📋 複製 Discord 連結",
       "submissionBannerCopied": "✅ 已複製！",
-      "submissionBannerCopiedToast": "📋 已複製支援 Discord 連結至剪貼簿：{0}"
+      "submissionBannerCopiedToast": "📋 已複製支援 Discord 連結至剪貼簿：{0}",
+      "hypeTitle": "繼續升級解鎖更多南瓜車外觀！",
+      "hypeDesc": "直到 Lv.{2} 還有 {0} 款神秘南瓜車外觀等著你！達到 Lv.{1} 即可解鎖下一款！"
     },
     "cartSkinNames": {
       "1": "寬版史皮奇推車",
@@ -7996,7 +8004,9 @@
       "submissionBannerText": "我们正在征集玩家自制推车外观！欢迎加入我们的支持 Discord，获取设计蓝图和自制皮肤教程！",
       "submissionBannerBtn": "📋 复制 Discord 链接",
       "submissionBannerCopied": "✅ 已复制！",
-      "submissionBannerCopiedToast": "📋 已复制支持 Discord 链接到剪贴板：{0}"
+      "submissionBannerCopiedToast": "📋 已复制支持 Discord 链接到剪贴板：{0}",
+      "hypeTitle": "继续升级解锁更多南瓜车皮肤！",
+      "hypeDesc": "直到 Lv.{2} 还有 {0} 款神秘南瓜车皮肤等着你！达到 Lv.{1} 即可解锁下一款！"
     },
     "cartSkinNames": {
       "1": "宽版史皮奇推车",
@@ -9657,7 +9667,9 @@
       "submissionBannerText": "¡Estamos buscando propuestas de skins! Únete a nuestro Discord de soporte para encontrar la plantilla y el tutorial de cómo diseñar la tuya.",
       "submissionBannerBtn": "📋 Copiar Enlace de Discord",
       "submissionBannerCopied": "✅ ¡Copiado!",
-      "submissionBannerCopiedToast": "📋 Enlace del Discord de soporte copiado al portapapeles: {0}"
+      "submissionBannerCopiedToast": "📋 Enlace del Discord de soporte copiado al portapapeles: {0}",
+      "hypeTitle": "¡Sigue subiendo de nivel para desbloquear más aspectos de carrito!",
+      "hypeDesc": "¡Te esperan {0} aspectos misteriosos de carrito más hasta el Nv.{2}! ¡Llega al Nv.{1} para desbloquear el siguiente!"
     },
     "cartSkinNames": {
       "1": "Carrito Speaki Ancho",

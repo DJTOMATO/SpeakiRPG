@@ -9306,10 +9306,15 @@ function spkmodRenderSkinsGrid() {
 		frag.appendChild(card);
 	}
 
-	// Render encouraging "Keep leveling up to unlock more!" Hype Banner whenever locked skins are hidden
-	if (hiddenLockedCount > 0 && _spkmodSkinsActiveTab !== "favorites" && (_spkmodSkinsActiveTab !== "unlocked" || filtered.length === 0)) {
-		const nextUnlockLvl = isFinite(nextLockedLevel) ? nextLockedLevel : Math.min(100, spkmodGetSkinPlayerLevel() + 1);
+	// Render encouraging "Keep leveling up to unlock more!" Hype Banner whenever locked skins remain (including Unlocked tab)
+	const allLockedSkins = SPKMOD_SKIN_CATALOG.filter(s => !spkmodIsSkinUnlocked(s)).sort((a, b) => a.level - b.level);
+	const bannerLockedCount = hiddenLockedCount > 0 ? hiddenLockedCount : allLockedSkins.length;
+	const bannerNextLevel = hiddenLockedCount > 0
+		? (isFinite(nextLockedLevel) ? nextLockedLevel : (allLockedSkins[0]?.level || Math.min(100, spkmodGetSkinPlayerLevel() + 1)))
+		: (allLockedSkins[0]?.level || Math.min(100, spkmodGetSkinPlayerLevel() + 1));
+	if (bannerLockedCount > 0 && !_spkmodSkinsSearchQuery && _spkmodSkinsActiveTab !== "favorites") {
 		const hypeCard = document.createElement("div");
+		hypeCard.id = "spkmod-skins-hype-banner";
 		hypeCard.style.cssText = `
 			grid-column: 1 / -1;
 			display: flex;
@@ -9331,7 +9336,7 @@ function spkmodRenderSkinsGrid() {
 				${spkmodGetSkinUiText("hypeTitle")}
 			</div>
 			<div style="font-size: 11.5px; color: #cbd5e1; max-width: 580px;">
-				${spkmodGetSkinUiText("hypeDesc", hiddenLockedCount, nextUnlockLvl)}
+				${spkmodGetSkinUiText("hypeDesc", bannerLockedCount, bannerNextLevel)}
 			</div>
 		`;
 		frag.appendChild(hypeCard);
