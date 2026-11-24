@@ -475,7 +475,9 @@ function hookGameStateOnce() {
 							const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
 								|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
 							if (typeof spkmodIsVipUser === "function" && spkmodIsVipUser(myName) && window.spkmodUpdateChecker?.showAlert) {
-								window.spkmodUpdateChecker.showAlert({ build: "preview", protocol: window.SPKMOD_PROTOCOL_VERSION || 2 });
+								const previewMode = (cmd[2] || "").toLowerCase();
+								const previewAutoReload = !(previewMode === "manual" || previewMode === "optional" || previewMode === "off" || previewMode === "false");
+								window.spkmodUpdateChecker.showAlert({ build: "preview", protocol: window.SPKMOD_PROTOCOL_VERSION || 2, autoReload: previewAutoReload });
 							}
 						} else if (window.spkmodUpdateChecker?.checkNow) {
 							window.spkmodUpdateChecker.checkNow("manual");

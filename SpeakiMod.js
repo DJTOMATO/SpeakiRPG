@@ -1866,6 +1866,44 @@ function filterName(name) {
 
 loadAllBadWordLists();
 
+const SPKMOD_VERSION_CACHE_KEY = "spkmod-version-cache";
+
+function spkmodFormatVersionLabel(raw) {
+	const clean = typeof raw === "string" ? raw.trim() : "";
+	if (!clean) return "";
+	return /^\d/.test(clean) ? ("v" + clean) : clean;
+}
+
+var spkmodModVersion = (function() {
+	try {
+		if (typeof window !== "undefined" && window.localStorage) {
+			const cached = spkmodFormatVersionLabel(localStorage.getItem(SPKMOD_VERSION_CACHE_KEY));
+			if (cached) return cached;
+		}
+	} catch (_) {}
+	return "v3.1.0";
+})();
+window.spkmodModVersion = spkmodModVersion;
+window.spkmodFormatVersionLabel = spkmodFormatVersionLabel;
+
+function spkmodSetModVersion(rawVersion, shouldRefresh = true) {
+	const formatted = spkmodFormatVersionLabel(rawVersion);
+	if (!formatted) return spkmodModVersion;
+	const changed = formatted !== spkmodModVersion;
+	spkmodModVersion = formatted;
+	window.spkmodModVersion = formatted;
+	if (typeof window !== "undefined" && window.localStorage) {
+		try {
+			localStorage.setItem(SPKMOD_VERSION_CACHE_KEY, formatted);
+		} catch (_) {}
+	}
+	if (shouldRefresh && changed && typeof refreshI18n === "function") {
+		refreshI18n();
+	}
+	return formatted;
+}
+window.spkmodSetModVersion = spkmodSetModVersion;
+
 var spkmodTranslations = (function() {
 	try {
 		if (typeof window !== "undefined" && window.localStorage) {
@@ -1877,6 +1915,20 @@ var spkmodTranslations = (function() {
 })();
 
 var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) || "en";
+
+(async function() {
+	try {
+		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/version.json?t=" + Date.now(), { cache: "no-store" });
+		if (res && res.ok) {
+			const data = await res.json();
+			if (data && typeof data.version === "string" && data.version.trim()) {
+				spkmodSetModVersion(data.version);
+			}
+		}
+	} catch (e) {
+		console.warn("[SpeakiMod+] Failed to load version.json from GitHub:", e);
+	}
+})();
 
 (async function() {
 	try {
@@ -1899,20 +1951,26 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 	}
 })();
 
+function spkmodApplyBuiltInPlaceholders(str) {
+	if (typeof str !== "string" || !str.includes("{version}")) return str;
+	const ver = spkmodModVersion || "";
+	return ver ? str.split("{version}").join(ver) : str.split("{version}").join("").replace(/\s{2,}/g, " ").trim();
+}
+
 function t(key, ...args) {
 	var str = (spkmodTranslations[spkmodLang] && spkmodTranslations[spkmodLang][key])
 		|| (spkmodTranslations.en && spkmodTranslations.en[key])
 		|| key;
 	args.forEach((a, i) => { str = str.split(`{${i}}`).join(a); });
-	return str;
+	return spkmodApplyBuiltInPlaceholders(str);
 }
 
 function tCustom(key, fallback, ...args) {
 	var str = (typeof spkmodTranslations !== "undefined" && spkmodTranslations[spkmodLang] && spkmodTranslations[spkmodLang][key])
 		|| (typeof spkmodTranslations !== "undefined" && spkmodTranslations.en && spkmodTranslations.en[key]);
-	if (!str) return fallback || key;
+	if (!str) return spkmodApplyBuiltInPlaceholders(fallback || key);
 	args.forEach((a, i) => { str = str.split(`{${i}}`).join(a); });
-	return str;
+	return spkmodApplyBuiltInPlaceholders(str);
 }
 window.tCustom = tCustom;
 
@@ -29485,6 +29543,7 @@ const SPKMOD_UPDATE_RELOAD_SECONDS = 30;
 const SPKMOD_UPDATE_ALERT_FALLBACK_EN = {
 	title: "🔄 SpeakiMod+ Update Available",
 	body: "An update has been found, the game will reload in {0} seconds. Please update manually if needed.",
+	bodyManual: "A new update is available! Click Reload Now whenever you're ready to apply it.",
 	chatNote: "If you see strange mod messages in chat before reloading, don't worry — other players are already on the newer version!",
 	btnReloadNow: "🔄 Reload Now",
 	btnDismiss: "✕ Later",
@@ -29493,8 +29552,10 @@ const SPKMOD_UPDATE_ALERT_FALLBACK_EN = {
 };
 
 let _spkmodUpdateBaselineBuild = null;
+let _spkmodUpdatePendingBuild = null;
 let _spkmodUpdateDetected = false;
 let _spkmodUpdateDismissed = false;
+let _spkmodUpdateAutoReloadActive = false;
 let _spkmodUpdateInFlight = false;
 let _spkmodUpdateLastCheckMs = 0;
 let _spkmodUpdateCountdownTimer = null;
@@ -29534,7 +29595,10 @@ function spkmodTriggerUpdateReload() {
 }
 
 function spkmodDismissUpdateAlert() {
-	_spkmodUpdateDismissed = true;
+	if (_spkmodUpdateAutoReloadActive) {
+		_spkmodUpdateDismissed = true;
+	}
+	_spkmodUpdateAutoReloadActive = false;
 	if (_spkmodUpdateCountdownTimer) {
 		clearInterval(_spkmodUpdateCountdownTimer);
 		_spkmodUpdateCountdownTimer = null;
@@ -29551,14 +29615,22 @@ function spkmodRefreshUpdateAlertModalUI() {
 	const noteEl = document.getElementById("spkmod-update-alert-note");
 	const reloadBtn = document.getElementById("spkmod-update-alert-reload");
 	const dismissBtn = document.getElementById("spkmod-update-alert-dismiss");
+	const progressEl = document.getElementById("spkmod-update-alert-progress");
 	const barEl = document.getElementById("spkmod-update-alert-bar");
 
 	if (titleEl) titleEl.innerText = spkmodGetUpdateAlertText("title");
-	if (bodyEl) bodyEl.innerText = spkmodGetUpdateAlertText("body", Math.max(0, _spkmodUpdateRemainingSec));
+	if (bodyEl) {
+		bodyEl.innerText = _spkmodUpdateAutoReloadActive
+			? spkmodGetUpdateAlertText("body", Math.max(0, _spkmodUpdateRemainingSec))
+			: spkmodGetUpdateAlertText("bodyManual");
+	}
 	if (noteEl) noteEl.innerText = spkmodGetUpdateAlertText("chatNote");
 	if (reloadBtn) reloadBtn.innerText = spkmodGetUpdateAlertText("btnReloadNow");
 	if (dismissBtn) dismissBtn.innerText = spkmodGetUpdateAlertText("btnDismiss");
-	if (barEl) {
+	if (progressEl) {
+		progressEl.style.display = _spkmodUpdateAutoReloadActive ? "" : "none";
+	}
+	if (barEl && _spkmodUpdateAutoReloadActive) {
 		const pct = Math.max(0, Math.min(100, (_spkmodUpdateRemainingSec / SPKMOD_UPDATE_RELOAD_SECONDS) * 100));
 		barEl.style.width = pct.toFixed(1) + "%";
 	}
@@ -29600,6 +29672,7 @@ function spkmodEnsureUpdateAlertModal() {
 	note.style.cssText = "font-size: 11.5px; line-height: 1.45; color: #cbd5e1; background: rgba(255,255,255,0.06); border-left: 3px solid #38bdf8; padding: 8px 10px; border-radius: 6px;";
 
 	const progressWrap = document.createElement("div");
+	progressWrap.id = "spkmod-update-alert-progress";
 	progressWrap.style.cssText = "width: 100%; height: 6px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden;";
 	const bar = document.createElement("div");
 	bar.id = "spkmod-update-alert-bar";
@@ -29652,14 +29725,24 @@ function spkmodEnsureUpdateAlertModal() {
 	return modal;
 }
 
-function spkmodShowUpdateAlertModal() {
+function spkmodShowUpdateAlertModal(data, options) {
 	if (_spkmodUpdateCountdownTimer) {
 		clearInterval(_spkmodUpdateCountdownTimer);
 		_spkmodUpdateCountdownTimer = null;
 	}
-	_spkmodUpdateDetected = true;
-	_spkmodUpdateDismissed = false;
-	_spkmodUpdateRemainingSec = SPKMOD_UPDATE_RELOAD_SECONDS;
+	let shouldAutoReload = true;
+	if (options && typeof options.autoReload === "boolean") {
+		shouldAutoReload = options.autoReload;
+	} else if (data && typeof data.autoReload === "boolean") {
+		shouldAutoReload = data.autoReload;
+	}
+
+	_spkmodUpdateAutoReloadActive = shouldAutoReload;
+	if (shouldAutoReload) {
+		_spkmodUpdateDetected = true;
+		_spkmodUpdateDismissed = false;
+		_spkmodUpdateRemainingSec = SPKMOD_UPDATE_RELOAD_SECONDS;
+	}
 
 	const modal = spkmodEnsureUpdateAlertModal();
 	if (modal) {
@@ -29668,22 +29751,25 @@ function spkmodShowUpdateAlertModal() {
 	}
 	spkmodRefreshUpdateAlertModalUI();
 
-	_spkmodUpdateCountdownTimer = setInterval(() => {
-		if (_spkmodUpdateDismissed) {
-			clearInterval(_spkmodUpdateCountdownTimer);
-			_spkmodUpdateCountdownTimer = null;
-			return;
-		}
-		_spkmodUpdateRemainingSec -= 1;
-		spkmodRefreshUpdateAlertModalUI();
-		if (_spkmodUpdateRemainingSec <= 0) {
-			spkmodTriggerUpdateReload();
-		}
-	}, 1000);
+	if (shouldAutoReload) {
+		_spkmodUpdateCountdownTimer = setInterval(() => {
+			if (_spkmodUpdateDismissed || !_spkmodUpdateAutoReloadActive) {
+				clearInterval(_spkmodUpdateCountdownTimer);
+				_spkmodUpdateCountdownTimer = null;
+				return;
+			}
+			_spkmodUpdateRemainingSec -= 1;
+			spkmodRefreshUpdateAlertModalUI();
+			if (_spkmodUpdateRemainingSec <= 0) {
+				spkmodTriggerUpdateReload();
+			}
+		}, 1000);
+	}
 }
 
 async function spkmodCheckForModUpdate(reason = "poll") {
-	if (_spkmodUpdateDetected || _spkmodUpdateDismissed || _spkmodUpdateInFlight) return false;
+	if (_spkmodUpdateInFlight) return false;
+	if (reason !== "manual" && (_spkmodUpdateDetected || _spkmodUpdateDismissed)) return false;
 	const now = Date.now();
 	if (reason === "unknown_token" && now - _spkmodUpdateLastCheckMs < SPKMOD_UPDATE_IMMEDIATE_COOLDOWN_MS) {
 		return false;
@@ -29703,21 +29789,35 @@ async function spkmodCheckForModUpdate(reason = "poll") {
 		const remoteBuild = typeof data.build === "string" ? data.build.trim() : "";
 		const remoteProtocol = Number(data.protocol) || 0;
 		const localProtocol = Number(window.SPKMOD_PROTOCOL_VERSION || 1);
+		const autoReloadEnabled = data.autoReload === true;
 
 		const protocolOutdated = remoteProtocol > localProtocol;
 		let buildChanged = false;
 		if (remoteBuild) {
 			if (!_spkmodUpdateBaselineBuild) {
 				_spkmodUpdateBaselineBuild = remoteBuild;
+				if (typeof data.version === "string" && data.version.trim() && typeof window.spkmodSetModVersion === "function") {
+					window.spkmodSetModVersion(data.version);
+				}
 			} else if (remoteBuild !== _spkmodUpdateBaselineBuild) {
 				buildChanged = true;
 			}
 		}
 
 		if (protocolOutdated || buildChanged) {
-			spkmodShowUpdateAlertModal(data);
-			return true;
+			_spkmodUpdatePendingBuild = remoteBuild || _spkmodUpdatePendingBuild;
+			if (autoReloadEnabled) {
+				spkmodShowUpdateAlertModal(data, { autoReload: true });
+				return true;
+			}
+			if (reason === "manual") {
+				spkmodShowUpdateAlertModal(data, { autoReload: false });
+				return true;
+			}
+			// Silent patch: keep baseline unchanged and do not interrupt players until autoReload is enabled or they refresh naturally.
+			return false;
 		}
+		_spkmodUpdatePendingBuild = null;
 		if (reason === "manual" && typeof chatLog === "function") {
 			chatLog(spkmodGetUpdateAlertText("upToDateToast"));
 		}
@@ -29737,13 +29837,16 @@ window.spkmodNotifyUnknownSyncToken = function() {
 
 window.spkmodUpdateChecker = {
 	checkNow: (reason = "manual") => spkmodCheckForModUpdate(reason),
-	showAlert: () => spkmodShowUpdateAlertModal(),
+	showAlert: (data, options) => spkmodShowUpdateAlertModal(data, options),
 	dismiss: () => spkmodDismissUpdateAlert(),
 	reloadNow: () => spkmodTriggerUpdateReload(),
 	getState: () => ({
+		version: typeof window.spkmodModVersion === "string" ? window.spkmodModVersion : null,
 		baselineBuild: _spkmodUpdateBaselineBuild,
+		pendingBuild: _spkmodUpdatePendingBuild,
 		detected: _spkmodUpdateDetected,
 		dismissed: _spkmodUpdateDismissed,
+		autoReload: _spkmodUpdateAutoReloadActive,
 		remainingSec: _spkmodUpdateRemainingSec,
 		localProtocol: Number(window.SPKMOD_PROTOCOL_VERSION || 1)
 	})
@@ -30245,7 +30348,9 @@ function hookGameStateOnce() {
 							const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
 								|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
 							if (typeof spkmodIsVipUser === "function" && spkmodIsVipUser(myName) && window.spkmodUpdateChecker?.showAlert) {
-								window.spkmodUpdateChecker.showAlert({ build: "preview", protocol: window.SPKMOD_PROTOCOL_VERSION || 2 });
+								const previewMode = (cmd[2] || "").toLowerCase();
+								const previewAutoReload = !(previewMode === "manual" || previewMode === "optional" || previewMode === "off" || previewMode === "false");
+								window.spkmodUpdateChecker.showAlert({ build: "preview", protocol: window.SPKMOD_PROTOCOL_VERSION || 2, autoReload: previewAutoReload });
 							}
 						} else if (window.spkmodUpdateChecker?.checkNow) {
 							window.spkmodUpdateChecker.checkNow("manual");
@@ -58897,6 +59002,237 @@ const SPKMOD_VEHICLE_CATALOG = [
 		code: 54, id: "stealth_bush", level: 12, category: "stealth", icon: "🌿", accent: "#22c55e",
 		defaultName: "Stealth Bush", paintable: false, pose: "none", hidePlayer: true, sfxType: "mgs_alert",
 		spec: { kind: "procedural", builder: "stealthBush" }
+	},
+	// --- 46 EXPANSION VEHICLES (STREET, STEALTH, FUN & AIR — REACHING 100 TOTAL!) ---
+	{
+		code: 55, id: "skateboard", level: 1, category: "stealth", icon: "🛹", accent: "#f97316",
+		defaultName: "Classic Street Skateboard", paintable: true, pose: "stand", sfxType: "squeak",
+		spec: { kind: "procedural", builder: "skateboard" }
+	},
+	{
+		code: 56, id: "red_wagon", level: 2, category: "stealth", icon: "🧸", accent: "#ef4444",
+		defaultName: "Little Red Toy Wagon", paintable: true, pose: "sit", sfxType: "squeak",
+		spec: { kind: "procedural", builder: "redWagon" }
+	},
+	{
+		code: 57, id: "tricycle", level: 3, category: "street", icon: "🚲", accent: "#f43f5e",
+		defaultName: "Giant Kid's Tricycle", paintable: true, pose: "sit", sfxType: "bell",
+		spec: { kind: "procedural", builder: "tricycle" }
+	},
+	{
+		code: 58, id: "stealth_plant", level: 4, category: "stealth", icon: "🌵", accent: "#22c55e",
+		defaultName: "Stealth Potted Cactus", paintable: true, pose: "none", hidePlayer: true, sfxType: "mgs_alert",
+		spec: { kind: "procedural", builder: "stealthPlant" }
+	},
+	{
+		code: 59, id: "bumper_car", level: 5, category: "street", icon: "🎡", accent: "#ec4899",
+		defaultName: "Carnival Bumper Car", paintable: true, pose: "sit", sfxType: "arcade",
+		spec: { kind: "procedural", builder: "bumperCar" }
+	},
+	{
+		code: 60, id: "stealth_mailbox", level: 6, category: "stealth", icon: "📮", accent: "#dc2626",
+		defaultName: "Suspicious Postbox", paintable: true, pose: "none", hidePlayer: true, sfxType: "clang",
+		spec: { kind: "procedural", builder: "stealthMailbox" }
+	},
+	{
+		code: 61, id: "go_kart", level: 8, category: "street", icon: "🏎️", accent: "#ef4444",
+		defaultName: "Turbo Drift Go-Kart", paintable: true, pose: "sit", sfxType: "turbo",
+		spec: { kind: "procedural", builder: "goKart" }
+	},
+	{
+		code: 62, id: "stealth_hydrant", level: 9, category: "stealth", icon: "🚨", accent: "#ef4444",
+		defaultName: "Sneaky Fire Hydrant", paintable: false, pose: "none", hidePlayer: true, sfxType: "flush",
+		spec: { kind: "procedural", builder: "stealthHydrant" }
+	},
+	{
+		code: 63, id: "stealth_onigiri", level: 11, category: "stealth", icon: "🍙", accent: "#f8fafc",
+		defaultName: "Tactical Onigiri Riceball", paintable: false, pose: "none", hidePlayer: true, sfxType: "chomp",
+		spec: { kind: "procedural", builder: "stealthOnigiri" }
+	},
+	{
+		code: 64, id: "tuk_tuk", level: 13, category: "street", icon: "🛺", accent: "#10b981",
+		defaultName: "Street Auto-Rickshaw", paintable: true, pose: "sit", sfxType: "scooter",
+		spec: { kind: "procedural", builder: "tukTuk" }
+	},
+	{
+		code: 65, id: "pizza_slice", level: 16, category: "stealth", icon: "🍕", accent: "#f59e0b",
+		defaultName: "Giant Pepperoni Pizza Slice", paintable: false, pose: "sit", sfxType: "chomp",
+		spec: { kind: "procedural", builder: "pizzaSlice" }
+	},
+	{
+		code: 66, id: "stealth_tp_roll", level: 18, category: "stealth", icon: "🧻", accent: "#f8fafc",
+		defaultName: "Giant Toilet Paper Roll", paintable: false, pose: "none", hidePlayer: true, sfxType: "squeak",
+		spec: { kind: "procedural", builder: "stealthTpRoll" }
+	},
+	{
+		code: 67, id: "yellow_taxi", level: 21, category: "street", icon: "🚕", accent: "#eab308",
+		defaultName: "Metro Checker Taxi", paintable: false, pose: "sit", sfxType: "car_horn",
+		spec: { kind: "procedural", builder: "yellowTaxi" }
+	},
+	{
+		code: 68, id: "stealth_pumpkin", level: 23, category: "stealth", icon: "🎃", accent: "#f97316",
+		defaultName: "Spooky Jack-o'-Lantern", paintable: false, pose: "none", hidePlayer: true, sfxType: "mgs_alert",
+		spec: { kind: "procedural", builder: "stealthPumpkin" }
+	},
+	{
+		code: 69, id: "beach_buggy", level: 27, category: "street", icon: "🏖️", accent: "#06b6d4",
+		defaultName: "Dune Beach Buggy", paintable: true, pose: "sit", sfxType: "turbo",
+		spec: { kind: "procedural", builder: "beachBuggy" }
+	},
+	{
+		code: 70, id: "stealth_tent", level: 31, category: "stealth", icon: "⛺", accent: "#16a34a",
+		defaultName: "Sneaky Camping Tent", paintable: true, pose: "none", hidePlayer: true, sfxType: "mgs_alert",
+		spec: { kind: "procedural", builder: "stealthTent" }
+	},
+	{
+		code: 71, id: "vintage_beetle", level: 33, category: "street", icon: "🐞", accent: "#fb7185",
+		defaultName: "Retro Bug Convertible", paintable: true, pose: "sit", sfxType: "car_horn",
+		spec: { kind: "procedural", builder: "vintageBeetle" }
+	},
+	{
+		code: 72, id: "teacup_ride", level: 37, category: "stealth", icon: "☕", accent: "#f472b6",
+		defaultName: "Spinning Carnival Teacup", paintable: true, pose: "sit", sfxType: "bell",
+		spec: { kind: "procedural", builder: "teacupRide" }
+	},
+	{
+		code: 73, id: "stealth_chest", level: 39, category: "stealth", icon: "💰", accent: "#d97706",
+		defaultName: "Mimic Treasure Chest", paintable: false, pose: "none", hidePlayer: true, sfxType: "gong",
+		spec: { kind: "procedural", builder: "stealthChest" }
+	},
+	{
+		code: 74, id: "taco_truck", level: 42, category: "street", icon: "🌮", accent: "#f59e0b",
+		defaultName: "Street Taco Food Truck", paintable: true, pose: "sit", sfxType: "chomp",
+		spec: { kind: "procedural", builder: "tacoTruck" }
+	},
+	{
+		code: 75, id: "ramen_bowl", level: 44, category: "stealth", icon: "🍜", accent: "#dc2626",
+		defaultName: "Steaming Ramen Bowl", paintable: false, pose: "sit", sfxType: "chomp",
+		spec: { kind: "procedural", builder: "ramenBowl" }
+	},
+	{
+		code: 76, id: "tow_truck", level: 47, category: "street", icon: "🔧", accent: "#eab308",
+		defaultName: "Heavy Tow Truck", paintable: true, pose: "sit", sfxType: "airhorn",
+		spec: { kind: "procedural", builder: "towTruck" }
+	},
+	{
+		code: 77, id: "stealth_washer", level: 51, category: "stealth", icon: "🌀", accent: "#38bdf8",
+		defaultName: "Spin-Cycle Washing Machine", paintable: false, pose: "none", hidePlayer: true, sfxType: "flush",
+		spec: { kind: "procedural", builder: "stealthWasher" }
+	},
+	{
+		code: 78, id: "camper_van", level: 53, category: "street", icon: "🚐", accent: "#14b8a6",
+		defaultName: "Retro Surf Camper Van", paintable: true, pose: "sit", sfxType: "car_horn",
+		spec: { kind: "procedural", builder: "camperVan" }
+	},
+	{
+		code: 79, id: "corgi_ride", level: 56, category: "stealth", icon: "🐕", accent: "#f59e0b",
+		defaultName: "Chonky Corgi Ride", paintable: false, pose: "sit", sfxType: "bark",
+		spec: { kind: "procedural", builder: "corgiRide" }
+	},
+	{
+		code: 80, id: "muscle_car", level: 58, category: "street", icon: "🔥", accent: "#dc2626",
+		defaultName: "Classic V8 Muscle Car", paintable: true, pose: "sit", sfxType: "drift",
+		spec: { kind: "procedural", builder: "muscleCar" }
+	},
+	{
+		code: 81, id: "stealth_vending", level: 61, category: "stealth", icon: "🥤", accent: "#ef4444",
+		defaultName: "Japanese Vending Machine", paintable: true, pose: "none", hidePlayer: true, sfxType: "vending",
+		spec: { kind: "procedural", builder: "stealthVending" }
+	},
+	{
+		code: 82, id: "double_bus", level: 63, category: "street", icon: "🚌", accent: "#dc2626",
+		defaultName: "London Double-Decker Bus", paintable: true, pose: "sit", sfxType: "airhorn",
+		spec: { kind: "procedural", builder: "doubleBus" }
+	},
+	{
+		code: 83, id: "hamster_ball", level: 66, category: "stealth", icon: "🐹", accent: "#38bdf8",
+		defaultName: "Giant Rolling Hamster Ball", paintable: true, pose: "stand", sfxType: "squeak",
+		spec: { kind: "procedural", builder: "hamsterBall" }
+	},
+	{
+		code: 84, id: "drift_jdm", level: 68, category: "street", icon: "⚡", accent: "#a855f7",
+		defaultName: "Midnight Street Drift Tuner", paintable: true, pose: "sit", sfxType: "drift",
+		spec: { kind: "procedural", builder: "driftJdm" }
+	},
+	{
+		code: 85, id: "steamroller", level: 71, category: "street", icon: "⚠️", accent: "#eab308",
+		defaultName: "Heavy Road Steamroller", paintable: false, pose: "sit", sfxType: "airhorn",
+		spec: { kind: "procedural", builder: "steamroller" }
+	},
+	{
+		code: 86, id: "stealth_arcade", level: 73, category: "stealth", icon: "🕹️", accent: "#8b5cf6",
+		defaultName: "Retro Arcade Cabinet", paintable: true, pose: "none", hidePlayer: true, sfxType: "arcade",
+		spec: { kind: "procedural", builder: "stealthArcade" }
+	},
+	{
+		code: 87, id: "cement_mixer", level: 74, category: "street", icon: "🚧", accent: "#f97316",
+		defaultName: "Spinning Cement Mixer", paintable: true, pose: "sit", sfxType: "airhorn",
+		spec: { kind: "procedural", builder: "cementMixer" }
+	},
+	{
+		code: 88, id: "gaming_chair", level: 77, category: "stealth", icon: "🎮", accent: "#ec4899",
+		defaultName: "RGB Pro Gaming Throne", paintable: true, pose: "sit", sfxType: "arcade",
+		spec: { kind: "procedural", builder: "gamingChair" }
+	},
+	{
+		code: 89, id: "biplane", level: 78, category: "air", icon: "✈️", accent: "#dc2626",
+		defaultName: "Stunt Red Baron Biplane", paintable: true, pose: "sit", sfxType: "propeller",
+		spec: { kind: "procedural", builder: "biplane" }
+	},
+	{
+		code: 90, id: "stretch_limo", level: 81, category: "street", icon: "🎩", accent: "#1e293b",
+		defaultName: "VIP Stretch Limousine", paintable: true, pose: "sit", sfxType: "airhorn",
+		spec: { kind: "procedural", builder: "stretchLimo" }
+	},
+	{
+		code: 91, id: "giant_capybara", level: 82, category: "stealth", icon: "🍊", accent: "#b45309",
+		defaultName: "Chill Yuzu Capybara", paintable: false, pose: "sit", sfxType: "capy",
+		spec: { kind: "procedural", builder: "giantCapybara" }
+	},
+	{
+		code: 92, id: "swat_van", level: 84, category: "street", icon: "🛡️", accent: "#1e3a8a",
+		defaultName: "Armored Tactical Van", paintable: false, pose: "sit", sfxType: "siren",
+		spec: { kind: "procedural", builder: "swatVan" }
+	},
+	{
+		code: 93, id: "stealth_pillar", level: 86, category: "stealth", icon: "🏛️", accent: "#e2e8f0",
+		defaultName: "Ancient Marble Pillar", paintable: false, pose: "none", hidePlayer: true, sfxType: "vine_boom",
+		spec: { kind: "procedural", builder: "stealthPillar" }
+	},
+	{
+		code: 94, id: "cyber_pickup", level: 88, category: "street", icon: "📐", accent: "#94a3b8",
+		defaultName: "Low-Poly Cyber Pickup", paintable: true, pose: "sit", sfxType: "scifi",
+		spec: { kind: "procedural", builder: "cyberPickup" }
+	},
+	{
+		code: 95, id: "rocket_sled", level: 89, category: "air", icon: "🚀", accent: "#ef4444",
+		defaultName: "Twin-Turbo Rocket Sled", paintable: true, pose: "sit", sfxType: "turbo",
+		spec: { kind: "procedural", builder: "rocketSled" }
+	},
+	{
+		code: 96, id: "formula_one", level: 91, category: "street", icon: "🏁", accent: "#dc2626",
+		defaultName: "Grand Prix F1 Racer", paintable: true, pose: "sit", milestone: true, sfxType: "drift",
+		spec: { kind: "procedural", builder: "formulaOne" }
+	},
+	{
+		code: 97, id: "zeppelin", level: 93, category: "air", icon: "🎈", accent: "#d97706",
+		defaultName: "Steampunk Sky Zeppelin", paintable: true, pose: "sit", sfxType: "propeller",
+		spec: { kind: "procedural", builder: "zeppelin" }
+	},
+	{
+		code: 98, id: "crescent_moon", level: 96, category: "air", icon: "🌙", accent: "#fde047",
+		defaultName: "Dreamy Crescent Moon", paintable: false, pose: "sit", sfxType: "magic",
+		spec: { kind: "procedural", builder: "crescentMoon" }
+	},
+	{
+		code: 99, id: "royal_throne", level: 98, category: "stealth", icon: "👑", accent: "#facc15",
+		defaultName: "Royal Golden Throne", paintable: true, pose: "sit", milestone: true, sfxType: "gong",
+		spec: { kind: "procedural", builder: "royalThrone" }
+	},
+	{
+		code: 100, id: "starfighter", level: 99, category: "air", icon: "⭐", accent: "#38bdf8",
+		defaultName: "Orbital Starfighter", paintable: true, pose: "sit", milestone: true, sfxType: "scifi",
+		spec: { kind: "procedural", builder: "starfighter" }
 	}
 ];
 
@@ -59303,6 +59639,50 @@ function spkmodPlayVehicleSfx(vehicle, secondary = false) {
 			case "mech":
 				spkmodPlaySynthTone(ctx, "sawtooth", 120, 48, now, 0.22, v * 1.0);
 				spkmodPlaySynthTone(ctx, "sine", 880, 1320, now + 0.08, 0.16, v * 0.5);
+				break;
+			case "arcade": {
+				const arp = secondary ? [988, 1319, 1568] : [523, 659, 784, 1046];
+				arp.forEach((f, idx) => spkmodPlaySynthTone(ctx, "square", f, f, now + idx * 0.055, 0.075, v * 0.48));
+				break;
+			}
+			case "chomp":
+				spkmodPlaySynthTone(ctx, "sawtooth", 340, 110, now, 0.09, v * 0.72);
+				spkmodPlaySynthTone(ctx, "sawtooth", 380, 120, now + 0.11, 0.09, v * 0.72);
+				break;
+			case "bark":
+				spkmodPlaySynthTone(ctx, "sawtooth", 440, 260, now, 0.09, v * 0.75);
+				if (secondary) spkmodPlaySynthTone(ctx, "sawtooth", 500, 280, now + 0.12, 0.10, v * 0.75);
+				break;
+			case "capy":
+				spkmodPlaySynthTone(ctx, "sine", 392, 440, now, 0.14, v * 0.65);
+				spkmodPlaySynthTone(ctx, "triangle", 587, 659, now + 0.10, 0.18, v * 0.55);
+				break;
+			case "gong":
+				spkmodPlaySynthTone(ctx, "triangle", 196, 184, now, 0.58, v * 0.95);
+				spkmodPlaySynthTone(ctx, "sine", 392, 370, now, 0.52, v * 0.65);
+				spkmodPlaySynthTone(ctx, "sine", 587, 560, now + 0.03, 0.42, v * 0.42);
+				break;
+			case "propeller":
+				for (let k = 0; k < 4; k++) {
+					spkmodPlaySynthTone(ctx, "sawtooth", 110 + k * 14, 145 + k * 16, now + k * 0.07, 0.065, v * 0.65);
+				}
+				break;
+			case "drift":
+				spkmodPlaySynthTone(ctx, "sawtooth", 210, 620, now, 0.18, v * 0.75);
+				spkmodPlaySynthTone(ctx, "triangle", 1320, 940, now + 0.14, 0.20, v * 0.45);
+				break;
+			case "vending":
+				spkmodPlaySynthTone(ctx, "square", 1046, 1046, now, 0.06, v * 0.5);
+				spkmodPlaySynthTone(ctx, "triangle", 180, 95, now + 0.10, 0.12, v * 0.85);
+				spkmodPlaySynthTone(ctx, "triangle", 140, 75, now + 0.24, 0.10, v * 0.7);
+				break;
+			case "airhorn":
+				spkmodPlaySynthTone(ctx, "sawtooth", 233, 233, now, 0.24, v * 0.8);
+				spkmodPlaySynthTone(ctx, "sawtooth", 293.7, 293.7, now, 0.24, v * 0.65);
+				if (secondary) {
+					spkmodPlaySynthTone(ctx, "sawtooth", 233, 233, now + 0.28, 0.22, v * 0.8);
+					spkmodPlaySynthTone(ctx, "sawtooth", 293.7, 293.7, now + 0.28, 0.22, v * 0.65);
+				}
 				break;
 			case "scooter":
 			default:
@@ -60066,7 +60446,7 @@ function spkmodAttachStealthRig(THREE, root, alertY = 1.92) {
 	alertSprite.scale.set(0.75, 0.75, 1);
 	alertSprite.visible = false;
 	root.add(alertSprite);
-	return { isMgsBox: true, leftFoot, rightFoot, alertSprite };
+	return { isMgsBox: true, leftFoot, rightFoot, alertSprite, alertBaseY: alertY };
 }
 
 function spkmodBuildExtendedProceduralVehicle(THREE, builderName, colorHex, root, bodyGroup, mats, wheels, animParts) {
@@ -60168,17 +60548,20 @@ function spkmodBuildExtendedProceduralVehicle(THREE, builderName, colorHex, root
 	} else if (builderName === "swivelChair") {
 		const spinTop = new THREE.Group();
 		bodyGroup.add(spinTop);
-		put(bodyGroup, new THREE.CylinderGeometry(0.08, 0.08, 0.54, 10), chromeMat, [0, 0.34, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.09, 0.09, 0.52, 10), chromeMat, [0, 0.32, 0]);
 		for (let i = 0; i < 5; i++) {
 			const a = (i / 5) * Math.PI * 2;
-			put(bodyGroup, new THREE.BoxGeometry(0.10, 0.07, 0.62), darkMat, [Math.sin(a) * 0.30, 0.14, Math.cos(a) * 0.30], [0, a, 0]);
-			put(bodyGroup, new THREE.SphereGeometry(0.08, 8, 8), tireMat, [Math.sin(a) * 0.56, 0.08, Math.cos(a) * 0.56]);
+			put(bodyGroup, new THREE.BoxGeometry(0.11, 0.08, 0.82), darkMat, [Math.sin(a) * 0.40, 0.14, Math.cos(a) * 0.40], [0, a, 0]);
+			put(bodyGroup, new THREE.SphereGeometry(0.09, 8, 8), tireMat, [Math.sin(a) * 0.74, 0.09, Math.cos(a) * 0.74]);
 		}
-		put(spinTop, new THREE.BoxGeometry(0.92, 0.16, 0.88), paintMat, [0, 0.66, 0]);
-		put(spinTop, new THREE.BoxGeometry(0.88, 1.04, 0.16), paintMat, [0, 1.22, -0.40]);
-		for (const s of [-1, 1]) put(spinTop, new THREE.BoxGeometry(0.10, 0.08, 0.58), darkMat, [s * 0.48, 0.96, 0.04]);
+		put(spinTop, new THREE.BoxGeometry(1.32, 0.18, 1.24), paintMat, [0, 0.62, -0.06]);
+		put(spinTop, new THREE.BoxGeometry(1.28, 1.38, 0.18), paintMat, [0, 1.34, -0.70]);
+		for (const s of [-1, 1]) {
+			put(spinTop, new THREE.BoxGeometry(0.08, 0.34, 0.10), darkMat, [s * 0.68, 0.82, -0.10]);
+			put(spinTop, new THREE.BoxGeometry(0.14, 0.09, 0.86), darkMat, [s * 0.68, 0.98, -0.04]);
+		}
 		animParts.push({ type: "spinMoveY", node: spinTop, speed: 6.5 });
-		return { seatOffsetY: 0.88 };
+		return { seatOffsetY: 0.72 };
 	} else if (builderName === "goldenToilet") {
 		const gld = spkmodVehMat(THREE, 0xfacc15, { emissive: 0xd97706, emissiveIntensity: 0.25 }), wht = spkmodVehMat(THREE, 0xfef9c3);
 		put(bodyGroup, new THREE.CylinderGeometry(0.46, 0.34, 0.50, 16), gld, [0, 0.38, 0.10]);
@@ -60228,14 +60611,20 @@ function spkmodBuildExtendedProceduralVehicle(THREE, builderName, colorHex, root
 		for (const sx of [-0.36, 0.36]) put(bodyGroup, new THREE.BoxGeometry(0.56, 0.18, 0.40), sheet, [sx, 0.58, -0.82]);
 		return { seatOffsetY: 0.76, hoverY: 0.48, hoverAmp: 0.14 };
 	} else if (builderName === "watermelonBoat") {
-		const grn = spkmodVehMat(THREE, 0x16a34a), red = spkmodVehMat(THREE, 0xf43f5e);
-		put(bodyGroup, new THREE.CylinderGeometry(1.16, 1.16, 0.78, 20, 1, false, 0, Math.PI), grn, [0, 0.96, 0], [0, Math.PI / 2, Math.PI]);
-		put(bodyGroup, new THREE.CylinderGeometry(1.02, 1.02, 0.80, 20, 1, false, 0, Math.PI), red, [0, 0.96, 0], [0, Math.PI / 2, Math.PI]);
-		for (const [y, z] of [[0.62, 0.36], [0.62, -0.36], [0.46, 0], [0.76, 0.62], [0.76, -0.62]]) {
-			put(bodyGroup, new THREE.SphereGeometry(0.06, 6, 6), darkMat, [0.40, y, z]);
-			put(bodyGroup, new THREE.SphereGeometry(0.06, 6, 6), darkMat, [-0.40, y, z]);
+		const grn = spkmodVehMat(THREE, 0x16a34a), pith = spkmodVehMat(THREE, 0xecfccb), red = spkmodVehMat(THREE, 0xf43f5e);
+		// Upright curved watermelon slice pointing front-to-back (+Z to -Z), curved green rind resting on ground!
+		put(bodyGroup, new THREE.CylinderGeometry(1.04, 1.04, 0.74, 22, 1, false, 0, Math.PI), grn, [0, 1.04, 0], [0, 0, -Math.PI / 2]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.96, 0.96, 0.77, 22, 1, false, 0, Math.PI), pith, [0, 1.04, 0], [0, 0, -Math.PI / 2]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.91, 0.91, 0.80, 22, 1, false, 0, Math.PI), red, [0, 1.04, 0], [0, 0, -Math.PI / 2]);
+		// Solid flat red top deck & green rind lips
+		put(bodyGroup, new THREE.BoxGeometry(0.76, 0.05, 1.82), red, [0, 1.03, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(0.74, 0.05, 2.08), grn, [0, 1.02, 0]);
+		// Watermelon seeds cleanly embedded on both flat vertical red sides!
+		for (const [y, z] of [[0.84, 0.46], [0.84, -0.46], [0.54, 0], [0.68, 0.34], [0.68, -0.34], [0.90, 0]]) {
+			put(bodyGroup, new THREE.SphereGeometry(0.055, 8, 6), darkMat, [0.41, y, z], null, [0.45, 1.25, 0.85]);
+			put(bodyGroup, new THREE.SphereGeometry(0.055, 8, 6), darkMat, [-0.41, y, z], null, [0.45, 1.25, 0.85]);
 		}
-		return { seatOffsetY: 0.94, extra: { waddleAmp: 0.08 } };
+		return { seatOffsetY: 0.92, extra: { waddleAmp: 0.08 } };
 	} else if (builderName === "burgerMobile") {
 		const bun = spkmodVehMat(THREE, 0xeab308), meat = spkmodVehMat(THREE, 0x7c2d12), chz = spkmodVehMat(THREE, 0xfde047), letM = spkmodVehMat(THREE, 0x22c55e), pkl = spkmodVehMat(THREE, 0x15803d);
 		put(bodyGroup, new THREE.CylinderGeometry(0.98, 0.94, 0.32, 20), bun, [0, 0.44, 0]);
@@ -60436,15 +60825,21 @@ function spkmodBuildExtendedProceduralVehicle(THREE, builderName, colorHex, root
 		put(bodyGroup, new THREE.TorusGeometry(1.30, 0.10, 8, 24), strp, [0, 3.35, 0], [Math.PI / 2, 0, 0]);
 		return { seatOffsetY: 0.62, hoverY: 0.44, hoverAmp: 0.18 };
 	} else if (builderName === "pirateGalleon") {
-		const hull = spkmodVehMat(THREE, 0x78350f), sail = spkmodVehMat(THREE, 0xf8fafc), wave = spkmodVehMat(THREE, 0x38bdf8, { transparent: true, opacity: 0.55, side: THREE.DoubleSide });
-		put(bodyGroup, new THREE.BoxGeometry(1.36, 0.68, 2.55), hull, [0, 0.44, 0]);
-		put(bodyGroup, new THREE.ConeGeometry(0.84, 0.96, 4), hull, [0, 0.44, 1.72], [Math.PI / 2, Math.PI / 4, 0]);
-		put(bodyGroup, new THREE.CylinderGeometry(0.06, 0.08, 2.45, 10), hull, [0, 1.84, -0.10]);
-		put(bodyGroup, new THREE.BoxGeometry(1.52, 1.18, 0.08), sail, [0, 1.98, 0.08]);
-		put(bodyGroup, new THREE.BoxGeometry(0.46, 0.30, 0.04), darkMat, [0, 2.94, -0.10]);
-		const wRing = put(bodyGroup, new THREE.RingGeometry(1.15, 1.68, 22), wave, [0, 0.06, 0], [Math.PI / 2, 0, 0]);
+		const hull = spkmodVehMat(THREE, 0x78350f), trim = spkmodVehMat(THREE, 0xb45309), sail = spkmodVehMat(THREE, 0xf8fafc), wave = spkmodVehMat(THREE, 0x38bdf8, { transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+		// Shifted forward so the mast, billowing sail & flag stand cleanly ahead of the player on the rear deck!
+		put(bodyGroup, new THREE.BoxGeometry(1.42, 0.68, 2.75), hull, [0, 0.44, 0.42]);
+		put(bodyGroup, new THREE.BoxGeometry(1.46, 0.14, 2.78), trim, [0, 0.78, 0.42]);
+		put(bodyGroup, new THREE.ConeGeometry(0.88, 1.02, 4), hull, [0, 0.44, 2.24], [Math.PI / 2, Math.PI / 4, 0]);
+		// Forward mast, crossbar, billowing sail & top Jolly Roger flag
+		put(bodyGroup, new THREE.CylinderGeometry(0.06, 0.08, 2.55, 10), hull, [0, 1.88, 1.08]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.04, 0.04, 1.62, 8), trim, [0, 2.52, 1.16], [0, 0, Math.PI / 2]);
+		put(bodyGroup, new THREE.BoxGeometry(1.54, 1.18, 0.08), sail, [0, 1.98, 1.20]);
+		put(bodyGroup, new THREE.BoxGeometry(0.48, 0.30, 0.05), darkMat, [0, 3.00, 1.08]);
+		// Cute captain's steering wheel in front of the player
+		put(bodyGroup, new THREE.TorusGeometry(0.24, 0.035, 8, 14), trim, [0, 1.06, 0.56]);
+		const wRing = put(bodyGroup, new THREE.RingGeometry(1.20, 1.75, 22), wave, [0, 0.06, 0.42], [Math.PI / 2, 0, 0]);
 		animParts.push({ type: "pulseScale", node: wRing, speed: 3.8, amp: 0.10 });
-		return { seatOffsetY: 0.92, hoverY: 0.16, hoverAmp: 0.09 };
+		return { seatOffsetY: 0.84, hoverY: 0.16, hoverAmp: 0.09 };
 	} else if (builderName === "chibiHeli") {
 		put(bodyGroup, new THREE.SphereGeometry(0.86, 18, 14), paintMat, [0, 0.84, 0.12], null, [0.95, 0.85, 1.25]);
 		put(bodyGroup, new THREE.SphereGeometry(0.68, 14, 10), glassMat, [0, 0.92, 0.56], null, [0.9, 0.75, 0.8]);
@@ -60481,6 +60876,740 @@ function spkmodBuildExtendedProceduralVehicle(THREE, builderName, colorHex, root
 			animParts.push({ type: "legWalk", node: leg, side: s });
 		}
 		return { seatOffsetY: 2.30 };
+	}
+	return spkmodBuildCenturyProceduralVehicle(THREE, builderName, colorHex, root, bodyGroup, mats, wheels, animParts, put);
+}
+
+function spkmodBuildCenturyProceduralVehicle(THREE, builderName, colorHex, root, bodyGroup, mats, wheels, animParts, put) {
+	const { tireMat, rimMat, paintMat, chromeMat, glassMat, darkMat, headLightMat, tailLightMat } = mats;
+	const addCenterWheel = (r, w, z, tMat = tireMat, rMat = rimMat) => {
+		const g = new THREE.Group();
+		g.position.set(0, r, z);
+		put(g, new THREE.CylinderGeometry(r, r, w, 16), tMat, null, [0, 0, Math.PI / 2]);
+		put(g, new THREE.CylinderGeometry(r * 0.55, r * 0.55, w + 0.02, 12), rMat, null, [0, 0, Math.PI / 2]);
+		bodyGroup.add(g);
+		wheels.push(g);
+		return g;
+	};
+
+	// ========================================================================
+	// A. 12 NEW STEALTH PROPS (hidePlayer: true, sneak feet + !/? alert)
+	// ========================================================================
+	if (builderName === "stealthPlant") {
+		const soil = spkmodVehMat(THREE, 0x451a03), cac = spkmodVehMat(THREE, 0x16a34a), cacHi = spkmodVehMat(THREE, 0x22c55e), flw = spkmodVehMat(THREE, 0xf472b6);
+		put(bodyGroup, new THREE.CylinderGeometry(0.58, 0.44, 0.68, 16), paintMat, [0, 0.34, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.64, 0.60, 0.14, 16), paintMat, [0, 0.68, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.54, 0.54, 0.05, 16), soil, [0, 0.72, 0]);
+		// Main ribbed saguaro trunk + rounded cap
+		put(bodyGroup, new THREE.CylinderGeometry(0.28, 0.30, 1.08, 12), cac, [0, 1.24, 0]);
+		put(bodyGroup, new THREE.SphereGeometry(0.28, 12, 10), cacHi, [0, 1.78, 0]);
+		// Classic left & right cactus arms
+		for (const [s, ay, ah] of [[-1, 1.18, 0.46], [1, 1.32, 0.38]]) {
+			put(bodyGroup, new THREE.CylinderGeometry(0.14, 0.15, 0.44, 10), cac, [s * 0.36, ay, 0], [0, 0, Math.PI / 2]);
+			put(bodyGroup, new THREE.CylinderGeometry(0.14, 0.15, ah, 10), cac, [s * 0.56, ay + ah * 0.5, 0]);
+			put(bodyGroup, new THREE.SphereGeometry(0.14, 10, 8), cacHi, [s * 0.56, ay + ah, 0]);
+		}
+		// Cute pink cactus flower blooming on top!
+		put(bodyGroup, new THREE.SphereGeometry(0.14, 10, 8), flw, [0, 2.06, 0.04], null, [1.2, 0.7, 1.2]);
+		put(bodyGroup, new THREE.SphereGeometry(0.07, 8, 8), headLightMat, [0, 2.12, 0.06]);
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.55) };
+	} else if (builderName === "stealthMailbox") {
+		const wht = spkmodVehMat(THREE, 0xf8fafc);
+		for (const [x, z] of [[-0.40, 0.32], [0.40, 0.32], [-0.40, -0.32], [0.40, -0.32]]) {
+			put(bodyGroup, new THREE.BoxGeometry(0.14, 0.36, 0.14), darkMat, [x, 0.18, z]);
+		}
+		put(bodyGroup, new THREE.BoxGeometry(1.06, 0.96, 0.86), paintMat, [0, 0.82, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.43, 0.43, 1.06, 16), paintMat, [0, 1.30, 0], [0, 0, Math.PI / 2]);
+		put(bodyGroup, new THREE.BoxGeometry(0.54, 0.36, 0.04), wht, [0, 0.78, 0.44]);
+		const slotFlap = new THREE.Group();
+		slotFlap.position.set(0, 1.18, 0.45);
+		put(slotFlap, new THREE.BoxGeometry(0.66, 0.14, 0.08), chromeMat);
+		bodyGroup.add(slotFlap);
+		animParts.push({ type: "lidBounce", node: slotFlap, baseY: 1.18 });
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.15) };
+	} else if (builderName === "stealthHydrant") {
+		const red = spkmodVehMat(THREE, 0xdc2626), redDark = spkmodVehMat(THREE, 0x991b1b);
+		put(bodyGroup, new THREE.CylinderGeometry(0.56, 0.62, 0.20, 16), redDark, [0, 0.10, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.44, 0.48, 1.08, 16), red, [0, 0.72, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.52, 0.52, 0.12, 16), redDark, [0, 1.24, 0]);
+		put(bodyGroup, new THREE.SphereGeometry(0.44, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), red, [0, 1.28, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.14, 0.16, 0.18, 6), chromeMat, [0, 1.76, 0]);
+		for (const s of [-1, 1]) {
+			put(bodyGroup, new THREE.CylinderGeometry(0.16, 0.16, 0.34, 12), red, [s * 0.52, 0.92, 0], [0, 0, Math.PI / 2]);
+			put(bodyGroup, new THREE.CylinderGeometry(0.18, 0.18, 0.08, 8), chromeMat, [s * 0.68, 0.92, 0], [0, 0, Math.PI / 2]);
+		}
+		put(bodyGroup, new THREE.CylinderGeometry(0.20, 0.20, 0.24, 12), chromeMat, [0, 0.86, 0.46], [Math.PI / 2, 0, 0]);
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.25) };
+	} else if (builderName === "stealthOnigiri") {
+		const rice = spkmodVehMat(THREE, 0xfefce8), nori = spkmodVehMat(THREE, 0x14532d), plum = spkmodVehMat(THREE, 0xe11d48);
+		// Upright chunky triangular riceball prism (apex pointing +Y up, flat base on y=0!)
+		put(bodyGroup, new THREE.CylinderGeometry(0.86, 0.86, 0.88, 3), rice, [0, 0.44, 0], [-Math.PI / 2, 0, 0], [1.08, 1, 1.05]);
+		put(bodyGroup, new THREE.SphereGeometry(0.56, 14, 12), rice, [0, 0.62, 0], null, [1.22, 1.02, 0.92]);
+		// Crisp roasted nori wrapper across bottom center
+		put(bodyGroup, new THREE.BoxGeometry(0.76, 0.56, 0.96), nori, [0, 0.28, 0]);
+		// Cute pickled umeboshi peek dot & toasted sesame seeds
+		put(bodyGroup, new THREE.SphereGeometry(0.10, 8, 8), plum, [0, 0.86, 0.44]);
+		for (const [x, y] of [[-0.24, 0.72], [0.26, 0.68], [0.06, 1.04], [-0.14, 0.98]]) {
+			put(bodyGroup, new THREE.SphereGeometry(0.032, 6, 6), darkMat, [x, y, 0.45]);
+		}
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.02) };
+	} else if (builderName === "stealthTpRoll") {
+		const paper = spkmodVehMat(THREE, 0xf8fafc), tube = spkmodVehMat(THREE, 0xb45309), core = spkmodVehMat(THREE, 0x451a03);
+		put(bodyGroup, new THREE.CylinderGeometry(0.62, 0.62, 1.24, 24), paper, [0, 0.64, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.22, 0.22, 1.26, 16), tube, [0, 0.64, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.18, 0.18, 1.27, 16), core, [0, 0.64, 0]);
+		// Loose hanging paper flap on the side
+		const flap = put(bodyGroup, new THREE.BoxGeometry(0.05, 0.82, 0.58), paper, [0.64, 0.62, 0.24], [0, 0.32, -0.08]);
+		animParts.push({ type: "lidBounce", node: flap, baseY: 0.62 });
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.02) };
+	} else if (builderName === "stealthPumpkin") {
+		const pmp = spkmodVehMat(THREE, 0xf97316), pmp2 = spkmodVehMat(THREE, 0xea580c), stem = spkmodVehMat(THREE, 0x15803d);
+		const glow = spkmodVehMat(THREE, 0xfef08a, { emissive: 0xfacc15, emissiveIntensity: 0.95 });
+		for (let i = 0; i < 6; i++) {
+			const a = (i / 6) * Math.PI * 2;
+			put(bodyGroup, new THREE.SphereGeometry(0.56, 14, 12), i % 2 ? pmp2 : pmp, [Math.cos(a) * 0.24, 0.64, Math.sin(a) * 0.24], null, [1.0, 0.92, 1.0]);
+		}
+		put(bodyGroup, new THREE.CylinderGeometry(0.08, 0.16, 0.36, 10), stem, [0, 1.28, -0.04], [-0.22, 0, 0.18]);
+		// Glowing spooky triangle eyes + grin
+		for (const s of [-1, 1]) put(bodyGroup, new THREE.ConeGeometry(0.16, 0.24, 3), glow, [s * 0.26, 0.80, 0.72]);
+		put(bodyGroup, new THREE.BoxGeometry(0.58, 0.14, 0.10), glow, [0, 0.44, 0.74]);
+		for (const sx of [-0.14, 0.14]) put(bodyGroup, new THREE.BoxGeometry(0.09, 0.08, 0.12), pmp2, [sx, 0.47, 0.76]);
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.15) };
+	} else if (builderName === "stealthTent") {
+		const trim = spkmodVehMat(THREE, 0xfef08a), inside = spkmodVehMat(THREE, 0x0f172a);
+		// Upright A-frame pitched tent (Rx = -PI/2 maps +Z apex to +Y roof peak and flat base onto y = 0!)
+		put(bodyGroup, new THREE.CylinderGeometry(1.04, 1.04, 1.66, 3), paintMat, [0, 0.52, 0], [-Math.PI / 2, 0, 0], [1.04, 1, 1.02]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.58, 0.58, 0.12, 3), inside, [0, 0.29, 0.82], [-Math.PI / 2, 0, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.04, 0.04, 1.82, 8), trim, [0, 1.56, 0], [Math.PI / 2, 0, 0]);
+		for (const [x, z] of [[-0.92, 0.82], [0.92, 0.82], [-0.92, -0.82], [0.92, -0.82]]) {
+			put(bodyGroup, new THREE.CylinderGeometry(0.03, 0.02, 0.22, 6), chromeMat, [x, 0.10, z]);
+		}
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.25) };
+	} else if (builderName === "stealthChest") {
+		const wood = spkmodVehMat(THREE, 0x78350f), gold = spkmodVehMat(THREE, 0xfacc15, { emissive: 0xd97706, emissiveIntensity: 0.25 });
+		put(bodyGroup, new THREE.BoxGeometry(1.36, 0.72, 1.02), wood, [0, 0.36, 0]);
+		for (const sx of [-0.62, 0.62]) put(bodyGroup, new THREE.BoxGeometry(0.14, 0.76, 1.06), gold, [sx, 0.38, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(0.24, 0.28, 0.08), gold, [0, 0.64, 0.52]);
+		// Glittering gold coins peeking inside!
+		for (let i = -2; i <= 2; i++) put(bodyGroup, new THREE.CylinderGeometry(0.14, 0.14, 0.08, 10), gold, [i * 0.22, 0.74, (i % 2) * 0.14]);
+		// Chattering treasure chest lid!
+		const lid = new THREE.Group();
+		lid.position.set(0, 0.74, 0);
+		put(lid, new THREE.CylinderGeometry(0.51, 0.51, 1.36, 14, 1, false, 0, Math.PI), wood, [0, 0, 0], [0, 0, Math.PI / 2]);
+		for (const sx of [-0.62, 0.62]) put(lid, new THREE.CylinderGeometry(0.54, 0.54, 0.14, 14, 1, false, 0, Math.PI), gold, [sx, 0, 0], [0, 0, Math.PI / 2]);
+		bodyGroup.add(lid);
+		animParts.push({ type: "lidBounce", node: lid, baseY: 0.74 });
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.05) };
+	} else if (builderName === "stealthWasher") {
+		const wht = spkmodVehMat(THREE, 0xf8fafc), water = spkmodVehMat(THREE, 0x38bdf8, { transparent: true, opacity: 0.72 });
+		put(bodyGroup, new THREE.BoxGeometry(1.22, 1.42, 1.16), wht, [0, 0.71, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.24, 0.24, 0.08), chromeMat, [0, 1.24, 0.56]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.08, 0.08, 0.08, 12), darkMat, [0.34, 1.24, 0.61], [Math.PI / 2, 0, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(0.32, 0.14, 0.06), spkmodVehMat(THREE, 0x22c55e, { emissive: 0x22c55e, emissiveIntensity: 0.7 }), [-0.34, 1.24, 0.60]);
+		// Spinning laundry porthole drum!
+		put(bodyGroup, new THREE.TorusGeometry(0.42, 0.07, 10, 24), chromeMat, [0, 0.58, 0.59]);
+		const drum = new THREE.Group();
+		drum.position.set(0, 0.58, 0.57);
+		put(drum, new THREE.CylinderGeometry(0.39, 0.39, 0.04, 20), water, [0, 0, 0], [Math.PI / 2, 0, 0]);
+		put(drum, new THREE.SphereGeometry(0.14, 8, 8), spkmodVehMat(THREE, 0xf43f5e), [0.16, 0.12, 0.03]);
+		put(drum, new THREE.SphereGeometry(0.12, 8, 8), spkmodVehMat(THREE, 0xfacc15), [-0.15, -0.14, 0.03]);
+		put(drum, new THREE.SphereGeometry(0.11, 8, 8), spkmodVehMat(THREE, 0x4ade80), [-0.14, 0.14, 0.03]);
+		bodyGroup.add(drum);
+		animParts.push({ type: "spinZ", node: drum, speed: 6.5 });
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.15) };
+	} else if (builderName === "stealthVending") {
+		const disp = spkmodVehMat(THREE, 0xe0f2fe, { emissive: 0xbae6fd, emissiveIntensity: 0.35 });
+		const canCols = [0xef4444, 0x3b82f6, 0x22c55e, 0xfacc15, 0xf472b6, 0xf97316];
+		put(bodyGroup, new THREE.BoxGeometry(1.22, 1.98, 1.04), paintMat, [0, 0.99, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.02, 0.92, 0.08), disp, [0, 1.38, 0.51]);
+		// 3 neat rows of glowing mini drink cans!
+		for (let r = 0; r < 3; r++) {
+			for (let c = 0; c < 4; c++) {
+				const cm = spkmodVehMat(THREE, canCols[(r * 4 + c) % canCols.length]);
+				put(bodyGroup, new THREE.CylinderGeometry(0.06, 0.06, 0.18, 8), cm, [-0.33 + c * 0.22, 1.66 - r * 0.28, 0.56]);
+			}
+		}
+		// Dark dispensing chute & glowing price display
+		put(bodyGroup, new THREE.BoxGeometry(0.92, 0.34, 0.08), darkMat, [0, 0.34, 0.51]);
+		put(bodyGroup, new THREE.BoxGeometry(0.24, 0.12, 0.06), spkmodVehMat(THREE, 0x4ade80, { emissive: 0x22c55e, emissiveIntensity: 0.85 }), [0.34, 0.74, 0.53]);
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.55) };
+	} else if (builderName === "stealthArcade") {
+		const crt = spkmodVehMat(THREE, 0x22d3ee, { emissive: 0x06b6d4, emissiveIntensity: 0.85 });
+		const marq = spkmodVehMat(THREE, 0xfde047, { emissive: 0xf59e0b, emissiveIntensity: 0.9 });
+		put(bodyGroup, new THREE.BoxGeometry(1.16, 1.92, 1.06), darkMat, [0, 0.96, 0]);
+		for (const s of [-1, 1]) put(bodyGroup, new THREE.BoxGeometry(0.08, 1.94, 1.08), paintMat, [s * 0.58, 0.97, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.06, 0.28, 0.12), marq, [0, 1.76, 0.54]);
+		const screen = put(bodyGroup, new THREE.BoxGeometry(0.94, 0.66, 0.08), crt, [0, 1.24, 0.48], [-0.20, 0, 0]);
+		animParts.push({ type: "pulseScale", node: screen, speed: 5.0, amp: 0.04 });
+		// Control deck with joystick + arcade buttons
+		put(bodyGroup, new THREE.BoxGeometry(1.14, 0.14, 0.42), paintMat, [0, 0.82, 0.62]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.025, 0.025, 0.14, 8), chromeMat, [-0.26, 0.94, 0.66]);
+		put(bodyGroup, new THREE.SphereGeometry(0.07, 10, 8), tailLightMat, [-0.26, 1.02, 0.66]);
+		for (let i = 0; i < 3; i++) {
+			put(bodyGroup, new THREE.CylinderGeometry(0.05, 0.05, 0.04, 10), i === 0 ? headLightMat : (i === 1 ? crt : tailLightMat), [0.06 + i * 0.14, 0.90, 0.66]);
+		}
+		put(bodyGroup, new THREE.BoxGeometry(0.36, 0.34, 0.06), chromeMat, [0, 0.42, 0.54]);
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.50) };
+	} else if (builderName === "stealthPillar") {
+		const mrb = spkmodVehMat(THREE, 0xf1f5f9), mrb2 = spkmodVehMat(THREE, 0xcbd5e1);
+		put(bodyGroup, new THREE.BoxGeometry(1.24, 0.20, 1.24), mrb2, [0, 0.10, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.54, 0.58, 0.16, 16), mrb, [0, 0.28, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.46, 0.48, 1.46, 12), mrb, [0, 1.08, 0]);
+		// Fluted ribs around shaft
+		for (let i = 0; i < 8; i++) {
+			const a = (i / 8) * Math.PI * 2;
+			put(bodyGroup, new THREE.CylinderGeometry(0.06, 0.06, 1.44, 6), mrb2, [Math.cos(a) * 0.46, 1.08, Math.sin(a) * 0.46]);
+		}
+		put(bodyGroup, new THREE.BoxGeometry(1.28, 0.22, 1.28), mrb, [0, 1.92, 0]);
+		for (const s of [-1, 1]) put(bodyGroup, new THREE.CylinderGeometry(0.18, 0.18, 1.20, 12), mrb2, [s * 0.52, 1.82, 0], [Math.PI / 2, 0, 0]);
+		return { seatOffsetY: 0, extra: spkmodAttachStealthRig(THREE, root, 2.55) };
+	}
+
+	// ========================================================================
+	// B. 10 NEW FUN / MEME RIDES
+	// ========================================================================
+	if (builderName === "skateboard") {
+		const grip = spkmodVehMat(THREE, 0x1e293b), whl = spkmodVehMat(THREE, 0xfef08a);
+		put(bodyGroup, new THREE.BoxGeometry(0.56, 0.07, 1.48), paintMat, [0, 0.22, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(0.52, 0.08, 1.42), grip, [0, 0.23, 0]);
+		// Kicktails front & back
+		for (const s of [-1, 1]) {
+			put(bodyGroup, new THREE.BoxGeometry(0.54, 0.07, 0.34), paintMat, [0, 0.27, s * 0.86], [s * -0.28, 0, 0]);
+			put(bodyGroup, new THREE.BoxGeometry(0.56, 0.06, 0.08), chromeMat, [0, 0.13, s * 0.56]);
+		}
+		spkmodAddWheelPair(THREE, bodyGroup, 0.30, 0.10, 0.56, 0.10, 0.09, whl, paintMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.30, 0.10, -0.56, 0.10, 0.09, whl, paintMat, wheels);
+		return { seatOffsetY: 0.32, wheelRadius: 0.10 };
+	} else if (builderName === "redWagon") {
+		put(bodyGroup, new THREE.BoxGeometry(1.16, 0.38, 1.82), paintMat, [0, 0.52, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.06, 0.32, 1.72), darkMat, [0, 0.58, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.24, 0.07, 1.90), chromeMat, [0, 0.72, 0]);
+		// Classic front pull handle
+		put(bodyGroup, new THREE.CylinderGeometry(0.035, 0.035, 1.18, 8), darkMat, [0, 0.88, 1.24], [0.65, 0, 0]);
+		put(bodyGroup, new THREE.TorusGeometry(0.14, 0.03, 8, 14), darkMat, [0, 1.36, 1.60], [0.65, 0, 0]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.62, 0.24, 0.66, 0.24, 0.14, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.62, 0.24, -0.66, 0.24, 0.14, tireMat, rimMat, wheels);
+		return { seatOffsetY: 0.72, wheelRadius: 0.24 };
+	} else if (builderName === "pizzaSlice") {
+		const cheese = spkmodVehMat(THREE, 0xfacc15), crust = spkmodVehMat(THREE, 0xd97706), pep = spkmodVehMat(THREE, 0xdc2626), basil = spkmodVehMat(THREE, 0x16a34a);
+		// Pointy pizza tip faces +Z forward; flat back edge aligns cleanly with the golden crust cylinder!
+		put(bodyGroup, new THREE.CylinderGeometry(1.36, 1.36, 0.16, 3), cheese, [0, 0.08, 0.14], [0, 0, 0], [0.95, 1, 1.12]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.18, 0.18, 2.24, 12), crust, [0, 0.14, -0.62], [0, 0, Math.PI / 2]);
+		for (const [x, z] of [[0, 0.66], [-0.34, 0.04], [0.34, 0.04], [0, -0.26], [-0.56, -0.34], [0.56, -0.34]]) {
+			put(bodyGroup, new THREE.CylinderGeometry(0.19, 0.19, 0.05, 12), pep, [x, 0.18, z]);
+		}
+		for (const [x, z] of [[-0.14, 0.34], [0.24, -0.18], [-0.36, -0.20]]) {
+			put(bodyGroup, new THREE.BoxGeometry(0.18, 0.04, 0.10), basil, [x, 0.19, z], [0, 0.6, 0]);
+		}
+		return { seatOffsetY: 0.56, hoverY: 0.38, hoverAmp: 0.12 };
+	} else if (builderName === "teacupRide") {
+		const wht = spkmodVehMat(THREE, 0xf8fafc), gld = spkmodVehMat(THREE, 0xfacc15);
+		put(bodyGroup, new THREE.CylinderGeometry(1.24, 1.02, 0.14, 24), wht, [0, 0.12, 0]);
+		put(bodyGroup, new THREE.TorusGeometry(1.16, 0.04, 8, 24), gld, [0, 0.19, 0], [Math.PI / 2, 0, 0]);
+		const cupSpin = new THREE.Group();
+		bodyGroup.add(cupSpin);
+		put(cupSpin, new THREE.CylinderGeometry(0.96, 0.64, 0.88, 22), paintMat, [0, 0.62, 0]);
+		put(cupSpin, new THREE.TorusGeometry(0.96, 0.055, 8, 24), gld, [0, 1.04, 0], [Math.PI / 2, 0, 0]);
+		put(cupSpin, new THREE.TorusGeometry(0.30, 0.08, 10, 16), paintMat, [0.98, 0.64, 0], [0, 0, -0.15]);
+		put(cupSpin, new THREE.CylinderGeometry(0.18, 0.18, 0.56, 12), gld, [0, 0.66, 0]);
+		animParts.push({ type: "spinMoveY", node: cupSpin, speed: 5.5 });
+		return { seatOffsetY: 0.78 };
+	} else if (builderName === "ramenBowl") {
+		const blk = spkmodVehMat(THREE, 0x0f172a), red = spkmodVehMat(THREE, 0xdc2626), broth = spkmodVehMat(THREE, 0xd97706);
+		const eggW = spkmodVehMat(THREE, 0xfefce8), yolk = spkmodVehMat(THREE, 0xf97316), nori = spkmodVehMat(THREE, 0x14532d), pink = spkmodVehMat(THREE, 0xf472b6);
+		const steamM = spkmodVehMat(THREE, 0xffffff, { transparent: true, opacity: 0.62 });
+		put(bodyGroup, new THREE.CylinderGeometry(1.14, 0.62, 0.86, 22), blk, [0, 0.46, 0]);
+		put(bodyGroup, new THREE.TorusGeometry(1.12, 0.07, 10, 24), red, [0, 0.88, 0], [Math.PI / 2, 0, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(1.04, 1.04, 0.06, 20), broth, [0, 0.84, 0]);
+		// Toppings: narutomaki fishcake, soft-boiled egg, nori sheets & chopsticks!
+		put(bodyGroup, new THREE.CylinderGeometry(0.22, 0.22, 0.06, 14), eggW, [0.46, 0.89, 0.42]);
+		put(bodyGroup, new THREE.TorusGeometry(0.10, 0.03, 6, 12), pink, [0.46, 0.93, 0.42], [Math.PI / 2, 0, 0]);
+		put(bodyGroup, new THREE.SphereGeometry(0.24, 12, 10), eggW, [-0.46, 0.88, 0.36], null, [1, 0.45, 1.3]);
+		put(bodyGroup, new THREE.SphereGeometry(0.13, 10, 8), yolk, [-0.46, 0.93, 0.36], null, [1, 0.6, 1]);
+		put(bodyGroup, new THREE.BoxGeometry(0.46, 0.56, 0.05), nori, [-0.62, 1.06, -0.58], [-0.22, 0.45, 0]);
+		for (const dz of [-0.08, 0.08]) put(bodyGroup, new THREE.CylinderGeometry(0.025, 0.04, 1.85, 8), spkmodVehMat(THREE, 0xb45309), [0.56, 1.04, dz], [0, 0, -1.24]);
+		for (let i = 0; i < 3; i++) {
+			const puff = put(bodyGroup, new THREE.SphereGeometry(0.16, 10, 8), steamM, [(i - 1) * 0.44, 1.48 + i * 0.14, -0.25]);
+			animParts.push({ type: "bobY", node: puff, baseY: 1.48 + i * 0.14, speed: 3.0 + i * 0.6, amp: 0.16 });
+		}
+		return { seatOffsetY: 0.96, hoverY: 0.24, hoverAmp: 0.08 };
+	} else if (builderName === "corgiRide") {
+		const tan = spkmodVehMat(THREE, 0xea8c28), wht = spkmodVehMat(THREE, 0xfefce8), pink = spkmodVehMat(THREE, 0xfb7185), col = spkmodVehMat(THREE, 0xef4444);
+		// Chonky loaf body + white chest + fluffy butt
+		put(bodyGroup, new THREE.BoxGeometry(1.18, 0.84, 1.92), tan, [0, 0.68, 0]);
+		put(bodyGroup, new THREE.SphereGeometry(0.60, 14, 12), wht, [0, 0.64, 0.84], null, [0.95, 0.80, 0.72]);
+		put(bodyGroup, new THREE.SphereGeometry(0.56, 14, 12), wht, [0, 0.68, -0.88], null, [0.98, 0.82, 0.65]);
+		// Big cute head + pointy ears + boopable nose
+		put(bodyGroup, new THREE.SphereGeometry(0.54, 16, 14), tan, [0, 1.16, 1.08], null, [1.05, 0.94, 1.0]);
+		put(bodyGroup, new THREE.SphereGeometry(0.32, 12, 10), wht, [0, 1.04, 1.48], null, [1.0, 0.75, 0.95]);
+		put(bodyGroup, new THREE.SphereGeometry(0.10, 8, 8), darkMat, [0, 1.10, 1.78]);
+		for (const s of [-1, 1]) {
+			put(bodyGroup, new THREE.ConeGeometry(0.22, 0.56, 4), tan, [s * 0.36, 1.66, 1.04], [0, 0, s * -0.26]);
+			put(bodyGroup, new THREE.ConeGeometry(0.12, 0.34, 4), pink, [s * 0.36, 1.62, 1.12], [0, 0, s * -0.26]);
+			put(bodyGroup, new THREE.SphereGeometry(0.065, 8, 8), darkMat, [s * 0.22, 1.24, 1.56]);
+			// Cute stubby corgi paws
+			for (const sz of [0.64, -0.64]) {
+				const paw = put(bodyGroup, new THREE.CylinderGeometry(0.14, 0.14, 0.36, 10), wht, [s * 0.42, 0.18, sz]);
+				animParts.push({ type: "legWalk", node: paw, side: sz > 0 ? s : -s });
+			}
+		}
+		put(bodyGroup, new THREE.TorusGeometry(0.46, 0.065, 8, 18), col, [0, 0.96, 0.88], [1.2, 0, 0]);
+		return { seatOffsetY: 1.14, extra: { hopAmp: 0.18 } };
+	} else if (builderName === "hamsterBall") {
+		const shellMat = spkmodVehMat(THREE, colorHex, { transparent: true, opacity: 0.36 });
+		const bandMat = spkmodVehMat(THREE, colorHex, { transparent: true, opacity: 0.78 });
+		const ballGrp = new THREE.Group();
+		ballGrp.position.set(0, 1.12, 0);
+		put(ballGrp, new THREE.SphereGeometry(1.12, 22, 18), shellMat);
+		put(ballGrp, new THREE.TorusGeometry(1.12, 0.065, 8, 28), bandMat, [0, 0, 0], [0, Math.PI / 2, 0]);
+		put(ballGrp, new THREE.TorusGeometry(1.12, 0.055, 8, 28), chromeMat, [0, 0, 0], [Math.PI / 2, 0, 0]);
+		for (let i = 0; i < 6; i++) {
+			const a = (i / 6) * Math.PI * 2;
+			put(ballGrp, new THREE.BoxGeometry(0.08, 0.28, 0.10), bandMat, [Math.cos(a) * 1.10, 0, Math.sin(a) * 1.10], [0, -a, 0]);
+		}
+		bodyGroup.add(ballGrp);
+		animParts.push({ type: "rollForward", node: ballGrp, radius: 1.12 });
+		return { seatOffsetY: 0.28 };
+	} else if (builderName === "gamingChair") {
+		const rgb1 = spkmodVehMat(THREE, 0x22d3ee, { emissive: 0x06b6d4, emissiveIntensity: 0.95 });
+		const rgb2 = spkmodVehMat(THREE, 0xf472b6, { emissive: 0xec4899, emissiveIntensity: 0.95 });
+		put(bodyGroup, new THREE.CylinderGeometry(0.09, 0.09, 0.50, 10), chromeMat, [0, 0.32, 0]);
+		for (let i = 0; i < 5; i++) {
+			const a = (i / 5) * Math.PI * 2;
+			put(bodyGroup, new THREE.BoxGeometry(0.12, 0.08, 0.88), darkMat, [Math.sin(a) * 0.42, 0.14, Math.cos(a) * 0.42], [0, a, 0]);
+			put(bodyGroup, new THREE.SphereGeometry(0.09, 8, 8), paintMat, [Math.sin(a) * 0.78, 0.09, Math.cos(a) * 0.78]);
+		}
+		const chairTop = new THREE.Group();
+		bodyGroup.add(chairTop);
+		put(chairTop, new THREE.BoxGeometry(1.38, 0.20, 1.28), darkMat, [0, 0.62, -0.06]);
+		put(chairTop, new THREE.BoxGeometry(1.32, 1.62, 0.22), darkMat, [0, 1.46, -0.74]);
+		// Side racing bolsters + glowing RGB edge strips + spacious armrests!
+		for (const s of [-1, 1]) {
+			put(chairTop, new THREE.BoxGeometry(0.18, 1.56, 0.28), paintMat, [s * 0.70, 1.44, -0.68]);
+			put(chairTop, new THREE.BoxGeometry(0.07, 1.54, 0.07), s < 0 ? rgb1 : rgb2, [s * 0.80, 1.44, -0.56]);
+			put(chairTop, new THREE.BoxGeometry(0.08, 0.34, 0.10), darkMat, [s * 0.74, 0.82, -0.08]);
+			put(chairTop, new THREE.BoxGeometry(0.14, 0.09, 0.86), darkMat, [s * 0.74, 0.98, -0.02]);
+		}
+		// High neck pillow cleanly above Speaki's head/veil
+		put(chairTop, new THREE.BoxGeometry(0.68, 0.24, 0.18), paintMat, [0, 2.04, -0.58]);
+		animParts.push({ type: "spinMoveY", node: chairTop, speed: 5.5 });
+		return { seatOffsetY: 0.72 };
+	} else if (builderName === "giantCapybara") {
+		const fur = spkmodVehMat(THREE, 0x92400e), furDark = spkmodVehMat(THREE, 0x78350f), yuzu = spkmodVehMat(THREE, 0xf97316), leaf = spkmodVehMat(THREE, 0x22c55e);
+		// Chill chunky capybara body
+		put(bodyGroup, new THREE.SphereGeometry(0.88, 18, 14), fur, [0, 0.72, -0.04], null, [0.95, 0.84, 1.38]);
+		// Wide blunt rectangular capybara snoot & serene squinted eyes
+		put(bodyGroup, new THREE.BoxGeometry(0.76, 0.66, 0.96), fur, [0, 1.06, 1.18]);
+		put(bodyGroup, new THREE.BoxGeometry(0.68, 0.36, 0.24), furDark, [0, 0.96, 1.62]);
+		for (const s of [-1, 1]) {
+			put(bodyGroup, new THREE.BoxGeometry(0.18, 0.045, 0.06), darkMat, [s * 0.36, 1.18, 1.28]);
+			put(bodyGroup, new THREE.SphereGeometry(0.12, 8, 8), furDark, [s * 0.36, 1.42, 0.86]);
+			for (const sz of [0.68, -0.72]) put(bodyGroup, new THREE.CylinderGeometry(0.16, 0.14, 0.42, 10), furDark, [s * 0.46, 0.20, sz]);
+		}
+		// Iconic yuzu tangerine balanced right on top of its chill head!
+		put(bodyGroup, new THREE.SphereGeometry(0.22, 14, 12), yuzu, [0, 1.56, 1.24], null, [1.05, 0.92, 1.05]);
+		put(bodyGroup, new THREE.BoxGeometry(0.18, 0.04, 0.10), leaf, [0.10, 1.78, 1.24], [0, 0, 0.32]);
+		return { seatOffsetY: 1.42, extra: { waddleAmp: 0.075 } };
+	} else if (builderName === "royalThrone") {
+		const gold = spkmodVehMat(THREE, 0xfacc15, { emissive: 0xd97706, emissiveIntensity: 0.28 });
+		const gem = spkmodVehMat(THREE, 0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.9 });
+		put(bodyGroup, new THREE.BoxGeometry(1.66, 0.26, 1.66), gold, [0, 0.28, -0.06]);
+		put(bodyGroup, new THREE.BoxGeometry(1.38, 0.24, 1.34), paintMat, [0, 0.50, -0.02]);
+		put(bodyGroup, new THREE.BoxGeometry(1.56, 1.78, 0.24), gold, [0, 1.40, -0.76]);
+		put(bodyGroup, new THREE.BoxGeometry(1.26, 1.48, 0.26), paintMat, [0, 1.38, -0.72]);
+		// Ornate armrests + twin palanquin carrying rails + glowing levitation gems
+		for (const s of [-1, 1]) {
+			put(bodyGroup, new THREE.BoxGeometry(0.22, 0.58, 1.34), gold, [s * 0.78, 0.72, -0.06]);
+			put(bodyGroup, new THREE.CylinderGeometry(0.06, 0.06, 3.25, 10), gold, [s * 0.96, 0.30, 0], [Math.PI / 2, 0, 0]);
+			const orb = put(bodyGroup, new THREE.OctahedronGeometry(0.16, 0), gem, [s * 0.96, 0.30, 1.68]);
+			animParts.push({ type: "spinY", node: orb, speed: 3.5 });
+		}
+		// Crown crest atop the backrest!
+		for (const [cx, cy] of [[-0.40, 2.42], [0, 2.54], [0.40, 2.42]]) {
+			put(bodyGroup, new THREE.ConeGeometry(0.16, 0.38, 6), gold, [cx, cy, -0.74]);
+		}
+		put(bodyGroup, new THREE.OctahedronGeometry(0.14, 0), gem, [0, 2.38, -0.62]);
+		return { seatOffsetY: 0.74, hoverY: 0.34, hoverAmp: 0.12 };
+	}
+
+	// ========================================================================
+	// C. 19 NEW STREET VEHICLES
+	// ========================================================================
+	if (builderName === "tricycle") {
+		addCenterWheel(0.46, 0.16, 0.78, tireMat, rimMat);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.58, 0.26, -0.64, 0.26, 0.14, tireMat, rimMat, wheels);
+		put(bodyGroup, new THREE.CylinderGeometry(0.05, 0.05, 1.32, 10), paintMat, [0, 0.58, 0.04], [1.18, 0, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.05, 0.05, 1.14, 10), paintMat, [0, 0.26, -0.64], [0, 0, Math.PI / 2]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.045, 0.045, 0.86, 10), chromeMat, [0, 0.88, 0.72], [-0.18, 0, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.04, 0.04, 1.02, 10), chromeMat, [0, 1.28, 0.64], [0, 0, Math.PI / 2]);
+		put(bodyGroup, new THREE.SphereGeometry(0.10, 10, 8), headLightMat, [0.22, 1.34, 0.66]);
+		put(bodyGroup, new THREE.BoxGeometry(0.56, 0.12, 0.52), spkmodVehMat(THREE, 0xfef08a), [0, 0.78, -0.34]);
+		return { seatOffsetY: 0.88, wheelRadius: 0.36 };
+	} else if (builderName === "bumperCar") {
+		const sparkM = spkmodVehMat(THREE, 0x38bdf8, { emissive: 0x06b6d4, emissiveIntensity: 0.95 });
+		put(bodyGroup, new THREE.TorusGeometry(0.88, 0.26, 12, 24), tireMat, [0, 0.28, 0], [Math.PI / 2, 0, 0], [0.92, 1.24, 1]);
+		put(bodyGroup, new THREE.SphereGeometry(0.86, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), paintMat, [0, 0.34, 0], null, [0.92, 0.82, 1.22]);
+		put(bodyGroup, new THREE.BoxGeometry(0.92, 0.12, 0.20), chromeMat, [0, 0.52, 1.04]);
+		put(bodyGroup, new THREE.TorusGeometry(0.22, 0.04, 8, 14), darkMat, [0, 0.98, 0.44], [0.55, 0, 0]);
+		// Iconic tall rear bumper-car power pole with glowing electric orb!
+		put(bodyGroup, new THREE.CylinderGeometry(0.03, 0.035, 2.25, 8), chromeMat, [0, 1.48, -0.96], [-0.10, 0, 0]);
+		const sparkOrb = put(bodyGroup, new THREE.SphereGeometry(0.15, 10, 8), sparkM, [0, 2.62, -1.08]);
+		animParts.push({ type: "pulseScale", node: sparkOrb, speed: 12.0, amp: 0.25 });
+		return { seatOffsetY: 0.74, extra: { waddleAmp: 0.05 } };
+	} else if (builderName === "goKart") {
+		put(bodyGroup, new THREE.BoxGeometry(1.06, 0.22, 2.12), darkMat, [0, 0.26, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(0.76, 0.34, 0.76), paintMat, [0, 0.44, 0.78]);
+		for (const s of [-1, 1]) put(bodyGroup, new THREE.BoxGeometry(0.28, 0.30, 1.18), paintMat, [s * 0.64, 0.36, 0.04]);
+		put(bodyGroup, new THREE.BoxGeometry(0.68, 0.48, 0.56), chromeMat, [0, 0.56, -0.78]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.07, 0.08, 0.52, 10), darkMat, [0.42, 0.58, -1.04], [Math.PI / 2, 0, 0]);
+		put(bodyGroup, new THREE.TorusGeometry(0.22, 0.04, 8, 14), darkMat, [0, 0.84, 0.38], [0.5, 0, 0]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.72, 0.22, 0.78, 0.22, 0.20, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.78, 0.26, -0.76, 0.26, 0.26, tireMat, rimMat, wheels);
+		return { seatOffsetY: 0.64, wheelRadius: 0.24 };
+	} else if (builderName === "tukTuk") {
+		const canopy = spkmodVehMat(THREE, 0xfefce8);
+		put(bodyGroup, new THREE.BoxGeometry(1.26, 0.56, 2.02), paintMat, [0, 0.58, -0.06]);
+		put(bodyGroup, new THREE.BoxGeometry(0.92, 0.86, 0.26), paintMat, [0, 0.84, 0.88], [-0.14, 0, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(0.84, 0.44, 0.08), glassMat, [0, 1.38, 0.82]);
+		put(bodyGroup, new THREE.SphereGeometry(0.14, 10, 8), headLightMat, [0, 0.84, 1.04]);
+		for (const [x, z] of [[-0.56, 0.72], [0.56, 0.72], [-0.56, -0.96], [0.56, -0.96]]) {
+			put(bodyGroup, new THREE.CylinderGeometry(0.035, 0.035, 1.04, 8), chromeMat, [x, 1.34, z]);
+		}
+		put(bodyGroup, new THREE.BoxGeometry(1.34, 0.14, 1.92), canopy, [0, 1.88, -0.10]);
+		put(bodyGroup, new THREE.BoxGeometry(1.38, 0.10, 1.96), paintMat, [0, 1.82, -0.10]);
+		addCenterWheel(0.28, 0.18, 0.94);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.68, 0.28, -0.76, 0.28, 0.20, tireMat, rimMat, wheels);
+		return { seatOffsetY: 0.96, wheelRadius: 0.28 };
+	} else if (builderName === "yellowTaxi") {
+		const cabY = spkmodVehMat(THREE, 0xeab308), wht = spkmodVehMat(THREE, 0xffffff);
+		put(bodyGroup, new THREE.BoxGeometry(1.52, 0.50, 2.66), cabY, [0, 0.52, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.30, 0.48, 1.24), cabY, [0, 0.96, -0.08]);
+		put(bodyGroup, new THREE.BoxGeometry(1.24, 0.38, 1.28), glassMat, [0, 0.96, -0.08]);
+		// Classic checkered strip down both sides!
+		for (let i = -5; i <= 5; i++) {
+			const cm = (i % 2 === 0) ? darkMat : wht;
+			for (const s of [-1, 1]) put(bodyGroup, new THREE.BoxGeometry(0.04, 0.12, 0.20), cm, [s * 0.77, 0.54, i * 0.22]);
+		}
+		put(bodyGroup, new THREE.BoxGeometry(0.56, 0.18, 0.24), headLightMat, [0, 1.28, 0.06]);
+		for (const sx of [-0.52, 0.52]) {
+			put(bodyGroup, new THREE.BoxGeometry(0.28, 0.14, 0.08), headLightMat, [sx, 0.56, 1.34]);
+			put(bodyGroup, new THREE.BoxGeometry(0.28, 0.14, 0.08), tailLightMat, [sx, 0.56, -1.34]);
+		}
+		spkmodAddWheelPair(THREE, bodyGroup, 0.78, 0.32, 0.80, 0.32, 0.22, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.78, 0.32, -0.80, 0.32, 0.22, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.26, wheelRadius: 0.32 };
+	} else if (builderName === "beachBuggy") {
+		// Low open cockpit tub + front sloped hood + rear deck so Speaki sits nestled right INSIDE the buggy!
+		put(bodyGroup, new THREE.BoxGeometry(1.42, 0.22, 2.34), paintMat, [0, 0.42, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.36, 0.30, 0.78), paintMat, [0, 0.64, 0.80], [0.14, 0, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.36, 0.32, 0.62), paintMat, [0, 0.66, -0.86]);
+		for (const s of [-1, 1]) put(bodyGroup, new THREE.BoxGeometry(0.16, 0.28, 1.18), paintMat, [s * 0.64, 0.64, -0.02]);
+		// Spacious tall tubular roll cage framing Speaki cleanly without blocking her face!
+		for (const s of [-1, 1]) {
+			put(bodyGroup, new THREE.CylinderGeometry(0.045, 0.045, 1.24, 8), darkMat, [s * 0.64, 1.26, 0.56], [-0.28, 0, 0]);
+			put(bodyGroup, new THREE.CylinderGeometry(0.045, 0.045, 1.18, 8), darkMat, [s * 0.64, 1.26, -0.72], [0.20, 0, 0]);
+			put(bodyGroup, new THREE.CylinderGeometry(0.045, 0.045, 1.28, 8), darkMat, [s * 0.64, 1.80, -0.06], [Math.PI / 2, 0, 0]);
+		}
+		put(bodyGroup, new THREE.BoxGeometry(1.32, 0.08, 0.10), darkMat, [0, 1.80, 0.56]);
+		for (const sx of [-0.36, 0, 0.36]) put(bodyGroup, new THREE.SphereGeometry(0.11, 8, 8), headLightMat, [sx, 1.90, 0.60]);
+		// Rear spare off-road tire
+		put(bodyGroup, new THREE.CylinderGeometry(0.36, 0.36, 0.22, 14), tireMat, [0, 0.94, -1.26], [Math.PI / 2, 0, 0]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.86, 0.42, 0.88, 0.42, 0.30, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.88, 0.46, -0.84, 0.46, 0.34, tireMat, rimMat, wheels);
+		return { seatOffsetY: 0.44, wheelRadius: 0.44 };
+	} else if (builderName === "vintageBeetle") {
+		const wht = spkmodVehMat(THREE, 0xf8fafc);
+		put(bodyGroup, new THREE.SphereGeometry(0.88, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.56), paintMat, [0, 0.36, 0], null, [0.92, 0.84, 1.48]);
+		put(bodyGroup, new THREE.BoxGeometry(1.48, 0.38, 2.34), paintMat, [0, 0.48, 0]);
+		// Rounded bug windshield & folded convertible soft-top
+		put(bodyGroup, new THREE.BoxGeometry(1.16, 0.42, 0.10), glassMat, [0, 0.98, 0.48], [-0.35, 0, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.24, 0.24, 1.18, 12), wht, [0, 0.88, -0.82], [0, 0, Math.PI / 2]);
+		for (const sx of [-0.54, 0.54]) {
+			put(bodyGroup, new THREE.SphereGeometry(0.17, 10, 8), headLightMat, [sx, 0.62, 1.18]);
+			put(bodyGroup, new THREE.SphereGeometry(0.14, 10, 8), tailLightMat, [sx, 0.56, -1.16]);
+		}
+		put(bodyGroup, new THREE.BoxGeometry(1.46, 0.10, 0.14), chromeMat, [0, 0.36, 1.28]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.78, 0.32, 0.76, 0.32, 0.22, tireMat, wht, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.78, 0.32, -0.76, 0.32, 0.22, tireMat, wht, wheels);
+		return { seatOffsetY: 1.02, wheelRadius: 0.32 };
+	} else if (builderName === "tacoTruck") {
+		const wht = spkmodVehMat(THREE, 0xfefce8), shell = spkmodVehMat(THREE, 0xfacc15), meat = spkmodVehMat(THREE, 0x7c2d12), letM = spkmodVehMat(THREE, 0x22c55e), tom = spkmodVehMat(THREE, 0xef4444);
+		put(bodyGroup, new THREE.BoxGeometry(1.56, 1.24, 2.74), wht, [0, 0.94, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.60, 0.40, 2.76), paintMat, [0, 0.58, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.44, 0.44, 0.78), glassMat, [0, 1.24, 0.98]);
+		// Festive serving awning on right side
+		put(bodyGroup, new THREE.BoxGeometry(0.56, 0.08, 1.48), tom, [0.98, 1.42, -0.22], [0, 0, -0.35]);
+		// Giant spinning rooftop hard-shell taco (upright U-shape)!
+		const roofTaco = new THREE.Group();
+		roofTaco.position.set(0, 1.62, -0.18);
+		put(roofTaco, new THREE.CylinderGeometry(0.46, 0.46, 0.32, 16, 1, false, 0, Math.PI), shell, [0, 0.48, 0], [0, 0, -Math.PI / 2]);
+		put(roofTaco, new THREE.BoxGeometry(0.24, 0.20, 0.82), meat, [0, 0.42, 0]);
+		put(roofTaco, new THREE.BoxGeometry(0.28, 0.14, 0.78), letM, [0, 0.54, 0]);
+		for (const tz of [-0.24, 0, 0.24]) put(roofTaco, new THREE.SphereGeometry(0.085, 8, 8), tom, [0, 0.62, tz]);
+		bodyGroup.add(roofTaco);
+		animParts.push({ type: "spinY", node: roofTaco, speed: 2.0 });
+		spkmodAddWheelPair(THREE, bodyGroup, 0.80, 0.34, 0.86, 0.34, 0.22, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.80, 0.34, -0.86, 0.34, 0.22, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.64, wheelRadius: 0.34 };
+	} else if (builderName === "towTruck") {
+		const amber = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+		put(bodyGroup, new THREE.BoxGeometry(1.54, 0.54, 2.74), darkMat, [0, 0.56, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.48, 0.86, 1.18), paintMat, [0, 1.18, 0.72]);
+		put(bodyGroup, new THREE.BoxGeometry(1.40, 0.40, 1.22), glassMat, [0, 1.28, 0.74]);
+		// Angled crane boom + hanging steel tow hook!
+		put(bodyGroup, new THREE.BoxGeometry(0.24, 0.24, 1.66), paintMat, [0, 1.32, -0.68], [0.58, 0, 0]);
+		put(bodyGroup, new THREE.CylinderGeometry(0.03, 0.03, 0.76, 8), chromeMat, [0, 1.36, -1.42]);
+		put(bodyGroup, new THREE.TorusGeometry(0.14, 0.04, 8, 12, Math.PI * 1.4), chromeMat, [0, 0.92, -1.42]);
+		const beacon = put(bodyGroup, new THREE.CylinderGeometry(0.12, 0.14, 0.18, 10), amber, [0, 1.70, 0.72]);
+		animParts.push({ type: "pulseScale", node: beacon, speed: 9.0, amp: 0.24 });
+		spkmodAddWheelPair(THREE, bodyGroup, 0.80, 0.36, 0.88, 0.36, 0.24, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.80, 0.36, -0.84, 0.36, 0.26, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.64, wheelRadius: 0.36 };
+	} else if (builderName === "camperVan") {
+		const cream = spkmodVehMat(THREE, 0xfefce8), board = spkmodVehMat(THREE, 0xfacc15), stripe = spkmodVehMat(THREE, 0x0ea5e9);
+		put(bodyGroup, new THREE.BoxGeometry(1.56, 0.62, 2.74), paintMat, [0, 0.64, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.52, 0.66, 2.68), cream, [0, 1.26, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.56, 0.42, 2.28), glassMat, [0, 1.28, 0.08]);
+		for (const sx of [-0.46, 0.46]) put(bodyGroup, new THREE.SphereGeometry(0.16, 10, 8), headLightMat, [sx, 0.70, 1.38]);
+		// Roof rack + bright surfboard strapped on top!
+		put(bodyGroup, new THREE.BoxGeometry(1.24, 0.06, 1.66), chromeMat, [0, 1.64, -0.14]);
+		put(bodyGroup, new THREE.SphereGeometry(0.32, 14, 10), board, [0, 1.74, -0.06], null, [1.25, 0.24, 3.35]);
+		put(bodyGroup, new THREE.BoxGeometry(0.14, 0.16, 1.98), stripe, [0, 1.75, -0.06]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.80, 0.34, 0.86, 0.34, 0.22, tireMat, cream, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.80, 0.34, -0.86, 0.34, 0.22, tireMat, cream, wheels);
+		return { seatOffsetY: 1.64, wheelRadius: 0.34 };
+	} else if (builderName === "muscleCar") {
+		put(bodyGroup, new THREE.BoxGeometry(1.62, 0.48, 2.86), paintMat, [0, 0.52, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.30, 0.42, 1.12), glassMat, [0, 0.90, -0.22]);
+		put(bodyGroup, new THREE.BoxGeometry(1.34, 0.10, 1.04), paintMat, [0, 1.12, -0.24]);
+		// Twin racing stripes
+		for (const sx of [-0.22, 0.22]) put(bodyGroup, new THREE.BoxGeometry(0.14, 0.50, 2.88), darkMat, [sx, 0.52, 0]);
+		// Huge chrome supercharger blower sticking out of the hood!
+		put(bodyGroup, new THREE.BoxGeometry(0.54, 0.36, 0.62), chromeMat, [0, 0.88, 0.72]);
+		put(bodyGroup, new THREE.BoxGeometry(0.56, 0.18, 0.12), tailLightMat, [0, 0.96, 1.04]);
+		const pulley = put(bodyGroup, new THREE.CylinderGeometry(0.14, 0.14, 0.08, 12), darkMat, [0, 0.82, 1.06], [Math.PI / 2, 0, 0]);
+		animParts.push({ type: "spinZ", node: pulley, speed: 12.0 });
+		for (const sx of [-0.56, 0.56]) {
+			put(bodyGroup, new THREE.BoxGeometry(0.32, 0.14, 0.08), headLightMat, [sx, 0.54, 1.44]);
+			put(bodyGroup, new THREE.BoxGeometry(0.34, 0.14, 0.08), tailLightMat, [sx, 0.54, -1.44]);
+		}
+		spkmodAddWheelPair(THREE, bodyGroup, 0.84, 0.32, 0.88, 0.32, 0.24, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.88, 0.38, -0.88, 0.38, 0.32, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.18, wheelRadius: 0.35 };
+	} else if (builderName === "doubleBus") {
+		put(bodyGroup, new THREE.BoxGeometry(1.62, 1.98, 3.16), paintMat, [0, 1.32, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.66, 0.12, 3.18), spkmodVehMat(THREE, 0xfef08a), [0, 1.30, 0]);
+		// Two stacked decks of panoramic windows!
+		put(bodyGroup, new THREE.BoxGeometry(1.66, 0.42, 2.74), glassMat, [0, 0.98, 0.04]);
+		put(bodyGroup, new THREE.BoxGeometry(1.66, 0.46, 2.86), glassMat, [0, 1.88, 0.04]);
+		put(bodyGroup, new THREE.BoxGeometry(1.12, 0.18, 0.08), headLightMat, [0, 2.22, 1.58]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.82, 0.36, 1.02, 0.36, 0.24, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.82, 0.36, -1.02, 0.36, 0.24, tireMat, rimMat, wheels);
+		return { seatOffsetY: 2.38, wheelRadius: 0.36 };
+	} else if (builderName === "driftJdm") {
+		const neon = spkmodVehMat(THREE, colorHex, { emissive: colorHex, emissiveIntensity: 0.95 });
+		put(bodyGroup, new THREE.BoxGeometry(1.64, 0.38, 2.72), paintMat, [0, 0.42, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.24, 0.38, 1.18), glassMat, [0, 0.76, -0.14]);
+		put(bodyGroup, new THREE.BoxGeometry(1.56, 0.08, 0.28), darkMat, [0, 0.24, 1.34]); // front splitter
+		// Massive carbon GT drift wing!
+		put(bodyGroup, new THREE.BoxGeometry(1.74, 0.07, 0.34), darkMat, [0, 1.06, -1.24]);
+		for (const sx of [-0.52, 0.52]) put(bodyGroup, new THREE.BoxGeometry(0.08, 0.46, 0.16), darkMat, [sx, 0.82, -1.22]);
+		// Pulsing neon street underglow!
+		const underglow = put(bodyGroup, new THREE.BoxGeometry(1.66, 0.05, 2.54), neon, [0, 0.16, 0]);
+		animParts.push({ type: "pulseScale", node: underglow, speed: 5.5, amp: 0.05 });
+		for (const sx of [-0.54, 0.54]) {
+			put(bodyGroup, new THREE.BoxGeometry(0.36, 0.10, 0.08), headLightMat, [sx, 0.48, 1.38]);
+			put(bodyGroup, new THREE.BoxGeometry(0.38, 0.10, 0.08), tailLightMat, [sx, 0.48, -1.38]);
+		}
+		spkmodAddWheelPair(THREE, bodyGroup, 0.86, 0.28, 0.86, 0.28, 0.24, tireMat, neon, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.86, 0.28, -0.86, 0.28, 0.26, tireMat, neon, wheels);
+		return { seatOffsetY: 1.00, wheelRadius: 0.28 };
+	} else if (builderName === "steamroller") {
+		const catY = spkmodVehMat(THREE, 0xeab308), steel = spkmodVehMat(THREE, 0x94a3b8);
+		put(bodyGroup, new THREE.BoxGeometry(1.24, 0.68, 1.62), catY, [0, 0.86, -0.44]);
+		put(bodyGroup, new THREE.BoxGeometry(1.18, 0.10, 1.18), darkMat, [0, 1.92, -0.44]);
+		for (const [x, z] of [[-0.52, 0.08], [0.52, 0.08], [-0.52, -0.96], [0.52, -0.96]]) {
+			put(bodyGroup, new THREE.CylinderGeometry(0.05, 0.05, 0.82, 8), darkMat, [x, 1.50, z]);
+		}
+		put(bodyGroup, new THREE.CylinderGeometry(0.08, 0.10, 0.86, 10), darkMat, [0.46, 1.48, 0.16]);
+		// Giant rolling front steel road drum!
+		const drum = new THREE.Group();
+		drum.position.set(0, 0.56, 0.92);
+		put(drum, new THREE.CylinderGeometry(0.56, 0.56, 1.68, 22), steel, null, [0, 0, Math.PI / 2]);
+		put(drum, new THREE.BoxGeometry(1.70, 0.14, 0.14), darkMat);
+		bodyGroup.add(drum);
+		animParts.push({ type: "rollForward", node: drum, radius: 0.56 });
+		for (const sx of [-0.88, 0.88]) put(bodyGroup, new THREE.BoxGeometry(0.14, 0.34, 1.18), catY, [sx, 0.66, 0.44]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.76, 0.46, -0.78, 0.46, 0.32, tireMat, catY, wheels);
+		return { seatOffsetY: 1.98, wheelRadius: 0.46, extra: { chugAmp: 0.05 } };
+	} else if (builderName === "cementMixer") {
+		const wht = spkmodVehMat(THREE, 0xf8fafc), amber = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+		put(bodyGroup, new THREE.BoxGeometry(1.52, 0.42, 2.86), darkMat, [0, 0.50, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.48, 0.92, 1.06), paintMat, [0, 1.12, 0.92]);
+		put(bodyGroup, new THREE.BoxGeometry(1.40, 0.40, 1.10), glassMat, [0, 1.24, 0.94]);
+		const beacon = put(bodyGroup, new THREE.CylinderGeometry(0.11, 0.13, 0.16, 10), amber, [0, 1.66, 0.92]);
+		animParts.push({ type: "pulseScale", node: beacon, speed: 8.5, amp: 0.22 });
+		// Tilted spinning striped concrete mixer barrel!
+		const mixerTilt = new THREE.Group();
+		mixerTilt.position.set(0, 1.28, -0.44);
+		mixerTilt.rotation.x = 0.32;
+		const mixerSpin = new THREE.Group();
+		mixerTilt.add(mixerSpin);
+		put(mixerSpin, new THREE.CylinderGeometry(0.54, 0.68, 1.56, 18), wht, [0, 0, 0], [Math.PI / 2, 0, 0]);
+		put(mixerSpin, new THREE.TorusGeometry(0.64, 0.08, 8, 18), paintMat, [0, 0, -0.24]);
+		put(mixerSpin, new THREE.TorusGeometry(0.60, 0.08, 8, 18), paintMat, [0, 0, 0.26]);
+		put(mixerSpin, new THREE.BoxGeometry(1.30, 0.14, 0.14), paintMat, [0, 0, 0]);
+		bodyGroup.add(mixerTilt);
+		animParts.push({ type: "spinZ", node: mixerSpin, speed: 3.5 });
+		spkmodAddWheelPair(THREE, bodyGroup, 0.80, 0.34, 0.98, 0.34, 0.24, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.80, 0.34, -0.82, 0.34, 0.26, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.64, wheelRadius: 0.34 };
+	} else if (builderName === "stretchLimo") {
+		put(bodyGroup, new THREE.BoxGeometry(1.52, 0.48, 4.18), paintMat, [0, 0.50, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.36, 0.48, 2.54), paintMat, [0, 0.94, -0.14]);
+		put(bodyGroup, new THREE.BoxGeometry(1.40, 0.36, 2.42), darkMat, [0, 0.95, -0.14]);
+		// Hood ornament & retro VIP rear boomerang TV antenna
+		put(bodyGroup, new THREE.OctahedronGeometry(0.10, 0), spkmodVehMat(THREE, 0xfacc15), [0, 0.82, 1.96]);
+		for (const s of [-1, 1]) put(bodyGroup, new THREE.BoxGeometry(0.06, 0.06, 0.54), chromeMat, [s * 0.24, 1.24, -1.68], [0, s * 0.55, 0]);
+		for (const sx of [-0.52, 0.52]) {
+			put(bodyGroup, new THREE.BoxGeometry(0.28, 0.14, 0.08), headLightMat, [sx, 0.54, 2.10]);
+			put(bodyGroup, new THREE.BoxGeometry(0.28, 0.14, 0.08), tailLightMat, [sx, 0.54, -2.10]);
+		}
+		spkmodAddWheelPair(THREE, bodyGroup, 0.78, 0.32, 1.42, 0.32, 0.22, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.78, 0.32, -1.42, 0.32, 0.22, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.24, wheelRadius: 0.32 };
+	} else if (builderName === "swatVan") {
+		const navy = spkmodVehMat(THREE, 0x1e293b), armor = spkmodVehMat(THREE, 0x334155);
+		put(bodyGroup, new THREE.BoxGeometry(1.66, 1.24, 3.04), navy, [0, 0.98, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.72, 0.42, 2.98), armor, [0, 0.62, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.48, 0.28, 0.12), glassMat, [0, 1.28, 1.52]);
+		// Front heavy steel ramming bullbar
+		put(bodyGroup, new THREE.BoxGeometry(1.52, 0.44, 0.22), darkMat, [0, 0.60, 1.62]);
+		// Flashing tactical strobes
+		const sr = put(bodyGroup, new THREE.BoxGeometry(0.36, 0.16, 0.20), new THREE.MeshBasicMaterial({ color: 0xff2233 }), [-0.32, 1.68, 1.18]);
+		const sb = put(bodyGroup, new THREE.BoxGeometry(0.36, 0.16, 0.20), new THREE.MeshBasicMaterial({ color: 0x2277ff }), [0.32, 1.68, 1.18]);
+		animParts.push({ type: "siren", red: sr, blue: sb });
+		spkmodAddWheelPair(THREE, bodyGroup, 0.86, 0.40, 1.02, 0.40, 0.28, tireMat, armor, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.86, 0.40, -1.02, 0.40, 0.28, tireMat, armor, wheels);
+		return { seatOffsetY: 1.72, wheelRadius: 0.40 };
+	} else if (builderName === "cyberPickup") {
+		const ledW = spkmodVehMat(THREE, 0xffffff, { emissive: 0xe0f2fe, emissiveIntensity: 0.95 });
+		// Unmistakable sharp low-poly wedge truck silhouette!
+		put(bodyGroup, new THREE.BoxGeometry(1.66, 0.56, 3.06), paintMat, [0, 0.64, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.58, 0.18, 1.64), paintMat, [0, 1.18, 0.58], [-0.36, 0, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.58, 0.18, 1.88), paintMat, [0, 1.16, -0.68], [0.28, 0, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.52, 0.42, 1.48), darkMat, [0, 1.06, 0.04]);
+		// Full-width LED lightbars front & back!
+		put(bodyGroup, new THREE.BoxGeometry(1.62, 0.10, 0.08), ledW, [0, 0.82, 1.54]);
+		put(bodyGroup, new THREE.BoxGeometry(1.62, 0.10, 0.08), tailLightMat, [0, 0.86, -1.54]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.88, 0.38, 1.02, 0.38, 0.28, tireMat, darkMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.88, 0.38, -1.02, 0.38, 0.28, tireMat, darkMat, wheels);
+		return { seatOffsetY: 1.42, wheelRadius: 0.38 };
+	} else if (builderName === "formulaOne") {
+		put(bodyGroup, new THREE.BoxGeometry(0.68, 0.34, 2.86), paintMat, [0, 0.38, 0]);
+		put(bodyGroup, new THREE.ConeGeometry(0.36, 1.08, 4), paintMat, [0, 0.36, 1.84], [Math.PI / 2, Math.PI / 4, 0]);
+		for (const s of [-1, 1]) put(bodyGroup, new THREE.BoxGeometry(0.42, 0.32, 1.38), paintMat, [s * 0.52, 0.36, -0.18]);
+		// Wide multi-tier front wing + tall rear DRS wing + cockpit halo!
+		put(bodyGroup, new THREE.BoxGeometry(1.88, 0.07, 0.38), darkMat, [0, 0.20, 1.76]);
+		put(bodyGroup, new THREE.BoxGeometry(1.42, 0.08, 0.34), paintMat, [0, 0.96, -1.36]);
+		for (const s of [-1, 1]) put(bodyGroup, new THREE.BoxGeometry(0.08, 0.54, 0.30), darkMat, [s * 0.68, 0.72, -1.36]);
+		put(bodyGroup, new THREE.TorusGeometry(0.36, 0.045, 8, 16, Math.PI), darkMat, [0, 0.66, 0.14], [Math.PI / 2, 0, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(0.28, 0.38, 0.64), paintMat, [0, 0.76, -0.58]);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.90, 0.30, 1.12, 0.30, 0.28, tireMat, rimMat, wheels);
+		spkmodAddWheelPair(THREE, bodyGroup, 0.94, 0.34, -0.96, 0.34, 0.34, tireMat, rimMat, wheels);
+		return { seatOffsetY: 0.76, wheelRadius: 0.32 };
+	}
+
+	// ========================================================================
+	// D. 5 NEW AIR & SCI-FI SHOWSTOPPERS
+	// ========================================================================
+	if (builderName === "biplane") {
+		const wood = spkmodVehMat(THREE, 0x92400e);
+		put(bodyGroup, new THREE.CylinderGeometry(0.42, 0.20, 2.55, 14), paintMat, [0, 0.64, -0.08], [Math.PI / 2, 0, 0]);
+		// Twin stacked wings + wooden struts
+		put(bodyGroup, new THREE.BoxGeometry(3.15, 0.10, 0.76), paintMat, [0, 0.56, 0.34]);
+		put(bodyGroup, new THREE.BoxGeometry(3.15, 0.10, 0.76), paintMat, [0, 1.38, 0.42]);
+		for (const sx of [-1.18, 1.18]) put(bodyGroup, new THREE.CylinderGeometry(0.035, 0.035, 0.84, 8), wood, [sx, 0.97, 0.38]);
+		// Tail fin & horizontal stabilizer
+		put(bodyGroup, new THREE.BoxGeometry(1.12, 0.08, 0.42), paintMat, [0, 0.70, -1.24]);
+		put(bodyGroup, new THREE.BoxGeometry(0.08, 0.64, 0.48), paintMat, [0, 0.96, -1.24]);
+		// Fast-spinning front propeller!
+		const prop = new THREE.Group();
+		prop.position.set(0, 0.64, 1.24);
+		put(prop, new THREE.BoxGeometry(1.24, 0.12, 0.04), wood);
+		put(prop, new THREE.SphereGeometry(0.14, 10, 8), chromeMat);
+		bodyGroup.add(prop);
+		animParts.push({ type: "spinZ", node: prop, speed: 24.0 });
+		spkmodAddWheelPair(THREE, bodyGroup, 0.46, 0.18, 0.64, 0.18, 0.10, tireMat, rimMat, wheels);
+		return { seatOffsetY: 1.04, hoverY: 0.46, hoverAmp: 0.12 };
+	} else if (builderName === "rocketSled") {
+		const flameM = new THREE.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.9 });
+		const coreM = new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.92 });
+		put(bodyGroup, new THREE.CylinderGeometry(0.36, 0.48, 2.25, 16), paintMat, [0, 0.44, 0], [Math.PI / 2, 0, 0]);
+		put(bodyGroup, new THREE.ConeGeometry(0.36, 0.78, 16), chromeMat, [0, 0.44, 1.50], [Math.PI / 2, 0, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(0.62, 0.30, 0.76), glassMat, [0, 0.76, 0.24], [-0.22, 0, 0]);
+		for (const s of [-1, 1]) {
+			put(bodyGroup, new THREE.CylinderGeometry(0.24, 0.28, 1.66, 14), chromeMat, [s * 0.68, 0.42, -0.34], [Math.PI / 2, 0, 0]);
+			put(bodyGroup, new THREE.ConeGeometry(0.24, 0.46, 14), paintMat, [s * 0.68, 0.42, 0.70], [Math.PI / 2, 0, 0]);
+			const fl = put(bodyGroup, new THREE.ConeGeometry(0.22, 0.96, 10), flameM, [s * 0.68, 0.42, -1.62], [-Math.PI / 2, 0, 0]);
+			const fl2 = put(bodyGroup, new THREE.ConeGeometry(0.12, 0.56, 8), coreM, [s * 0.68, 0.42, -1.46], [-Math.PI / 2, 0, 0]);
+			animParts.push({ type: "flamePulse", node: fl });
+			animParts.push({ type: "flamePulse", node: fl2 });
+		}
+		return { seatOffsetY: 0.86, hoverY: 0.34, hoverAmp: 0.09 };
+	} else if (builderName === "zeppelin") {
+		const wood = spkmodVehMat(THREE, 0x78350f), brass = spkmodVehMat(THREE, 0xd97706);
+		// Hanging passenger gondola + suspension rigging
+		put(bodyGroup, new THREE.BoxGeometry(1.06, 0.58, 1.68), wood, [0, 0.42, 0]);
+		put(bodyGroup, new THREE.BoxGeometry(1.12, 0.12, 1.72), brass, [0, 0.70, 0]);
+		for (const [x, z] of [[-0.46, 0.62], [0.46, 0.62], [-0.46, -0.62], [0.46, -0.62]]) {
+			put(bodyGroup, new THREE.CylinderGeometry(0.025, 0.025, 1.65, 6), brass, [x, 1.50, z]);
+		}
+		// Grand overhead steampunk blimp envelope + brass rings + tail fins
+		put(bodyGroup, new THREE.SphereGeometry(1.12, 20, 16), paintMat, [0, 3.06, 0], null, [0.95, 0.95, 2.05]);
+		for (const sz of [-0.92, 0, 0.92]) put(bodyGroup, new THREE.TorusGeometry(sz === 0 ? 1.08 : 0.96, 0.06, 8, 22), brass, [0, 3.06, sz]);
+		put(bodyGroup, new THREE.BoxGeometry(2.15, 0.08, 0.68), brass, [0, 3.06, -1.86]);
+		put(bodyGroup, new THREE.BoxGeometry(0.08, 1.64, 0.68), brass, [0, 3.06, -1.86]);
+		// Twin spinning brass side propellers!
+		for (const s of [-1, 1]) {
+			const prop = new THREE.Group();
+			prop.position.set(s * 0.72, 0.50, -0.34);
+			put(prop, new THREE.BoxGeometry(0.64, 0.10, 0.04), brass);
+			put(prop, new THREE.BoxGeometry(0.10, 0.64, 0.04), brass);
+			bodyGroup.add(prop);
+			animParts.push({ type: "spinZ", node: prop, speed: s * 16.0 });
+		}
+		return { seatOffsetY: 0.66, hoverY: 0.42, hoverAmp: 0.16 };
+	} else if (builderName === "crescentMoon") {
+		const moonM = spkmodVehMat(THREE, 0xfde047, { emissive: 0xf59e0b, emissiveIntensity: 0.48 });
+		const starM = spkmodVehMat(THREE, 0xfef9c3, { emissive: 0xfde047, emissiveIntensity: 0.95 });
+		// Sculpted glowing crescent moon cradle!
+		put(bodyGroup, new THREE.TorusGeometry(1.06, 0.28, 14, 26, Math.PI * 1.22), moonM, [0, 1.06, 0], [0, Math.PI / 2, Math.PI * 0.88]);
+		put(bodyGroup, new THREE.ConeGeometry(0.24, 0.46, 10), moonM, [0, 1.98, 0.72], [1.15, 0, 0]);
+		put(bodyGroup, new THREE.ConeGeometry(0.24, 0.46, 10), moonM, [0, 1.72, -0.96], [-0.95, 0, 0]);
+		// Dangling twinkling star from upper moon horn!
+		put(bodyGroup, new THREE.CylinderGeometry(0.018, 0.018, 0.46, 6), starM, [0, 1.74, 0.88]);
+		const star = put(bodyGroup, new THREE.OctahedronGeometry(0.20, 0), starM, [0, 1.46, 0.88]);
+		animParts.push({ type: "spinY", node: star, speed: 3.2 });
+		animParts.push({ type: "bobY", node: star, baseY: 1.46, speed: 3.8, amp: 0.08 });
+		return { seatOffsetY: 0.46, hoverY: 0.56, hoverAmp: 0.16 };
+	} else if (builderName === "starfighter") {
+		const plasma = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.92 });
+		const laser = spkmodVehMat(THREE, 0xf43f5e, { emissive: 0xef4444, emissiveIntensity: 0.9 });
+		put(bodyGroup, new THREE.BoxGeometry(0.76, 0.46, 2.54), paintMat, [0, 0.54, -0.10]);
+		put(bodyGroup, new THREE.ConeGeometry(0.46, 1.32, 4), paintMat, [0, 0.54, 1.82], [Math.PI / 2, Math.PI / 4, 0]);
+		put(bodyGroup, new THREE.SphereGeometry(0.44, 14, 10), glassMat, [0, 0.84, 0.22], null, [0.85, 0.75, 1.45]);
+		// Quad swept X-style laser wings + wingtip cannons + plasma engines!
+		for (const s of [-1, 1]) {
+			for (const dy of [-1, 1]) {
+				put(bodyGroup, new THREE.BoxGeometry(1.52, 0.08, 0.74), paintMat, [s * 1.06, 0.54 + dy * 0.34, -0.54], [0, 0, s * dy * 0.28]);
+				put(bodyGroup, new THREE.CylinderGeometry(0.04, 0.04, 0.96, 8), laser, [s * 1.78, 0.54 + dy * 0.54, -0.22], [Math.PI / 2, 0, 0]);
+			}
+			put(bodyGroup, new THREE.CylinderGeometry(0.18, 0.22, 0.88, 12), chromeMat, [s * 0.44, 0.54, -1.16], [Math.PI / 2, 0, 0]);
+			const thr = put(bodyGroup, new THREE.ConeGeometry(0.17, 0.74, 10), plasma, [s * 0.44, 0.54, -1.94], [-Math.PI / 2, 0, 0]);
+			animParts.push({ type: "flamePulse", node: thr });
+		}
+		return { seatOffsetY: 0.96, hoverY: 0.52, hoverAmp: 0.13 };
 	}
 	return null;
 }
@@ -60637,6 +61766,65 @@ function spkmodTriggerBoxAlert(entry, symbol = "!") {
 	entry.alertUntilMs = entry.alertStartMs + 1350;
 }
 
+function spkmodExitVehicleMountSit(ctrl) {
+	if (!ctrl) return;
+	try {
+		if (typeof ctrl.exitMountSit === "function") ctrl.exitMountSit();
+		else if (typeof ctrl.exitMountPose === "function") ctrl.exitMountPose();
+	} catch (_) {}
+}
+
+function spkmodApplyVehiclePoseOverride(entry, poseObj, ownerScale) {
+	if (!entry || !poseObj || !poseObj.position) return;
+	if (entry.vehicle?.hidePlayer) {
+		poseObj.position.set(0, 0, 0);
+		if (poseObj.rotation && typeof poseObj.rotation.set === "function") poseObj.rotation.set(0, 0, 0);
+		return;
+	}
+	const scale = (ownerScale != null && Number.isFinite(ownerScale)) ? ownerScale : (entry.visualScaleCurrent || 1);
+	const y = ((entry.seatOffsetY || 0) + (entry._lastHoverDelta || 0)) * scale;
+	poseObj.position.set(0, y, 0);
+	if (poseObj.rotation && typeof poseObj.rotation.set === "function") poseObj.rotation.set(0, 0, 0);
+}
+
+function spkmodEnsureMountVisualsHook() {
+	try {
+		if (typeof gameState === "undefined" || !gameState?.mountVisuals || typeof gameState.mountVisuals.update !== "function") return;
+		const mv = gameState.mountVisuals;
+		if (mv.__spkmodVehUpdateHooked) return;
+		mv.__spkmodVehUpdateHooked = true;
+		const origUpdate = mv.update.bind(mv);
+		mv.update = function(dt) {
+			const res = origUpdate(dt);
+			try {
+				if (spkmodIsVehiclesSystemEnabled()) {
+					const inMini = (typeof spkmodIsInIsolatedMinigame === "function") ? spkmodIsInIsolatedMinigame() : false;
+					if (_spkmodLocalVehicleEntry && !inMini) {
+						if (typeof spkmodSetNativeCartVisible === "function") {
+							spkmodSetNativeCartVisible(gameState.playerContainer, gameState.myPlayerId, false);
+						}
+						spkmodApplyVehiclePoseOverride(_spkmodLocalVehicleEntry, gameState.localAvatarPose, _spkmodLocalVehicleEntry.visualScaleCurrent);
+					}
+					if (_spkmodRemoteVehicleInstances.size > 0) {
+						for (const entry of _spkmodRemoteVehicleInstances.values()) {
+							const rp = entry.resolveRp ? entry.resolveRp() : null;
+							if (rp) {
+								if (typeof spkmodSetNativeCartVisible === "function") {
+									spkmodSetNativeCartVisible(rp.container, entry.lastRpKey ?? entry.playerId, false);
+								}
+								if (rp.avatarPose) {
+									spkmodApplyVehiclePoseOverride(entry, rp.avatarPose, entry.visualScaleCurrent);
+								}
+							}
+						}
+					}
+				}
+			} catch (_) {}
+			return res;
+		};
+	} catch (_) {}
+}
+
 function spkmodRestoreVehicleEntry(entry, isLocal) {
 	if (!entry) return;
 	if (entry.root && entry.root.parent) {
@@ -60662,12 +61850,13 @@ function spkmodRestoreVehicleEntry(entry, isLocal) {
 				if (gameState.localAvatarPose?.position) {
 					gameState.localAvatarPose.position.set(0, 0, 0);
 				}
+				if (gameState.localAvatarPose?.rotation && typeof gameState.localAvatarPose.rotation.set === "function") {
+					gameState.localAvatarPose.rotation.set(0, 0, 0);
+				}
 				const ctrl = typeof spkmodGetLocalAnimController === "function"
 					? spkmodGetLocalAnimController()
 					: (gameState.localAnimationController || gameState.localAvatar?.animationController || null);
-				if (ctrl && typeof ctrl.exitMountPose === "function") {
-					try { ctrl.exitMountPose(); } catch (_) {}
-				}
+				spkmodExitVehicleMountSit(ctrl);
 			}
 		} else {
 			const rp = entry.resolveRp ? entry.resolveRp() : null;
@@ -60684,10 +61873,11 @@ function spkmodRestoreVehicleEntry(entry, isLocal) {
 				if (!stillMounted) {
 					const posePos = rp?.avatarPose?.position || rp?.avatar?.root?.position || entry.lastPosePos;
 					if (posePos) posePos.set(0, 0, 0);
-					const ctrl = rp?.avatar?.animationController || rp?.container?.controller || entry.lastCtrl;
-					if (ctrl && typeof ctrl.exitMountPose === "function") {
-						try { ctrl.exitMountPose(); } catch (_) {}
+					if (rp?.avatarPose?.rotation && typeof rp.avatarPose.rotation.set === "function") {
+						rp.avatarPose.rotation.set(0, 0, 0);
 					}
+					const ctrl = rp?.avatar?.animationController || rp?.container?.controller || entry.lastCtrl;
+					spkmodExitVehicleMountSit(ctrl);
 				}
 			}
 		}
@@ -60920,9 +62110,21 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 			} else if (p.type === "flamePulse" && p.node) {
 				const s = (isMoving ? 1.15 : 0.72) + Math.sin(tSec * 22) * 0.25;
 				p.node.scale.set(1, s, 1);
+			} else if (p.type === "spinZ" && p.node) {
+				p.node.rotation.z = tSec * (p.speed || 12.0);
+			} else if (p.type === "bobY" && p.node) {
+				p.node.position.y = (p.baseY || 0) + Math.sin(tSec * (p.speed || 3.5)) * (p.amp || 0.10);
+			} else if (p.type === "rollForward" && p.node) {
+				if (dist > 0.0001) {
+					p.node.rotation.x += dist / Math.max(0.1, (p.radius || 0.5) * ownerScale);
+				}
+			} else if (p.type === "wingFlap" && p.node) {
+				p.node.rotation.z = (p.baseZ || 0) + Math.sin(tSec * (p.speed || 7.0)) * (p.amp || 0.25) * (p.side || 1);
 			}
 		}
 	}
+
+	entry._lastHoverDelta = hoverDelta;
 
 	// Stealth MGS Cardboard Box mode vs normal mount vehicle
 	if (entry.vehicle.hidePlayer) {
@@ -60934,8 +62136,8 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 			if (avatarRoot.visible !== false) avatarRoot.visible = false;
 		}
 		if (posePos && posePos.y !== 0) posePos.set(0, 0, 0);
-		if (ctrl && ctrl.mountSitPlaying && typeof ctrl.exitMountPose === "function") {
-			try { ctrl.exitMountPose(); } catch (_) {}
+		if (ctrl && ctrl.mountSitPlaying) {
+			spkmodExitVehicleMountSit(ctrl);
 		}
 
 		const targetLift = isMoving ? 0.14 : 0;
@@ -60965,7 +62167,7 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 				const elapsed = (nowMs - entry.alertStartMs) / 1000;
 				const pop = elapsed < 0.14 ? (0.4 + (elapsed / 0.14) * 0.95) : (elapsed < 0.25 ? 1.35 - ((elapsed - 0.14) / 0.11) * 0.35 : 1.0);
 				entry.alertSprite.scale.set(0.72 * pop, 0.72 * pop, 1);
-				entry.alertSprite.position.y = 1.92 + Math.sin(elapsed * 12) * 0.05;
+				entry.alertSprite.position.y = (entry.alertBaseY || 1.92) + Math.sin(elapsed * 12) * 0.05;
 			} else if (entry.alertSprite.visible) {
 				entry.alertSprite.visible = false;
 			}
@@ -60978,13 +62180,19 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 		if (posePos) {
 			posePos.set(0, ((entry.seatOffsetY || 0) + hoverDelta) * ownerScale, 0);
 		}
+		const poseObj = isLocal
+			? (typeof gameState !== "undefined" ? gameState?.localAvatarPose : null)
+			: (rp?.avatarPose || null);
+		if (poseObj?.rotation && typeof poseObj.rotation.set === "function") {
+			poseObj.rotation.set(0, 0, 0);
+		}
 		if (entry.vehicle.pose === "sit") {
 			if (ctrl && !ctrl.mountSitPlaying && typeof ctrl.enterMountPose === "function") {
 				try { ctrl.enterMountPose("sit"); } catch (_) {}
 			}
 		} else if (entry.vehicle.pose === "stand") {
-			if (ctrl && ctrl.mountSitPlaying && typeof ctrl.exitMountPose === "function") {
-				try { ctrl.exitMountPose(); } catch (_) {}
+			if (ctrl && ctrl.mountSitPlaying) {
+				spkmodExitVehicleMountSit(ctrl);
 			}
 		}
 	}
@@ -61435,6 +62643,7 @@ function spkmodVehiclesMasterLoop(nowMs) {
 	_spkmodVehicleLoopLastMs = nowMs;
 
 	if (!document.hidden && typeof gameState !== "undefined" && gameState) {
+		spkmodEnsureMountVisualsHook();
 		const pc = gameState.playerContainer || null;
 		const inMinigame = (typeof spkmodIsInIsolatedMinigame === "function") ? spkmodIsInIsolatedMinigame() : false;
 

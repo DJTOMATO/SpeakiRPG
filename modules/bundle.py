@@ -67,8 +67,33 @@ else:
 build_hash = hashlib.sha256(bundled_code.encode("utf-8")).hexdigest()[:16]
 proto_match = re.search(r'const\s+SPKMOD_PROTOCOL_VERSION\s*=\s*(\d+)', bundled_code)
 protocol_ver = int(proto_match.group(1)) if proto_match else 1
+cli_args = sys.argv[1:]
+auto_reload = "--auto-reload" in cli_args
 version_path = os.path.join(REPO_ROOT, "version.json")
+
+# Preserve the existing display version in version.json unless overridden via --version
+mod_version = "v3.1.0"
+if os.path.exists(version_path):
+    try:
+        with open(version_path, "r", encoding="utf-8") as existing_vf:
+            existing_data = json.load(existing_vf)
+            if isinstance(existing_data, dict) and isinstance(existing_data.get("version"), str) and existing_data["version"].strip():
+                mod_version = existing_data["version"].strip()
+    except Exception:
+        pass
+
+for idx, arg in enumerate(cli_args):
+    if arg == "--version" and idx + 1 < len(cli_args) and cli_args[idx + 1].strip():
+        mod_version = cli_args[idx + 1].strip()
+    elif arg.startswith("--version=") and arg.split("=", 1)[1].strip():
+        mod_version = arg.split("=", 1)[1].strip()
+
 with open(version_path, "w", encoding="utf-8") as vf:
-    json.dump({"build": build_hash, "protocol": protocol_ver}, vf, indent=2)
+    json.dump({
+        "version": mod_version,
+        "build": build_hash,
+        "protocol": protocol_ver,
+        "autoReload": auto_reload,
+    }, vf, indent=2)
     vf.write("\n")
-print(f"[2/2] Updated version.json (build={build_hash}, protocol={protocol_ver})\n")
+print(f"[2/2] Updated version.json (version={mod_version}, build={build_hash}, protocol={protocol_ver}, autoReload={str(auto_reload).lower()})\n")

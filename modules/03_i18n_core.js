@@ -195,6 +195,44 @@ function filterName(name) {
 
 loadAllBadWordLists();
 
+const SPKMOD_VERSION_CACHE_KEY = "spkmod-version-cache";
+
+function spkmodFormatVersionLabel(raw) {
+	const clean = typeof raw === "string" ? raw.trim() : "";
+	if (!clean) return "";
+	return /^\d/.test(clean) ? ("v" + clean) : clean;
+}
+
+var spkmodModVersion = (function() {
+	try {
+		if (typeof window !== "undefined" && window.localStorage) {
+			const cached = spkmodFormatVersionLabel(localStorage.getItem(SPKMOD_VERSION_CACHE_KEY));
+			if (cached) return cached;
+		}
+	} catch (_) {}
+	return "v3.1.0";
+})();
+window.spkmodModVersion = spkmodModVersion;
+window.spkmodFormatVersionLabel = spkmodFormatVersionLabel;
+
+function spkmodSetModVersion(rawVersion, shouldRefresh = true) {
+	const formatted = spkmodFormatVersionLabel(rawVersion);
+	if (!formatted) return spkmodModVersion;
+	const changed = formatted !== spkmodModVersion;
+	spkmodModVersion = formatted;
+	window.spkmodModVersion = formatted;
+	if (typeof window !== "undefined" && window.localStorage) {
+		try {
+			localStorage.setItem(SPKMOD_VERSION_CACHE_KEY, formatted);
+		} catch (_) {}
+	}
+	if (shouldRefresh && changed && typeof refreshI18n === "function") {
+		refreshI18n();
+	}
+	return formatted;
+}
+window.spkmodSetModVersion = spkmodSetModVersion;
+
 var spkmodTranslations = (function() {
 	try {
 		if (typeof window !== "undefined" && window.localStorage) {
@@ -206,6 +244,20 @@ var spkmodTranslations = (function() {
 })();
 
 var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) || "en";
+
+(async function() {
+	try {
+		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/version.json?t=" + Date.now(), { cache: "no-store" });
+		if (res && res.ok) {
+			const data = await res.json();
+			if (data && typeof data.version === "string" && data.version.trim()) {
+				spkmodSetModVersion(data.version);
+			}
+		}
+	} catch (e) {
+		console.warn("[SpeakiMod+] Failed to load version.json from GitHub:", e);
+	}
+})();
 
 (async function() {
 	try {
@@ -228,20 +280,26 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 	}
 })();
 
+function spkmodApplyBuiltInPlaceholders(str) {
+	if (typeof str !== "string" || !str.includes("{version}")) return str;
+	const ver = spkmodModVersion || "";
+	return ver ? str.split("{version}").join(ver) : str.split("{version}").join("").replace(/\s{2,}/g, " ").trim();
+}
+
 function t(key, ...args) {
 	var str = (spkmodTranslations[spkmodLang] && spkmodTranslations[spkmodLang][key])
 		|| (spkmodTranslations.en && spkmodTranslations.en[key])
 		|| key;
 	args.forEach((a, i) => { str = str.split(`{${i}}`).join(a); });
-	return str;
+	return spkmodApplyBuiltInPlaceholders(str);
 }
 
 function tCustom(key, fallback, ...args) {
 	var str = (typeof spkmodTranslations !== "undefined" && spkmodTranslations[spkmodLang] && spkmodTranslations[spkmodLang][key])
 		|| (typeof spkmodTranslations !== "undefined" && spkmodTranslations.en && spkmodTranslations.en[key]);
-	if (!str) return fallback || key;
+	if (!str) return spkmodApplyBuiltInPlaceholders(fallback || key);
 	args.forEach((a, i) => { str = str.split(`{${i}}`).join(a); });
-	return str;
+	return spkmodApplyBuiltInPlaceholders(str);
 }
 window.tCustom = tCustom;
 

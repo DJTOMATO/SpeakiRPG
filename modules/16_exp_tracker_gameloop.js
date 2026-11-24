@@ -1155,6 +1155,7 @@ const SPKMOD_UPDATE_RELOAD_SECONDS = 30;
 const SPKMOD_UPDATE_ALERT_FALLBACK_EN = {
 	title: "🔄 SpeakiMod+ Update Available",
 	body: "An update has been found, the game will reload in {0} seconds. Please update manually if needed.",
+	bodyManual: "A new update is available! Click Reload Now whenever you're ready to apply it.",
 	chatNote: "If you see strange mod messages in chat before reloading, don't worry — other players are already on the newer version!",
 	btnReloadNow: "🔄 Reload Now",
 	btnDismiss: "✕ Later",
@@ -1163,8 +1164,10 @@ const SPKMOD_UPDATE_ALERT_FALLBACK_EN = {
 };
 
 let _spkmodUpdateBaselineBuild = null;
+let _spkmodUpdatePendingBuild = null;
 let _spkmodUpdateDetected = false;
 let _spkmodUpdateDismissed = false;
+let _spkmodUpdateAutoReloadActive = false;
 let _spkmodUpdateInFlight = false;
 let _spkmodUpdateLastCheckMs = 0;
 let _spkmodUpdateCountdownTimer = null;
@@ -1204,7 +1207,10 @@ function spkmodTriggerUpdateReload() {
 }
 
 function spkmodDismissUpdateAlert() {
-	_spkmodUpdateDismissed = true;
+	if (_spkmodUpdateAutoReloadActive) {
+		_spkmodUpdateDismissed = true;
+	}
+	_spkmodUpdateAutoReloadActive = false;
 	if (_spkmodUpdateCountdownTimer) {
 		clearInterval(_spkmodUpdateCountdownTimer);
 		_spkmodUpdateCountdownTimer = null;
@@ -1221,14 +1227,22 @@ function spkmodRefreshUpdateAlertModalUI() {
 	const noteEl = document.getElementById("spkmod-update-alert-note");
 	const reloadBtn = document.getElementById("spkmod-update-alert-reload");
 	const dismissBtn = document.getElementById("spkmod-update-alert-dismiss");
+	const progressEl = document.getElementById("spkmod-update-alert-progress");
 	const barEl = document.getElementById("spkmod-update-alert-bar");
 
 	if (titleEl) titleEl.innerText = spkmodGetUpdateAlertText("title");
-	if (bodyEl) bodyEl.innerText = spkmodGetUpdateAlertText("body", Math.max(0, _spkmodUpdateRemainingSec));
+	if (bodyEl) {
+		bodyEl.innerText = _spkmodUpdateAutoReloadActive
+			? spkmodGetUpdateAlertText("body", Math.max(0, _spkmodUpdateRemainingSec))
+			: spkmodGetUpdateAlertText("bodyManual");
+	}
 	if (noteEl) noteEl.innerText = spkmodGetUpdateAlertText("chatNote");
 	if (reloadBtn) reloadBtn.innerText = spkmodGetUpdateAlertText("btnReloadNow");
 	if (dismissBtn) dismissBtn.innerText = spkmodGetUpdateAlertText("btnDismiss");
-	if (barEl) {
+	if (progressEl) {
+		progressEl.style.display = _spkmodUpdateAutoReloadActive ? "" : "none";
+	}
+	if (barEl && _spkmodUpdateAutoReloadActive) {
 		const pct = Math.max(0, Math.min(100, (_spkmodUpdateRemainingSec / SPKMOD_UPDATE_RELOAD_SECONDS) * 100));
 		barEl.style.width = pct.toFixed(1) + "%";
 	}
@@ -1270,6 +1284,7 @@ function spkmodEnsureUpdateAlertModal() {
 	note.style.cssText = "font-size: 11.5px; line-height: 1.45; color: #cbd5e1; background: rgba(255,255,255,0.06); border-left: 3px solid #38bdf8; padding: 8px 10px; border-radius: 6px;";
 
 	const progressWrap = document.createElement("div");
+	progressWrap.id = "spkmod-update-alert-progress";
 	progressWrap.style.cssText = "width: 100%; height: 6px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden;";
 	const bar = document.createElement("div");
 	bar.id = "spkmod-update-alert-bar";
@@ -1322,14 +1337,24 @@ function spkmodEnsureUpdateAlertModal() {
 	return modal;
 }
 
-function spkmodShowUpdateAlertModal() {
+function spkmodShowUpdateAlertModal(data, options) {
 	if (_spkmodUpdateCountdownTimer) {
 		clearInterval(_spkmodUpdateCountdownTimer);
 		_spkmodUpdateCountdownTimer = null;
 	}
-	_spkmodUpdateDetected = true;
-	_spkmodUpdateDismissed = false;
-	_spkmodUpdateRemainingSec = SPKMOD_UPDATE_RELOAD_SECONDS;
+	let shouldAutoReload = true;
+	if (options && typeof options.autoReload === "boolean") {
+		shouldAutoReload = options.autoReload;
+	} else if (data && typeof data.autoReload === "boolean") {
+		shouldAutoReload = data.autoReload;
+	}
+
+	_spkmodUpdateAutoReloadActive = shouldAutoReload;
+	if (shouldAutoReload) {
+		_spkmodUpdateDetected = true;
+		_spkmodUpdateDismissed = false;
+		_spkmodUpdateRemainingSec = SPKMOD_UPDATE_RELOAD_SECONDS;
+	}
 
 	const modal = spkmodEnsureUpdateAlertModal();
 	if (modal) {
@@ -1338,22 +1363,25 @@ function spkmodShowUpdateAlertModal() {
 	}
 	spkmodRefreshUpdateAlertModalUI();
 
-	_spkmodUpdateCountdownTimer = setInterval(() => {
-		if (_spkmodUpdateDismissed) {
-			clearInterval(_spkmodUpdateCountdownTimer);
-			_spkmodUpdateCountdownTimer = null;
-			return;
-		}
-		_spkmodUpdateRemainingSec -= 1;
-		spkmodRefreshUpdateAlertModalUI();
-		if (_spkmodUpdateRemainingSec <= 0) {
-			spkmodTriggerUpdateReload();
-		}
-	}, 1000);
+	if (shouldAutoReload) {
+		_spkmodUpdateCountdownTimer = setInterval(() => {
+			if (_spkmodUpdateDismissed || !_spkmodUpdateAutoReloadActive) {
+				clearInterval(_spkmodUpdateCountdownTimer);
+				_spkmodUpdateCountdownTimer = null;
+				return;
+			}
+			_spkmodUpdateRemainingSec -= 1;
+			spkmodRefreshUpdateAlertModalUI();
+			if (_spkmodUpdateRemainingSec <= 0) {
+				spkmodTriggerUpdateReload();
+			}
+		}, 1000);
+	}
 }
 
 async function spkmodCheckForModUpdate(reason = "poll") {
-	if (_spkmodUpdateDetected || _spkmodUpdateDismissed || _spkmodUpdateInFlight) return false;
+	if (_spkmodUpdateInFlight) return false;
+	if (reason !== "manual" && (_spkmodUpdateDetected || _spkmodUpdateDismissed)) return false;
 	const now = Date.now();
 	if (reason === "unknown_token" && now - _spkmodUpdateLastCheckMs < SPKMOD_UPDATE_IMMEDIATE_COOLDOWN_MS) {
 		return false;
@@ -1373,21 +1401,35 @@ async function spkmodCheckForModUpdate(reason = "poll") {
 		const remoteBuild = typeof data.build === "string" ? data.build.trim() : "";
 		const remoteProtocol = Number(data.protocol) || 0;
 		const localProtocol = Number(window.SPKMOD_PROTOCOL_VERSION || 1);
+		const autoReloadEnabled = data.autoReload === true;
 
 		const protocolOutdated = remoteProtocol > localProtocol;
 		let buildChanged = false;
 		if (remoteBuild) {
 			if (!_spkmodUpdateBaselineBuild) {
 				_spkmodUpdateBaselineBuild = remoteBuild;
+				if (typeof data.version === "string" && data.version.trim() && typeof window.spkmodSetModVersion === "function") {
+					window.spkmodSetModVersion(data.version);
+				}
 			} else if (remoteBuild !== _spkmodUpdateBaselineBuild) {
 				buildChanged = true;
 			}
 		}
 
 		if (protocolOutdated || buildChanged) {
-			spkmodShowUpdateAlertModal(data);
-			return true;
+			_spkmodUpdatePendingBuild = remoteBuild || _spkmodUpdatePendingBuild;
+			if (autoReloadEnabled) {
+				spkmodShowUpdateAlertModal(data, { autoReload: true });
+				return true;
+			}
+			if (reason === "manual") {
+				spkmodShowUpdateAlertModal(data, { autoReload: false });
+				return true;
+			}
+			// Silent patch: keep baseline unchanged and do not interrupt players until autoReload is enabled or they refresh naturally.
+			return false;
 		}
+		_spkmodUpdatePendingBuild = null;
 		if (reason === "manual" && typeof chatLog === "function") {
 			chatLog(spkmodGetUpdateAlertText("upToDateToast"));
 		}
@@ -1407,13 +1449,16 @@ window.spkmodNotifyUnknownSyncToken = function() {
 
 window.spkmodUpdateChecker = {
 	checkNow: (reason = "manual") => spkmodCheckForModUpdate(reason),
-	showAlert: () => spkmodShowUpdateAlertModal(),
+	showAlert: (data, options) => spkmodShowUpdateAlertModal(data, options),
 	dismiss: () => spkmodDismissUpdateAlert(),
 	reloadNow: () => spkmodTriggerUpdateReload(),
 	getState: () => ({
+		version: typeof window.spkmodModVersion === "string" ? window.spkmodModVersion : null,
 		baselineBuild: _spkmodUpdateBaselineBuild,
+		pendingBuild: _spkmodUpdatePendingBuild,
 		detected: _spkmodUpdateDetected,
 		dismissed: _spkmodUpdateDismissed,
+		autoReload: _spkmodUpdateAutoReloadActive,
 		remainingSec: _spkmodUpdateRemainingSec,
 		localProtocol: Number(window.SPKMOD_PROTOCOL_VERSION || 1)
 	})

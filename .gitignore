@@ -7,7 +7,7 @@ build/
 out/
 release/
 *.exe
-*.dmg
+*.dmg   
 *.AppImage
 *.deb
 *.blockmap
