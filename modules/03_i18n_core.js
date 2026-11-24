@@ -710,7 +710,7 @@ function getPlayerNametagSprite(player) {
     if (cached && cached.parent === root) return cached;
 
     // In the current game source, the nametag is a direct child of avatar.root.
-    const sprite = root.children?.find(obj => obj?.isSprite && obj.position && obj.position.y > 0.5) ?? null;
+    const sprite = root.children?.find(obj => obj?.isSprite && !obj.userData?.spkmodSkipNametagClear && !obj.userData?.spkmodVehicleAlert && obj.position && obj.position.y > 0.5) ?? null;
 
     if (sprite) {
         player.__spkmodNametagSprite = sprite;
@@ -780,8 +780,8 @@ function hookAvatarLabel(entity, explicitContainer) {
 			const targetContainer = resolveContainer();
 			if (targetContainer && typeof targetContainer.traverse === 'function') {
 				targetContainer.traverse(obj => {
-					// Position check ensures we only hit the floating nametag sprite above the player
-					if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+					// Position check ensures we only hit the floating nametag sprite above the player (never mod sprites like vehicle !/? alerts)
+					if (obj && obj.isSprite && !obj.userData?.spkmodSkipNametagClear && !obj.userData?.spkmodVehicleAlert && obj.name !== "spkmod_vehicle_alert_sprite" && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
 						obj.material.map.dispose();
 
 						if (obj.material.map.image && typeof obj.material.map.image.getContext === 'function') {

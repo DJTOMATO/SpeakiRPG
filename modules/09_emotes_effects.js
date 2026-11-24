@@ -1594,7 +1594,7 @@ function hijackAndRename(player, newName, newLevel) {
 		// We must explicitly dispose the old map to force three.js to reallocate a fresh one.
 		if (!player.avatar.__spkmodLabelPatched) {
 			player.container.traverse(obj => {
-				if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+				if (obj && obj.isSprite && !obj.userData?.spkmodSkipNametagClear && !obj.userData?.spkmodVehicleAlert && obj.name !== "spkmod_vehicle_alert_sprite" && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
 					obj.material.map.dispose();
 				}
 			});
@@ -1689,7 +1689,7 @@ window.spkmodResetNames = function() {
 					
 					if (entity.container && !entity.avatar.__spkmodLabelPatched) {
 						entity.container.traverse(obj => {
-							if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+							if (obj && obj.isSprite && !obj.userData?.spkmodSkipNametagClear && !obj.userData?.spkmodVehicleAlert && obj.name !== "spkmod_vehicle_alert_sprite" && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
 								obj.material.map.dispose();
 							}
 						});

@@ -2381,7 +2381,7 @@ function getPlayerNametagSprite(player) {
     if (cached && cached.parent === root) return cached;
 
     // In the current game source, the nametag is a direct child of avatar.root.
-    const sprite = root.children?.find(obj => obj?.isSprite && obj.position && obj.position.y > 0.5) ?? null;
+    const sprite = root.children?.find(obj => obj?.isSprite && !obj.userData?.spkmodSkipNametagClear && !obj.userData?.spkmodVehicleAlert && obj.position && obj.position.y > 0.5) ?? null;
 
     if (sprite) {
         player.__spkmodNametagSprite = sprite;
@@ -2451,8 +2451,8 @@ function hookAvatarLabel(entity, explicitContainer) {
 			const targetContainer = resolveContainer();
 			if (targetContainer && typeof targetContainer.traverse === 'function') {
 				targetContainer.traverse(obj => {
-					// Position check ensures we only hit the floating nametag sprite above the player
-					if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+					// Position check ensures we only hit the floating nametag sprite above the player (never mod sprites like vehicle !/? alerts)
+					if (obj && obj.isSprite && !obj.userData?.spkmodSkipNametagClear && !obj.userData?.spkmodVehicleAlert && obj.name !== "spkmod_vehicle_alert_sprite" && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
 						obj.material.map.dispose();
 
 						if (obj.material.map.image && typeof obj.material.map.image.getContext === 'function') {
@@ -17996,7 +17996,7 @@ function hijackAndRename(player, newName, newLevel) {
 		// We must explicitly dispose the old map to force three.js to reallocate a fresh one.
 		if (!player.avatar.__spkmodLabelPatched) {
 			player.container.traverse(obj => {
-				if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+				if (obj && obj.isSprite && !obj.userData?.spkmodSkipNametagClear && !obj.userData?.spkmodVehicleAlert && obj.name !== "spkmod_vehicle_alert_sprite" && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
 					obj.material.map.dispose();
 				}
 			});
@@ -18091,7 +18091,7 @@ window.spkmodResetNames = function() {
 					
 					if (entity.container && !entity.avatar.__spkmodLabelPatched) {
 						entity.container.traverse(obj => {
-							if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+							if (obj && obj.isSprite && !obj.userData?.spkmodSkipNametagClear && !obj.userData?.spkmodVehicleAlert && obj.name !== "spkmod_vehicle_alert_sprite" && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
 								obj.material.map.dispose();
 							}
 						});
@@ -60546,10 +60546,13 @@ function spkmodBuildProceduralVehicle(THREE, builderName, colorHex) {
 		rightFoot.visible = false;
 		root.add(rightFoot);
 
-		// Alert sprite ("!" / "?") above the box triggered by F/G
+		// Alert sprite ("!" / "?") above the box triggered by G
 		const alertTex = spkmodGetAlertSpriteTexture(THREE, "!");
-		const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false });
+		const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false, depthWrite: false });
 		const alertSprite = new THREE.Sprite(alertMat);
+		alertSprite.name = "spkmod_vehicle_alert_sprite";
+		alertSprite.userData = Object.assign(alertSprite.userData || {}, { spkmodVehicleAlert: true, spkmodSkipNametagClear: true });
+		alertSprite.renderOrder = 999;
 		alertSprite.position.set(0, 1.92, 0);
 		alertSprite.scale.set(0.75, 0.75, 1);
 		alertSprite.visible = false;
@@ -60997,8 +61000,11 @@ function spkmodAttachStealthRig(THREE, root, alertY = 1.92) {
 	root.add(rightFoot);
 
 	const alertTex = spkmodGetAlertSpriteTexture(THREE, "!");
-	const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false });
+	const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false, depthWrite: false });
 	const alertSprite = new THREE.Sprite(alertMat);
+	alertSprite.name = "spkmod_vehicle_alert_sprite";
+	alertSprite.userData = Object.assign(alertSprite.userData || {}, { spkmodVehicleAlert: true, spkmodSkipNametagClear: true });
+	alertSprite.renderOrder = 999;
 	alertSprite.position.set(0, alertY, 0);
 	alertSprite.scale.set(0.75, 0.75, 1);
 	alertSprite.visible = false;
@@ -62176,12 +62182,18 @@ function spkmodAttachVehicleAlertSprite(THREE, built, vehicle) {
 		return built;
 	}
 	if (built.alertSprite) {
+		built.alertSprite.name = "spkmod_vehicle_alert_sprite";
+		built.alertSprite.userData = Object.assign(built.alertSprite.userData || {}, { spkmodVehicleAlert: true, spkmodSkipNametagClear: true });
+		built.alertSprite.renderOrder = 999;
 		if (built.alertBaseY == null) built.alertBaseY = built.alertSprite.position?.y || 1.92;
 		return built;
 	}
 	const alertTex = spkmodGetAlertSpriteTexture(THREE, "!");
-	const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false });
+	const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false, depthWrite: false });
 	const alertSprite = new THREE.Sprite(alertMat);
+	alertSprite.name = "spkmod_vehicle_alert_sprite";
+	alertSprite.userData = Object.assign(alertSprite.userData || {}, { spkmodVehicleAlert: true, spkmodSkipNametagClear: true });
+	alertSprite.renderOrder = 999;
 	const alertBaseY = vehicle?.hidePlayer
 		? 1.92
 		: Math.max(1.85, (built.seatOffsetY || 0.85) + (built.hoverY || 0) + 1.55);

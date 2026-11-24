@@ -1310,10 +1310,13 @@ function spkmodBuildProceduralVehicle(THREE, builderName, colorHex) {
 		rightFoot.visible = false;
 		root.add(rightFoot);
 
-		// Alert sprite ("!" / "?") above the box triggered by F/G
+		// Alert sprite ("!" / "?") above the box triggered by G
 		const alertTex = spkmodGetAlertSpriteTexture(THREE, "!");
-		const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false });
+		const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false, depthWrite: false });
 		const alertSprite = new THREE.Sprite(alertMat);
+		alertSprite.name = "spkmod_vehicle_alert_sprite";
+		alertSprite.userData = Object.assign(alertSprite.userData || {}, { spkmodVehicleAlert: true, spkmodSkipNametagClear: true });
+		alertSprite.renderOrder = 999;
 		alertSprite.position.set(0, 1.92, 0);
 		alertSprite.scale.set(0.75, 0.75, 1);
 		alertSprite.visible = false;
@@ -1761,8 +1764,11 @@ function spkmodAttachStealthRig(THREE, root, alertY = 1.92) {
 	root.add(rightFoot);
 
 	const alertTex = spkmodGetAlertSpriteTexture(THREE, "!");
-	const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false });
+	const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false, depthWrite: false });
 	const alertSprite = new THREE.Sprite(alertMat);
+	alertSprite.name = "spkmod_vehicle_alert_sprite";
+	alertSprite.userData = Object.assign(alertSprite.userData || {}, { spkmodVehicleAlert: true, spkmodSkipNametagClear: true });
+	alertSprite.renderOrder = 999;
 	alertSprite.position.set(0, alertY, 0);
 	alertSprite.scale.set(0.75, 0.75, 1);
 	alertSprite.visible = false;
@@ -2940,12 +2946,18 @@ function spkmodAttachVehicleAlertSprite(THREE, built, vehicle) {
 		return built;
 	}
 	if (built.alertSprite) {
+		built.alertSprite.name = "spkmod_vehicle_alert_sprite";
+		built.alertSprite.userData = Object.assign(built.alertSprite.userData || {}, { spkmodVehicleAlert: true, spkmodSkipNametagClear: true });
+		built.alertSprite.renderOrder = 999;
 		if (built.alertBaseY == null) built.alertBaseY = built.alertSprite.position?.y || 1.92;
 		return built;
 	}
 	const alertTex = spkmodGetAlertSpriteTexture(THREE, "!");
-	const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false });
+	const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false, depthWrite: false });
 	const alertSprite = new THREE.Sprite(alertMat);
+	alertSprite.name = "spkmod_vehicle_alert_sprite";
+	alertSprite.userData = Object.assign(alertSprite.userData || {}, { spkmodVehicleAlert: true, spkmodSkipNametagClear: true });
+	alertSprite.renderOrder = 999;
 	const alertBaseY = vehicle?.hidePlayer
 		? 1.92
 		: Math.max(1.85, (built.seatOffsetY || 0.85) + (built.hoverY || 0) + 1.55);
