@@ -45636,6 +45636,43 @@ function spkmodSkinCreateBodyAnchor(avatarRoot, targetBone, name, localOffsetWor
 	return anchor;
 }
 
+// Backpacks, wings, capes & shells sit behind Speaki's oversized domed veil/hair (which is rigged to `head`).
+// Attaching them to `head` instead of `spine` prevents them from swinging up onto her head when `spine` pitches
+// ~75 deg forward during Fall Down / crying animations, and keeps them unstretched in Wide Body mode too.
+const SPKMOD_HEAD_TO_SPINE_Y_M = 0.14;
+
+function spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, name, spineOffsetWorldM) {
+	const THREE = window.THREE;
+	if (!THREE || !avatarRoot || !skeletonBones) return null;
+	const { head, spine, reviveHat } = skeletonBones;
+	const parentBone = head || spine;
+	if (!parentBone) return null;
+
+	const targetOffset = (parentBone === head && spine && head !== spine)
+		? new THREE.Vector3(spineOffsetWorldM.x, spineOffsetWorldM.y - SPKMOD_HEAD_TO_SPINE_Y_M, spineOffsetWorldM.z)
+		: spineOffsetWorldM.clone();
+
+	if (parentBone === head && reviveHat && reviveHat.parent === head && reviveHat.quaternion && reviveHat.scale) {
+		const anchor = new THREE.Group();
+		anchor.name = name || "spkmod_skin_back_anchor";
+		anchor.userData.spkmodSkinAttachment = true;
+		anchor.userData.spkmodSkinBackAttachment = true;
+		anchor.quaternion.copy(reviveHat.quaternion);
+		anchor.scale.copy(reviveHat.scale);
+		const sx = reviveHat.scale.x || 1;
+		const sy = reviveHat.scale.y || sx;
+		const sz = reviveHat.scale.z || sx;
+		anchor.position.set(targetOffset.x * sx, targetOffset.y * sy, targetOffset.z * sz)
+			.applyQuaternion(reviveHat.quaternion);
+		return { parentBone: head, anchor };
+	}
+
+	const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, parentBone, name, targetOffset, skeletonBones);
+	if (!anchor) return null;
+	anchor.userData.spkmodSkinBackAttachment = true;
+	return { parentBone, anchor };
+}
+
 async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 	const THREE = (window.THREE && window.THREE.Group && window.THREE.Mesh)
 		? window.THREE
@@ -45990,8 +46027,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				attachments.push({ parent: head, node: anchor });
 			}
 		}
-		if (spine) {
-			const wingAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_devil_wings", new THREE.Vector3(0, 0.08, -0.70));
+		if (head || spine) {
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_devil_wings", new THREE.Vector3(0, 0.08, -0.70));
+			const wingAnchor = back?.anchor;
 			if (wingAnchor) {
 				const memMat = toon(0x18181b, { side: THREE.DoubleSide });
 				const boneMat = toon(0x991b1b);
@@ -46016,8 +46054,8 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 					animParts.push({ type: "wing", node: wing, side });
 				}
 				spkmodSkinSanitizeObject(wingAnchor);
-				spine.add(wingAnchor);
-				attachments.push({ parent: spine, node: wingAnchor });
+				back.parentBone.add(wingAnchor);
+				attachments.push({ parent: back.parentBone, node: wingAnchor });
 			}
 		}
 	} else if (builder === "angel") {
@@ -46035,8 +46073,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				attachments.push({ parent: head, node: anchor });
 			}
 		}
-		if (spine) {
-			const wingAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_angel_wings", new THREE.Vector3(0, 0.10, -0.70));
+		if (head || spine) {
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_angel_wings", new THREE.Vector3(0, 0.10, -0.70));
+			const wingAnchor = back?.anchor;
 			if (wingAnchor) {
 				const featherMat = toon(0xffffff, { emissive: 0xe0f2fe, emissiveIntensity: 0.24 });
 				const goldMat = toon(0xfde047, { emissive: 0xfacc15, emissiveIntensity: 0.35 });
@@ -46063,8 +46102,8 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 					animParts.push({ type: "wing", node: wing, side });
 				}
 				spkmodSkinSanitizeObject(wingAnchor);
-				spine.add(wingAnchor);
-				attachments.push({ parent: spine, node: wingAnchor });
+				back.parentBone.add(wingAnchor);
+				attachments.push({ parent: back.parentBone, node: wingAnchor });
 			}
 		}
 	} else if (builder === "royal") {
@@ -46101,8 +46140,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				attachments.push({ parent: head, node: anchor });
 			}
 		}
-		if (spine) {
-			const capeAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_royal_cape", new THREE.Vector3(0, 0.10, -0.74));
+		if (head || spine) {
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_royal_cape", new THREE.Vector3(0, 0.10, -0.74));
+			const capeAnchor = back?.anchor;
 			if (capeAnchor) {
 				const capeMat = toon(0x991b1b, { side: THREE.DoubleSide });
 				const furMat = toon(0xf8fafc, { side: THREE.DoubleSide });
@@ -46135,8 +46175,8 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				capeAnchor.add(capeGroup);
 				animParts.push({ type: "cape", node: capeGroup });
 				spkmodSkinSanitizeObject(capeAnchor);
-				spine.add(capeAnchor);
-				attachments.push({ parent: spine, node: capeAnchor });
+				back.parentBone.add(capeAnchor);
+				attachments.push({ parent: back.parentBone, node: capeAnchor });
 			}
 		}
 	} else if (builder === "burger" && head) {
@@ -46511,13 +46551,14 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				holder.userData.spkmodSkinHandProp = true;
 				leftHand.add(holder);
 				attachments.push({ parent: leftHand, node: holder });
-			} else if (spine) {
-				const backAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_knight_shield", new THREE.Vector3(0, 0.02, -0.48));
+			} else if (head || spine) {
+				const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_knight_shield", new THREE.Vector3(0, 0.02, -0.48));
+				const backAnchor = back?.anchor;
 				if (backAnchor) {
 					backAnchor.add(shield);
 					spkmodSkinSanitizeObject(backAnchor);
-					spine.add(backAnchor);
-					attachments.push({ parent: spine, node: backAnchor });
+					back.parentBone.add(backAnchor);
+					attachments.push({ parent: back.parentBone, node: backAnchor });
 				}
 			}
 		}
@@ -46551,8 +46592,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				attachments.push({ parent: head, node: anchor });
 			}
 		}
-		if (spine) {
-			const wingAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_fairy_wings", new THREE.Vector3(0, 0.08, -0.70));
+		if (head || spine) {
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_fairy_wings", new THREE.Vector3(0, 0.08, -0.70));
+			const wingAnchor = back?.anchor;
 			if (wingAnchor) {
 				const upperMat = toon(0x38bdf8, { emissive: 0x06b6d4, emissiveIntensity: 0.45, transparent: true, opacity: 0.78, side: THREE.DoubleSide });
 				const lowerMat = toon(0xe879f9, { emissive: 0xc026d3, emissiveIntensity: 0.45, transparent: true, opacity: 0.78, side: THREE.DoubleSide });
@@ -46579,8 +46621,8 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 					animParts.push({ type: "flutter", node: wing, side });
 				}
 				spkmodSkinSanitizeObject(wingAnchor);
-				spine.add(wingAnchor);
-				attachments.push({ parent: spine, node: wingAnchor });
+				back.parentBone.add(wingAnchor);
+				attachments.push({ parent: back.parentBone, node: wingAnchor });
 			}
 		}
 	} else if (builder === "samurai") {
@@ -46655,9 +46697,10 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 			rightHand.add(holder);
 			attachments.push({ parent: rightHand, node: holder });
 		}
-		if (spine) {
+		if (head || spine) {
 			// Crossed back katanas mounted flush behind Speaki's veil so hilts & scabbards stay fully visible
-			const katanaAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_samurai_katanas", new THREE.Vector3(0, 0.06, -0.48));
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_samurai_katanas", new THREE.Vector3(0, 0.06, -0.48));
+			const katanaAnchor = back?.anchor;
 			if (katanaAnchor) {
 				const sheathMat = toon(0x18181b);
 				const hiltMat = toon(0xdc2626);
@@ -46680,8 +46723,8 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				}
 				katanaAnchor.add(backRack);
 				spkmodSkinSanitizeObject(katanaAnchor);
-				spine.add(katanaAnchor);
-				attachments.push({ parent: spine, node: katanaAnchor });
+				back.parentBone.add(katanaAnchor);
+				attachments.push({ parent: back.parentBone, node: katanaAnchor });
 			}
 		}
 	} else if (builder === "astronaut") {
@@ -46724,9 +46767,10 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				attachments.push({ parent: head, node: anchor });
 			}
 		}
-		if (spine) {
+		if (head || spine) {
 			// Positioned cleanly outside Speaki's veil and tilted slightly along the veil slope
-			const packAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_astronaut_jetpack", new THREE.Vector3(0, -0.04, -0.72));
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_astronaut_jetpack", new THREE.Vector3(0, -0.04, -0.72));
+			const packAnchor = back?.anchor;
 			if (packAnchor) {
 				const packMat = toon(0xf1f5f9);
 				const trimMat = toon(0x334155);
@@ -46757,8 +46801,8 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				}
 				packAnchor.add(jetpackGroup);
 				spkmodSkinSanitizeObject(packAnchor);
-				spine.add(packAnchor);
-				attachments.push({ parent: spine, node: packAnchor });
+				back.parentBone.add(packAnchor);
+				attachments.push({ parent: back.parentBone, node: packAnchor });
 			}
 		}
 	} else if (builder === "kitsune") {
@@ -47543,8 +47587,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				attachments.push({ parent: head, node: anchor });
 			}
 		}
-		if (spine) {
-			const wingAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_dragon_wings", new THREE.Vector3(0, 0.10, -0.70));
+		if (head || spine) {
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_dragon_wings", new THREE.Vector3(0, 0.10, -0.70));
+			const wingAnchor = back?.anchor;
 			if (wingAnchor) {
 				const memMat = toon(0x991b1b, { emissive: 0x450a0a, emissiveIntensity: 0.3, side: THREE.DoubleSide });
 				const goldMat = toon(0xfacc15, { emissive: 0xb45309, emissiveIntensity: 0.35 });
@@ -47569,8 +47614,8 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 					animParts.push({ type: "wing", node: wing, side });
 				}
 				spkmodSkinSanitizeObject(wingAnchor);
-				spine.add(wingAnchor);
-				attachments.push({ parent: spine, node: wingAnchor });
+				back.parentBone.add(wingAnchor);
+				attachments.push({ parent: back.parentBone, node: wingAnchor });
 			}
 		}
 		if (rightHand) {
@@ -47950,12 +47995,15 @@ async function spkmodBuildExtraCostumeSetA(builder, ctx) {
 	};
 	const addBody = (bone, name, offset, buildFn) => {
 		if (!bone) return;
-		const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones);
-		if (!anchor) return;
-		buildFn(anchor);
-		spkmodSkinSanitizeObject(anchor);
-		bone.add(anchor);
-		attachments.push({ parent: bone, node: anchor });
+		const isBackOnSpine = (bone === spine && Array.isArray(offset) && Number(offset[2]) <= -0.35);
+		const created = isBackOnSpine
+			? spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, name, new THREE.Vector3(offset[0], offset[1], offset[2]))
+			: { parentBone: bone, anchor: spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones) };
+		if (!created || !created.anchor || !created.parentBone) return;
+		buildFn(created.anchor);
+		spkmodSkinSanitizeObject(created.anchor);
+		created.parentBone.add(created.anchor);
+		attachments.push({ parent: created.parentBone, node: created.anchor });
 	};
 
 	if (builder === "panda") {
@@ -48885,12 +48933,15 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 	};
 	const addBody = (bone, name, offset, buildFn) => {
 		if (!bone) return;
-		const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones);
-		if (!anchor) return;
-		buildFn(anchor);
-		spkmodSkinSanitizeObject(anchor);
-		bone.add(anchor);
-		attachments.push({ parent: bone, node: anchor });
+		const isBackOnSpine = (bone === spine && Array.isArray(offset) && Number(offset[2]) <= -0.35);
+		const created = isBackOnSpine
+			? spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, name, new THREE.Vector3(offset[0], offset[1], offset[2]))
+			: { parentBone: bone, anchor: spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones) };
+		if (!created || !created.anchor || !created.parentBone) return;
+		buildFn(created.anchor);
+		spkmodSkinSanitizeObject(created.anchor);
+		created.parentBone.add(created.anchor);
+		attachments.push({ parent: created.parentBone, node: created.anchor });
 	};
 
 	if (builder === "alchemist") {
@@ -50056,12 +50107,15 @@ async function spkmodBuildExtraCostumeSetC(builder, ctx) {
 	};
 	const addBody = (bone, name, offset, buildFn) => {
 		if (!bone) return;
-		const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones);
-		if (!anchor) return;
-		buildFn(anchor);
-		spkmodSkinSanitizeObject(anchor);
-		bone.add(anchor);
-		attachments.push({ parent: bone, node: anchor });
+		const isBackOnSpine = (bone === spine && Array.isArray(offset) && Number(offset[2]) <= -0.35);
+		const created = isBackOnSpine
+			? spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, name, new THREE.Vector3(offset[0], offset[1], offset[2]))
+			: { parentBone: bone, anchor: spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones) };
+		if (!created || !created.anchor || !created.parentBone) return;
+		buildFn(created.anchor);
+		spkmodSkinSanitizeObject(created.anchor);
+		created.parentBone.add(created.anchor);
+		attachments.push({ parent: created.parentBone, node: created.anchor });
 	};
 	const put = (parent, geo, mat, pos = null, rot = null, scale = null) => {
 		const m = new THREE.Mesh(geo, mat);
