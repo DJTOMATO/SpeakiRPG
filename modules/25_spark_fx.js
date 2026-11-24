@@ -328,6 +328,11 @@ function spkmodGetSparkPlayerLevel() {
 	return 1;
 }
 
+function spkmodIsSparkLegitimatelyUnlocked(spark) {
+	if (!spark) return false;
+	return spkmodGetSparkPlayerLevel() >= spark.level;
+}
+
 function spkmodIsSparkUnlocked(spark) {
 	if (!spark) return false;
 	if (window.spkmodSparkSettings.unlockAllTest) return true;
@@ -1017,8 +1022,11 @@ let _spkmodSparkLastObservedRemoteCount = 0;
 
 window.spkmodGetActiveSparkBroadcastState = function() {
 	const enabled = spkmodIsSparksSystemEnabled();
-	const shareInChat = spkmodIsSparkChatSharingEnabled();
-	const sparkId = (enabled && window.spkmodSparkSettings.equippedId) || null;
+	const isTestUnlock = !!window.spkmodSparkSettings.unlockAllTest;
+	const shareInChat = spkmodIsSparkChatSharingEnabled() && !isTestUnlock;
+	const rawSparkId = (enabled && !isTestUnlock && window.spkmodSparkSettings.equippedId) || null;
+	const sparkObj = rawSparkId ? SPKMOD_SPARKS_BY_ID.get(rawSparkId) : null;
+	const sparkId = (sparkObj && spkmodIsSparkLegitimatelyUnlocked(sparkObj)) ? sparkObj.id : null;
 	return {
 		enabled,
 		shareInChat,
@@ -1033,8 +1041,9 @@ window.spkmodMarkSparkBroadcastSent = function(hasSpark) {
 };
 
 function spkmodTriggerSparkSyncBroadcast(opts = {}) {
-	if (!spkmodIsSparkChatSharingEnabled()) return;
-	const hasActive = !!window.spkmodSparkSettings.equippedId;
+	if (!spkmodIsSparkChatSharingEnabled() || window.spkmodSparkSettings.unlockAllTest) return;
+	const eqSpark = window.spkmodSparkSettings.equippedId ? SPKMOD_SPARKS_BY_ID.get(window.spkmodSparkSettings.equippedId) : null;
+	const hasActive = !!(eqSpark && spkmodIsSparkLegitimatelyUnlocked(eqSpark));
 	const rCount = (typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.size) || 0;
 	if (hasActive && rCount === 0) {
 		_spkmodSparkNeedsZoneSync = true;
@@ -2048,13 +2057,19 @@ window.spkmodSparks = {
 	burst: (id) => window.spkmodBurstTrail(false, id),
 	toggleModal: (force) => window.spkmodToggleSparksModal(force),
 	setEnabled: (val) => window.spkmodSetSparksSystemEnabled(val),
-	unlockAll: (force) => {
+	unlockAll: (force, silentToast = false) => {
 		const next = force !== undefined ? !!force : !window.spkmodSparkSettings.unlockAllTest;
 		window.spkmodSparkSettings.unlockAllTest = next;
 		if (typeof window !== "undefined" && window.localStorage) {
 			try { localStorage.setItem(SPKMOD_SPARK_STORAGE_KEYS.unlockAll, next ? "true" : "false"); } catch (_) {}
 		}
-		if (typeof chatLog === "function") {
+		if (!next) {
+			const eqSpark = window.spkmodSparkSettings.equippedId ? SPKMOD_SPARKS_BY_ID.get(window.spkmodSparkSettings.equippedId) : null;
+			if (eqSpark && !spkmodIsSparkLegitimatelyUnlocked(eqSpark)) {
+				spkmodEquipLocalSpark(null, false, true);
+			}
+		}
+		if (!silentToast && typeof chatLog === "function") {
 			chatLog(spkmodGetSparkUiText(next ? "testUnlockEnabledToast" : "testUnlockDisabledToast"));
 		}
 		spkmodRefreshSparksModalUI();

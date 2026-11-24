@@ -419,6 +419,11 @@ function spkmodGetVehiclePlayerLevel() {
 	return 1;
 }
 
+function spkmodIsVehicleLegitimatelyUnlocked(vehicle) {
+	if (!vehicle) return false;
+	return spkmodGetVehiclePlayerLevel() >= (Number(vehicle.level) || 1);
+}
+
 function spkmodIsVehicleUnlocked(vehicle) {
 	if (!vehicle) return false;
 	if (window.spkmodVehicleSettings.unlockAllTest) return true;
@@ -2192,13 +2197,53 @@ async function spkmodSpawnLocalVehicle(vehicleId, colorIdx) {
 	return true;
 }
 
-function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot, posePos, ctrl, dt, nowMs) {
+function spkmodGetVehicleOwnerScale(isLocal, avatarRoot, rp) {
+	// Prefer live avatar visual-scale wrapper (children[0] created by game's Giant/Mini Resizer Potion),
+	// which automatically respects both size potions and minigame scale suppression.
+	const visualChild = avatarRoot?.children?.[0];
+	if (visualChild && visualChild.isObject3D && !visualChild.isSprite && !visualChild.isMesh && !visualChild.isBone && visualChild.scale) {
+		const sx = visualChild.scale.x;
+		const sy = visualChild.scale.y;
+		const sz = visualChild.scale.z;
+		if (
+			Number.isFinite(sx) && sx >= 0.1 && sx <= 10.0 &&
+			Math.abs(sx - sy) < 0.005 && Math.abs(sx - sz) < 0.005
+		) {
+			return sx;
+		}
+	}
+	const gs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
+	let permille = 1000;
+	if (isLocal) {
+		if (typeof gs?.myVisualScalePermille === "number" && Number.isFinite(gs.myVisualScalePermille)) {
+			permille = gs.myVisualScalePermille;
+		}
+	} else if (typeof rp?.visualScalePermille === "number" && Number.isFinite(rp.visualScalePermille)) {
+		permille = rp.visualScalePermille;
+	}
+	const clamped = (permille >= 100 && permille <= 10000) ? Math.trunc(permille) : 1000;
+	return clamped / 1000;
+}
+
+function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot, posePos, ctrl, dt, nowMs, rp = null) {
 	if (!entry || !container) return;
 	if (entry.root.parent !== container) {
 		container.add(entry.root);
 	}
 	if (typeof spkmodSetNativeCartVisible === "function") {
 		spkmodSetNativeCartVisible(container, playerId, false);
+	}
+
+	// Scale vehicle smoothly to match Giant / Mini Resizer Potion visual scale
+	const targetScale = spkmodGetVehicleOwnerScale(isLocal, avatarRoot, rp);
+	if (entry.visualScaleCurrent == null || !Number.isFinite(entry.visualScaleCurrent)) {
+		entry.visualScaleCurrent = targetScale;
+	} else {
+		entry.visualScaleCurrent += (targetScale - entry.visualScaleCurrent) * Math.min(1, dt * 12);
+	}
+	const ownerScale = entry.visualScaleCurrent;
+	if (entry.root.scale && typeof entry.root.scale.setScalar === "function") {
+		entry.root.scale.setScalar(ownerScale);
 	}
 
 	// Calculate horizontal travel speed since last frame
@@ -2215,9 +2260,9 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 	const isMoving = dist > 0.004;
 	const tSec = nowMs * 0.001;
 
-	// Spin wheels proportionally to ground distance covered
+	// Spin wheels proportionally to ground distance covered (scaled by owner size potion)
 	if (dist > 0.0001 && entry.wheels && entry.wheels.length > 0) {
-		const angle = dist / (entry.wheelRadius || 0.34);
+		const angle = dist / Math.max(0.05, (entry.wheelRadius || 0.34) * ownerScale);
 		for (let i = 0; i < entry.wheels.length; i++) {
 			entry.wheels[i].rotation.x += angle;
 		}
@@ -2330,7 +2375,7 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 			entry.hiddenAvatarRoot = null;
 		}
 		if (posePos) {
-			posePos.set(0, (entry.seatOffsetY || 0) + hoverDelta, 0);
+			posePos.set(0, ((entry.seatOffsetY || 0) + hoverDelta) * ownerScale, 0);
 		}
 		if (entry.vehicle.pose === "sit") {
 			if (ctrl && !ctrl.mountSitPlaying && typeof ctrl.enterMountPose === "function") {
@@ -2443,15 +2488,16 @@ async function spkmodSpawnOrUpdateRemoteVehicle(ownerKey, state, resolved) {
 	}, built);
 
 	_spkmodRemoteVehicleInstances.set(ownerKey, entry);
-	spkmodTickVehicleEntry(entry, false, live.rp.container, live.rpKey, live.rp.avatar?.root || null, entry.lastPosePos, entry.lastCtrl, 0.016, performance.now());
+	spkmodTickVehicleEntry(entry, false, live.rp.container, live.rpKey, live.rp.avatar?.root || null, entry.lastPosePos, entry.lastCtrl, 0.016, performance.now(), live.rp);
 }
 
 window.spkmodGetActiveCarBroadcastState = function() {
 	const enabled = spkmodIsVehiclesSystemEnabled();
-	const shareInChat = spkmodIsVehicleChatSharingEnabled();
-	const eqId = enabled ? window.spkmodVehicleSettings.equippedId : null;
+	const isTestUnlock = !!window.spkmodVehicleSettings.unlockAllTest;
+	const shareInChat = spkmodIsVehicleChatSharingEnabled() && !isTestUnlock;
+	const eqId = (enabled && !isTestUnlock) ? window.spkmodVehicleSettings.equippedId : null;
 	const vehicle = eqId ? SPKMOD_VEHICLES_BY_ID.get(eqId) : null;
-	const modeIdx = (vehicle && spkmodIsVehicleUnlocked(vehicle)) ? vehicle.code : 0;
+	const modeIdx = (vehicle && spkmodIsVehicleLegitimatelyUnlocked(vehicle)) ? vehicle.code : 0;
 	const colorIdx = modeIdx > 0 ? spkmodClampVehicleColorIdx(window.spkmodVehicleSettings.colorIdx) : 0;
 	return {
 		enabled,
@@ -2468,11 +2514,12 @@ window.spkmodMarkCarBroadcastSent = function(hasVehicle) {
 };
 
 function spkmodTriggerVehicleSyncBroadcast(opts = {}) {
-	if (!spkmodIsVehicleChatSharingEnabled()) return;
+	if (!spkmodIsVehicleChatSharingEnabled() || window.spkmodVehicleSettings.unlockAllTest) return;
+	const eqVeh = window.spkmodVehicleSettings.equippedId ? SPKMOD_VEHICLES_BY_ID.get(window.spkmodVehicleSettings.equippedId) : null;
 	const rCount = (typeof spkmodGetRemotePlayerCount === "function")
 		? spkmodGetRemotePlayerCount()
 		: ((typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.size) || 0);
-	if (window.spkmodVehicleSettings.equippedId && rCount === 0) {
+	if (eqVeh && spkmodIsVehicleLegitimatelyUnlocked(eqVeh) && rCount === 0) {
 		_spkmodVehicleNeedsZoneSync = true;
 	}
 	if (typeof window.spkmodQueueUnifiedModSyncBroadcast === "function") {
@@ -2830,7 +2877,7 @@ function spkmodVehiclesMasterLoop(nowMs) {
 				const ctrl = rp.avatar?.animationController || rp.container?.controller || null;
 				entry.lastPosePos = posePos;
 				entry.lastCtrl = ctrl;
-				spkmodTickVehicleEntry(entry, false, rp.container, entry.lastRpKey ?? entry.playerId, rp.avatar?.root || null, posePos, ctrl, dt, nowMs);
+				spkmodTickVehicleEntry(entry, false, rp.container, entry.lastRpKey ?? entry.playerId, rp.avatar?.root || null, posePos, ctrl, dt, nowMs, rp);
 			}
 		}
 
@@ -3537,12 +3584,18 @@ window.spkmodVehicles = {
 		return next;
 	},
 	getFavorites: () => [...(window.spkmodVehicleSettings.favorites || [])],
-	unlockAll: (enable) => {
+	unlockAll: (enable, silentToast = false) => {
 		const next = enable !== undefined ? !!enable : !window.spkmodVehicleSettings.unlockAllTest;
 		window.spkmodVehicleSettings.unlockAllTest = next;
 		if (window.localStorage) localStorage.setItem(SPKMOD_VEHICLE_STORAGE_KEYS.unlockAll, next ? "true" : "false");
+		if (!next) {
+			const eqVeh = window.spkmodVehicleSettings.equippedId ? SPKMOD_VEHICLES_BY_ID.get(window.spkmodVehicleSettings.equippedId) : null;
+			if (eqVeh && !spkmodIsVehicleLegitimatelyUnlocked(eqVeh)) {
+				spkmodEquipLocalVehicle(null, false, true);
+			}
+		}
 		spkmodRefreshVehiclesModalUI();
-		if (typeof chatLog === "function") {
+		if (!silentToast && typeof chatLog === "function") {
 			chatLog(spkmodGetVehicleUiText(next ? "testUnlockEnabledToast" : "testUnlockDisabledToast"));
 		}
 		return next;

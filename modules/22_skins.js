@@ -1055,10 +1055,21 @@ function spkmodGetSkinPlayerLevel() {
 	return 1;
 }
 
+function spkmodIsSkinLegitimatelyUnlocked(skin) {
+	if (!skin) return false;
+	return spkmodGetSkinPlayerLevel() >= skin.level;
+}
+
 function spkmodIsSkinUnlocked(skin) {
 	if (!skin) return false;
 	if (window.spkmodSkinSettings.unlockAllTest) return true;
 	return spkmodGetSkinPlayerLevel() >= skin.level;
+}
+
+function spkmodIsWidthLegitimatelyUnlocked(widthTier) {
+	if (!widthTier) return false;
+	if (widthTier.level <= 1) return true;
+	return spkmodGetSkinPlayerLevel() >= widthTier.level;
 }
 
 function spkmodIsWidthUnlocked(widthTier) {
@@ -6870,31 +6881,49 @@ async function spkmodBuildExtraCostumeSetC(builder, ctx) {
 		});
 		return true;
 	} else if (builder === "biblical") {
-		addBody(spine, "spkmod_skin_biblical_seraph", [0, 0.16, -0.58], ba => {
-			const gld = toon(0xfde047, { emissive: 0xeab308, emissiveIntensity: 0.65 });
-			const wht = toon(0xf8fafc, { emissive: 0xfef9c3, emissiveIntensity: 0.35 });
-			const eyeIris = toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.8 });
-			// 3 Concentric rotating golden Ophanim eye-rings!
-			for (let r = 0; r < 3; r++) {
+		const gld = toon(0xfde047, { emissive: 0xeab308, emissiveIntensity: 0.65 });
+		const wht = toon(0xf8fafc, { emissive: 0xfef9c3, emissiveIntensity: 0.35 });
+		const eyeIris = toon(0x38bdf8, { emissive: 0x0ea5e9, emissiveIntensity: 0.8 });
+		// 3 Concentric Ophanim golden eye-rings centered directly around Speaki's torso/head!
+		addBody(pelvis, "spkmod_skin_biblical_rings", [0, 0.30, 0], ra => {
+			const ringSpecs = [
+				{ rad: 0.68, baseRotX: 0.35, baseRotZ: 0.25, speedX: 0.55, speedY: 1.45, speedZ: 0.25 },
+				{ rad: 0.88, baseRotX: -0.55, baseRotZ: 0.50, speedX: -0.45, speedY: -1.15, speedZ: 0.35 },
+				{ rad: 1.08, baseRotX: 0.75, baseRotZ: -0.45, speedX: 0.35, speedY: 0.85, speedZ: -0.40 }
+			];
+			for (let r = 0; r < ringSpecs.length; r++) {
+				const sp = ringSpecs[r];
 				const ring = new THREE.Group();
-				const rad = 0.62 + r * 0.22;
-				ring.rotation.x = r * 0.45;
-				ring.rotation.z = -r * 0.35;
-				put(ring, new THREE.TorusGeometry(rad, 0.036, 8, 28), gld);
+				ring.rotation.set(sp.baseRotX, 0, sp.baseRotZ);
+				put(ring, new THREE.TorusGeometry(sp.rad, 0.036, 8, 28), gld);
 				for (let e = 0; e < 6; e++) {
 					const ang = (e / 6) * Math.PI * 2;
-					put(ring, new THREE.SphereGeometry(0.06, 8, 8), wht, [Math.cos(ang) * rad, Math.sin(ang) * rad, 0.02]);
-					put(ring, new THREE.SphereGeometry(0.032, 6, 6), eyeIris, [Math.cos(ang) * rad, Math.sin(ang) * rad, 0.065]);
+					const ex = Math.cos(ang) * sp.rad;
+					const ey = Math.sin(ang) * sp.rad;
+					put(ring, new THREE.SphereGeometry(0.058, 8, 8), wht, [ex, ey, 0]);
+					put(ring, new THREE.SphereGeometry(0.032, 6, 6), eyeIris, [ex, ey, 0.048]);
+					put(ring, new THREE.SphereGeometry(0.032, 6, 6), eyeIris, [ex, ey, -0.048]);
 				}
-				ba.add(ring);
-				animParts.push({ type: "spinY", node: ring });
+				ra.add(ring);
+				animParts.push({
+					type: "spinMulti",
+					node: ring,
+					baseRotX: sp.baseRotX,
+					baseRotY: 0,
+					baseRotZ: sp.baseRotZ,
+					speedX: sp.speedX,
+					speedY: sp.speedY,
+					speedZ: sp.speedZ
+				});
 			}
-			// 6 Fluttering seraphim wings (3 pairs!)
+		});
+		// 6 Fluttering seraphim wings anchored neatly on Speaki's back
+		addBody(spine, "spkmod_skin_biblical_wings", [0, 0.16, -0.52], ba => {
 			for (let pair = 0; pair < 3; pair++) {
 				const py = 0.26 - pair * 0.24;
 				for (const s of [-1, 1]) {
 					const w = new THREE.Group();
-					w.position.set(s * 0.22, py, -0.05);
+					w.position.set(s * 0.22, py, -0.04);
 					put(w, new THREE.ConeGeometry(0.20, 0.72, 6), wht, [s * 0.34, 0.06, 0], [0, 0, -s * (1.25 - pair * 0.22)], [1, 1, 0.22]);
 					ba.add(w);
 					animParts.push({ type: "wing", node: w, side: s });
@@ -7555,12 +7584,17 @@ let _spkmodSkinNeedsZoneSync = false;
 
 window.spkmodGetActiveSkinBroadcastState = function() {
 	const enabled = spkmodIsSkinsSystemEnabled();
-	const shareInChat = spkmodIsSkinChatSharingEnabled();
+	const isTestUnlock = !!window.spkmodSkinSettings.unlockAllTest;
+	const shareInChat = spkmodIsSkinChatSharingEnabled() && !isTestUnlock;
 	const nativeBlocked = spkmodHasNativeLocalSkin();
-	const skinId = (enabled && !nativeBlocked && window.spkmodSkinSettings.equippedId) || null;
-	const widthId = (enabled && !nativeBlocked && window.spkmodSkinSettings.widthId && window.spkmodSkinSettings.widthId !== "normal")
+	const rawSkinId = (enabled && !nativeBlocked && !isTestUnlock && window.spkmodSkinSettings.equippedId) || null;
+	const skinObj = rawSkinId ? SPKMOD_SKINS_BY_ID.get(rawSkinId) : null;
+	const skinId = (skinObj && spkmodIsSkinLegitimatelyUnlocked(skinObj)) ? skinObj.id : null;
+	const rawWidthId = (enabled && !nativeBlocked && !isTestUnlock && window.spkmodSkinSettings.widthId && window.spkmodSkinSettings.widthId !== "normal")
 		? window.spkmodSkinSettings.widthId
 		: null;
+	const widthObj = rawWidthId ? SPKMOD_BODY_WIDTHS_BY_ID.get(rawWidthId) : null;
+	const widthId = (widthObj && spkmodIsWidthLegitimatelyUnlocked(widthObj)) ? widthObj.id : null;
 	return {
 		enabled,
 		shareInChat,
@@ -7576,8 +7610,13 @@ window.spkmodMarkSkinBroadcastSent = function(hasSkinOrWidth) {
 };
 
 function spkmodTriggerSkinSyncBroadcast(opts = {}) {
-	if (!spkmodIsSkinChatSharingEnabled()) return;
-	const hasActive = !!(window.spkmodSkinSettings.equippedId || (window.spkmodSkinSettings.widthId && window.spkmodSkinSettings.widthId !== "normal"));
+	if (!spkmodIsSkinChatSharingEnabled() || window.spkmodSkinSettings.unlockAllTest) return;
+	const eqSkin = window.spkmodSkinSettings.equippedId ? SPKMOD_SKINS_BY_ID.get(window.spkmodSkinSettings.equippedId) : null;
+	const eqWidth = window.spkmodSkinSettings.widthId ? SPKMOD_BODY_WIDTHS_BY_ID.get(window.spkmodSkinSettings.widthId) : null;
+	const hasActive = !!(
+		(eqSkin && spkmodIsSkinLegitimatelyUnlocked(eqSkin)) ||
+		(eqWidth && eqWidth.id !== "normal" && spkmodIsWidthLegitimatelyUnlocked(eqWidth))
+	);
 	const rCount = (typeof spkmodGetRemotePlayerCount === "function") ? spkmodGetRemotePlayerCount() : ((typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers?.size) || 0);
 	if (hasActive && rCount === 0) {
 		_spkmodSkinNeedsZoneSync = true;
@@ -7706,27 +7745,49 @@ const _spkmodRemoteModNativeSkinCodes = new Map(); // String(rpKey) -> nativeSki
 const _spkmodPatchedNativeSkinGameStates = new WeakSet();
 
 function spkmodPatchGameStateForModNativeSkins(gs) {
-	if (!gs || typeof gs !== "object" || _spkmodPatchedNativeSkinGameStates.has(gs)) return;
-	_spkmodPatchedNativeSkinGameStates.add(gs);
-	if (typeof gs.effectiveLocalSkinCode === "function") {
-		const origEffectiveLocalSkinCode = gs.effectiveLocalSkinCode;
-		gs.effectiveLocalSkinCode = function(...args) {
-			const origCode = origEffectiveLocalSkinCode.apply(this, args);
-			if (origCode) return origCode;
-			if (_spkmodActiveModNativeSkinCode && Number(this.mySkinItemId || 0) === 0 && spkmodIsSkinsSystemEnabled()) {
-				return _spkmodActiveModNativeSkinCode;
-			}
-			return origCode;
-		};
+	if (!gs || typeof gs !== "object") return;
+	if (!_spkmodPatchedNativeSkinGameStates.has(gs)) {
+		_spkmodPatchedNativeSkinGameStates.add(gs);
+		if (typeof gs.effectiveLocalSkinCode === "function") {
+			const origEffectiveLocalSkinCode = gs.effectiveLocalSkinCode;
+			gs.effectiveLocalSkinCode = function(...args) {
+				const origCode = origEffectiveLocalSkinCode.apply(this, args);
+				if (origCode) return origCode;
+				if (_spkmodActiveModNativeSkinCode && Number(this.mySkinItemId || 0) === 0 && spkmodIsSkinsSystemEnabled()) {
+					return _spkmodActiveModNativeSkinCode;
+				}
+				return origCode;
+			};
+		}
+		if (typeof gs.forcedSkinCodeOf === "function") {
+			const origForcedSkinCodeOf = gs.forcedSkinCodeOf;
+			gs.forcedSkinCodeOf = function(playerId, ...rest) {
+				const orig = origForcedSkinCodeOf.call(this, playerId, ...rest);
+				if (orig) return orig;
+				if (!spkmodIsSkinsSystemEnabled() || window.spkmodSkinSettings.showRemoteSkins === false) return orig;
+				if (playerId != null) {
+					const forced = _spkmodRemoteModNativeSkinCodes.get(String(playerId));
+					if (forced) return forced;
+				}
+				return orig;
+			};
+		}
 	}
-	if (typeof gs.forcedSkinCodeOf === "function") {
-		const origForcedSkinCodeOf = gs.forcedSkinCodeOf;
-		gs.forcedSkinCodeOf = function(playerId, ...rest) {
-			const orig = origForcedSkinCodeOf.call(this, playerId, ...rest);
+	// Patch RemotePlayersManager.effectiveSkinCode directly so remote Burger Staff A/B skins work even when
+	// the viewer hasn't preloaded Burger Shop minigame skins (bypasses game's internal TIt(code) preload gate)
+	const rpMgr = gs.remotePlayers;
+	if (rpMgr && typeof rpMgr.effectiveSkinCode === "function" && !rpMgr.__spkmodEffectiveSkinCodePatched) {
+		rpMgr.__spkmodEffectiveSkinCodePatched = true;
+		const origEffectiveSkinCode = rpMgr.effectiveSkinCode.bind(rpMgr);
+		rpMgr.effectiveSkinCode = function(rp, ...rest) {
+			const orig = origEffectiveSkinCode(rp, ...rest);
 			if (orig) return orig;
 			if (!spkmodIsSkinsSystemEnabled() || window.spkmodSkinSettings.showRemoteSkins === false) return orig;
-			if (playerId != null) {
-				const forced = _spkmodRemoteModNativeSkinCodes.get(String(playerId));
+			if (!rp || this.speakovPresentationActive) return orig;
+			if (Number(rp.skinItemId || 0) !== 0) return orig;
+			const pid = rp.info?.playerId;
+			if (pid != null) {
+				const forced = _spkmodRemoteModNativeSkinCodes.get(String(pid));
 				if (forced) return forced;
 			}
 			return orig;
@@ -7753,7 +7814,11 @@ function spkmodSetLocalModNativeSkinCode(nextCode) {
 }
 
 function spkmodSyncRemoteModNativeSkinCodes(nextMap) {
-	let changed = nextMap.size !== _spkmodRemoteModNativeSkinCodes.size;
+	const gs = (typeof gameState !== "undefined" && gameState) ? gameState : null;
+	const rpMgrWasUnpatched = !!(gs?.remotePlayers && typeof gs.remotePlayers.effectiveSkinCode === "function" && !gs.remotePlayers.__spkmodEffectiveSkinCodePatched);
+	if (gs) spkmodPatchGameStateForModNativeSkins(gs);
+
+	let changed = nextMap.size !== _spkmodRemoteModNativeSkinCodes.size || (rpMgrWasUnpatched && nextMap.size > 0);
 	if (!changed) {
 		for (const [k, v] of nextMap) {
 			if (_spkmodRemoteModNativeSkinCodes.get(k) !== v) {
@@ -7767,11 +7832,8 @@ function spkmodSyncRemoteModNativeSkinCodes(nextMap) {
 	for (const [k, v] of nextMap) {
 		_spkmodRemoteModNativeSkinCodes.set(k, v);
 	}
-	if (typeof gameState !== "undefined" && gameState) {
-		spkmodPatchGameStateForModNativeSkins(gameState);
-		if (typeof gameState.remotePlayers?.refreshForcedSkins === "function") {
-			try { gameState.remotePlayers.refreshForcedSkins(); } catch (_) {}
-		}
+	if (gs && typeof gs.remotePlayers?.refreshForcedSkins === "function") {
+		try { gs.remotePlayers.refreshForcedSkins(); } catch (_) {}
 	}
 }
 
@@ -7793,6 +7855,10 @@ function spkmodHasNativeRemoteSkin(rp, canonicalKey) {
 	const skinId = Number(rp.skinItemId || 0);
 	if (skinId !== 0) return true;
 	if (canonicalKey != null && _spkmodRemoteModNativeSkinCodes.has(String(canonicalKey))) {
+		return false;
+	}
+	const rpPid = rp.info?.playerId;
+	if (rpPid != null && _spkmodRemoteModNativeSkinCodes.has(String(rpPid))) {
 		return false;
 	}
 	const rootFlag = rp.avatar?.root?.userData?.skinAvatarRoot === true;
@@ -8240,7 +8306,9 @@ function spkmodSkinsMasterLoop(nowMs) {
 						if (skin && spkmodCheckRemoteLevelAllowed(skin.level, rpLevel, rpName)) {
 							if (skin.nativeSkinCode) {
 								spkmodSkinClearOnOwner(ownerKey);
-								nextRemoteNativeMap.set(String(canonicalKey), skin.nativeSkinCode);
+								const nativePid = String(rp.info?.playerId ?? canonicalKey);
+								nextRemoteNativeMap.set(nativePid, skin.nativeSkinCode);
+								if (String(canonicalKey) !== nativePid) nextRemoteNativeMap.set(String(canonicalKey), skin.nativeSkinCode);
 							} else {
 								const cur = _spkmodAppliedSkins.get(ownerKey);
 								if (!cur || cur.skinId !== skin.id || cur.root !== rpRoot || _spkmodAvatarSkinOwner.get(rpRoot) !== cur) {
@@ -8287,21 +8355,36 @@ function spkmodSkinsMasterLoop(nowMs) {
 			}
 		}
 
-		// 4. Animate active 3D costume parts & Rainbow Prism FX (zero per-frame traverse, distance & visibility culled!)
+		// 4. Animate active 3D costume parts & Rainbow Prism FX (zero per-frame traverse, accurate world-space culling!)
 		const tSec = nowMs * 0.001;
 		const camPos = gameState.camera?.position || gameState.playerContainer?.position || null;
 		const MAX_REMOTE_ANIM_DIST_SQ = 45 * 45;
+		const THREE_ANIM = typeof window !== "undefined" ? window.THREE : null;
+		if (THREE_ANIM?.Vector3 && !spkmodSkinsMasterLoop._tmpWorldPos) {
+			spkmodSkinsMasterLoop._tmpWorldPos = new THREE_ANIM.Vector3();
+		}
+		const tmpAnimPos = spkmodSkinsMasterLoop._tmpWorldPos || null;
 		for (const [ownerKey, entry] of _spkmodAppliedSkins) {
 			if (!entry || !entry.root) continue;
 			const isLocal = ownerKey === "local_self";
 			if (!isLocal) {
 				if (entry.root.visible === false || entry.root.parent?.visible === false) continue;
-				if (camPos && entry.root.parent?.position) {
-					const rpPos = entry.root.parent.position;
-					const dx = rpPos.x - camPos.x;
-					const dy = rpPos.y - camPos.y;
-					const dz = rpPos.z - camPos.z;
-					if (dx * dx + dy * dy + dz * dz > MAX_REMOTE_ANIM_DIST_SQ) continue;
+				if (camPos) {
+					let rpPos = null;
+					if (tmpAnimPos && typeof entry.root.getWorldPosition === "function") {
+						rpPos = entry.root.getWorldPosition(tmpAnimPos);
+					} else {
+						// Walk up past avatarPose (local 0,0,0) to remote container in world space
+						let p = entry.root.parent;
+						while (p && p.parent && p.parent !== gameState.scene) p = p.parent;
+						rpPos = p?.position || entry.root.parent?.position || null;
+					}
+					if (rpPos) {
+						const dx = rpPos.x - camPos.x;
+						const dy = rpPos.y - camPos.y;
+						const dz = rpPos.z - camPos.z;
+						if (dx * dx + dy * dy + dz * dz > MAX_REMOTE_ANIM_DIST_SQ) continue;
+					}
 				}
 			}
 			if (entry.hideMagicStaff && (!entry._lastStaffCheckMs || nowMs - entry._lastStaffCheckMs >= 900)) {
@@ -8329,7 +8412,11 @@ function spkmodSkinsMasterLoop(nowMs) {
 						part.node.position.y = (part.baseY || 0.24) + Math.sin(tSec * 3.2) * 0.035;
 						part.node.rotation.z = tSec * 0.8;
 					} else if (part.type === "spinY") {
-						part.node.rotation.y = tSec * 2.2;
+						part.node.rotation.y = tSec * (part.speed || 2.2);
+					} else if (part.type === "spinMulti") {
+						part.node.rotation.x = (part.baseRotX || 0) + tSec * (part.speedX || 0);
+						part.node.rotation.y = (part.baseRotY || 0) + tSec * (part.speedY || 0);
+						part.node.rotation.z = (part.baseRotZ || 0) + tSec * (part.speedZ || 0);
 					} else if (part.type === "cape") {
 						part.node.rotation.x = (part.baseRotX || 0) + Math.sin(tSec * 2.8) * 0.06;
 					} else if (part.type === "earWiggle") {
@@ -9126,12 +9213,23 @@ window.spkmodSkins = {
 		return next;
 	},
 	getFavorites: () => [...(window.spkmodSkinSettings.favorites || [])],
-	unlockAll: (enable) => {
+	unlockAll: (enable, silentToast = false) => {
 		const next = enable !== undefined ? !!enable : !window.spkmodSkinSettings.unlockAllTest;
 		window.spkmodSkinSettings.unlockAllTest = next;
 		if (window.localStorage) localStorage.setItem(SPKMOD_SKIN_STORAGE_KEYS.unlockAll, next ? "true" : "false");
+		if (!next) {
+			// Immediately clear any locally-equipped test skin or body width above real player level
+			const eqSkin = window.spkmodSkinSettings.equippedId ? SPKMOD_SKINS_BY_ID.get(window.spkmodSkinSettings.equippedId) : null;
+			if (eqSkin && !spkmodIsSkinLegitimatelyUnlocked(eqSkin)) {
+				spkmodEquipLocalSkin(null, false, true);
+			}
+			const eqWidth = window.spkmodSkinSettings.widthId ? SPKMOD_BODY_WIDTHS_BY_ID.get(window.spkmodSkinSettings.widthId) : null;
+			if (eqWidth && eqWidth.id !== "normal" && !spkmodIsWidthLegitimatelyUnlocked(eqWidth)) {
+				spkmodSetLocalBodyWidth("normal", false, true);
+			}
+		}
 		spkmodRefreshSkinsModalUI();
-		if (typeof chatLog === "function") {
+		if (!silentToast && typeof chatLog === "function") {
 			chatLog(next ? spkmodGetSkinUiText("testUnlockEnabledToast") : spkmodGetSkinUiText("testUnlockDisabledToast"));
 		}
 		return next;

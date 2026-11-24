@@ -589,6 +589,11 @@ function spkmodGetPlayerLevel() {
 	return 1;
 }
 
+function spkmodIsPetLegitimatelyUnlocked(pet) {
+	if (!pet) return false;
+	return spkmodGetPlayerLevel() >= pet.level;
+}
+
 function spkmodIsPetUnlocked(pet) {
 	if (!pet) return false;
 	if (window.spkmodPetSettings.unlockAllTest) return true;
@@ -3151,7 +3156,7 @@ function spkmodGetSparkBroadcastSnapshot() {
 }
 
 function spkmodIsAnyPetOrSkinChatSharingEnabled() {
-	const petCanShare = spkmodIsPetChatSharingEnabled();
+	const petCanShare = spkmodIsPetChatSharingEnabled() && !window.spkmodPetSettings.unlockAllTest;
 	const skinSnap = spkmodGetSkinBroadcastSnapshot();
 	const cartSnap = spkmodGetCartSkinBroadcastSnapshot();
 	const carSnap = spkmodGetCarBroadcastSnapshot();
@@ -3689,7 +3694,7 @@ function spkmodFlushQueuedPetBroadcast() {
 		return;
 	}
 
-	const petCanShare = spkmodIsPetChatSharingEnabled();
+	const petCanShare = spkmodIsPetChatSharingEnabled() && !window.spkmodPetSettings.unlockAllTest;
 	const skinSnap = spkmodGetSkinBroadcastSnapshot();
 	const cartSnap = spkmodGetCartSkinBroadcastSnapshot();
 	const carSnap = spkmodGetCarBroadcastSnapshot();
@@ -3700,11 +3705,13 @@ function spkmodFlushQueuedPetBroadcast() {
 	const sparkCanShare = !!(sparkSnap.enabled && sparkSnap.shareInChat);
 
 	// Re-resolve passive broadcasts against the latest equipped cosmetics so we never send stale state
-	const effectivePetId = petCanShare
+	const rawPetId = petCanShare
 		? (entry.priority === "passive"
 			? (window.spkmodPetSettings.equippedId || null)
 			: (entry.petId !== undefined ? entry.petId : (window.spkmodPetSettings.equippedId || null)))
 		: null;
+	const rawPetObj = (rawPetId && rawPetId !== "none" && rawPetId !== "off") ? SPKMOD_PETS_BY_ID.get(String(rawPetId).trim().toLowerCase()) : null;
+	const effectivePetId = (rawPetObj && spkmodIsPetLegitimatelyUnlocked(rawPetObj)) ? rawPetObj.id : null;
 
 	_spkmodQueuedPetBroadcast = null;
 
@@ -3951,9 +3958,10 @@ window.spkmodQueueUnifiedPetSkinBroadcast = function(opts = {}) {
 };
 
 function spkmodScheduleZonePetBroadcast(delayMs = 1800, reason = "zone") {
-	if (!spkmodIsPetChatSharingEnabled()) return;
+	if (!spkmodIsPetChatSharingEnabled() || window.spkmodPetSettings.unlockAllTest) return;
 	const eqId = window.spkmodPetSettings.equippedId;
-	if (!eqId) return;
+	const eqPet = eqId ? SPKMOD_PETS_BY_ID.get(eqId) : null;
+	if (!eqPet || !spkmodIsPetLegitimatelyUnlocked(eqPet)) return;
 	if (reason === "remote_join" && _spkmodQueuedPetBroadcast) return;
 	spkmodSendPetChatTrigger(eqId, {
 		priority: "passive",
@@ -4264,7 +4272,7 @@ async function spkmodEquipLocalPet(idOrLevel, broadcast = true, silentToast = fa
 		}, 600);
 	}
 
-	if (broadcast) {
+	if (broadcast && !window.spkmodPetSettings.unlockAllTest && spkmodIsPetLegitimatelyUnlocked(pet)) {
 		spkmodSendPetChatTrigger(pet.id, {
 			priority: "explicit",
 			delayMs: SPKMOD_PET_CHAT_EQUIP_DEBOUNCE_MS,
@@ -5201,16 +5209,22 @@ window.spkmodPets = {
 	toggle: () => window.spkmodTogglePetsModal(),
 	equip: (idOrLevel) => spkmodEquipLocalPet(idOrLevel, true),
 	unequip: () => spkmodEquipLocalPet(null, true),
-	unlockAll: (enable) => {
+	unlockAll: (enable, silentToast = false) => {
 		if (!spkmodIsPetsSystemEnabled()) {
-			if (typeof chatLog === "function") chatLog(spkmodGetPetsDisabledToastText());
+			if (!silentToast && typeof chatLog === "function") chatLog(spkmodGetPetsDisabledToastText());
 			return false;
 		}
 		const next = enable !== undefined ? !!enable : !window.spkmodPetSettings.unlockAllTest;
 		window.spkmodPetSettings.unlockAllTest = next;
 		if (window.localStorage) localStorage.setItem(SPKMOD_PET_STORAGE_KEYS.unlockAll, next ? "true" : "false");
+		if (!next) {
+			const eqPet = window.spkmodPetSettings.equippedId ? SPKMOD_PETS_BY_ID.get(window.spkmodPetSettings.equippedId) : null;
+			if (eqPet && !spkmodIsPetLegitimatelyUnlocked(eqPet)) {
+				spkmodEquipLocalPet(null, false, true);
+			}
+		}
 		spkmodRefreshPetsModalUI();
-		if (typeof chatLog === "function") {
+		if (!silentToast && typeof chatLog === "function") {
 			chatLog(spkmodGetPetUiText(next ? "testUnlockEnabledToast" : "testUnlockDisabledToast"));
 		}
 		return next;
