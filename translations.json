@@ -1639,7 +1639,8 @@
       "zeppelin": "Steampunk Sky Zeppelin",
       "crescent_moon": "Dreamy Crescent Moon",
       "royal_throne": "Royal Golden Throne",
-      "starfighter": "Orbital Starfighter"
+      "starfighter": "Orbital Starfighter",
+      "uifi_frog": "Ui-Fi Frog (Wi-Fi)"
     },
     "vehicleColors": {
       "red": "Crimson Red",
@@ -3332,7 +3333,8 @@
       "zeppelin": "スチームパンク飛行船",
       "crescent_moon": "ゆめかわ三日月",
       "royal_throne": "黄金のロイヤル玉座",
-      "starfighter": "オービタル・スターファイター"
+      "starfighter": "オービタル・スターファイター",
+      "uifi_frog": "ウイファイ・カエル (Ui-Fi)"
     },
     "vehicleColors": {
       "red": "クリムゾンレッド",
@@ -4995,7 +4997,8 @@
       "zeppelin": "스팀펑크 하늘 비행선",
       "crescent_moon": "몽환적인 초승달",
       "royal_throne": "황금 왕실 옥좌",
-      "starfighter": "오비탈 스타파이터"
+      "starfighter": "오비탈 스타파이터",
+      "uifi_frog": "우이파이 개구리 (Ui-Fi)"
     },
     "vehicleColors": {
       "red": "크림슨 레드",
@@ -6658,7 +6661,8 @@
       "zeppelin": "蒸氣龐克天空飛艇",
       "crescent_moon": "夢幻新月彎月",
       "royal_throne": "黃金皇家王座",
-      "starfighter": "軌道星際戰機"
+      "starfighter": "軌道星際戰機",
+      "uifi_frog": "烏伊Wi-Fi青蛙 (Ui-Fi)"
     },
     "vehicleColors": {
       "red": "緋紅色",
@@ -8321,7 +8325,8 @@
       "zeppelin": "蒸汽朋克天空飞艇",
       "crescent_moon": "梦幻弯弯新月",
       "royal_throne": "黄金皇家王座",
-      "starfighter": "轨道星际战机"
+      "starfighter": "轨道星际战机",
+      "uifi_frog": "乌伊Wi-Fi青蛙 (Ui-Fi)"
     },
     "vehicleColors": {
       "red": "绯红色",
@@ -9875,8 +9880,6 @@
       "colorSetToast": "🎨 Pintura cambiada a: {0}",
       "broadcastToast": "📡 ¡Vehículo activo transmitido a los jugadores cercanos!",
       "shareDisabledToast": "📡 Compartir vehículo está desactivado. Actívalo en el Garaje para sincronizar.",
-      "systemDisabledToast": "🚗 El sistema de Vehículos está desactivado. Actívalo en Ajustes (debajo de Mascotas).",
-      "systemEnabledToast": "🚗 Visualización y sincronización de vehículos activada.",
       "testUnlockEnabledToast": "🔓 [Prueba de Vehículos] ¡Todos los vehículos DESBLOQUEADOS!",
       "testUnlockDisabledToast": "🔒 [Prueba de Vehículos] Requisitos de nivel normales restaurados.",
       "quickToggleOn": "{0} Vehículo: ON",
@@ -9984,7 +9987,8 @@
       "zeppelin": "Zepelín Steampunk Celestial",
       "crescent_moon": "Luna Creciente de Ensueño",
       "royal_throne": "Trono Real Dorado",
-      "starfighter": "Caza Estelar Orbital"
+      "starfighter": "Caza Estelar Orbital",
+      "uifi_frog": "Rana Ui-Fi (Wi-Fi)"
     },
     "vehicleColors": {
       "red": "Rojo Carmesí",

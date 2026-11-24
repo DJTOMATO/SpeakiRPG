@@ -527,6 +527,11 @@ const SPKMOD_VEHICLE_CATALOG = [
 		code: 100, id: "starfighter", level: 99, category: "air", icon: "⭐", accent: "#38bdf8",
 		defaultName: "Orbital Starfighter", paintable: true, pose: "sit", milestone: true, sfxType: "scifi",
 		spec: { kind: "procedural", builder: "starfighter" }
+	},
+	{
+		code: 101, id: "uifi_frog", level: 50, category: "stealth", icon: "🐸", accent: "#f9a8d4",
+		defaultName: "Ui-Fi Frog (Wi-Fi)", paintable: false, pose: "none", hidePlayer: true, milestone: true, sfxType: "uifi",
+		spec: { kind: "procedural", builder: "uifiFrog" }
 	}
 ];
 
@@ -940,6 +945,17 @@ function spkmodPlayVehicleSfx(vehicle, secondary = false, gainMultiplier = 1) {
 				spkmodPlaySynthTone(ctx, "sawtooth", 210, 480, now, 0.11, v * 0.75);
 				spkmodPlaySynthTone(ctx, "sawtooth", 230, 520, now + 0.14, 0.13, v * 0.75);
 				break;
+			case "uifi":
+				// Cute mochi frog ribbit + sequential 1-2-3 Wi-Fi signal chime!
+				spkmodPlaySynthTone(ctx, "triangle", 260, 540, now, 0.09, v * 0.75);
+				spkmodPlaySynthTone(ctx, "sine", 660, 660, now + 0.09, 0.08, v * 0.55);
+				spkmodPlaySynthTone(ctx, "sine", 880, 880, now + 0.17, 0.09, v * 0.60);
+				if (!secondary) {
+					spkmodPlaySynthTone(ctx, "sine", 1175, 1320, now + 0.25, 0.14, v * 0.68);
+				} else {
+					spkmodPlaySynthTone(ctx, "sine", 988, 784, now + 0.25, 0.14, v * 0.58);
+				}
+				break;
 			case "jaws":
 				spkmodPlaySynthTone(ctx, "sawtooth", 82, 82, now, 0.18, v * 0.95);
 				spkmodPlaySynthTone(ctx, "sawtooth", 87, 87, now + 0.22, 0.22, v * 1.0);
@@ -1019,6 +1035,7 @@ function spkmodPlayVehicleSfx(vehicle, secondary = false, gainMultiplier = 1) {
 // ============================================================================
 const _spkmodVehicleGlbCache = new Map();
 let _spkmodMgsBoxTextures = null;
+let _spkmodUifiTextures = null;
 const _spkmodAlertTextures = new Map(); // "!" | "?" -> CanvasTexture
 
 async function spkmodLoadVehicleGlbScene(url, fallbackUrl) {
@@ -1220,6 +1237,181 @@ function spkmodGetAlertSpriteTexture(THREE, symbol) {
 	tex.needsUpdate = true;
 	_spkmodAlertTextures.set(key, tex);
 	return tex;
+}
+
+function spkmodGetUifiTextures(THREE) {
+	if (_spkmodUifiTextures) return _spkmodUifiTextures;
+	if (typeof document === "undefined" || !THREE || typeof THREE.CanvasTexture !== "function") return null;
+
+	const makeTex = (w, h, drawFn) => {
+		const c = document.createElement("canvas");
+		c.width = w;
+		c.height = h;
+		const ctx = c.getContext("2d");
+		if (ctx) {
+			ctx.clearRect(0, 0, w, h);
+			drawFn(ctx, w, h);
+		}
+		const tex = new THREE.CanvasTexture(c);
+		if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+		tex.needsUpdate = true;
+		return tex;
+	};
+
+	// 1. Glossy soft emerald-green Trickcal Ui frog eye with delicate dark-brown rim & cute anime highlights
+	const eyeTex = makeTex(256, 256, (ctx) => {
+		ctx.save();
+		ctx.beginPath();
+		ctx.arc(128, 128, 116, 0, Math.PI * 2);
+		const irisGrad = ctx.createRadialGradient(128, 166, 16, 128, 122, 118);
+		irisGrad.addColorStop(0, "#e2f9a8");
+		irisGrad.addColorStop(0.45, "#92ce55");
+		irisGrad.addColorStop(0.82, "#578f3e");
+		irisGrad.addColorStop(1, "#38632b");
+		ctx.fillStyle = irisGrad;
+		ctx.fill();
+
+		// Soft pastel yellow-green lower sparkle crescent (matches 3D sculpt & original drawing!)
+		ctx.beginPath();
+		ctx.ellipse(128, 174, 72, 40, 0, 0, Math.PI * 2);
+		ctx.fillStyle = "rgba(238, 252, 200, 0.78)";
+		ctx.fill();
+
+		// Soft glossy anime highlights (upper-left, upper-right, lower-center reflection)
+		ctx.fillStyle = "rgba(255, 255, 255, 0.94)";
+		ctx.beginPath();
+		ctx.ellipse(92, 92, 26, 23, -0.3, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.beginPath();
+		ctx.ellipse(166, 94, 15, 14, 0.25, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.beginPath();
+		ctx.ellipse(126, 158, 15, 21, 0, 0, Math.PI * 2);
+		ctx.fill();
+
+		// Delicate crisp dark-brown chibi rim (thin & clean — never thick creepy goggles!)
+		ctx.beginPath();
+		ctx.arc(128, 128, 116, 0, Math.PI * 2);
+		ctx.lineWidth = 11;
+		ctx.strokeStyle = "#362520";
+		ctx.stroke();
+		ctx.restore();
+	});
+
+	// 2. Full seamless 1024x512 equirectangular skin texture mapped precisely onto the SDF-sculpted Ui-Fi Frog mesh
+	// (u=0.50 is exact front +Z, u=0/1 seam is hidden at exact back -Z, zero floating decals & zero clipping!)
+	const skinTex = makeTex(1024, 512, (ctx) => {
+		ctx.save();
+		// Base warm creamy peach-white mochi skin (matches original Trickcal Ui-Fi drawing)
+		ctx.fillStyle = "#fdeee6";
+		ctx.fillRect(0, 0, 1024, 512);
+
+		const canTransform = typeof ctx.translate === "function" && typeof ctx.scale === "function";
+
+		// Subtle soft warm-taupe brow crown shading above each rounded eye dome (original drawing detail!)
+		for (const s of [-1, 1]) {
+			const bx = 512 + s * 108;
+			const by = 118;
+			ctx.save();
+			if (canTransform) {
+				ctx.translate(bx, by);
+				ctx.scale(1.15, 0.60);
+				const browShade = ctx.createRadialGradient(0, 0, 6, 0, 0, 56);
+				browShade.addColorStop(0, "rgba(116, 86, 78, 0.16)");
+				browShade.addColorStop(0.6, "rgba(126, 96, 86, 0.06)");
+				browShade.addColorStop(1, "rgba(126, 96, 86, 0)");
+				ctx.fillStyle = browShade;
+				ctx.beginPath();
+				ctx.arc(0, 0, 56, 0, Math.PI * 2);
+				ctx.fill();
+			} else {
+				const browShade = ctx.createRadialGradient(bx, by, 6, bx, by, 56);
+				browShade.addColorStop(0, "rgba(116, 86, 78, 0.16)");
+				browShade.addColorStop(1, "rgba(126, 96, 86, 0)");
+				ctx.fillStyle = browShade;
+				ctx.beginPath();
+				ctx.ellipse(bx, by, 64, 34, 0, 0, Math.PI * 2);
+				ctx.fill();
+			}
+			ctx.restore();
+		}
+
+		// Subtle soft peach mochi spots on the round back (-Z near u=0.06 and u=0.94)
+		for (const sp of [{ x: 64, y: 196, r: 42 }, { x: 960, y: 214, r: 36 }]) {
+			const spotGrad = ctx.createRadialGradient(sp.x, sp.y, 4, sp.x, sp.y, sp.r);
+			spotGrad.addColorStop(0, "rgba(235, 198, 182, 0.48)");
+			spotGrad.addColorStop(1, "rgba(235, 198, 182, 0)");
+			ctx.fillStyle = spotGrad;
+			ctx.beginPath();
+			ctx.arc(sp.x, sp.y, sp.r, 0, Math.PI * 2);
+			ctx.fill();
+		}
+
+		// Big, fat, ROUND front-facing rosy cheek blushes + mirrored soft "@" swirls calibrated to exact SDF cheek UVs!
+		for (const s of [-1, 1]) {
+			const cx = 512 + s * 124;
+			const cy = 268;
+			const rx = 58;
+			const ry = 54;
+
+			ctx.save();
+			if (canTransform) {
+				ctx.translate(cx, cy);
+				ctx.scale(rx / 100, ry / 100);
+				const blush = ctx.createRadialGradient(0, 0, 14, 0, 0, 102);
+				blush.addColorStop(0, "rgba(244, 148, 154, 0.88)");
+				blush.addColorStop(0.66, "rgba(246, 162, 168, 0.72)");
+				blush.addColorStop(1, "rgba(246, 162, 168, 0)");
+				ctx.fillStyle = blush;
+				ctx.beginPath();
+				ctx.arc(0, 0, 104, 0, Math.PI * 2);
+				ctx.fill();
+			} else {
+				const blush = ctx.createRadialGradient(cx, cy, 10, cx, cy, rx);
+				blush.addColorStop(0, "rgba(244, 148, 154, 0.88)");
+				blush.addColorStop(1, "rgba(246, 162, 168, 0)");
+				ctx.fillStyle = blush;
+				ctx.beginPath();
+				ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+				ctx.fill();
+			}
+			ctx.restore();
+
+			// Loose, soft round mirrored "@" swirl centered cleanly on each plump front cheek!
+			ctx.beginPath();
+			const turns = 1.85;
+			const steps = 88;
+			for (let i = 0; i <= steps; i++) {
+				const t = (i / steps) * Math.PI * 2 * turns;
+				const r = 4.5 + (i / steps) * 35;
+				const px = cx + (s === 1 ? -1 : 1) * Math.cos(t) * r * 1.05;
+				const py = cy + Math.sin(t) * r * 0.96;
+				if (i === 0) ctx.moveTo(px, py);
+				else ctx.lineTo(px, py);
+			}
+			ctx.lineWidth = 5.4;
+			ctx.lineCap = "round";
+			ctx.lineJoin = "round";
+			ctx.strokeStyle = "rgba(202, 96, 110, 0.78)";
+			ctx.stroke();
+		}
+
+		// Sweet, gentle wavy ":3" frog smile sitting cleanly between the lower inner eyes & round cheeks!
+		ctx.beginPath();
+		ctx.moveTo(458, 224);
+		ctx.quadraticCurveTo(485, 241, 512, 226);
+		ctx.quadraticCurveTo(539, 241, 566, 224);
+		ctx.lineWidth = 7.2;
+		ctx.lineCap = "round";
+		ctx.lineJoin = "round";
+		ctx.strokeStyle = "#4d312e";
+		ctx.stroke();
+
+		ctx.restore();
+	});
+
+	_spkmodUifiTextures = { eyeTex, skinTex };
+	return _spkmodUifiTextures;
 }
 
 function spkmodAddWheelPair(THREE, parent, xHalf, y, z, radius, width, tireMat, rimMat, wheelsOut) {
@@ -2937,6 +3129,191 @@ function spkmodBuildCenturyProceduralVehicle(THREE, builderName, colorHex, root,
 			animParts.push({ type: "flamePulse", node: thr });
 		}
 		return { seatOffsetY: 0.96, hoverY: 0.52, hoverAmp: 0.13 };
+	} else if (builderName === "uifiFrog") {
+		// Iconic Trickcal "Ui-Fi" smooth metaball-SDF sculpted mochi frog (plump round head, broad brow pillows, fat round cheeks, flush glossy eyes, sequential 1-2-3 Wi-Fi waves!)
+		const uifiTex = spkmodGetUifiTextures(THREE);
+		const bodyMat = uifiTex?.skinTex
+			? spkmodVehMat(THREE, 0xffffff, {
+				map: uifiTex.skinTex,
+				emissive: 0xffffff,
+				emissiveMap: uifiTex.skinTex,
+				emissiveIntensity: 0.30
+			})
+			: spkmodVehMat(THREE, 0xfdeee6, { emissive: 0xffe4d6, emissiveIntensity: 0.26 });
+		const limbMat = spkmodVehMat(THREE, 0xfdeee6, { emissive: 0xffe8dc, emissiveIntensity: 0.28 });
+		const eyeRimMat = spkmodVehMat(THREE, 0x3b4d2b, { emissive: 0x26341a, emissiveIntensity: 0.18 });
+		const wifiMat = spkmodVehMat(THREE, 0x4b74d6, { emissive: 0x3b82f6, emissiveIntensity: 0.42 });
+
+		// Helper: creates a smooth front-projected curved iris dome for the flush eyeballs
+		const makeEyeCap = (radius, phiMax, mat) => {
+			const geo = new THREE.SphereGeometry(radius, 22, 16, 0, Math.PI * 2, 0, phiMax);
+			if (typeof geo.rotateX === "function") geo.rotateX(Math.PI / 2);
+			const pos = geo.attributes && geo.attributes.position;
+			const uv = geo.attributes && geo.attributes.uv;
+			if (pos && uv && typeof pos.getX === "function" && typeof uv.setXY === "function") {
+				const maxXY = (radius * Math.sin(phiMax)) || 1;
+				for (let i = 0; i < pos.count; i++) {
+					const x = pos.getX(i);
+					const y = pos.getY(i);
+					uv.setXY(i, 0.5 + (x / (2 * maxXY)), 0.5 + (y / (2 * maxXY)));
+				}
+				uv.needsUpdate = true;
+			}
+			return new THREE.Mesh(geo, mat);
+		};
+
+		// 1. Single seamlessly sculpted clay/metaball-SDF mochi frog body (zero pointy corners, zero seams, plump round back & cheeks!)
+		// phiStart = -PI/2 puts u=0.50 on exact front (+Z) and hides the u=0/1 UV seam at exact back (-Z).
+		const smin = (a, b, k) => {
+			const h = Math.max(k - Math.abs(a - b), 0) / k;
+			return Math.min(a, b) - h * h * k * 0.25;
+		};
+		const sdEllipsoid = (px, py, pz, cx, cy, cz, rx, ry, rz) => {
+			const x = (px - cx) / rx, y = (py - cy) / ry, z = (pz - cz) / rz;
+			const k0 = Math.hypot(x, y, z);
+			if (k0 < 1e-6) return -Math.min(rx, ry, rz);
+			const k1 = Math.hypot(x / rx, y / ry, z / rz);
+			return k0 * (k0 - 1) / k1;
+		};
+		const sdFrog = (px, py, pz) => {
+			// Main plump mochi body loaf (round back, soft full belly)
+			let d = sdEllipsoid(px, py, pz, 0, 0.58, -0.05, 0.94, 0.54, 0.86);
+			// Plump upper head / forehead dome (connects both brow arches smoothly & rounds out the back)
+			d = smin(d, sdEllipsoid(px, py, pz, 0, 0.92, 0.14, 0.72, 0.39, 0.68), 0.26);
+			// Twin broad, soft, rounded frog eye-brow pillows (no pointy cat ears!)
+			for (const s of [-1, 1]) {
+				d = smin(d, sdEllipsoid(px, py, pz, s * 0.45, 1.07, 0.44, 0.35, 0.33, 0.36), 0.22);
+			}
+			// Twin big, fat, ROUND pillowy cheeks (smooth marshmallows, no pointy triangle edges!)
+			for (const s of [-1, 1]) {
+				d = smin(d, sdEllipsoid(px, py, pz, s * 0.78, 0.56, 0.30, 0.48, 0.38, 0.46), 0.26);
+			}
+			// Soft flat mochi belly underside at y = 0.12
+			const dBottom = 0.12 - py;
+			const kb = 0.18;
+			const hb = Math.max(kb - Math.abs(d - dBottom), 0) / kb;
+			return Math.max(d, dBottom) + hb * hb * kb * 0.25;
+		};
+
+		const bodyGeo = new THREE.SphereGeometry(1, 60, 44, -Math.PI / 2);
+		const posAttr = bodyGeo.attributes && bodyGeo.attributes.position;
+		if (posAttr && typeof posAttr.getX === "function" && typeof posAttr.setXYZ === "function") {
+			const ox = 0, oy = 0.66, oz = 0.06;
+			for (let i = 0; i < posAttr.count; i++) {
+				const nx = posAttr.getX(i);
+				const ny = posAttr.getY(i);
+				const nz = posAttr.getZ(i);
+				let lo = 0.10, hi = 2.00;
+				for (let it = 0; it < 16; it++) {
+					const mid = (lo + hi) * 0.5;
+					if (sdFrog(ox + nx * mid, oy + ny * mid, oz + nz * mid) < 0) lo = mid;
+					else hi = mid;
+				}
+				const r = (lo + hi) * 0.5;
+				posAttr.setXYZ(i, ox + nx * r, oy + ny * r, oz + nz * r);
+			}
+			posAttr.needsUpdate = true;
+			if (typeof bodyGeo.computeVertexNormals === "function") {
+				bodyGeo.computeVertexNormals();
+			}
+		}
+		bodyGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
+
+		// 2. Compact, FLUSH, glossy round emerald eyes nestled softly inside the rounded cream brow domes (zero creepy bug-eye protrusion!)
+		for (const s of [-1, 1]) {
+			const eyeGroup = new THREE.Group();
+			eyeGroup.position.set(s * 0.45, 1.08, 0.78);
+			eyeGroup.rotation.set(-0.07, s * 0.14, 0);
+			eyeGroup.scale.set(1.0, 1.0, 0.48);
+			// Soft olive-brown shallow backing (tucked completely inside brow — no black goggle cylinder from side!)
+			put(eyeGroup, new THREE.SphereGeometry(0.198, 18, 14), eyeRimMat, [0, 0, -0.02]);
+			if (uifiTex?.eyeTex) {
+				const eyeMat = new THREE.MeshBasicMaterial({
+					map: uifiTex.eyeTex,
+					transparent: true,
+					depthWrite: false
+				});
+				const eyeCap = makeEyeCap(0.205, Math.PI * 0.48, eyeMat);
+				eyeCap.renderOrder = 4;
+				eyeGroup.add(eyeCap);
+			}
+			bodyGroup.add(eyeGroup);
+		}
+
+		// 3. Soft sculpted mochi front arms (rounded capsules, no flat cylinder tops!) & tucked hind frog legs
+		for (const s of [-1, 1]) {
+			// Folded rear haunch nestled smoothly behind the fat cheek + neat flat webbed hind foot
+			put(bodyGroup, new THREE.SphereGeometry(0.24, 14, 12), limbMat, [s * 0.90, 0.27, -0.24], [0, s * -0.22, s * 0.14], [0.72, 0.88, 1.12]);
+			put(bodyGroup, new THREE.SphereGeometry(0.19, 12, 10), limbMat, [s * 0.92, 0.06, -0.04], [0, s * -0.32, 0], [1.18, 0.34, 0.95]);
+			for (const tz of [-0.07, 0, 0.07]) {
+				put(bodyGroup, new THREE.SphereGeometry(0.045, 8, 6), limbMat, [s * 1.05, 0.05, 0.04 + tz], null, [1.2, 0.55, 0.9]);
+			}
+			// Soft rounded inward-angled front arm ("/   \") — smooth sculpted ellipsoid + rounded paw (zero sharp cylinder edge!)
+			put(bodyGroup, new THREE.SphereGeometry(0.125, 14, 12), limbMat, [s * 0.52, 0.25, 0.62], [0.36, 0, s * -0.46], [0.78, 1.55, 0.82]);
+			put(bodyGroup, new THREE.SphereGeometry(0.105, 12, 10), limbMat, [s * 0.40, 0.08, 0.72], null, [1.10, 0.56, 1.15]);
+			for (const tx of [-0.048, 0.048]) {
+				put(bodyGroup, new THREE.SphereGeometry(0.042, 8, 6), limbMat, [s * 0.40 + tx, 0.05, 0.80], null, [0.95, 0.6, 1.25]);
+			}
+		}
+
+		// 4. TWIN SEQUENTIAL 1 -> 2 -> 3 WI-FI WAVES cleanly above the soft rounded frog eye-brows!
+		const wifiTiers = [[], [], []];
+		const waveSpecs = [
+			{ radius: 0.185, tube: 0.045, arc: Math.PI * 0.58 }, // 1: Small
+			{ radius: 0.340, tube: 0.049, arc: Math.PI * 0.56 }, // 2: Medium
+			{ radius: 0.500, tube: 0.053, arc: Math.PI * 0.54 }  // 3: Big
+		];
+		for (const s of [-1, 1]) {
+			const emitter = new THREE.Group();
+			emitter.position.set(s * 0.45, 1.42, 0.48);
+			emitter.rotation.z = s * -0.16; // Slightly fanned outward like cute Wi-Fi eyebrows!
+			bodyGroup.add(emitter);
+
+			waveSpecs.forEach((ws, idx) => {
+				const waveGroup = new THREE.Group();
+				const arcMesh = new THREE.Mesh(new THREE.TorusGeometry(ws.radius, ws.tube, 10, 22, ws.arc), wifiMat);
+				arcMesh.rotation.z = (Math.PI - ws.arc) * 0.5;
+				waveGroup.add(arcMesh);
+				const half = ws.arc * 0.5;
+				const capX = Math.sin(half) * ws.radius;
+				const capY = Math.cos(half) * ws.radius;
+				for (const cs of [-1, 1]) {
+					const cap = new THREE.Mesh(new THREE.SphereGeometry(ws.tube * 1.04, 8, 8), wifiMat);
+					cap.position.set(cs * capX, capY, 0);
+					waveGroup.add(cap);
+				}
+				emitter.add(waveGroup);
+				wifiTiers[idx].push(waveGroup);
+			});
+		}
+
+		animParts.push({ type: "wifiWave", tiers: wifiTiers, cycleSec: 1.5 });
+		animParts.push({ type: "mochiSquish", node: bodyGroup });
+
+		// Alert sprite floating cleanly above the big Wi-Fi waves
+		const alertTex = spkmodGetAlertSpriteTexture(THREE, "!");
+		const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false, depthWrite: false });
+		const alertSprite = new THREE.Sprite(alertMat);
+		alertSprite.name = "spkmod_vehicle_alert_sprite";
+		alertSprite.userData = Object.assign(alertSprite.userData || {}, { spkmodVehicleAlert: true, spkmodSkipNametagClear: true });
+		alertSprite.renderOrder = 999;
+		alertSprite.position.set(0, 2.58, 0);
+		alertSprite.scale.set(0.78, 0.78, 1);
+		alertSprite.visible = false;
+		root.add(alertSprite);
+
+		return {
+			seatOffsetY: 0,
+			extra: {
+				isMgsBox: true,
+				isUifiFrog: true,
+				leftFoot: null,
+				rightFoot: null,
+				hopAmp: 0.14,
+				alertSprite,
+				alertBaseY: 2.58
+			}
+		};
 	}
 	return null;
 }
@@ -3470,6 +3847,8 @@ async function spkmodSpawnLocalVehicle(vehicleId, colorIdx) {
 		hiddenAvatarRoot: null,
 		lastX: gameState.playerContainer.position ? gameState.playerContainer.position.x : 0,
 		lastZ: gameState.playerContainer.position ? gameState.playerContainer.position.z : 0,
+		lastMoveMs: -Infinity,
+		moveBlend: 0,
 		walkPhase: 0,
 		stealthLift: 0,
 		alertStartMs: 0,
@@ -3530,7 +3909,8 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 		entry.root.scale.setScalar(ownerScale);
 	}
 
-	// Calculate horizontal travel speed since last frame
+	// Calculate horizontal travel speed since last frame with 120ms hysteresis + smooth moveBlend
+	// (prevents high-Hz RAF loops from flickering idle/moving on frames skipped by the game's frameLimit)
 	let dist = 0;
 	if (container.position) {
 		const dx = container.position.x - entry.lastX;
@@ -3541,7 +3921,16 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 			entry.lastZ = container.position.z;
 		}
 	}
-	const isMoving = dist > 0.004;
+	const movedThisFrame = dist > 0.0025;
+	if (movedThisFrame) {
+		entry.lastMoveMs = nowMs;
+	}
+	const lastMoveMs = typeof entry.lastMoveMs === "number" ? entry.lastMoveMs : -Infinity;
+	const isMoving = movedThisFrame || (nowMs >= lastMoveMs && (nowMs - lastMoveMs) < 120);
+	const prevBlend = typeof entry.moveBlend === "number" ? entry.moveBlend : 0;
+	const rawBlend = prevBlend + ((isMoving ? 1 : 0) - prevBlend) * Math.min(1, dt * (isMoving ? 14 : 9));
+	const moveBlend = (!isMoving && rawBlend < 0.001) ? 0 : ((isMoving && rawBlend > 0.999) ? 1 : rawBlend);
+	entry.moveBlend = moveBlend;
 	const tSec = nowMs * 0.001;
 
 	// Spin wheels proportionally to ground distance covered (scaled by owner size potion)
@@ -3552,74 +3941,36 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 		}
 	}
 
-	// Hover / Bob / Rock / Chug motion
+	// Hover / Bob / Rock / Chug motion (smoothly blended via moveBlend)
 	let hoverDelta = 0;
 	if (entry.hoverY > 0 || entry.hoverAmp > 0) {
 		hoverDelta = Math.sin(tSec * 2.6) * (entry.hoverAmp || 0.08);
 		entry.bodyGroup.position.y = (entry.hoverY || 0) + hoverDelta;
-		entry.bodyGroup.rotation.x = isMoving ? 0.08 : Math.sin(tSec * 1.4) * 0.025;
+		const idlePitch = Math.sin(tSec * 1.4) * 0.025;
+		entry.bodyGroup.rotation.x = idlePitch * (1 - moveBlend) + 0.08 * moveBlend;
 	} else if (entry.waddleAmp) {
-		if (isMoving) entry.walkPhase += dt * 11;
-		entry.bodyGroup.rotation.z = isMoving ? Math.sin(entry.walkPhase) * entry.waddleAmp : Math.sin(tSec * 2.0) * 0.02;
-		entry.bodyGroup.position.y = isMoving ? Math.abs(Math.sin(entry.walkPhase)) * 0.06 : 0;
+		if (moveBlend > 0.005) entry.walkPhase += dt * 11 * moveBlend;
+		const idleRoll = Math.sin(tSec * 2.0) * 0.02;
+		entry.bodyGroup.rotation.z = idleRoll * (1 - moveBlend) + Math.sin(entry.walkPhase) * entry.waddleAmp * moveBlend;
+		entry.bodyGroup.position.y = Math.abs(Math.sin(entry.walkPhase)) * 0.06 * moveBlend;
 	} else if (entry.rockAmp) {
-		if (isMoving) entry.walkPhase += dt * 12;
-		entry.bodyGroup.rotation.x = isMoving ? Math.sin(entry.walkPhase) * entry.rockAmp : Math.sin(tSec * 2.5) * 0.04;
+		if (moveBlend > 0.005) entry.walkPhase += dt * 12 * moveBlend;
+		const idleRock = Math.sin(tSec * 2.5) * 0.04;
+		entry.bodyGroup.rotation.x = idleRock * (1 - moveBlend) + Math.sin(entry.walkPhase) * entry.rockAmp * moveBlend;
 	} else if (entry.chugAmp) {
-		if (isMoving) entry.walkPhase += dt * 14;
-		entry.bodyGroup.position.y = isMoving ? Math.abs(Math.sin(entry.walkPhase)) * entry.chugAmp : 0;
-		entry.bodyGroup.rotation.z = isMoving ? Math.sin(entry.walkPhase * 0.5) * 0.035 : 0;
+		if (moveBlend > 0.005) entry.walkPhase += dt * 14 * moveBlend;
+		entry.bodyGroup.position.y = Math.abs(Math.sin(entry.walkPhase)) * entry.chugAmp * moveBlend;
+		entry.bodyGroup.rotation.z = Math.sin(entry.walkPhase * 0.5) * 0.035 * moveBlend;
 	} else if (entry.hopAmp && !entry.vehicle.hidePlayer) {
-		if (isMoving) entry.walkPhase += dt * 9;
-		hoverDelta = isMoving ? Math.abs(Math.sin(entry.walkPhase)) * entry.hopAmp : 0;
+		if (moveBlend > 0.005) entry.walkPhase += dt * 9 * moveBlend;
+		hoverDelta = Math.abs(Math.sin(entry.walkPhase)) * entry.hopAmp * moveBlend;
 		entry.bodyGroup.position.y = hoverDelta;
-		entry.bodyGroup.rotation.x = isMoving ? Math.cos(entry.walkPhase) * 0.10 : 0;
-	}
-
-	// Animated subparts (police siren lights, UFO disc, heli rotors, mech legs, spinning chairs/Roomba, trash lid)
-	if (entry.animParts && entry.animParts.length > 0) {
-		for (let i = 0; i < entry.animParts.length; i++) {
-			const p = entry.animParts[i];
-			if (!p) continue;
-			if (p.type === "siren") {
-				const phase = Math.floor(tSec * 7) % 2 === 0;
-				if (p.red) p.red.scale.setScalar(phase ? 1.18 : 0.72);
-				if (p.blue) p.blue.scale.setScalar(phase ? 0.72 : 1.18);
-			} else if (p.type === "spinY" && p.node) {
-				p.node.rotation.y = tSec * (p.speed || 2.0);
-			} else if (p.type === "spinX" && p.node) {
-				p.node.rotation.x = tSec * (p.speed || 16.0);
-			} else if (p.type === "spinMoveY" && p.node) {
-				p.node.rotation.y += dt * (isMoving ? (p.speed || 5.0) : 0.45);
-			} else if (p.type === "legWalk" && p.node) {
-				if (isMoving) p.node.rotation.x = Math.sin(tSec * 10 + (p.side === 1 ? Math.PI : 0)) * 0.48;
-				else p.node.rotation.x *= 0.82;
-			} else if (p.type === "lidBounce" && p.node) {
-				p.node.position.y = (p.baseY || 1.2) + (isMoving ? Math.abs(Math.sin(tSec * 12)) * 0.14 : 0);
-				p.node.rotation.z = isMoving ? Math.sin(tSec * 12) * 0.16 : 0;
-			} else if (p.type === "pulseScale" && p.node) {
-				const s = 1 + Math.sin(tSec * (p.speed || 6)) * (p.amp || 0.12);
-				p.node.scale.set(s, 1, s);
-			} else if (p.type === "flamePulse" && p.node) {
-				const s = (isMoving ? 1.15 : 0.72) + Math.sin(tSec * 22) * 0.25;
-				p.node.scale.set(1, s, 1);
-			} else if (p.type === "spinZ" && p.node) {
-				p.node.rotation.z = tSec * (p.speed || 12.0);
-			} else if (p.type === "bobY" && p.node) {
-				p.node.position.y = (p.baseY || 0) + Math.sin(tSec * (p.speed || 3.5)) * (p.amp || 0.10);
-			} else if (p.type === "rollForward" && p.node) {
-				if (dist > 0.0001) {
-					p.node.rotation.x += dist / Math.max(0.1, (p.radius || 0.5) * ownerScale);
-				}
-			} else if (p.type === "wingFlap" && p.node) {
-				p.node.rotation.z = (p.baseZ || 0) + Math.sin(tSec * (p.speed || 7.0)) * (p.amp || 0.25) * (p.side || 1);
-			}
-		}
+		entry.bodyGroup.rotation.x = Math.cos(entry.walkPhase) * 0.10 * moveBlend;
 	}
 
 	entry._lastHoverDelta = hoverDelta;
 
-	// Stealth MGS Cardboard Box mode vs normal mount vehicle
+	// Stealth MGS Cardboard Box mode vs Ui-Fi Frog hop vs normal mount vehicle
 	if (entry.vehicle.hidePlayer) {
 		if (avatarRoot) {
 			if (entry.hiddenAvatarRoot && entry.hiddenAvatarRoot !== avatarRoot) {
@@ -3633,24 +3984,40 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 			spkmodExitVehicleMountSit(ctrl);
 		}
 
-		const targetLift = isMoving ? 0.14 : 0;
-		entry.stealthLift += (targetLift - entry.stealthLift) * Math.min(1, dt * 16);
-		if (isMoving) entry.walkPhase += dt * 13;
-		const hop = isMoving ? Math.abs(Math.sin(entry.walkPhase)) * (entry.hopAmp || 0.04) : 0;
-		entry.bodyGroup.position.y = entry.stealthLift + hop;
-		entry.bodyGroup.rotation.z = isMoving ? Math.sin(entry.walkPhase) * 0.075 : 0;
-		entry.bodyGroup.rotation.x = isMoving ? Math.sin(entry.walkPhase * 2) * 0.03 : 0;
+		if (entry.isUifiFrog) {
+			// Dedicated smooth frog hop: grounded pause + soft C1-continuous arch, ZERO diagonal box-waddle!
+			entry.stealthLift = 0;
+			if (moveBlend > 0.005) {
+				entry.walkPhase += dt * 7.2 * Math.max(0.35, moveBlend);
+			}
+			const s = Math.sin(entry.walkPhase);
+			const air = s > 0 ? Math.pow(s, 1.35) : 0;
+			const ground = s < 0 ? -s : 0;
+			entry._uifiAir = air;
+			entry._uifiGround = ground;
+			entry.bodyGroup.position.y = air * (entry.hopAmp || 0.14) * moveBlend;
+			entry.bodyGroup.rotation.z = 0;
+			entry.bodyGroup.rotation.x = (s > 0 ? -Math.sin(entry.walkPhase * 2) * 0.04 : 0) * moveBlend;
+		} else {
+			const targetLift = isMoving ? 0.14 : 0;
+			entry.stealthLift += (targetLift - entry.stealthLift) * Math.min(1, dt * 16);
+			if (moveBlend > 0.005) entry.walkPhase += dt * 13 * moveBlend;
+			const hop = Math.abs(Math.sin(entry.walkPhase)) * (entry.hopAmp || 0.04) * moveBlend;
+			entry.bodyGroup.position.y = entry.stealthLift + hop;
+			entry.bodyGroup.rotation.z = Math.sin(entry.walkPhase) * 0.075 * moveBlend;
+			entry.bodyGroup.rotation.x = Math.sin(entry.walkPhase * 2) * 0.03 * moveBlend;
 
-		const showFeet = entry.stealthLift > 0.02;
-		if (entry.leftFoot && entry.rightFoot) {
-			entry.leftFoot.visible = showFeet;
-			entry.rightFoot.visible = showFeet;
-			if (showFeet) {
-				const stride = Math.sin(entry.walkPhase) * 0.16;
-				entry.leftFoot.position.z = stride;
-				entry.rightFoot.position.z = -stride;
-				entry.leftFoot.position.y = 0.08 + Math.max(0, Math.cos(entry.walkPhase)) * 0.05;
-				entry.rightFoot.position.y = 0.08 + Math.max(0, -Math.cos(entry.walkPhase)) * 0.05;
+			const showFeet = entry.stealthLift > 0.02;
+			if (entry.leftFoot && entry.rightFoot) {
+				entry.leftFoot.visible = showFeet;
+				entry.rightFoot.visible = showFeet;
+				if (showFeet) {
+					const stride = Math.sin(entry.walkPhase) * 0.16 * moveBlend;
+					entry.leftFoot.position.z = stride;
+					entry.rightFoot.position.z = -stride;
+					entry.leftFoot.position.y = 0.08 + Math.max(0, Math.cos(entry.walkPhase)) * 0.05 * moveBlend;
+					entry.rightFoot.position.y = 0.08 + Math.max(0, -Math.cos(entry.walkPhase)) * 0.05 * moveBlend;
+				}
 			}
 		}
 	} else {
@@ -3674,6 +4041,76 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 		} else if (entry.vehicle.pose === "stand") {
 			if (ctrl && ctrl.mountSitPlaying) {
 				spkmodExitVehicleMountSit(ctrl);
+			}
+		}
+	}
+
+	// Animated subparts (police siren lights, UFO disc, heli rotors, mech legs, spinning chairs/Roomba, trash lid, Wi-Fi waves, mochi squish)
+	if (entry.animParts && entry.animParts.length > 0) {
+		for (let i = 0; i < entry.animParts.length; i++) {
+			const p = entry.animParts[i];
+			if (!p) continue;
+			if (p.type === "siren") {
+				const phase = Math.floor(tSec * 7) % 2 === 0;
+				if (p.red) p.red.scale.setScalar(phase ? 1.18 : 0.72);
+				if (p.blue) p.blue.scale.setScalar(phase ? 0.72 : 1.18);
+			} else if (p.type === "spinY" && p.node) {
+				p.node.rotation.y = tSec * (p.speed || 2.0);
+			} else if (p.type === "spinX" && p.node) {
+				p.node.rotation.x = tSec * (p.speed || 16.0);
+			} else if (p.type === "spinMoveY" && p.node) {
+				p.node.rotation.y += dt * (0.45 + ((p.speed || 5.0) - 0.45) * moveBlend);
+			} else if (p.type === "legWalk" && p.node) {
+				if (moveBlend > 0.005) p.node.rotation.x = Math.sin(tSec * 10 + (p.side === 1 ? Math.PI : 0)) * 0.48 * moveBlend;
+				else p.node.rotation.x *= 0.82;
+			} else if (p.type === "lidBounce" && p.node) {
+				p.node.position.y = (p.baseY || 1.2) + Math.abs(Math.sin(tSec * 12)) * 0.14 * moveBlend;
+				p.node.rotation.z = Math.sin(tSec * 12) * 0.16 * moveBlend;
+			} else if (p.type === "pulseScale" && p.node) {
+				const s = 1 + Math.sin(tSec * (p.speed || 6)) * (p.amp || 0.12);
+				p.node.scale.set(s, 1, s);
+			} else if (p.type === "flamePulse" && p.node) {
+				const s = (0.72 + 0.43 * moveBlend) + Math.sin(tSec * 22) * 0.25;
+				p.node.scale.set(1, s, 1);
+			} else if (p.type === "spinZ" && p.node) {
+				p.node.rotation.z = tSec * (p.speed || 12.0);
+			} else if (p.type === "bobY" && p.node) {
+				p.node.position.y = (p.baseY || 0) + Math.sin(tSec * (p.speed || 3.5)) * (p.amp || 0.10);
+			} else if (p.type === "rollForward" && p.node) {
+				if (dist > 0.0001) {
+					p.node.rotation.x += dist / Math.max(0.1, (p.radius || 0.5) * ownerScale);
+				}
+			} else if (p.type === "wingFlap" && p.node) {
+				p.node.rotation.z = (p.baseZ || 0) + Math.sin(tSec * (p.speed || 7.0)) * (p.amp || 0.25) * (p.side || 1);
+			} else if (p.type === "wifiWave" && Array.isArray(p.tiers)) {
+				// Sequential Wi-Fi signal waves appearing in strict 1 -> 2 -> 3 order (small -> medium -> big)
+				const cycle = p.cycleSec || 1.5;
+				const phase = ((tSec % cycle) + cycle) % cycle / cycle;
+				const thresholds = [0.14, 0.36, 0.58];
+				const activeTier = phase >= 0.92 ? 0 : (phase >= thresholds[2] ? 3 : (phase >= thresholds[1] ? 2 : (phase >= thresholds[0] ? 1 : 0)));
+				for (let ti = 0; ti < p.tiers.length; ti++) {
+					const show = activeTier >= (ti + 1);
+					const localElapsed = phase - (thresholds[ti] || 0);
+					const pop = (show && localElapsed >= 0 && localElapsed < 0.09)
+						? (0.76 + Math.sin((localElapsed / 0.09) * Math.PI) * 0.32 + (localElapsed / 0.09) * 0.24)
+						: 1.0;
+					const clampedScale = show ? Math.min(1.14, pop) : 1.0;
+					const nodes = p.tiers[ti];
+					for (let ni = 0; ni < nodes.length; ni++) {
+						const nd = nodes[ni];
+						if (!nd) continue;
+						nd.visible = show;
+						if (show && nd.scale && typeof nd.scale.setScalar === "function") {
+							nd.scale.setScalar(clampedScale);
+						}
+					}
+				}
+			} else if (p.type === "mochiSquish" && p.node && p.node.scale) {
+				// Phase-locked soft mochi frog breathing idle + gentle hop stretch/cushion (zero rapid vibration)
+				const idleSquish = Math.sin(tSec * 2.4) * 0.025;
+				const moveSquish = ((entry._uifiAir || 0) * 0.055) - ((entry._uifiGround || 0) * 0.05);
+				const squish = idleSquish * (1 - moveBlend) + moveSquish * moveBlend;
+				p.node.scale.set(1 - squish * 0.5, 1 + squish, 1 - squish * 0.5);
 			}
 		}
 	}
@@ -3785,6 +4222,8 @@ async function spkmodSpawnOrUpdateRemoteVehicle(ownerKey, state, resolved) {
 		hiddenAvatarRoot: null,
 		lastX: live.rp.container.position ? live.rp.container.position.x : 0,
 		lastZ: live.rp.container.position ? live.rp.container.position.z : 0,
+		lastMoveMs: -Infinity,
+		moveBlend: 0,
 		walkPhase: 0,
 		stealthLift: 0,
 		alertStartMs: 0,
