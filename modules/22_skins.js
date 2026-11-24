@@ -2149,39 +2149,142 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 			}
 		}
 		if (head || spine) {
-			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_royal_cape", new THREE.Vector3(0, 0.10, -0.74));
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_royal_cape", new THREE.Vector3(0, 0.14, -0.72));
 			const capeAnchor = back?.anchor;
 			if (capeAnchor) {
-				const capeMat = toon(0x991b1b, { side: THREE.DoubleSide });
-				const furMat = toon(0xf8fafc, { side: THREE.DoubleSide });
-				const goldMat = toon(0xffd700, { emissive: 0xb45309, emissiveIntensity: 0.35, side: THREE.DoubleSide });
-				// Keep neck collar & gold clasp anchored smoothly on Speaki's collar
-				const collar = new THREE.Mesh(new THREE.TorusGeometry(0.20, 0.048, 8, 18), furMat);
-				collar.rotation.x = Math.PI / 2;
-				collar.position.set(0, 0.02, 0.69);
-				capeAnchor.add(collar);
-				const clasp = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), goldMat);
-				clasp.position.set(0, 0.02, 0.87);
-				capeAnchor.add(clasp);
-				// Curved royal velvet cape wrapping smoothly outside the rounded back of Speaki's veil
+				const capeMat = toon(0xb91c1c, { side: THREE.DoubleSide });
+				const pleatMat = toon(0x991b1b);
+				const liningMat = toon(0x7f1d1d, { side: THREE.DoubleSide });
+				const furMat = toon(0xf8fafc);
+				const spotMat = toon(0x111827);
+				const goldMat = toon(0xffd700, { emissive: 0xb45309, emissiveIntensity: 0.42, side: THREE.DoubleSide });
+				const gemMat = toon(0x38bdf8, { emissive: 0x0284c7, emissiveIntensity: 0.65 });
+				const rubyMat = toon(0xef4444, { emissive: 0xb91c1c, emissiveIntensity: 0.60 });
+
+				// Sweeping volumetric Lv.100 royal monarch mantle concentric with Speaki's veil, with sculpted pleats, plush ermine fur & gold crest
 				const capeGroup = new THREE.Group();
-				const arcStart = Math.PI - 0.56;
-				const arcLen = 1.12;
-				const cylZ = 0.68;
-				const topTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.71, 0.74, 0.10, 18, 1, true, arcStart, arcLen), furMat);
-				topTrim.position.set(0, -0.05, cylZ);
-				capeGroup.add(topTrim);
-				const mantle = new THREE.Mesh(new THREE.CylinderGeometry(0.715, 0.885, 0.58, 18, 1, true, arcStart, arcLen), capeMat);
-				mantle.position.set(0, -0.30, cylZ);
+				const arcHalf = 0.85;
+				const arcStart = Math.PI - arcHalf;
+				const arcLen = arcHalf * 2;
+				const cylZ = 0.66;
+				const rTop = 0.68;
+				const rBot = 1.12;
+				const capeH = 0.74;
+				const capeCenterY = -0.39;
+				const flareTilt = Math.atan2(rBot - rTop, capeH);
+
+				// Outer royal crimson velvet shell + recessed inner lining for thick fabric volume
+				const mantle = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, capeH, 24, 1, true, arcStart, arcLen), capeMat);
+				mantle.position.set(0, capeCenterY, cylZ);
 				capeGroup.add(mantle);
-				const goldTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.865, 0.88, 0.042, 18, 1, true, arcStart, arcLen), goldMat);
-				goldTrim.position.set(0, -0.52, cylZ);
+
+				const lining = new THREE.Mesh(new THREE.CylinderGeometry(rTop - 0.025, rBot - 0.03, capeH - 0.02, 20, 1, true, arcStart + 0.02, arcLen - 0.04), liningMat);
+				lining.position.set(0, capeCenterY, cylZ);
+				capeGroup.add(lining);
+
+				// 5 sculpted 3D drapery folds catching toon light along the sweeping back
+				for (const aOff of [-0.60, -0.30, 0, 0.30, 0.60]) {
+					const ang = Math.PI + aOff;
+					const rMid = (rTop + rBot) * 0.5 + 0.012;
+					const fold = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.105, capeH + 0.02, 10), aOff === 0 ? capeMat : pleatMat);
+					const pivot = new THREE.Group();
+					pivot.position.set(Math.sin(ang) * rMid, capeCenterY, cylZ + Math.cos(ang) * rMid);
+					pivot.rotation.y = aOff;
+					fold.rotation.x = flareTilt;
+					pivot.add(fold);
+					capeGroup.add(pivot);
+				}
+
+				// Gleaming gold brocade side borders + lower embroidered border band
+				for (const side of [-1, 1]) {
+					const ang = Math.PI + side * (arcHalf - 0.02);
+					const rMid = (rTop + rBot) * 0.5 + 0.015;
+					const edgePivot = new THREE.Group();
+					edgePivot.position.set(Math.sin(ang) * rMid, capeCenterY, cylZ + Math.cos(ang) * rMid);
+					edgePivot.rotation.y = side * (arcHalf - 0.02);
+					const border = new THREE.Mesh(new THREE.BoxGeometry(0.052, capeH + 0.08, 0.042), goldMat);
+					border.rotation.x = flareTilt;
+					edgePivot.add(border);
+					capeGroup.add(edgePivot);
+				}
+
+				const goldTrim = new THREE.Mesh(new THREE.CylinderGeometry(rBot - 0.088, rBot - 0.036, 0.068, 24, 1, true, arcStart, arcLen), goldMat);
+				goldTrim.position.set(0, -0.66, cylZ);
 				capeGroup.add(goldTrim);
-				const hem = new THREE.Mesh(new THREE.CylinderGeometry(0.88, 0.905, 0.09, 18, 1, true, arcStart, arcLen), furMat);
-				hem.position.set(0, -0.58, cylZ);
-				capeGroup.add(hem);
+
+				// Plush 3D snow-white ermine fur collar snug against the upper veil with black ermine spots & golden shoulder brooches
+				const topCount = 11;
+				for (let i = 0; i < topCount; i++) {
+					const t = i / (topCount - 1);
+					const aOff = -arcHalf + t * arcLen;
+					const ang = Math.PI + aOff;
+					const px = Math.sin(ang) * (rTop + 0.015);
+					const pz = cylZ + Math.cos(ang) * (rTop + 0.015);
+					const puff = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 8), furMat);
+					puff.scale.set(1.14, 0.88, 1.0);
+					puff.position.set(px, 0.0, pz);
+					capeGroup.add(puff);
+					if (i > 0 && i < topCount - 1 && i % 2 === 1) {
+						const spot = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 6), spotMat);
+						spot.scale.set(0.8, 1.5, 0.7);
+						spot.position.set(Math.sin(ang) * (rTop + 0.105), -0.01, cylZ + Math.cos(ang) * (rTop + 0.105));
+						capeGroup.add(spot);
+					}
+				}
+				for (const side of [-1, 1]) {
+					const ang = Math.PI + side * (arcHalf - 0.05);
+					const bx = Math.sin(ang) * (rTop + 0.08);
+					const bz = cylZ + Math.cos(ang) * (rTop + 0.08);
+					const brooch = new THREE.Group();
+					brooch.position.set(bx, 0.01, bz);
+					brooch.rotation.y = side * (arcHalf - 0.05);
+					const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.072, 0.072, 0.028, 12), goldMat);
+					plate.rotation.x = Math.PI / 2;
+					brooch.add(plate);
+					const jewel = new THREE.Mesh(new THREE.OctahedronGeometry(0.038, 0), rubyMat);
+					jewel.position.z = -0.02;
+					brooch.add(jewel);
+					capeGroup.add(brooch);
+				}
+
+				// Plush 3D snow-white ermine fur bottom hem with royal black ermine spots
+				const botCount = 13;
+				for (let i = 0; i < botCount; i++) {
+					const t = i / (botCount - 1);
+					const aOff = -arcHalf + t * arcLen;
+					const ang = Math.PI + aOff;
+					const puff = new THREE.Mesh(new THREE.SphereGeometry(0.088, 10, 8), furMat);
+					puff.scale.set(1.18, 0.85, 1.0);
+					puff.position.set(Math.sin(ang) * (rBot + 0.02), -0.75, cylZ + Math.cos(ang) * (rBot + 0.02));
+					capeGroup.add(puff);
+					if (i % 2 === 0) {
+						const spot = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.052, 0.024), spotMat);
+						spot.position.set(Math.sin(ang) * (rBot + 0.105), -0.75, cylZ + Math.cos(ang) * (rBot + 0.105));
+						capeGroup.add(spot);
+					}
+				}
+
+				// Ornate golden royal crown emblem mounted proudly on the center back of the cape
+				const crest = new THREE.Group();
+				const crestR = (rTop + rBot) * 0.5 + 0.10;
+				crest.position.set(0, -0.35, cylZ - crestR);
+				crest.rotation.x = flareTilt;
+				const shield = new THREE.Mesh(new THREE.OctahedronGeometry(0.145, 0), goldMat);
+				shield.scale.set(1.0, 1.25, 0.22);
+				crest.add(shield);
+				const centerGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.064, 0), gemMat);
+				centerGem.position.set(0, -0.01, -0.032);
+				centerGem.scale.set(1.0, 1.2, 0.5);
+				crest.add(centerGem);
+				for (const sx of [-0.088, 0, 0.088]) {
+					const prong = new THREE.Mesh(new THREE.ConeGeometry(0.032, sx === 0 ? 0.115 : 0.088, 4), goldMat);
+					prong.position.set(sx, sx === 0 ? 0.165 : 0.142, -0.01);
+					crest.add(prong);
+				}
+				capeGroup.add(crest);
+
 				capeAnchor.add(capeGroup);
-				animParts.push({ type: "cape", node: capeGroup });
+				animParts.push({ type: "cape", node: capeGroup, baseRotX: 0.08 });
 				spkmodSkinSanitizeObject(capeAnchor);
 				back.parentBone.add(capeAnchor);
 				attachments.push({ parent: back.parentBone, node: capeAnchor });
@@ -2706,27 +2809,62 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 			attachments.push({ parent: rightHand, node: holder });
 		}
 		if (head || spine) {
-			// Crossed back katanas mounted flush behind Speaki's veil so hilts & scabbards stay fully visible
-			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_samurai_katanas", new THREE.Vector3(0, 0.06, -0.48));
+			// Crossed back katanas mounted cleanly outside Speaki's veil so both hilts, gold tsubas & scabbards stand out boldly
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_samurai_katanas", new THREE.Vector3(0, 0.06, -0.76));
 			const katanaAnchor = back?.anchor;
 			if (katanaAnchor) {
 				const sheathMat = toon(0x18181b);
+				const cordMat = toon(0xb91c1c);
 				const hiltMat = toon(0xdc2626);
-				const guardMat = toon(0xffd700, { emissive: 0xb45309, emissiveIntensity: 0.35 });
+				const wrapMat = toon(0x1f2937);
+				const guardMat = toon(0xffd700, { emissive: 0xb45309, emissiveIntensity: 0.42 });
 				const backRack = new THREE.Group();
-				backRack.rotation.x = 0.26;
+				backRack.rotation.x = 0.14;
+
+				// Central lacquered harness emblem where the twin katanas cross
+				const hubPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.036, 12), cordMat);
+				hubPlate.rotation.x = Math.PI / 2;
+				hubPlate.position.set(0, 0.0, -0.045);
+				backRack.add(hubPlate);
+				const hubCrest = new THREE.Mesh(new THREE.OctahedronGeometry(0.068, 0), guardMat);
+				hubCrest.scale.set(1.0, 1.0, 0.35);
+				hubCrest.position.set(0, 0.0, -0.068);
+				backRack.add(hubCrest);
+
 				for (const side of [-1, 1]) {
 					const sword = new THREE.Group();
-					sword.rotation.z = side * 0.56;
-					const scabbard = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.84, 0.032), sheathMat);
-					scabbard.position.y = -0.04;
+					sword.rotation.z = side * 0.62;
+					sword.position.z = side * 0.024;
+					// Long lacquered scabbard (saya) with gold end-cap (kojiri), crimson cord wrap (sageo) & gold collar (koiguchi)
+					const scabbard = new THREE.Mesh(new THREE.BoxGeometry(0.064, 1.02, 0.044), sheathMat);
+					scabbard.position.y = -0.06;
 					sword.add(scabbard);
-					const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.062, 0.02, 12), guardMat);
-					tsuba.position.y = 0.39;
+					const endCap = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.065, 0.048), guardMat);
+					endCap.position.y = -0.56;
+					sword.add(endCap);
+					const cordWrap = new THREE.Mesh(new THREE.BoxGeometry(0.072, 0.12, 0.052), cordMat);
+					cordWrap.position.y = 0.18;
+					sword.add(cordWrap);
+					const collar = new THREE.Mesh(new THREE.BoxGeometry(0.070, 0.052, 0.050), guardMat);
+					collar.position.y = 0.42;
+					sword.add(collar);
+					// Prominent gleaming gold tsuba handguard
+					const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.088, 0.088, 0.024, 16), guardMat);
+					tsuba.position.y = 0.46;
 					sword.add(tsuba);
-					const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.25, 8), hiltMat);
-					hilt.position.y = 0.53;
+					// Long crimson-and-black diamond-wrapped tsuka hilt projecting clearly above & beside the veil
+					const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.032, 0.32, 10), hiltMat);
+					hilt.position.y = 0.63;
 					sword.add(hilt);
+					for (const ry of [0.53, 0.61, 0.69]) {
+						const ring = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.009, 6, 10), wrapMat);
+						ring.rotation.x = Math.PI / 2;
+						ring.position.y = ry;
+						sword.add(ring);
+					}
+					const pommel = new THREE.Mesh(new THREE.CylinderGeometry(0.040, 0.036, 0.042, 10), guardMat);
+					pommel.position.y = 0.80;
+					sword.add(pommel);
 					backRack.add(sword);
 				}
 				katanaAnchor.add(backRack);

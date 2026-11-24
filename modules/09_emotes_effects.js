@@ -62,7 +62,9 @@ function autoJumpLoop() {
 			spkmodPerformJump();
 		}
 	} else {
-		spkmodPerformJump();
+		if (!(typeof window.spkmodHasActiveLocalVehicle === "function" && window.spkmodHasActiveLocalVehicle())) {
+			spkmodPerformJump();
+		}
 	}
 	
 	window.__autoJumpTimeoutId = setTimeout(autoJumpLoop, nextDelay);
@@ -195,14 +197,16 @@ function spkmodGetCarDisabledToastText() {
 	return (typeof t === "function" && t("carSystemDisabledToast")) || "🚗 Vehicles display & sync is disabled. Enable it in Settings (under Pets).";
 }
 
-function spkmodPlayBurgerCarAudio(sfxPath) {
+function spkmodPlayBurgerCarAudio(sfxPath, gainMultiplier = 1) {
 	try {
+		const gainScale = Number.isFinite(gainMultiplier) ? Math.max(0, Math.min(1, gainMultiplier)) : 1;
+		if (gainScale <= 0.001) return;
 		const sfxVol = typeof window.spkmodGetEffectiveSfxVolume === "function"
 			? window.spkmodGetEffectiveSfxVolume()
 			: ((typeof isGameMuted === "function" && isGameMuted()) ? 0 : 0.5);
 		if (sfxVol <= 0.001) return;
 		const audio = new Audio(sfxPath);
-		audio.volume = Math.max(0, Math.min(1, sfxVol * 0.65));
+		audio.volume = Math.max(0, Math.min(1, sfxVol * 0.65 * gainScale));
 		audio.play().catch(() => {});
 	} catch (_) {}
 }

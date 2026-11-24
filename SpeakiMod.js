@@ -621,7 +621,7 @@ const LUN_BURGER_SKIN_KEYS = ["burgerSkinOff", "burgerSkinA", "burgerSkinB"];
 const LUN_BURGER_SKIN_FALLBACKS = ["Burger: OFF", "Burger: A", "Burger: B"];
 const LUN_BURGER_CAR_MODES = [null, "Vehicle_Sedan", "Vehicle_Van"];
 const LUN_BURGER_CAR_KEYS = ["burgerCarOff", "burgerCarSedan", "burgerCarVan"];
-const LUN_BURGER_CAR_FALLBACKS = ["Car: OFF", "Car: Sedan (F/G)", "Car: Van (F/G)"];
+const LUN_BURGER_CAR_FALLBACKS = ["Car: OFF", "Car: Sedan (G)", "Car: Van (G)"];
 const LUN_BURGER_CAR_COLORS = [13653578, 3964880, 5025658, 15254855, 15239740, 15856108, 7259880, 9069513];
 
 // True First Person & Speedometer State
@@ -16428,7 +16428,9 @@ function autoJumpLoop() {
 			spkmodPerformJump();
 		}
 	} else {
-		spkmodPerformJump();
+		if (!(typeof window.spkmodHasActiveLocalVehicle === "function" && window.spkmodHasActiveLocalVehicle())) {
+			spkmodPerformJump();
+		}
 	}
 	
 	window.__autoJumpTimeoutId = setTimeout(autoJumpLoop, nextDelay);
@@ -16561,14 +16563,16 @@ function spkmodGetCarDisabledToastText() {
 	return (typeof t === "function" && t("carSystemDisabledToast")) || "🚗 Vehicles display & sync is disabled. Enable it in Settings (under Pets).";
 }
 
-function spkmodPlayBurgerCarAudio(sfxPath) {
+function spkmodPlayBurgerCarAudio(sfxPath, gainMultiplier = 1) {
 	try {
+		const gainScale = Number.isFinite(gainMultiplier) ? Math.max(0, Math.min(1, gainMultiplier)) : 1;
+		if (gainScale <= 0.001) return;
 		const sfxVol = typeof window.spkmodGetEffectiveSfxVolume === "function"
 			? window.spkmodGetEffectiveSfxVolume()
 			: ((typeof isGameMuted === "function" && isGameMuted()) ? 0 : 0.5);
 		if (sfxVol <= 0.001) return;
 		const audio = new Audio(sfxPath);
-		audio.volume = Math.max(0, Math.min(1, sfxVol * 0.65));
+		audio.volume = Math.max(0, Math.min(1, sfxVol * 0.65 * gainScale));
 		audio.play().catch(() => {});
 	} catch (_) {}
 }
@@ -46141,39 +46145,142 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 			}
 		}
 		if (head || spine) {
-			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_royal_cape", new THREE.Vector3(0, 0.10, -0.74));
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_royal_cape", new THREE.Vector3(0, 0.14, -0.72));
 			const capeAnchor = back?.anchor;
 			if (capeAnchor) {
-				const capeMat = toon(0x991b1b, { side: THREE.DoubleSide });
-				const furMat = toon(0xf8fafc, { side: THREE.DoubleSide });
-				const goldMat = toon(0xffd700, { emissive: 0xb45309, emissiveIntensity: 0.35, side: THREE.DoubleSide });
-				// Keep neck collar & gold clasp anchored smoothly on Speaki's collar
-				const collar = new THREE.Mesh(new THREE.TorusGeometry(0.20, 0.048, 8, 18), furMat);
-				collar.rotation.x = Math.PI / 2;
-				collar.position.set(0, 0.02, 0.69);
-				capeAnchor.add(collar);
-				const clasp = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), goldMat);
-				clasp.position.set(0, 0.02, 0.87);
-				capeAnchor.add(clasp);
-				// Curved royal velvet cape wrapping smoothly outside the rounded back of Speaki's veil
+				const capeMat = toon(0xb91c1c, { side: THREE.DoubleSide });
+				const pleatMat = toon(0x991b1b);
+				const liningMat = toon(0x7f1d1d, { side: THREE.DoubleSide });
+				const furMat = toon(0xf8fafc);
+				const spotMat = toon(0x111827);
+				const goldMat = toon(0xffd700, { emissive: 0xb45309, emissiveIntensity: 0.42, side: THREE.DoubleSide });
+				const gemMat = toon(0x38bdf8, { emissive: 0x0284c7, emissiveIntensity: 0.65 });
+				const rubyMat = toon(0xef4444, { emissive: 0xb91c1c, emissiveIntensity: 0.60 });
+
+				// Sweeping volumetric Lv.100 royal monarch mantle concentric with Speaki's veil, with sculpted pleats, plush ermine fur & gold crest
 				const capeGroup = new THREE.Group();
-				const arcStart = Math.PI - 0.56;
-				const arcLen = 1.12;
-				const cylZ = 0.68;
-				const topTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.71, 0.74, 0.10, 18, 1, true, arcStart, arcLen), furMat);
-				topTrim.position.set(0, -0.05, cylZ);
-				capeGroup.add(topTrim);
-				const mantle = new THREE.Mesh(new THREE.CylinderGeometry(0.715, 0.885, 0.58, 18, 1, true, arcStart, arcLen), capeMat);
-				mantle.position.set(0, -0.30, cylZ);
+				const arcHalf = 0.85;
+				const arcStart = Math.PI - arcHalf;
+				const arcLen = arcHalf * 2;
+				const cylZ = 0.66;
+				const rTop = 0.68;
+				const rBot = 1.12;
+				const capeH = 0.74;
+				const capeCenterY = -0.39;
+				const flareTilt = Math.atan2(rBot - rTop, capeH);
+
+				// Outer royal crimson velvet shell + recessed inner lining for thick fabric volume
+				const mantle = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, capeH, 24, 1, true, arcStart, arcLen), capeMat);
+				mantle.position.set(0, capeCenterY, cylZ);
 				capeGroup.add(mantle);
-				const goldTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.865, 0.88, 0.042, 18, 1, true, arcStart, arcLen), goldMat);
-				goldTrim.position.set(0, -0.52, cylZ);
+
+				const lining = new THREE.Mesh(new THREE.CylinderGeometry(rTop - 0.025, rBot - 0.03, capeH - 0.02, 20, 1, true, arcStart + 0.02, arcLen - 0.04), liningMat);
+				lining.position.set(0, capeCenterY, cylZ);
+				capeGroup.add(lining);
+
+				// 5 sculpted 3D drapery folds catching toon light along the sweeping back
+				for (const aOff of [-0.60, -0.30, 0, 0.30, 0.60]) {
+					const ang = Math.PI + aOff;
+					const rMid = (rTop + rBot) * 0.5 + 0.012;
+					const fold = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.105, capeH + 0.02, 10), aOff === 0 ? capeMat : pleatMat);
+					const pivot = new THREE.Group();
+					pivot.position.set(Math.sin(ang) * rMid, capeCenterY, cylZ + Math.cos(ang) * rMid);
+					pivot.rotation.y = aOff;
+					fold.rotation.x = flareTilt;
+					pivot.add(fold);
+					capeGroup.add(pivot);
+				}
+
+				// Gleaming gold brocade side borders + lower embroidered border band
+				for (const side of [-1, 1]) {
+					const ang = Math.PI + side * (arcHalf - 0.02);
+					const rMid = (rTop + rBot) * 0.5 + 0.015;
+					const edgePivot = new THREE.Group();
+					edgePivot.position.set(Math.sin(ang) * rMid, capeCenterY, cylZ + Math.cos(ang) * rMid);
+					edgePivot.rotation.y = side * (arcHalf - 0.02);
+					const border = new THREE.Mesh(new THREE.BoxGeometry(0.052, capeH + 0.08, 0.042), goldMat);
+					border.rotation.x = flareTilt;
+					edgePivot.add(border);
+					capeGroup.add(edgePivot);
+				}
+
+				const goldTrim = new THREE.Mesh(new THREE.CylinderGeometry(rBot - 0.088, rBot - 0.036, 0.068, 24, 1, true, arcStart, arcLen), goldMat);
+				goldTrim.position.set(0, -0.66, cylZ);
 				capeGroup.add(goldTrim);
-				const hem = new THREE.Mesh(new THREE.CylinderGeometry(0.88, 0.905, 0.09, 18, 1, true, arcStart, arcLen), furMat);
-				hem.position.set(0, -0.58, cylZ);
-				capeGroup.add(hem);
+
+				// Plush 3D snow-white ermine fur collar snug against the upper veil with black ermine spots & golden shoulder brooches
+				const topCount = 11;
+				for (let i = 0; i < topCount; i++) {
+					const t = i / (topCount - 1);
+					const aOff = -arcHalf + t * arcLen;
+					const ang = Math.PI + aOff;
+					const px = Math.sin(ang) * (rTop + 0.015);
+					const pz = cylZ + Math.cos(ang) * (rTop + 0.015);
+					const puff = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 8), furMat);
+					puff.scale.set(1.14, 0.88, 1.0);
+					puff.position.set(px, 0.0, pz);
+					capeGroup.add(puff);
+					if (i > 0 && i < topCount - 1 && i % 2 === 1) {
+						const spot = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 6), spotMat);
+						spot.scale.set(0.8, 1.5, 0.7);
+						spot.position.set(Math.sin(ang) * (rTop + 0.105), -0.01, cylZ + Math.cos(ang) * (rTop + 0.105));
+						capeGroup.add(spot);
+					}
+				}
+				for (const side of [-1, 1]) {
+					const ang = Math.PI + side * (arcHalf - 0.05);
+					const bx = Math.sin(ang) * (rTop + 0.08);
+					const bz = cylZ + Math.cos(ang) * (rTop + 0.08);
+					const brooch = new THREE.Group();
+					brooch.position.set(bx, 0.01, bz);
+					brooch.rotation.y = side * (arcHalf - 0.05);
+					const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.072, 0.072, 0.028, 12), goldMat);
+					plate.rotation.x = Math.PI / 2;
+					brooch.add(plate);
+					const jewel = new THREE.Mesh(new THREE.OctahedronGeometry(0.038, 0), rubyMat);
+					jewel.position.z = -0.02;
+					brooch.add(jewel);
+					capeGroup.add(brooch);
+				}
+
+				// Plush 3D snow-white ermine fur bottom hem with royal black ermine spots
+				const botCount = 13;
+				for (let i = 0; i < botCount; i++) {
+					const t = i / (botCount - 1);
+					const aOff = -arcHalf + t * arcLen;
+					const ang = Math.PI + aOff;
+					const puff = new THREE.Mesh(new THREE.SphereGeometry(0.088, 10, 8), furMat);
+					puff.scale.set(1.18, 0.85, 1.0);
+					puff.position.set(Math.sin(ang) * (rBot + 0.02), -0.75, cylZ + Math.cos(ang) * (rBot + 0.02));
+					capeGroup.add(puff);
+					if (i % 2 === 0) {
+						const spot = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.052, 0.024), spotMat);
+						spot.position.set(Math.sin(ang) * (rBot + 0.105), -0.75, cylZ + Math.cos(ang) * (rBot + 0.105));
+						capeGroup.add(spot);
+					}
+				}
+
+				// Ornate golden royal crown emblem mounted proudly on the center back of the cape
+				const crest = new THREE.Group();
+				const crestR = (rTop + rBot) * 0.5 + 0.10;
+				crest.position.set(0, -0.35, cylZ - crestR);
+				crest.rotation.x = flareTilt;
+				const shield = new THREE.Mesh(new THREE.OctahedronGeometry(0.145, 0), goldMat);
+				shield.scale.set(1.0, 1.25, 0.22);
+				crest.add(shield);
+				const centerGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.064, 0), gemMat);
+				centerGem.position.set(0, -0.01, -0.032);
+				centerGem.scale.set(1.0, 1.2, 0.5);
+				crest.add(centerGem);
+				for (const sx of [-0.088, 0, 0.088]) {
+					const prong = new THREE.Mesh(new THREE.ConeGeometry(0.032, sx === 0 ? 0.115 : 0.088, 4), goldMat);
+					prong.position.set(sx, sx === 0 ? 0.165 : 0.142, -0.01);
+					crest.add(prong);
+				}
+				capeGroup.add(crest);
+
 				capeAnchor.add(capeGroup);
-				animParts.push({ type: "cape", node: capeGroup });
+				animParts.push({ type: "cape", node: capeGroup, baseRotX: 0.08 });
 				spkmodSkinSanitizeObject(capeAnchor);
 				back.parentBone.add(capeAnchor);
 				attachments.push({ parent: back.parentBone, node: capeAnchor });
@@ -46698,27 +46805,62 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 			attachments.push({ parent: rightHand, node: holder });
 		}
 		if (head || spine) {
-			// Crossed back katanas mounted flush behind Speaki's veil so hilts & scabbards stay fully visible
-			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_samurai_katanas", new THREE.Vector3(0, 0.06, -0.48));
+			// Crossed back katanas mounted cleanly outside Speaki's veil so both hilts, gold tsubas & scabbards stand out boldly
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_samurai_katanas", new THREE.Vector3(0, 0.06, -0.76));
 			const katanaAnchor = back?.anchor;
 			if (katanaAnchor) {
 				const sheathMat = toon(0x18181b);
+				const cordMat = toon(0xb91c1c);
 				const hiltMat = toon(0xdc2626);
-				const guardMat = toon(0xffd700, { emissive: 0xb45309, emissiveIntensity: 0.35 });
+				const wrapMat = toon(0x1f2937);
+				const guardMat = toon(0xffd700, { emissive: 0xb45309, emissiveIntensity: 0.42 });
 				const backRack = new THREE.Group();
-				backRack.rotation.x = 0.26;
+				backRack.rotation.x = 0.14;
+
+				// Central lacquered harness emblem where the twin katanas cross
+				const hubPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.036, 12), cordMat);
+				hubPlate.rotation.x = Math.PI / 2;
+				hubPlate.position.set(0, 0.0, -0.045);
+				backRack.add(hubPlate);
+				const hubCrest = new THREE.Mesh(new THREE.OctahedronGeometry(0.068, 0), guardMat);
+				hubCrest.scale.set(1.0, 1.0, 0.35);
+				hubCrest.position.set(0, 0.0, -0.068);
+				backRack.add(hubCrest);
+
 				for (const side of [-1, 1]) {
 					const sword = new THREE.Group();
-					sword.rotation.z = side * 0.56;
-					const scabbard = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.84, 0.032), sheathMat);
-					scabbard.position.y = -0.04;
+					sword.rotation.z = side * 0.62;
+					sword.position.z = side * 0.024;
+					// Long lacquered scabbard (saya) with gold end-cap (kojiri), crimson cord wrap (sageo) & gold collar (koiguchi)
+					const scabbard = new THREE.Mesh(new THREE.BoxGeometry(0.064, 1.02, 0.044), sheathMat);
+					scabbard.position.y = -0.06;
 					sword.add(scabbard);
-					const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.062, 0.02, 12), guardMat);
-					tsuba.position.y = 0.39;
+					const endCap = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.065, 0.048), guardMat);
+					endCap.position.y = -0.56;
+					sword.add(endCap);
+					const cordWrap = new THREE.Mesh(new THREE.BoxGeometry(0.072, 0.12, 0.052), cordMat);
+					cordWrap.position.y = 0.18;
+					sword.add(cordWrap);
+					const collar = new THREE.Mesh(new THREE.BoxGeometry(0.070, 0.052, 0.050), guardMat);
+					collar.position.y = 0.42;
+					sword.add(collar);
+					// Prominent gleaming gold tsuba handguard
+					const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.088, 0.088, 0.024, 16), guardMat);
+					tsuba.position.y = 0.46;
 					sword.add(tsuba);
-					const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.25, 8), hiltMat);
-					hilt.position.y = 0.53;
+					// Long crimson-and-black diamond-wrapped tsuka hilt projecting clearly above & beside the veil
+					const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.032, 0.32, 10), hiltMat);
+					hilt.position.y = 0.63;
 					sword.add(hilt);
+					for (const ry of [0.53, 0.61, 0.69]) {
+						const ring = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.009, 6, 10), wrapMat);
+						ring.rotation.x = Math.PI / 2;
+						ring.position.y = ry;
+						sword.add(ring);
+					}
+					const pommel = new THREE.Mesh(new THREE.CylinderGeometry(0.040, 0.036, 0.042, 10), guardMat);
+					pommel.position.y = 0.80;
+					sword.add(pommel);
 					backRack.add(sword);
 				}
 				katanaAnchor.add(backRack);
@@ -59453,7 +59595,7 @@ const SPKMOD_VEHICLE_UI_FALLBACK_EN = {
 	btnUnequip: "Exit Vehicle",
 	btnLocked: "Locked (Lv.{0})",
 	btnResync: "📡 Sync Map",
-	btnHonk: "🎺 Horn / ! Alert (F/G)",
+	btnHonk: "🎺 Horn / !? Emote (G)",
 	searchPlaceholder: "Search vehicles by name, type, or level...",
 	toggleRemote: "👁️ Show Others' Vehicles",
 	toggleShareInChat: "📡 Share My Vehicle with Other Players",
@@ -59475,8 +59617,8 @@ const SPKMOD_VEHICLE_UI_FALLBACK_EN = {
 	favEmptyHint: "No favorite vehicles yet! Click ☆ on any vehicle card to pin it here.",
 	hypeTitle: "Keep leveling up to expand your garage!",
 	hypeDesc: "{0} more vehicles await up to Lv.100! Reach Lv.{1} to unlock your next ride!",
-	equippedToast: "🚗 Riding {0} (Lv.{1})! Press F / G for Horn or Special Action!",
-	equippedBoxToast: "📦 Hidden inside {0}! Move to sneak-waddle, press F / G for ! / ? Alert!",
+	equippedToast: "🚗 Riding {0} (Lv.{1})! Press G for synced Horn & ! / ? Emote!",
+	equippedBoxToast: "📦 Hidden inside {0}! Move to sneak-waddle, press G for synced ! / ? Alert!",
 	unequippedToast: "🚶 Exited vehicle.",
 	lockedToast: "🔒 Requires Level {0} to drive {1}!",
 	unknownVehicleToast: "❌ Unknown vehicle: {0}",
@@ -59533,9 +59675,32 @@ function spkmodGetVehicleColorName(colorObj) {
 }
 
 // ============================================================================
-// 3. SYNTHESIZED SOUND EFFECTS & MGS ALERT AUDIO (F / G KEYS)
+// 3. SYNTHESIZED SOUND EFFECTS & MGS ALERT AUDIO (G KEY / JUMP PACKET SYNC)
 // ============================================================================
 let _spkmodVehicleAudioCtx = null;
+const SPKMOD_VEHICLE_REMOTE_SFX_MIN_DIST = 8;
+const SPKMOD_VEHICLE_REMOTE_SFX_MAX_DIST = 25;
+const SPKMOD_VEHICLE_REMOTE_SFX_GAIN_CAP = 0.75;
+const SPKMOD_VEHICLE_EMOTE_COOLDOWN_MS = 1100;
+const SPKMOD_VEHICLE_SELF_ECHO_DEDUPE_MS = 1500;
+
+function spkmodComputeRemoteVehicleAudioGain(container) {
+	if (!container || !container.position) return 0;
+	let dist = Infinity;
+	try {
+		if (typeof gameState !== "undefined" && typeof gameState?.remoteSoundDistance === "function") {
+			dist = gameState.remoteSoundDistance(container.position);
+		} else if (typeof gameState !== "undefined" && gameState?.playerContainer?.position) {
+			const myPos = gameState.playerContainer.position;
+			dist = Math.hypot((container.position.x || 0) - (myPos.x || 0), (container.position.z || 0) - (myPos.z || 0));
+		}
+	} catch (_) {
+		return 0;
+	}
+	if (!Number.isFinite(dist) || dist >= SPKMOD_VEHICLE_REMOTE_SFX_MAX_DIST) return 0;
+	const norm = Math.max(0, Math.min(1, (SPKMOD_VEHICLE_REMOTE_SFX_MAX_DIST - dist) / (SPKMOD_VEHICLE_REMOTE_SFX_MAX_DIST - SPKMOD_VEHICLE_REMOTE_SFX_MIN_DIST)));
+	return norm * SPKMOD_VEHICLE_REMOTE_SFX_GAIN_CAP;
+}
 
 function spkmodGetVehicleAudioCtx() {
 	try {
@@ -59576,15 +59741,18 @@ function spkmodPlaySynthTone(ctx, type, startFreq, endFreq, startAt, duration, v
 	osc.stop(startAt + duration + 0.02);
 }
 
-function spkmodPlayVehicleSfx(vehicle, secondary = false) {
+function spkmodPlayVehicleSfx(vehicle, secondary = false, gainMultiplier = 1) {
 	if (!vehicle) return;
+	const gainScale = Number.isFinite(gainMultiplier) ? Math.max(0, Math.min(1, gainMultiplier)) : 1;
+	if (gainScale <= 0.001) return;
 	const vol = spkmodGetVehicleSfxVol();
 	if (vol <= 0.001) return;
 
 	if (vehicle.sfxType === "car_horn") {
 		if (typeof spkmodPlayBurgerCarAudio === "function") {
 			spkmodPlayBurgerCarAudio(
-				secondary ? "/audio/sfx/burger_shop/carHornDouble.mp3" : "/audio/sfx/burger_shop/carHorn.mp3"
+				secondary ? "/audio/sfx/burger_shop/carHornDouble.mp3" : "/audio/sfx/burger_shop/carHorn.mp3",
+				gainScale
 			);
 			return;
 		}
@@ -59593,7 +59761,8 @@ function spkmodPlayVehicleSfx(vehicle, secondary = false) {
 	const ctx = spkmodGetVehicleAudioCtx();
 	if (!ctx) return;
 	const now = ctx.currentTime + 0.01;
-	const v = Math.max(0.04, Math.min(0.28, vol * 0.32));
+	const v = Math.max(0.04, Math.min(0.28, vol * 0.32)) * gainScale;
+	if (v <= 0.0015) return;
 
 	try {
 		switch (vehicle.sfxType) {
@@ -61668,6 +61837,29 @@ function spkmodBuildCenturyProceduralVehicle(THREE, builderName, colorHex, root,
 	return null;
 }
 
+function spkmodAttachVehicleAlertSprite(THREE, built, vehicle) {
+	if (!built || !built.root || !THREE || typeof THREE.Sprite !== "function" || typeof THREE.SpriteMaterial !== "function") {
+		return built;
+	}
+	if (built.alertSprite) {
+		if (built.alertBaseY == null) built.alertBaseY = built.alertSprite.position?.y || 1.92;
+		return built;
+	}
+	const alertTex = spkmodGetAlertSpriteTexture(THREE, "!");
+	const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false });
+	const alertSprite = new THREE.Sprite(alertMat);
+	const alertBaseY = vehicle?.hidePlayer
+		? 1.92
+		: Math.max(1.85, (built.seatOffsetY || 0.85) + (built.hoverY || 0) + 1.55);
+	alertSprite.position.set(0, alertBaseY, 0);
+	alertSprite.scale.set(0.75, 0.75, 1);
+	alertSprite.visible = false;
+	built.root.add(alertSprite);
+	built.alertSprite = alertSprite;
+	built.alertBaseY = alertBaseY;
+	return built;
+}
+
 async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 	if (!vehicle) return null;
 	const THREE = window.THREE;
@@ -61675,6 +61867,7 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 	const safeColorIdx = spkmodClampVehicleColorIdx(colorIdx);
 	const colorHex = SPKMOD_VEHICLE_COLORS[safeColorIdx].hex;
 	const spec = vehicle.spec || {};
+	let built = null;
 
 	// 1. Authentic Burger Shop Sedan / Van GLB
 	if (spec.kind === "burger_glb") {
@@ -61685,7 +61878,7 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 		if (!inst) return null;
 		const root = new THREE.Group();
 		root.add(inst.carObj);
-		return {
+		built = {
 			root,
 			bodyGroup: inst.carObj,
 			wheels: inst.wheels || [],
@@ -61698,7 +61891,7 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 	}
 
 	// 2. Authentic Game World GLB Vehicles (normalized by Box3 footprint, SkinnedMesh-safe)
-	if (spec.kind === "glb") {
+	if (!built && spec.kind === "glb") {
 		const scene = await spkmodLoadVehicleGlbScene(spec.url, spec.fallbackUrl);
 		if (!scene) return null;
 		const root = new THREE.Group();
@@ -61760,7 +61953,7 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 			animParts.push({ type: "flamePulse", node: flame });
 		}
 
-		return {
+		built = {
 			root,
 			bodyGroup,
 			wheels: [],
@@ -61775,10 +61968,10 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 	}
 
 	// 3. Procedural 3D Vehicles & MGS Stealth Cardboard Box
-	if (spec.kind === "procedural") {
-		return spkmodBuildProceduralVehicle(THREE, spec.builder, colorHex);
+	if (!built && spec.kind === "procedural") {
+		built = spkmodBuildProceduralVehicle(THREE, spec.builder, colorHex);
 	}
-	return null;
+	return built ? spkmodAttachVehicleAlertSprite(THREE, built, vehicle) : null;
 }
 
 // ============================================================================
@@ -61803,10 +61996,153 @@ let _spkmodVehicleLastZoneId = null;
 let _spkmodVehicleLastRemoteCount = 0;
 let _spkmodVehicleLastObservedLevel = 1;
 let _spkmodVehicleKeyHooked = false;
+const _spkmodVehicleEmoteLastMs = new Map(); // "local" | ownerKey -> performance.now()
+let _spkmodVehicleLocalLastDirectTriggerMs = -Infinity;
 
 window.spkmodHasRemoteVehicle = function(ownerKey) {
 	return _spkmodRemoteVehicleInstances.has(String(ownerKey));
 };
+
+window.spkmodHasActiveLocalVehicle = function() {
+	if (!spkmodIsVehiclesSystemEnabled() || !_spkmodLocalVehicleEntry) return false;
+	if (typeof spkmodIsInIsolatedMinigame === "function" && spkmodIsInIsolatedMinigame()) return false;
+	return true;
+};
+
+function spkmodIsLocalVehicleEmoteBlocked() {
+	if (!spkmodIsVehiclesSystemEnabled() || !_spkmodLocalVehicleEntry) return true;
+	if (typeof spkmodIsInIsolatedMinigame === "function" && spkmodIsInIsolatedMinigame()) return true;
+	if (typeof gameState !== "undefined" && gameState) {
+		if (gameState.isDead) return true;
+		if (typeof gameState.isObstacleRaceActive === "function" && gameState.isObstacleRaceActive()) return true;
+		if (typeof gameState.isLocalOnTrampoline === "function" && gameState.isLocalOnTrampoline()) return true;
+	}
+	return false;
+}
+
+function spkmodPickRandomVehicleEmoteVariant() {
+	return Math.random() < 0.5;
+}
+
+function spkmodFindRemoteVehicleEntryByPlayerId(playerId) {
+	if (playerId == null || _spkmodRemoteVehicleInstances.size === 0) return null;
+	const targetStr = String(playerId).trim();
+	if (!targetStr) return null;
+	const direct = _spkmodRemoteVehicleInstances.get(targetStr);
+	if (direct) return direct;
+	for (const [ownerKey, entry] of _spkmodRemoteVehicleInstances.entries()) {
+		if (!entry) continue;
+		if (ownerKey === targetStr) return entry;
+		if (entry.playerId != null && String(entry.playerId) === targetStr) return entry;
+		if (entry.lastRpKey != null && String(entry.lastRpKey) === targetStr) return entry;
+		const rp = entry.resolveRp ? entry.resolveRp() : null;
+		if (rp && (rp.info?.playerId == playerId || rp.info?.id == playerId)) return entry;
+	}
+	return null;
+}
+
+function spkmodTriggerVehicleEmoteEffect(entry, isLocal, opts = {}) {
+	if (!entry || !entry.vehicle) return false;
+	const now = performance.now();
+	const throttleKey = isLocal ? "local" : String(entry.ownerKey || entry.playerId || "remote");
+	if (!opts.ignoreCooldown) {
+		const lastMs = _spkmodVehicleEmoteLastMs.get(throttleKey);
+		if (lastMs !== undefined && (now - lastMs) < SPKMOD_VEHICLE_EMOTE_COOLDOWN_MS) return false;
+	}
+	_spkmodVehicleEmoteLastMs.set(throttleKey, now);
+
+	const isSecondary = (opts.secondary === true || opts.secondary === false)
+		? opts.secondary
+		: spkmodPickRandomVehicleEmoteVariant();
+	const gain = isLocal
+		? 1
+		: spkmodComputeRemoteVehicleAudioGain(opts.container || entry.lastContainer);
+	if (gain > 0.001) {
+		spkmodPlayVehicleSfx(entry.vehicle, isSecondary, gain);
+	}
+	if (entry.alertSprite) {
+		spkmodTriggerBoxAlert(entry, isSecondary ? "?" : "!");
+	}
+	return true;
+}
+
+function spkmodTriggerLocalVehicleAction(opts = {}) {
+	if (spkmodIsLocalVehicleEmoteBlocked()) return false;
+	const now = performance.now();
+	const triggered = spkmodTriggerVehicleEmoteEffect(_spkmodLocalVehicleEntry, true, {
+		secondary: opts.secondary,
+		ignoreCooldown: !!opts.ignoreCooldown
+	});
+	if (!triggered) return false;
+	const shouldBroadcast = opts.broadcast !== false;
+	if (
+		shouldBroadcast &&
+		typeof gameState !== "undefined" &&
+		gameState &&
+		gameState.zoneId !== null &&
+		typeof gameState.sendEmoteNow === "function" &&
+		(now - _spkmodVehicleLocalLastDirectTriggerMs >= SPKMOD_VEHICLE_EMOTE_COOLDOWN_MS)
+	) {
+		_spkmodVehicleLocalLastDirectTriggerMs = now;
+		const jumpEmoteId = (typeof Emotes !== "undefined" && Emotes && Number.isInteger(Emotes.Jump)) ? Emotes.Jump : 2;
+		try {
+			gameState.sendEmoteNow(jumpEmoteId, 0);
+		} catch (_) {}
+	}
+	return true;
+}
+
+function spkmodEnsureVehicleHandleEmoteHook() {
+	try {
+		if (typeof gameState === "undefined" || !gameState || typeof gameState.handleEmote !== "function") return;
+		if (gameState.__spkmodVehicleHandleEmoteHooked) return;
+		gameState.__spkmodVehicleHandleEmoteHooked = true;
+		const origHandleEmote = gameState.handleEmote;
+		gameState.handleEmote = function(e) {
+			try {
+				const jumpEmoteId = (typeof Emotes !== "undefined" && Emotes && Number.isInteger(Emotes.Jump)) ? Emotes.Jump : 2;
+				if (e && e.emoteId === jumpEmoteId && spkmodIsVehiclesSystemEnabled()) {
+					const isLocal = e.playerId === this.myPlayerId;
+					if (isLocal) {
+						if (!spkmodIsLocalVehicleEmoteBlocked()) {
+							const now = performance.now();
+							if (now - _spkmodVehicleLocalLastDirectTriggerMs < SPKMOD_VEHICLE_SELF_ECHO_DEDUPE_MS) {
+								return;
+							}
+							spkmodTriggerVehicleEmoteEffect(_spkmodLocalVehicleEntry, true);
+							return;
+						}
+					} else {
+						const inMini = (typeof spkmodIsInIsolatedMinigame === "function") ? spkmodIsInIsolatedMinigame() : false;
+						if (!inMini && window.spkmodVehicleSettings.showRemoteVehicles !== false) {
+							const entry = spkmodFindRemoteVehicleEntryByPlayerId(e.playerId);
+							if (entry) {
+								const rp = (entry.resolveRp ? entry.resolveRp() : null)
+									|| (typeof resolveRemotePlayerById === "function" ? resolveRemotePlayerById(e.playerId) : null);
+								if (rp && typeof isSilencedPlayer === "function" && isSilencedPlayer(rp)) {
+									return;
+								}
+								const onRemoteTrampoline = !!(
+									(e.jumpStage || 0) > 0 &&
+									rp?.container?.position &&
+									typeof this.trampolineBounce?.isOnMat === "function" &&
+									this.trampolineBounce.isOnMat(rp.container.position.x, rp.container.position.z)
+								);
+								if (!onRemoteTrampoline) {
+									spkmodTriggerVehicleEmoteEffect(entry, false, {
+										container: rp?.container || entry.lastContainer
+									});
+									return;
+								}
+							}
+						}
+					}
+				}
+			} catch (_) {}
+			return origHandleEmote.call(this, e);
+		};
+	} catch (_) {}
+}
 
 function spkmodTriggerBoxAlert(entry, symbol = "!") {
 	if (!entry || !entry.alertSprite || !window.THREE) return;
@@ -61962,26 +62298,18 @@ function spkmodEnsureVehicleKeyHooks() {
 		el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
 
 	window.addEventListener("keydown", e => {
-		if (!spkmodIsVehiclesSystemEnabled() || !_spkmodLocalVehicleEntry || isTypingTarget(e.target)) return;
-		if (e.code === "KeyF" || e.code === "KeyG") {
-			e.preventDefault();
-			e.stopImmediatePropagation();
-			if (!e.repeat) {
-				const isSecondary = e.code === "KeyG";
-				spkmodPlayVehicleSfx(_spkmodLocalVehicleEntry.vehicle, isSecondary);
-				if (_spkmodLocalVehicleEntry.alertSprite) {
-					spkmodTriggerBoxAlert(_spkmodLocalVehicleEntry, isSecondary ? "?" : "!");
-				}
-			}
+		if (e.code !== "KeyG" || isTypingTarget(e.target) || spkmodIsLocalVehicleEmoteBlocked()) return;
+		e.preventDefault();
+		e.stopImmediatePropagation();
+		if (!e.repeat) {
+			spkmodTriggerLocalVehicleAction({ broadcast: true, secondary: null });
 		}
 	}, true);
 
 	window.addEventListener("keyup", e => {
-		if (!spkmodIsVehiclesSystemEnabled() || !_spkmodLocalVehicleEntry || isTypingTarget(e.target)) return;
-		if (e.code === "KeyF" || e.code === "KeyG") {
-			e.preventDefault();
-			e.stopImmediatePropagation();
-		}
+		if (e.code !== "KeyG" || isTypingTarget(e.target) || spkmodIsLocalVehicleEmoteBlocked()) return;
+		e.preventDefault();
+		e.stopImmediatePropagation();
 	}, true);
 }
 
@@ -61998,6 +62326,7 @@ async function spkmodSpawnLocalVehicle(vehicleId, colorIdx) {
 	if (typeof gameState === "undefined" || !gameState?.playerContainer) return false;
 
 	spkmodEnsureVehicleKeyHooks();
+	spkmodEnsureVehicleHandleEmoteHook();
 	if (typeof window.spkmodResetCarsEveryone === "function") {
 		window.spkmodResetCarsEveryone(true, false);
 	}
@@ -62214,18 +62543,6 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 				entry.rightFoot.position.y = 0.08 + Math.max(0, -Math.cos(entry.walkPhase)) * 0.05;
 			}
 		}
-
-		if (entry.alertSprite) {
-			if (entry.alertUntilMs > nowMs) {
-				entry.alertSprite.visible = true;
-				const elapsed = (nowMs - entry.alertStartMs) / 1000;
-				const pop = elapsed < 0.14 ? (0.4 + (elapsed / 0.14) * 0.95) : (elapsed < 0.25 ? 1.35 - ((elapsed - 0.14) / 0.11) * 0.35 : 1.0);
-				entry.alertSprite.scale.set(0.72 * pop, 0.72 * pop, 1);
-				entry.alertSprite.position.y = (entry.alertBaseY || 1.92) + Math.sin(elapsed * 12) * 0.05;
-			} else if (entry.alertSprite.visible) {
-				entry.alertSprite.visible = false;
-			}
-		}
 	} else {
 		if (entry.hiddenAvatarRoot) {
 			entry.hiddenAvatarRoot.visible = true;
@@ -62248,6 +62565,19 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 			if (ctrl && ctrl.mountSitPlaying) {
 				spkmodExitVehicleMountSit(ctrl);
 			}
+		}
+	}
+
+	// Universal floating "!" / "?" alert sprite animation for ALL 100 vehicles (local + remote)
+	if (entry.alertSprite) {
+		if (entry.alertUntilMs > nowMs) {
+			entry.alertSprite.visible = true;
+			const elapsed = (nowMs - entry.alertStartMs) / 1000;
+			const pop = elapsed < 0.14 ? (0.4 + (elapsed / 0.14) * 0.95) : (elapsed < 0.25 ? 1.35 - ((elapsed - 0.14) / 0.11) * 0.35 : 1.0);
+			entry.alertSprite.scale.set(0.72 * pop, 0.72 * pop, 1);
+			entry.alertSprite.position.y = (entry.alertBaseY || 1.92) + (entry.vehicle.hidePlayer ? 0 : hoverDelta) + Math.sin(elapsed * 12) * 0.05;
+		} else if (entry.alertSprite.visible) {
+			entry.alertSprite.visible = false;
 		}
 	}
 }
@@ -62280,6 +62610,7 @@ function spkmodResolveRemotePlayerForVehicle(playerId, playerName) {
 function spkmodClearRemoteVehicleOwner(ownerKey) {
 	_spkmodRemoteVehicleSeq.set(ownerKey, (_spkmodRemoteVehicleSeq.get(ownerKey) || 0) + 1);
 	_spkmodRemoteVehicleInFlight.delete(ownerKey);
+	_spkmodVehicleEmoteLastMs.delete(String(ownerKey));
 	const existing = _spkmodRemoteVehicleInstances.get(ownerKey);
 	if (existing) {
 		spkmodRestoreVehicleEntry(existing, false);
@@ -62351,6 +62682,7 @@ async function spkmodSpawnOrUpdateRemoteVehicle(ownerKey, state, resolved) {
 	}, built);
 
 	_spkmodRemoteVehicleInstances.set(ownerKey, entry);
+	spkmodEnsureVehicleHandleEmoteHook();
 	spkmodTickVehicleEntry(entry, false, live.rp.container, live.rpKey, live.rp.avatar?.root || null, entry.lastPosePos, entry.lastCtrl, 0.016, performance.now(), live.rp);
 }
 
@@ -62698,6 +63030,7 @@ function spkmodVehiclesMasterLoop(nowMs) {
 
 	if (!document.hidden && typeof gameState !== "undefined" && gameState) {
 		spkmodEnsureMountVisualsHook();
+		spkmodEnsureVehicleHandleEmoteHook();
 		const pc = gameState.playerContainer || null;
 		const inMinigame = (typeof spkmodIsInIsolatedMinigame === "function") ? spkmodIsInIsolatedMinigame() : false;
 
@@ -63124,8 +63457,7 @@ function spkmodRenderVehiclesColorBar() {
 	honkBtn.style.cssText = "margin-left: auto; background: rgba(245,158,11,0.22); color: #fef3c7; border: 1px solid rgba(245,158,11,0.5); border-radius: 6px; padding: 3px 9px; font-size: 11px; font-weight: 800; cursor: pointer;";
 	honkBtn.onclick = () => {
 		if (_spkmodLocalVehicleEntry) {
-			spkmodPlayVehicleSfx(_spkmodLocalVehicleEntry.vehicle, false);
-			if (_spkmodLocalVehicleEntry.alertSprite) spkmodTriggerBoxAlert(_spkmodLocalVehicleEntry, "!");
+			spkmodTriggerLocalVehicleAction({ broadcast: true, secondary: null, ignoreCooldown: true });
 		}
 	};
 	bar.appendChild(honkBtn);
@@ -63436,10 +63768,13 @@ window.spkmodVehicles = {
 	equip: (idOrCode, broadcast = true, silentToast = false) => spkmodEquipLocalVehicle(idOrCode, broadcast, silentToast),
 	unequip: (broadcast = true, silentToast = false) => spkmodEquipLocalVehicle(null, broadcast, silentToast),
 	setColor: (colorIdx, broadcast = true, silentToast = false) => spkmodSetLocalVehicleColor(colorIdx, broadcast, silentToast),
-	honk: (secondary = false) => {
+	honk: (secondary = null) => {
 		if (_spkmodLocalVehicleEntry) {
-			spkmodPlayVehicleSfx(_spkmodLocalVehicleEntry.vehicle, !!secondary);
-			if (_spkmodLocalVehicleEntry.alertSprite) spkmodTriggerBoxAlert(_spkmodLocalVehicleEntry, secondary ? "?" : "!");
+			spkmodTriggerLocalVehicleAction({
+				broadcast: true,
+				secondary: (secondary === true || secondary === false) ? secondary : null,
+				ignoreCooldown: true
+			});
 		}
 	},
 	toggleFavorite: (id) => {

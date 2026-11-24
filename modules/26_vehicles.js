@@ -693,7 +693,7 @@ const SPKMOD_VEHICLE_UI_FALLBACK_EN = {
 	btnUnequip: "Exit Vehicle",
 	btnLocked: "Locked (Lv.{0})",
 	btnResync: "📡 Sync Map",
-	btnHonk: "🎺 Horn / ! Alert (F/G)",
+	btnHonk: "🎺 Horn / !? Emote (G)",
 	searchPlaceholder: "Search vehicles by name, type, or level...",
 	toggleRemote: "👁️ Show Others' Vehicles",
 	toggleShareInChat: "📡 Share My Vehicle with Other Players",
@@ -715,8 +715,8 @@ const SPKMOD_VEHICLE_UI_FALLBACK_EN = {
 	favEmptyHint: "No favorite vehicles yet! Click ☆ on any vehicle card to pin it here.",
 	hypeTitle: "Keep leveling up to expand your garage!",
 	hypeDesc: "{0} more vehicles await up to Lv.100! Reach Lv.{1} to unlock your next ride!",
-	equippedToast: "🚗 Riding {0} (Lv.{1})! Press F / G for Horn or Special Action!",
-	equippedBoxToast: "📦 Hidden inside {0}! Move to sneak-waddle, press F / G for ! / ? Alert!",
+	equippedToast: "🚗 Riding {0} (Lv.{1})! Press G for synced Horn & ! / ? Emote!",
+	equippedBoxToast: "📦 Hidden inside {0}! Move to sneak-waddle, press G for synced ! / ? Alert!",
 	unequippedToast: "🚶 Exited vehicle.",
 	lockedToast: "🔒 Requires Level {0} to drive {1}!",
 	unknownVehicleToast: "❌ Unknown vehicle: {0}",
@@ -773,9 +773,32 @@ function spkmodGetVehicleColorName(colorObj) {
 }
 
 // ============================================================================
-// 3. SYNTHESIZED SOUND EFFECTS & MGS ALERT AUDIO (F / G KEYS)
+// 3. SYNTHESIZED SOUND EFFECTS & MGS ALERT AUDIO (G KEY / JUMP PACKET SYNC)
 // ============================================================================
 let _spkmodVehicleAudioCtx = null;
+const SPKMOD_VEHICLE_REMOTE_SFX_MIN_DIST = 8;
+const SPKMOD_VEHICLE_REMOTE_SFX_MAX_DIST = 25;
+const SPKMOD_VEHICLE_REMOTE_SFX_GAIN_CAP = 0.75;
+const SPKMOD_VEHICLE_EMOTE_COOLDOWN_MS = 1100;
+const SPKMOD_VEHICLE_SELF_ECHO_DEDUPE_MS = 1500;
+
+function spkmodComputeRemoteVehicleAudioGain(container) {
+	if (!container || !container.position) return 0;
+	let dist = Infinity;
+	try {
+		if (typeof gameState !== "undefined" && typeof gameState?.remoteSoundDistance === "function") {
+			dist = gameState.remoteSoundDistance(container.position);
+		} else if (typeof gameState !== "undefined" && gameState?.playerContainer?.position) {
+			const myPos = gameState.playerContainer.position;
+			dist = Math.hypot((container.position.x || 0) - (myPos.x || 0), (container.position.z || 0) - (myPos.z || 0));
+		}
+	} catch (_) {
+		return 0;
+	}
+	if (!Number.isFinite(dist) || dist >= SPKMOD_VEHICLE_REMOTE_SFX_MAX_DIST) return 0;
+	const norm = Math.max(0, Math.min(1, (SPKMOD_VEHICLE_REMOTE_SFX_MAX_DIST - dist) / (SPKMOD_VEHICLE_REMOTE_SFX_MAX_DIST - SPKMOD_VEHICLE_REMOTE_SFX_MIN_DIST)));
+	return norm * SPKMOD_VEHICLE_REMOTE_SFX_GAIN_CAP;
+}
 
 function spkmodGetVehicleAudioCtx() {
 	try {
@@ -816,15 +839,18 @@ function spkmodPlaySynthTone(ctx, type, startFreq, endFreq, startAt, duration, v
 	osc.stop(startAt + duration + 0.02);
 }
 
-function spkmodPlayVehicleSfx(vehicle, secondary = false) {
+function spkmodPlayVehicleSfx(vehicle, secondary = false, gainMultiplier = 1) {
 	if (!vehicle) return;
+	const gainScale = Number.isFinite(gainMultiplier) ? Math.max(0, Math.min(1, gainMultiplier)) : 1;
+	if (gainScale <= 0.001) return;
 	const vol = spkmodGetVehicleSfxVol();
 	if (vol <= 0.001) return;
 
 	if (vehicle.sfxType === "car_horn") {
 		if (typeof spkmodPlayBurgerCarAudio === "function") {
 			spkmodPlayBurgerCarAudio(
-				secondary ? "/audio/sfx/burger_shop/carHornDouble.mp3" : "/audio/sfx/burger_shop/carHorn.mp3"
+				secondary ? "/audio/sfx/burger_shop/carHornDouble.mp3" : "/audio/sfx/burger_shop/carHorn.mp3",
+				gainScale
 			);
 			return;
 		}
@@ -833,7 +859,8 @@ function spkmodPlayVehicleSfx(vehicle, secondary = false) {
 	const ctx = spkmodGetVehicleAudioCtx();
 	if (!ctx) return;
 	const now = ctx.currentTime + 0.01;
-	const v = Math.max(0.04, Math.min(0.28, vol * 0.32));
+	const v = Math.max(0.04, Math.min(0.28, vol * 0.32)) * gainScale;
+	if (v <= 0.0015) return;
 
 	try {
 		switch (vehicle.sfxType) {
@@ -2908,6 +2935,29 @@ function spkmodBuildCenturyProceduralVehicle(THREE, builderName, colorHex, root,
 	return null;
 }
 
+function spkmodAttachVehicleAlertSprite(THREE, built, vehicle) {
+	if (!built || !built.root || !THREE || typeof THREE.Sprite !== "function" || typeof THREE.SpriteMaterial !== "function") {
+		return built;
+	}
+	if (built.alertSprite) {
+		if (built.alertBaseY == null) built.alertBaseY = built.alertSprite.position?.y || 1.92;
+		return built;
+	}
+	const alertTex = spkmodGetAlertSpriteTexture(THREE, "!");
+	const alertMat = new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthTest: false });
+	const alertSprite = new THREE.Sprite(alertMat);
+	const alertBaseY = vehicle?.hidePlayer
+		? 1.92
+		: Math.max(1.85, (built.seatOffsetY || 0.85) + (built.hoverY || 0) + 1.55);
+	alertSprite.position.set(0, alertBaseY, 0);
+	alertSprite.scale.set(0.75, 0.75, 1);
+	alertSprite.visible = false;
+	built.root.add(alertSprite);
+	built.alertSprite = alertSprite;
+	built.alertBaseY = alertBaseY;
+	return built;
+}
+
 async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 	if (!vehicle) return null;
 	const THREE = window.THREE;
@@ -2915,6 +2965,7 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 	const safeColorIdx = spkmodClampVehicleColorIdx(colorIdx);
 	const colorHex = SPKMOD_VEHICLE_COLORS[safeColorIdx].hex;
 	const spec = vehicle.spec || {};
+	let built = null;
 
 	// 1. Authentic Burger Shop Sedan / Van GLB
 	if (spec.kind === "burger_glb") {
@@ -2925,7 +2976,7 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 		if (!inst) return null;
 		const root = new THREE.Group();
 		root.add(inst.carObj);
-		return {
+		built = {
 			root,
 			bodyGroup: inst.carObj,
 			wheels: inst.wheels || [],
@@ -2938,7 +2989,7 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 	}
 
 	// 2. Authentic Game World GLB Vehicles (normalized by Box3 footprint, SkinnedMesh-safe)
-	if (spec.kind === "glb") {
+	if (!built && spec.kind === "glb") {
 		const scene = await spkmodLoadVehicleGlbScene(spec.url, spec.fallbackUrl);
 		if (!scene) return null;
 		const root = new THREE.Group();
@@ -3000,7 +3051,7 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 			animParts.push({ type: "flamePulse", node: flame });
 		}
 
-		return {
+		built = {
 			root,
 			bodyGroup,
 			wheels: [],
@@ -3015,10 +3066,10 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 	}
 
 	// 3. Procedural 3D Vehicles & MGS Stealth Cardboard Box
-	if (spec.kind === "procedural") {
-		return spkmodBuildProceduralVehicle(THREE, spec.builder, colorHex);
+	if (!built && spec.kind === "procedural") {
+		built = spkmodBuildProceduralVehicle(THREE, spec.builder, colorHex);
 	}
-	return null;
+	return built ? spkmodAttachVehicleAlertSprite(THREE, built, vehicle) : null;
 }
 
 // ============================================================================
@@ -3043,10 +3094,153 @@ let _spkmodVehicleLastZoneId = null;
 let _spkmodVehicleLastRemoteCount = 0;
 let _spkmodVehicleLastObservedLevel = 1;
 let _spkmodVehicleKeyHooked = false;
+const _spkmodVehicleEmoteLastMs = new Map(); // "local" | ownerKey -> performance.now()
+let _spkmodVehicleLocalLastDirectTriggerMs = -Infinity;
 
 window.spkmodHasRemoteVehicle = function(ownerKey) {
 	return _spkmodRemoteVehicleInstances.has(String(ownerKey));
 };
+
+window.spkmodHasActiveLocalVehicle = function() {
+	if (!spkmodIsVehiclesSystemEnabled() || !_spkmodLocalVehicleEntry) return false;
+	if (typeof spkmodIsInIsolatedMinigame === "function" && spkmodIsInIsolatedMinigame()) return false;
+	return true;
+};
+
+function spkmodIsLocalVehicleEmoteBlocked() {
+	if (!spkmodIsVehiclesSystemEnabled() || !_spkmodLocalVehicleEntry) return true;
+	if (typeof spkmodIsInIsolatedMinigame === "function" && spkmodIsInIsolatedMinigame()) return true;
+	if (typeof gameState !== "undefined" && gameState) {
+		if (gameState.isDead) return true;
+		if (typeof gameState.isObstacleRaceActive === "function" && gameState.isObstacleRaceActive()) return true;
+		if (typeof gameState.isLocalOnTrampoline === "function" && gameState.isLocalOnTrampoline()) return true;
+	}
+	return false;
+}
+
+function spkmodPickRandomVehicleEmoteVariant() {
+	return Math.random() < 0.5;
+}
+
+function spkmodFindRemoteVehicleEntryByPlayerId(playerId) {
+	if (playerId == null || _spkmodRemoteVehicleInstances.size === 0) return null;
+	const targetStr = String(playerId).trim();
+	if (!targetStr) return null;
+	const direct = _spkmodRemoteVehicleInstances.get(targetStr);
+	if (direct) return direct;
+	for (const [ownerKey, entry] of _spkmodRemoteVehicleInstances.entries()) {
+		if (!entry) continue;
+		if (ownerKey === targetStr) return entry;
+		if (entry.playerId != null && String(entry.playerId) === targetStr) return entry;
+		if (entry.lastRpKey != null && String(entry.lastRpKey) === targetStr) return entry;
+		const rp = entry.resolveRp ? entry.resolveRp() : null;
+		if (rp && (rp.info?.playerId == playerId || rp.info?.id == playerId)) return entry;
+	}
+	return null;
+}
+
+function spkmodTriggerVehicleEmoteEffect(entry, isLocal, opts = {}) {
+	if (!entry || !entry.vehicle) return false;
+	const now = performance.now();
+	const throttleKey = isLocal ? "local" : String(entry.ownerKey || entry.playerId || "remote");
+	if (!opts.ignoreCooldown) {
+		const lastMs = _spkmodVehicleEmoteLastMs.get(throttleKey);
+		if (lastMs !== undefined && (now - lastMs) < SPKMOD_VEHICLE_EMOTE_COOLDOWN_MS) return false;
+	}
+	_spkmodVehicleEmoteLastMs.set(throttleKey, now);
+
+	const isSecondary = (opts.secondary === true || opts.secondary === false)
+		? opts.secondary
+		: spkmodPickRandomVehicleEmoteVariant();
+	const gain = isLocal
+		? 1
+		: spkmodComputeRemoteVehicleAudioGain(opts.container || entry.lastContainer);
+	if (gain > 0.001) {
+		spkmodPlayVehicleSfx(entry.vehicle, isSecondary, gain);
+	}
+	if (entry.alertSprite) {
+		spkmodTriggerBoxAlert(entry, isSecondary ? "?" : "!");
+	}
+	return true;
+}
+
+function spkmodTriggerLocalVehicleAction(opts = {}) {
+	if (spkmodIsLocalVehicleEmoteBlocked()) return false;
+	const now = performance.now();
+	const triggered = spkmodTriggerVehicleEmoteEffect(_spkmodLocalVehicleEntry, true, {
+		secondary: opts.secondary,
+		ignoreCooldown: !!opts.ignoreCooldown
+	});
+	if (!triggered) return false;
+	const shouldBroadcast = opts.broadcast !== false;
+	if (
+		shouldBroadcast &&
+		typeof gameState !== "undefined" &&
+		gameState &&
+		gameState.zoneId !== null &&
+		typeof gameState.sendEmoteNow === "function" &&
+		(now - _spkmodVehicleLocalLastDirectTriggerMs >= SPKMOD_VEHICLE_EMOTE_COOLDOWN_MS)
+	) {
+		_spkmodVehicleLocalLastDirectTriggerMs = now;
+		const jumpEmoteId = (typeof Emotes !== "undefined" && Emotes && Number.isInteger(Emotes.Jump)) ? Emotes.Jump : 2;
+		try {
+			gameState.sendEmoteNow(jumpEmoteId, 0);
+		} catch (_) {}
+	}
+	return true;
+}
+
+function spkmodEnsureVehicleHandleEmoteHook() {
+	try {
+		if (typeof gameState === "undefined" || !gameState || typeof gameState.handleEmote !== "function") return;
+		if (gameState.__spkmodVehicleHandleEmoteHooked) return;
+		gameState.__spkmodVehicleHandleEmoteHooked = true;
+		const origHandleEmote = gameState.handleEmote;
+		gameState.handleEmote = function(e) {
+			try {
+				const jumpEmoteId = (typeof Emotes !== "undefined" && Emotes && Number.isInteger(Emotes.Jump)) ? Emotes.Jump : 2;
+				if (e && e.emoteId === jumpEmoteId && spkmodIsVehiclesSystemEnabled()) {
+					const isLocal = e.playerId === this.myPlayerId;
+					if (isLocal) {
+						if (!spkmodIsLocalVehicleEmoteBlocked()) {
+							const now = performance.now();
+							if (now - _spkmodVehicleLocalLastDirectTriggerMs < SPKMOD_VEHICLE_SELF_ECHO_DEDUPE_MS) {
+								return;
+							}
+							spkmodTriggerVehicleEmoteEffect(_spkmodLocalVehicleEntry, true);
+							return;
+						}
+					} else {
+						const inMini = (typeof spkmodIsInIsolatedMinigame === "function") ? spkmodIsInIsolatedMinigame() : false;
+						if (!inMini && window.spkmodVehicleSettings.showRemoteVehicles !== false) {
+							const entry = spkmodFindRemoteVehicleEntryByPlayerId(e.playerId);
+							if (entry) {
+								const rp = (entry.resolveRp ? entry.resolveRp() : null)
+									|| (typeof resolveRemotePlayerById === "function" ? resolveRemotePlayerById(e.playerId) : null);
+								if (rp && typeof isSilencedPlayer === "function" && isSilencedPlayer(rp)) {
+									return;
+								}
+								const onRemoteTrampoline = !!(
+									(e.jumpStage || 0) > 0 &&
+									rp?.container?.position &&
+									typeof this.trampolineBounce?.isOnMat === "function" &&
+									this.trampolineBounce.isOnMat(rp.container.position.x, rp.container.position.z)
+								);
+								if (!onRemoteTrampoline) {
+									spkmodTriggerVehicleEmoteEffect(entry, false, {
+										container: rp?.container || entry.lastContainer
+									});
+									return;
+								}
+							}
+						}
+					}
+				}
+			} catch (_) {}
+			return origHandleEmote.call(this, e);
+		};
+	} catch (_) {}
+}
 
 function spkmodTriggerBoxAlert(entry, symbol = "!") {
 	if (!entry || !entry.alertSprite || !window.THREE) return;
@@ -3202,26 +3396,18 @@ function spkmodEnsureVehicleKeyHooks() {
 		el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
 
 	window.addEventListener("keydown", e => {
-		if (!spkmodIsVehiclesSystemEnabled() || !_spkmodLocalVehicleEntry || isTypingTarget(e.target)) return;
-		if (e.code === "KeyF" || e.code === "KeyG") {
-			e.preventDefault();
-			e.stopImmediatePropagation();
-			if (!e.repeat) {
-				const isSecondary = e.code === "KeyG";
-				spkmodPlayVehicleSfx(_spkmodLocalVehicleEntry.vehicle, isSecondary);
-				if (_spkmodLocalVehicleEntry.alertSprite) {
-					spkmodTriggerBoxAlert(_spkmodLocalVehicleEntry, isSecondary ? "?" : "!");
-				}
-			}
+		if (e.code !== "KeyG" || isTypingTarget(e.target) || spkmodIsLocalVehicleEmoteBlocked()) return;
+		e.preventDefault();
+		e.stopImmediatePropagation();
+		if (!e.repeat) {
+			spkmodTriggerLocalVehicleAction({ broadcast: true, secondary: null });
 		}
 	}, true);
 
 	window.addEventListener("keyup", e => {
-		if (!spkmodIsVehiclesSystemEnabled() || !_spkmodLocalVehicleEntry || isTypingTarget(e.target)) return;
-		if (e.code === "KeyF" || e.code === "KeyG") {
-			e.preventDefault();
-			e.stopImmediatePropagation();
-		}
+		if (e.code !== "KeyG" || isTypingTarget(e.target) || spkmodIsLocalVehicleEmoteBlocked()) return;
+		e.preventDefault();
+		e.stopImmediatePropagation();
 	}, true);
 }
 
@@ -3238,6 +3424,7 @@ async function spkmodSpawnLocalVehicle(vehicleId, colorIdx) {
 	if (typeof gameState === "undefined" || !gameState?.playerContainer) return false;
 
 	spkmodEnsureVehicleKeyHooks();
+	spkmodEnsureVehicleHandleEmoteHook();
 	if (typeof window.spkmodResetCarsEveryone === "function") {
 		window.spkmodResetCarsEveryone(true, false);
 	}
@@ -3454,18 +3641,6 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 				entry.rightFoot.position.y = 0.08 + Math.max(0, -Math.cos(entry.walkPhase)) * 0.05;
 			}
 		}
-
-		if (entry.alertSprite) {
-			if (entry.alertUntilMs > nowMs) {
-				entry.alertSprite.visible = true;
-				const elapsed = (nowMs - entry.alertStartMs) / 1000;
-				const pop = elapsed < 0.14 ? (0.4 + (elapsed / 0.14) * 0.95) : (elapsed < 0.25 ? 1.35 - ((elapsed - 0.14) / 0.11) * 0.35 : 1.0);
-				entry.alertSprite.scale.set(0.72 * pop, 0.72 * pop, 1);
-				entry.alertSprite.position.y = (entry.alertBaseY || 1.92) + Math.sin(elapsed * 12) * 0.05;
-			} else if (entry.alertSprite.visible) {
-				entry.alertSprite.visible = false;
-			}
-		}
 	} else {
 		if (entry.hiddenAvatarRoot) {
 			entry.hiddenAvatarRoot.visible = true;
@@ -3488,6 +3663,19 @@ function spkmodTickVehicleEntry(entry, isLocal, container, playerId, avatarRoot,
 			if (ctrl && ctrl.mountSitPlaying) {
 				spkmodExitVehicleMountSit(ctrl);
 			}
+		}
+	}
+
+	// Universal floating "!" / "?" alert sprite animation for ALL 100 vehicles (local + remote)
+	if (entry.alertSprite) {
+		if (entry.alertUntilMs > nowMs) {
+			entry.alertSprite.visible = true;
+			const elapsed = (nowMs - entry.alertStartMs) / 1000;
+			const pop = elapsed < 0.14 ? (0.4 + (elapsed / 0.14) * 0.95) : (elapsed < 0.25 ? 1.35 - ((elapsed - 0.14) / 0.11) * 0.35 : 1.0);
+			entry.alertSprite.scale.set(0.72 * pop, 0.72 * pop, 1);
+			entry.alertSprite.position.y = (entry.alertBaseY || 1.92) + (entry.vehicle.hidePlayer ? 0 : hoverDelta) + Math.sin(elapsed * 12) * 0.05;
+		} else if (entry.alertSprite.visible) {
+			entry.alertSprite.visible = false;
 		}
 	}
 }
@@ -3520,6 +3708,7 @@ function spkmodResolveRemotePlayerForVehicle(playerId, playerName) {
 function spkmodClearRemoteVehicleOwner(ownerKey) {
 	_spkmodRemoteVehicleSeq.set(ownerKey, (_spkmodRemoteVehicleSeq.get(ownerKey) || 0) + 1);
 	_spkmodRemoteVehicleInFlight.delete(ownerKey);
+	_spkmodVehicleEmoteLastMs.delete(String(ownerKey));
 	const existing = _spkmodRemoteVehicleInstances.get(ownerKey);
 	if (existing) {
 		spkmodRestoreVehicleEntry(existing, false);
@@ -3591,6 +3780,7 @@ async function spkmodSpawnOrUpdateRemoteVehicle(ownerKey, state, resolved) {
 	}, built);
 
 	_spkmodRemoteVehicleInstances.set(ownerKey, entry);
+	spkmodEnsureVehicleHandleEmoteHook();
 	spkmodTickVehicleEntry(entry, false, live.rp.container, live.rpKey, live.rp.avatar?.root || null, entry.lastPosePos, entry.lastCtrl, 0.016, performance.now(), live.rp);
 }
 
@@ -3938,6 +4128,7 @@ function spkmodVehiclesMasterLoop(nowMs) {
 
 	if (!document.hidden && typeof gameState !== "undefined" && gameState) {
 		spkmodEnsureMountVisualsHook();
+		spkmodEnsureVehicleHandleEmoteHook();
 		const pc = gameState.playerContainer || null;
 		const inMinigame = (typeof spkmodIsInIsolatedMinigame === "function") ? spkmodIsInIsolatedMinigame() : false;
 
@@ -4364,8 +4555,7 @@ function spkmodRenderVehiclesColorBar() {
 	honkBtn.style.cssText = "margin-left: auto; background: rgba(245,158,11,0.22); color: #fef3c7; border: 1px solid rgba(245,158,11,0.5); border-radius: 6px; padding: 3px 9px; font-size: 11px; font-weight: 800; cursor: pointer;";
 	honkBtn.onclick = () => {
 		if (_spkmodLocalVehicleEntry) {
-			spkmodPlayVehicleSfx(_spkmodLocalVehicleEntry.vehicle, false);
-			if (_spkmodLocalVehicleEntry.alertSprite) spkmodTriggerBoxAlert(_spkmodLocalVehicleEntry, "!");
+			spkmodTriggerLocalVehicleAction({ broadcast: true, secondary: null, ignoreCooldown: true });
 		}
 	};
 	bar.appendChild(honkBtn);
@@ -4676,10 +4866,13 @@ window.spkmodVehicles = {
 	equip: (idOrCode, broadcast = true, silentToast = false) => spkmodEquipLocalVehicle(idOrCode, broadcast, silentToast),
 	unequip: (broadcast = true, silentToast = false) => spkmodEquipLocalVehicle(null, broadcast, silentToast),
 	setColor: (colorIdx, broadcast = true, silentToast = false) => spkmodSetLocalVehicleColor(colorIdx, broadcast, silentToast),
-	honk: (secondary = false) => {
+	honk: (secondary = null) => {
 		if (_spkmodLocalVehicleEntry) {
-			spkmodPlayVehicleSfx(_spkmodLocalVehicleEntry.vehicle, !!secondary);
-			if (_spkmodLocalVehicleEntry.alertSprite) spkmodTriggerBoxAlert(_spkmodLocalVehicleEntry, secondary ? "?" : "!");
+			spkmodTriggerLocalVehicleAction({
+				broadcast: true,
+				secondary: (secondary === true || secondary === false) ? secondary : null,
+				ignoreCooldown: true
+			});
 		}
 	},
 	toggleFavorite: (id) => {
