@@ -51185,11 +51185,11 @@ async function spkmodApplySkinToAvatar(ownerKey, skinId, avatarRoot, animCtrl) {
 // ============================================================================
 // 7. PLAYER WIDE ("FAT") BODY MODIFIER ENGINE (FROM BURGER SHOP spkmodCA)
 //    - Scales pelvis bone horizontally on X & Z axes in scene.onBeforeRender
-//    - Preserves head (and hats!) + hand props unstretched via matrix inversion
+//    - Preserves head (and hats!), hand props & body skin attachments unstretched via matrix inversion
 //    - Restores cleanly in scene.onAfterRender so animations/physics stay pure
 // ============================================================================
 var spkmodPlayerFat = {
-	entries: new Map(), // ownerKey -> { root, pel, head, hands, ap, p0, M, scale, rel }
+	entries: new Map(), // ownerKey -> { root, pel, head, hands, back, ap, p0, M, scale, rel }
 	pelvisRe: /pelvis|hip/i,
 	headRe: /head/i,
 	spineRe: /spine/i
@@ -51199,6 +51199,7 @@ if (typeof window !== "undefined") window.spkmodPlayerFat = spkmodPlayerFat;
 let _spkmodPFMatH1 = null;
 let _spkmodPFMatInv = null;
 const _spkmodPFPropMats = [];
+const _spkmodPFHostPos = [];
 
 function spkmodPFAxes(bone, cont) {
 	const B = bone.matrixWorld.elements, C = cont.matrixWorld.elements;
@@ -51232,21 +51233,46 @@ function spkmodPFAxes(bone, cont) {
 
 const _spkmodPFScratchProps = [];
 
-function spkmodPFCollectHandProps(entry, out = []) {
-	out.length = 0;
-	const hands = entry && entry.hands;
-	if (!hands) return out;
-	for (let i = 0; i < hands.length; i++) {
-		const hb = hands[i];
-		const ch = hb && hb.children;
+function spkmodPFCollectBackBones(pel, head, hands) {
+	const back = [];
+	if (!pel) return back;
+	const skip = /head|hand|finger|nub|toe|foot|thigh|calf/i;
+	const walk = (o) => {
+		if (!o || o === head) return;
+		if (o.isBone && !skip.test(o.name) && (!hands || hands.indexOf(o) < 0)) {
+			back.push(o);
+		}
+		const ch = o.children;
+		if (ch) {
+			for (let i = 0; i < ch.length; i++) walk(ch[i]);
+		}
+	};
+	walk(pel);
+	return back;
+}
+
+function spkmodPFCollectPropsFromBones(bones, out) {
+	if (!bones) return;
+	for (let i = 0; i < bones.length; i++) {
+		const ch = bones[i] && bones[i].children;
 		if (!ch) continue;
 		for (let j = 0; j < ch.length; j++) {
 			const c = ch[j];
-			if (c && !c.isBone && (c.userData?.lunchPropHolder === true || c.userData?.speakiMagicStaff === true || c.userData?.spkmodCookingProp === true || c.userData?.spkmodSkinHandProp === true || c.name === "speakov-weapon")) {
+			if (c && !c.isBone && (c.userData?.lunchPropHolder === true || c.userData?.speakiMagicStaff === true || c.userData?.spkmodCookingProp === true || c.userData?.spkmodSkinHandProp === true || c.userData?.spkmodSkinAttachment === true || c.name === "speakov-weapon")) {
 				out.push(c);
 			}
 		}
 	}
+}
+
+function spkmodPFCollectHandProps(entry, out = []) {
+	out.length = 0;
+	if (!entry) return out;
+	if (!entry.back && entry.pel) {
+		entry.back = spkmodPFCollectBackBones(entry.pel, entry.head, entry.hands);
+	}
+	spkmodPFCollectPropsFromBones(entry.hands, out);
+	spkmodPFCollectPropsFromBones(entry.back, out);
 	return out;
 }
 
@@ -51312,6 +51338,7 @@ function spkmodPFSetTarget(ownerKey, avatarRoot, widthScale) {
 	const head = bones.find(b => spkmodPlayerFat.headRe.test(b.name) && !/nub|end/i.test(b.name));
 	if (!pel || !head || pel === head || !head.parent) return;
 	const hands = bones.filter(b => /hand/i.test(b.name) && !/nub|finger/i.test(b.name));
+	const back = spkmodPFCollectBackBones(pel, head, hands);
 	avatarRoot.updateMatrixWorld(true);
 	const ap = spkmodPFAxes(pel, avatarRoot);
 	const px = pel.scale[ap.x], pz = pel.scale[ap.z];
@@ -51322,6 +51349,7 @@ function spkmodPFSetTarget(ownerKey, avatarRoot, widthScale) {
 		pel,
 		head,
 		hands,
+		back,
 		ap,
 		p0: { x: px, z: pz },
 		M: head.matrix.constructor,
@@ -51346,6 +51374,7 @@ function spkmodPFApplyAll() {
 			_spkmodPFMatH1 = new e.M();
 			_spkmodPFMatInv = new e.M();
 			_spkmodPFPropMats.length = 0;
+			_spkmodPFHostPos.length = 0;
 		}
 		const props = spkmodPFCollectHandProps(e, _spkmodPFScratchProps);
 		e.rel = false;
@@ -51358,7 +51387,7 @@ function spkmodPFApplyAll() {
 		e.root.updateMatrixWorld(true);
 		_spkmodPFMatH1.copy(head.matrixWorld);
 
-		// Snapshot unstretched hand prop world matrices
+		// Snapshot unstretched hand prop & body skin attachment world matrices
 		let propCount = 0;
 		for (let i = 0; i < props.length; i++) {
 			const h = props[i];
@@ -51370,6 +51399,11 @@ function spkmodPFApplyAll() {
 				_spkmodPFPropMats[propCount] = pm;
 			}
 			pm.copy(h.matrixWorld);
+			const hp = _spkmodPFHostPos[propCount] || (_spkmodPFHostPos[propCount] = [0, 0, 0]);
+			const hw = hand.matrixWorld.elements;
+			hp[0] = hw[12];
+			hp[1] = hw[13];
+			hp[2] = hw[14];
 			props[propCount] = h;
 			propCount++;
 		}
@@ -51392,7 +51426,7 @@ function spkmodPFApplyAll() {
 			head.updateMatrixWorld(true);
 		}
 
-		// Keep held weapons / props rigid & unstretched
+		// Keep held weapons/props rigid & body skin attachments unstretched/undisplaced
 		for (let i = 0; i < propCount; i++) {
 			const h = props[i];
 			const hand = h.parent;
@@ -51400,10 +51434,19 @@ function spkmodPFApplyAll() {
 			const hm = hand.matrixWorld;
 			if (typeof hm.determinant === "function" && Math.abs(hm.determinant()) < 1e-10) continue;
 			const pm = _spkmodPFPropMats[i];
-			const he = h.matrixWorld.elements;
-			pm.elements[12] = he[12];
-			pm.elements[13] = he[13];
-			pm.elements[14] = he[14];
+			if (h.userData?.spkmodSkinAttachment === true && h.userData?.spkmodSkinHandProp !== true) {
+				const hp = _spkmodPFHostPos[i];
+				const p = pm.elements;
+				const hh = hm.elements;
+				p[12] = hh[12] + (p[12] - hp[0]);
+				p[13] = hh[13] + (p[13] - hp[1]);
+				p[14] = hh[14] + (p[14] - hp[2]);
+			} else {
+				const he = h.matrixWorld.elements;
+				pm.elements[12] = he[12];
+				pm.elements[13] = he[13];
+				pm.elements[14] = he[14];
+			}
 			h.matrix.copy(_spkmodPFMatInv.copy(hm).invert().multiply(pm));
 			h.matrixAutoUpdate = false;
 			h.updateMatrixWorld(true);
