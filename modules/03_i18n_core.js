@@ -369,7 +369,10 @@ var lunHudElements = {
 	editsModal: null,
 	jukeboxModal: null,
 	customCssModal: null,
-	resourcePackModal: null
+	resourcePackModal: null,
+	cartSkinsModal: null,
+	vehiclesModal: null,
+	sparksModal: null
 };
 var customCssModalElements = {
 	headerRow: null,
@@ -469,8 +472,7 @@ var lunPanelElements = {
 	danceBtn: null,
 	autoJumpBtn: null,
 	autoMopBtn: null,
-	burgerSkinBtn: null,
-	burgerCarBtn: null,
+	vehicleToggleBtn: null,
 	randomCarEveryoneBtn: null,
 	resetCarsEveryoneBtn: null,
 	chowayoBtn: null,
@@ -553,6 +555,13 @@ var lunPanelElements = {
 	petsSystemToggleInput: null,
 	skinsSystemToggleLabel: null,
 	skinsSystemToggleInput: null,
+	cartSkinsSystemToggleLabel: null,
+	cartSkinsSystemToggleInput: null,
+	sparksSystemToggleLabel: null,
+	sparksSystemToggleInput: null,
+	cartSkinsBtn: null,
+	vehiclesBtn: null,
+	sparksBtn: null,
 	carSystemToggleLabel: null,
 	carSystemToggleInput: null,
 	burgerFatCustomersToggleLabel: null,

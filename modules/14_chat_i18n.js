@@ -836,8 +836,7 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.faintBtn) setText(lunPanelElements.faintBtn, t("faintOn"));
 	if (lunPanelElements.autoFaintBtn) setText(lunPanelElements.autoFaintBtn, t(window.AutoFaintActive ? "aFaintOn" : "aFaintOff"));
 	if (lunPanelElements.autoMopBtn) setText(lunPanelElements.autoMopBtn, t(window.AutoMopActive ? "autoMopOn" : "autoMopOff") || (window.AutoMopActive ? "Mop: ⏸️" : "Mop: ▶️"));
-	if (lunPanelElements.burgerSkinBtn && typeof getBurgerSkinBtnLabel === "function") setText(lunPanelElements.burgerSkinBtn, getBurgerSkinBtnLabel());
-	if (lunPanelElements.burgerCarBtn && typeof getBurgerCarBtnLabel === "function") setText(lunPanelElements.burgerCarBtn, getBurgerCarBtnLabel());
+	if (typeof window.spkmodUpdateVehicleQuickToggleBtn === "function") window.spkmodUpdateVehicleQuickToggleBtn();
 	setText(lunPanelElements.chowayoBtn, t(window.AutoChowayoActive ? "autoChowayoOn" : "chowayo"));
 	setText(lunPanelElements.heartsBtn, t("hearts"));
 	setText(lunPanelElements.autoHeartsBtn, t(window.AutoHeartsActive ? "autoHeartsOn" : "autoHeartsOff"));
@@ -1047,6 +1046,23 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.skinsSystemToggleInput) {
 		lunPanelElements.skinsSystemToggleInput.title = t("skinsSystemToggleDesc") || "Enable or disable the 3D Skin & Body Wardrobe system, HUD button, Alt+S hotkey, and skin sync";
 	}
+	if (lunPanelElements.cartSkinsSystemToggleLabel) {
+		setText(lunPanelElements.cartSkinsSystemToggleLabel, "🛒 " + tCustom("cartSkinsSystemToggleLabel", "Enable Cart Skins"));
+		lunPanelElements.cartSkinsSystemToggleLabel.title = tCustom("cartSkinsSystemToggleDesc", "Enable or disable Normal & Halloween Pumpkin Cart skins, HUD button (Alt+C), and cart skin sync");
+	}
+	if (lunPanelElements.cartSkinsSystemToggleInput) {
+		lunPanelElements.cartSkinsSystemToggleInput.title = tCustom("cartSkinsSystemToggleDesc", "Enable or disable Normal & Halloween Pumpkin Cart skins, HUD button (Alt+C), and cart skin sync");
+	}
+	if (lunPanelElements.sparksSystemToggleLabel) {
+		setText(lunPanelElements.sparksSystemToggleLabel, "✨ " + tCustom("sparksSystemToggleLabel", "Enable Spark FX Trails"));
+		lunPanelElements.sparksSystemToggleLabel.title = tCustom("sparksSystemToggleDesc", "Enable or disable the 100-level Spark FX walking trails, HUD button (Alt+F), and multiplayer trail sync");
+	}
+	if (lunPanelElements.sparksSystemToggleInput) {
+		lunPanelElements.sparksSystemToggleInput.title = tCustom("sparksSystemToggleDesc", "Enable or disable the 100-level Spark FX walking trails, HUD button (Alt+F), and multiplayer trail sync");
+	}
+	if (typeof window.spkmodRefreshCartSkinsModalUI === "function") window.spkmodRefreshCartSkinsModalUI();
+	if (typeof window.spkmodRefreshVehiclesModalUI === "function") window.spkmodRefreshVehiclesModalUI();
+	if (typeof window.spkmodRefreshSparksModalUI === "function") window.spkmodRefreshSparksModalUI();
 	if (lunPanelElements.carSystemToggleLabel) {
 		setText(lunPanelElements.carSystemToggleLabel, "🚗 " + (t("carSystemToggleLabel") || "Enable Cars (Display & Sync)"));
 		lunPanelElements.carSystemToggleLabel.title = t("carSystemToggleDesc") || "Enable or disable 3D car display, HUD button, and multiplayer car sync";

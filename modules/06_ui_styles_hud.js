@@ -1376,22 +1376,14 @@ document.body.appendChild(
 						if (typeof toggleAutoMop === "function") toggleAutoMop(e.target);
 					}
 				}),
-				lunPanelElements.burgerSkinBtn = buildElement("button", {
-					id: "spkmod-burgerskin-btn",
-					className: "spkmod-panel-btn",
-					innerText: typeof getBurgerSkinBtnLabel === "function" ? getBurgerSkinBtnLabel() : "Burger: OFF",
-					value: "",
-					onclick: e => {
-						if (typeof cycleBurgerSkin === "function") cycleBurgerSkin(e.target);
-					}
-				}),
-				lunPanelElements.burgerCarBtn = buildElement("button", {
-					id: "spkmod-burgercar-btn",
+				lunPanelElements.vehicleToggleBtn = buildElement("button", {
+					id: "spkmod-vehicle-toggle-btn",
 					className: "spkmod-panel-btn" + (window.spkmodCarSystemEnabled === false ? " hidden" : ""),
-					innerText: typeof getBurgerCarBtnLabel === "function" ? getBurgerCarBtnLabel() : "Car: OFF",
+					innerText: typeof window.spkmodGetVehicleQuickToggleLabel === "function" ? window.spkmodGetVehicleQuickToggleLabel() : "🚗 Vehicle: OFF",
+					title: "Quick Toggle Vehicle (Alt+X)",
 					value: "",
-					onclick: e => {
-						if (typeof cycleBurgerCar === "function") cycleBurgerCar(e.target);
+					onclick: () => {
+						if (typeof window.spkmodToggleActiveVehicle === "function") window.spkmodToggleActiveVehicle();
 					}
 				})
 			]),
@@ -2157,11 +2149,7 @@ document.body.appendChild(
 					onclick: _ => {
 						toggleInfoModal();
 					}
-				})
-			]),
-			buildElement("div", {
-				className: "spkmod-panel-cat"
-			}, [
+				}),
 				lunPanelElements.minigameBtn = buildElement("button", {
 					id: "spkmod-minigame-btn",
 					className: "spkmod-panel-btn",
@@ -2180,7 +2168,11 @@ document.body.appendChild(
 					onclick: _ => {
 						toggleEventModal();
 					}
-				}),
+				})
+			]),
+			buildElement("div", {
+				className: "spkmod-panel-cat"
+			}, [
 				lunPanelElements.mapBtn = buildElement("button", {
 					id: "spkmod-map-btn",
 					className: "spkmod-panel-btn",
@@ -2226,6 +2218,36 @@ document.body.appendChild(
 					title: "Skin & Costume Wardrobe (Alt+S)",
 					onclick: _ => {
 						if (typeof window.spkmodToggleSkinsModal === "function") window.spkmodToggleSkinsModal();
+					}
+				}),
+				lunPanelElements.cartSkinsBtn = buildElement("button", {
+					id: "spkmod-cart-skins-btn",
+					className: "spkmod-panel-btn" + (window.spkmodCartSkinsSystemEnabled === false ? " hidden" : ""),
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer; position: relative;",
+					innerText: "🛒",
+					title: "Cart Skins Wardrobe (Alt+C)",
+					onclick: _ => {
+						if (typeof window.spkmodToggleCartSkinsModal === "function") window.spkmodToggleCartSkinsModal();
+					}
+				}),
+				lunPanelElements.vehiclesBtn = buildElement("button", {
+					id: "spkmod-vehicles-btn",
+					className: "spkmod-panel-btn" + (window.spkmodCarSystemEnabled === false ? " hidden" : ""),
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer; position: relative;",
+					innerText: "🚗",
+					title: "Vehicles & Stealth Box Garage (Alt+V)",
+					onclick: _ => {
+						if (typeof window.spkmodToggleVehiclesModal === "function") window.spkmodToggleVehiclesModal();
+					}
+				}),
+				lunPanelElements.sparksBtn = buildElement("button", {
+					id: "spkmod-sparks-btn",
+					className: "spkmod-panel-btn" + (window.spkmodSparksSystemEnabled === false ? " hidden" : ""),
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer; position: relative;",
+					innerText: "✨",
+					title: "Spark FX Walking Trails (Alt+F)",
+					onclick: _ => {
+						if (typeof window.spkmodToggleSparksModal === "function") window.spkmodToggleSparksModal();
 					}
 				}),
 				lunPanelElements.jukeboxBtn = buildElement("button", {
@@ -2925,6 +2947,52 @@ document.body.appendChild(
 					})
 				]),
 
+				// Cart Skins System Master Toggle (under Skins)
+				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 4px;" }, [
+					lunPanelElements.cartSkinsSystemToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;",
+						innerText: "🛒 " + (tCustom("cartSkinsSystemToggleLabel", "Enable Cart Skins")),
+						title: tCustom("cartSkinsSystemToggleDesc", "Enable or disable Normal & Halloween Pumpkin Cart skins, HUD button (Alt+C), and cart skin sync")
+					}),
+					lunPanelElements.cartSkinsSystemToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: (window.spkmodCartSkinsSystemEnabled !== false),
+						title: tCustom("cartSkinsSystemToggleDesc", "Enable or disable Normal & Halloween Pumpkin Cart skins, HUD button (Alt+C), and cart skin sync"),
+						onchange: e => {
+							if (typeof window.spkmodSetCartSkinsSystemEnabled === "function") {
+								window.spkmodSetCartSkinsSystemEnabled(e.target.checked);
+							} else {
+								window.spkmodCartSkinsSystemEnabled = !!e.target.checked;
+								if (window.localStorage) localStorage.setItem("spkmod-cart-skin-enabled", e.target.checked ? "true" : "false");
+								if (lunPanelElements.cartSkinsBtn) lunPanelElements.cartSkinsBtn.classList.toggle("hidden", !e.target.checked);
+							}
+						}
+					})
+				]),
+
+				// Spark FX Walking Trails System Master Toggle (under Cart Skins)
+				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 4px;" }, [
+					lunPanelElements.sparksSystemToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;",
+						innerText: "✨ " + (tCustom("sparksSystemToggleLabel", "Enable Spark FX Trails")),
+						title: tCustom("sparksSystemToggleDesc", "Enable or disable the 100-level Spark FX walking trails, HUD button (Alt+F), and multiplayer trail sync")
+					}),
+					lunPanelElements.sparksSystemToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: (window.spkmodSparksSystemEnabled !== false),
+						title: tCustom("sparksSystemToggleDesc", "Enable or disable the 100-level Spark FX walking trails, HUD button (Alt+F), and multiplayer trail sync"),
+						onchange: e => {
+							if (typeof window.spkmodSetSparksSystemEnabled === "function") {
+								window.spkmodSetSparksSystemEnabled(e.target.checked);
+							} else {
+								window.spkmodSparksSystemEnabled = !!e.target.checked;
+								if (window.localStorage) localStorage.setItem("spkmod-spark-enabled", e.target.checked ? "true" : "false");
+								if (lunPanelElements.sparksBtn) lunPanelElements.sparksBtn.classList.toggle("hidden", !e.target.checked);
+							}
+						}
+					})
+				]),
+
 				// Car System Display & Sync Master Toggle (under Pets)
 				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 4px;" }, [
 					lunPanelElements.carSystemToggleLabel = buildElement("span", {
@@ -2942,7 +3010,8 @@ document.body.appendChild(
 							} else {
 								window.spkmodCarSystemEnabled = !!e.target.checked;
 								if (window.localStorage) localStorage.setItem("spkmod-car-enabled", e.target.checked ? "true" : "false");
-								if (lunPanelElements.burgerCarBtn) lunPanelElements.burgerCarBtn.classList.toggle("hidden", !e.target.checked);
+								if (lunPanelElements.vehiclesBtn) lunPanelElements.vehiclesBtn.classList.toggle("hidden", !e.target.checked);
+								if (lunPanelElements.vehicleToggleBtn) lunPanelElements.vehicleToggleBtn.classList.toggle("hidden", !e.target.checked);
 							}
 						}
 					})

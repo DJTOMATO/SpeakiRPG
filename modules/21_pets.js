@@ -479,7 +479,7 @@ const SPKMOD_PET_CATALOG = [
 	{ level: 52, id: "mon_1302", icon: "✉️", moveMode: "fly", voiceType: "ghost", targetHeight: 0.66, monsterId: 1302, defaultName: "Mail Ghost", source: "Ghost Village", spec: { kind: "monster", monsterId: 1302 } },
 	{ level: 53, id: "mon_1303", icon: "💧", moveMode: "bounce", voiceType: "slime", targetHeight: 0.60, monsterId: 1303, defaultName: "Puddle Jelly", source: "Ghost Village", spec: { kind: "monster", monsterId: 1303 } },
 	{ level: 54, id: "mon_1305", icon: "🦇", moveMode: "fly", voiceType: "ghost", targetHeight: 0.64, monsterId: 1305, defaultName: "Paper Lantern Bat", source: "Ghost Village", spec: { kind: "monster", monsterId: 1305 } },
-	{ level: 55, id: "mon_1306", icon: "🐦‍⬛", moveMode: "fly", voiceType: "ghost", targetHeight: 0.65, monsterId: 1306, defaultName: "Straw Hat Crow", source: "Ghost Village", spec: { kind: "monster", monsterId: 1306 } },
+	{ level: 55, id: "mon_1306", icon: "🦅", moveMode: "fly", voiceType: "ghost", targetHeight: 0.65, monsterId: 1306, defaultName: "Straw Hat Crow", source: "Ghost Village", spec: { kind: "monster", monsterId: 1306 } },
 	{ level: 56, id: "mon_1309", icon: "☂️", moveMode: "fly", voiceType: "ghost", targetHeight: 0.70, monsterId: 1309, defaultName: "Umbrella Ghost", source: "Ghost Village", spec: { kind: "monster", monsterId: 1309 } },
 	{ level: 57, id: "mon_1310", icon: "🐸", moveMode: "bounce", voiceType: "slime", targetHeight: 0.62, monsterId: 1310, defaultName: "Crybaby Toad", source: "Ghost Village", spec: { kind: "monster", monsterId: 1310 } },
 	{ level: 58, id: "mon_1316", icon: "📷", moveMode: "fly", voiceType: "drone", targetHeight: 0.64, monsterId: 1316, defaultName: "Prank Camera", source: "Ghost Village", spec: { kind: "monster", monsterId: 1316 } },
@@ -505,12 +505,12 @@ const SPKMOD_PET_CATALOG = [
 	{ level: 76, id: "mon_1107", icon: "🛸", moveMode: "fly", voiceType: "drone", targetHeight: 0.58, monsterId: 1107, defaultName: "Monatium Scout Drone", source: "Monatium Field", spec: { kind: "monster", monsterId: 1107 } },
 	{ level: 77, id: "mon_1113", icon: "🤖", moveMode: "bounce", voiceType: "drone", targetHeight: 0.62, monsterId: 1113, defaultName: "Welding Spark Impbot", source: "Monatium Factory", spec: { kind: "monster", monsterId: 1113 } },
 	{ level: 78, id: "mon_1128", icon: "🕷️", moveMode: "bounce", voiceType: "drone", targetHeight: 0.58, monsterId: 1128, defaultName: "Coil Spiderbot", source: "Monatium Factory", spec: { kind: "monster", monsterId: 1128 } },
-	{ level: 79, id: "mon_1133", icon: "🫠", moveMode: "bounce", voiceType: "slime", targetHeight: 0.62, monsterId: 1133, defaultName: "Molten Slimecore", source: "Monatium Core", spec: { kind: "monster", monsterId: 1133 } },
+	{ level: 79, id: "mon_1133", icon: "🌋", moveMode: "bounce", voiceType: "slime", targetHeight: 0.62, monsterId: 1133, defaultName: "Molten Slimecore", source: "Monatium Core", spec: { kind: "monster", monsterId: 1133 } },
 	{ level: 80, id: "mon_1134", icon: "👁️", moveMode: "fly", voiceType: "drone", targetHeight: 0.62, monsterId: 1134, defaultName: "Watcher Eye Lens", source: "Monatium Core", spec: { kind: "monster", monsterId: 1134 } },
 
 	// --- TIER 5: LV 81-100 (SPEAKOV, TRAINS, DRAGONS, RAID BOSSES, CHIBI NPCS & BATTLECRUISER) ---
 	{ level: 81, id: "speakov_rifle", icon: "🔫", moveMode: "fly", voiceType: "drone", targetHeight: 0.55, defaultName: "Floating Tactical Rifle", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/weapon-rifle.glb" } },
-	{ level: 82, id: "speakov_raider", icon: "🪖", moveMode: "bounce", voiceType: "drone", targetHeight: 0.72, defaultName: "Mini Speakov Raider", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/raider-assault.glb" } },
+	{ level: 82, id: "speakov_raider", icon: "🎖️", moveMode: "bounce", voiceType: "drone", targetHeight: 0.72, defaultName: "Mini Speakov Raider", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/raider-assault.glb" } },
 	{ level: 83, id: "speakov_commander", icon: "🎖️", moveMode: "bounce", voiceType: "drone", targetHeight: 0.75, defaultName: "Mini Raider Commander", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/raider-commander.glb" } },
 	{ level: 84, id: "mini_town_train", icon: "🚂", moveMode: "bounce", voiceType: "vehicle", targetHeight: 0.68, defaultName: "Mini Worldtree Train", source: "Town Train", spec: { kind: "glb", url: "/models/town-train/worldtree-town-train.glb" } },
 	{ level: 85, id: "mini_santa_sleigh", icon: "🛷", moveMode: "fly", voiceType: "fairy", targetHeight: 0.68, defaultName: "Flying Santa Sleigh", source: "Winter Town", spec: { kind: "glb", url: "/models/winter-town/santa-sleigh-set.glb" } },
@@ -534,10 +534,34 @@ const SPKMOD_PET_CATALOG = [
 
 const SPKMOD_PETS_BY_ID = new Map(SPKMOD_PET_CATALOG.map(p => [p.id, p]));
 const SPKMOD_PETS_BY_LEVEL = new Map();
-for (const p of SPKMOD_PET_CATALOG) {
+const SPKMOD_PET_ID_TO_CODE = new Map();
+const SPKMOD_PET_CODE_TO_ID = new Map();
+SPKMOD_PET_CATALOG.forEach((p, idx) => {
+	const code = idx + 1;
+	SPKMOD_PET_ID_TO_CODE.set(p.id, code);
+	SPKMOD_PET_CODE_TO_ID.set(code, p.id);
 	if (!SPKMOD_PETS_BY_LEVEL.has(p.level)) {
 		SPKMOD_PETS_BY_LEVEL.set(p.level, p);
 	}
+});
+function spkmodPetIdToCode(petId) {
+	if (!petId || petId === "none" || petId === "off") return 0;
+	const key = String(petId).trim().toLowerCase();
+	if (SPKMOD_PET_ID_TO_CODE.has(key)) return SPKMOD_PET_ID_TO_CODE.get(key);
+	if (/^\d+$/.test(key)) {
+		const n = Number(key);
+		if (SPKMOD_PET_CODE_TO_ID.has(n)) return n;
+	}
+	return 0;
+}
+function spkmodPetCodeToId(code) {
+	const n = Number(code);
+	if (!Number.isInteger(n) || n <= 0) return "none";
+	return SPKMOD_PET_CODE_TO_ID.get(n) || null;
+}
+if (typeof window !== "undefined") {
+	window.spkmodPetIdToCode = spkmodPetIdToCode;
+	window.spkmodPetCodeToId = spkmodPetCodeToId;
 }
 
 function spkmodGetPetDisplayName(pet) {
@@ -1963,6 +1987,31 @@ function spkmodIsOwnerDancing(instance) {
 	return false;
 }
 
+const SPKMOD_PET_DANCES = [
+	{ id: "orbit_spin", color: "#ffd700" },
+	{ id: "figure_eight", color: "#4de8ff" },
+	{ id: "front_shimmy", color: "#ff72c6" },
+	{ id: "backflip_bounce", color: "#ff9f43" },
+	{ id: "flower_petal", color: "#c084fc" },
+	{ id: "tornado_whirl", color: "#60a5fa" },
+	{ id: "zig_zag_hop", color: "#4ade80" },
+	{ id: "moonwalk_groove", color: "#facc15" }
+];
+
+function spkmodPickRandomPetDance(inst) {
+	if (!inst) return SPKMOD_PET_DANCES[0];
+	const prevId = inst.danceStyleId;
+	let pool = SPKMOD_PET_DANCES;
+	if (prevId && pool.length > 1) {
+		pool = pool.filter(d => d.id !== prevId);
+	}
+	const picked = pool[Math.floor(Math.random() * pool.length)] || SPKMOD_PET_DANCES[0];
+	inst.danceStyleId = picked.id;
+	inst.danceElapsed = 0;
+	inst.danceDir = Math.random() < 0.5 ? 1 : -1;
+	return picked;
+}
+
 function spkmodIsOwnerFallenDown(instance) {
 	const now = performance.now();
 	if (instance.forceFallDownUntil > now) return true;
@@ -2162,6 +2211,10 @@ async function spkmodCreatePetInstance(ownerKey, pet, isLocal, resolveContainerF
 		nextTalkAtMs: now + 14000 + Math.random() * 22000,
 		nextDanceFxAtMs: 0,
 		forceDanceUntil: 0,
+		danceStyleId: null,
+		danceElapsed: 0,
+		danceDir: 1,
+		_wasDancing: false,
 		forceFallDownUntil: 0,
 		petJumpActive: false,
 		petJumpElapsed: 0,
@@ -2297,6 +2350,13 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 	const ownerCtrl = spkmodGetOwnerAnimController(inst);
 	const isFallenDown = spkmodIsOwnerFallenDown(inst);
 	const isDancing = !isFallenDown && spkmodIsOwnerDancing(inst);
+	if (isDancing && !inst._wasDancing) {
+		spkmodPickRandomPetDance(inst);
+	}
+	inst._wasDancing = isDancing;
+	if (isDancing) {
+		inst.danceElapsed = (inst.danceElapsed || 0) + dt;
+	}
 	const isFlyer = inst.pet.moveMode === "fly";
 
 	// Sync pet size with owner's active Resizer Potion scale (smoothly eases on drink/expire, preserves across pet swaps)
@@ -2403,10 +2463,67 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		stopThreshold = 0.05;
 	} else if (isDancing) {
 		inst.hasWanderTarget = false;
-		const danceRadius = Math.max(1.85, minR - 0.15) + Math.sin(inst.idlePhase * 0.7) * 0.18;
-		targetX = ownerPos.x + Math.cos(inst.orbitAngle) * danceRadius;
-		targetZ = ownerPos.z + Math.sin(inst.orbitAngle) * danceRadius;
-		desiredMaxSpeed = 8.5;
+		const dStyle = inst.danceStyleId || "orbit_spin";
+		const dT = inst.danceElapsed || 0;
+		const dDir = inst.danceDir || 1;
+		const baseR = Math.max(1.85, minR - 0.15);
+		const fwdX = Math.sin(ownerYaw);
+		const fwdZ = Math.cos(ownerYaw);
+		const rightX = Math.cos(ownerYaw);
+		const rightZ = -Math.sin(ownerYaw);
+
+		if (dStyle === "figure_eight") {
+			const t = dT * 2.1 * dDir;
+			const localSide = Math.sin(t) * (baseR * 1.18);
+			const localFwd = Math.sin(t * 2) * (baseR * 0.62) + baseR * 0.35;
+			targetX = ownerPos.x + rightX * localSide + fwdX * localFwd;
+			targetZ = ownerPos.z + rightZ * localSide + fwdZ * localFwd;
+			desiredMaxSpeed = 9.5;
+		} else if (dStyle === "front_shimmy") {
+			const shimmy = Math.sin(dT * 5.2 * dDir) * Math.max(0.85, baseR * 0.58);
+			const depth = baseR * 0.92 + Math.cos(dT * 10.4) * 0.22;
+			targetX = ownerPos.x + fwdX * depth + rightX * shimmy;
+			targetZ = ownerPos.z + fwdZ * depth + rightZ * shimmy;
+			desiredMaxSpeed = 9.0;
+		} else if (dStyle === "backflip_bounce") {
+			const ang = inst.orbitAngle * 0.45 * dDir;
+			const r = baseR * 0.95;
+			targetX = ownerPos.x + Math.cos(ang) * r;
+			targetZ = ownerPos.z + Math.sin(ang) * r;
+			desiredMaxSpeed = 7.5;
+		} else if (dStyle === "flower_petal") {
+			const theta = dT * 1.65 * dDir;
+			const r = baseR * (0.82 + 0.44 * Math.cos(theta * 4));
+			targetX = ownerPos.x + Math.cos(theta) * r;
+			targetZ = ownerPos.z + Math.sin(theta) * r;
+			desiredMaxSpeed = 9.5;
+		} else if (dStyle === "tornado_whirl") {
+			const ang = dT * 5.6 * dDir;
+			const r = baseR * (0.62 + 0.48 * (0.5 + 0.5 * Math.sin(dT * 2.4)));
+			targetX = ownerPos.x + Math.cos(ang) * r;
+			targetZ = ownerPos.z + Math.sin(ang) * r;
+			desiredMaxSpeed = 12.0;
+		} else if (dStyle === "zig_zag_hop") {
+			const stepBeat = dT * 3.2;
+			const ang = Math.floor(stepBeat) * 0.85 * dDir + (stepBeat % 1) * 0.85 * dDir;
+			const zig = (Math.floor(stepBeat) % 2 === 0 ? 1.25 : 0.72);
+			const r = baseR * zig;
+			targetX = ownerPos.x + Math.cos(ang) * r;
+			targetZ = ownerPos.z + Math.sin(ang) * r;
+			desiredMaxSpeed = 10.5;
+		} else if (dStyle === "moonwalk_groove") {
+			const ang = dT * 2.15 * dDir;
+			const r = baseR * 1.05;
+			targetX = ownerPos.x + Math.cos(ang) * r;
+			targetZ = ownerPos.z + Math.sin(ang) * r;
+			desiredMaxSpeed = 7.5;
+		} else {
+			// orbit_spin (classic)
+			const danceRadius = baseR + Math.sin(inst.idlePhase * 0.7) * 0.18;
+			targetX = ownerPos.x + Math.cos(inst.orbitAngle * dDir) * danceRadius;
+			targetZ = ownerPos.z + Math.sin(inst.orbitAngle * dDir) * danceRadius;
+			desiredMaxSpeed = 8.5;
+		}
 		stopThreshold = 0.08;
 	} else if (ownerIsMoving) {
 		// Owner is walking/running -> natural world-space leash pursuit (straight chords, no circular boom-arm)
@@ -2604,7 +2721,37 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 	if ((inst.fallDownBlend || 0) > 0.25) {
 		// Keep fallen pet lying steadily without spinning on the floor
 	} else if (isDancing) {
-		inst.modelHolder.rotation.y += dt * 7.2;
+		const dStyle = inst.danceStyleId || "orbit_spin";
+		const dT = inst.danceElapsed || 0;
+		const dDir = inst.danceDir || 1;
+		if (dStyle === "front_shimmy") {
+			const toOwnerYaw = Math.atan2(ownerPos.x - inst.root.position.x, ownerPos.z - inst.root.position.z);
+			const desiredYaw = toOwnerYaw + Math.sin(dT * 5.2 * dDir) * 0.45;
+			inst.modelHolder.rotation.y += spkmodNormalizeAngleDiff(desiredYaw, inst.modelHolder.rotation.y) * Math.min(1, dt * 12);
+		} else if (dStyle === "figure_eight" || dStyle === "flower_petal") {
+			if (frameMoved > 0.002) {
+				const desiredYaw = Math.atan2(inst.root.position.x - inst.lastX, inst.root.position.z - inst.lastZ);
+				inst.modelHolder.rotation.y += spkmodNormalizeAngleDiff(desiredYaw, inst.modelHolder.rotation.y) * Math.min(1, dt * 10);
+			}
+		} else if (dStyle === "moonwalk_groove") {
+			// Face opposite to travel direction for classic moonwalk, with periodic flourish spins
+			const spinWindow = dT % 3.2;
+			if (spinWindow > 2.65) {
+				inst.modelHolder.rotation.y += dt * 14.0 * dDir;
+			} else if (frameMoved > 0.002) {
+				const backwardYaw = Math.atan2(inst.lastX - inst.root.position.x, inst.lastZ - inst.root.position.z);
+				inst.modelHolder.rotation.y += spkmodNormalizeAngleDiff(backwardYaw, inst.modelHolder.rotation.y) * Math.min(1, dt * 10);
+			}
+		} else if (dStyle === "tornado_whirl") {
+			inst.modelHolder.rotation.y += dt * 16.5 * dDir;
+		} else if (dStyle === "backflip_bounce") {
+			const toOwnerYaw = Math.atan2(ownerPos.x - inst.root.position.x, ownerPos.z - inst.root.position.z);
+			inst.modelHolder.rotation.y += spkmodNormalizeAngleDiff(toOwnerYaw, inst.modelHolder.rotation.y) * Math.min(1, dt * 8);
+		} else if (dStyle === "zig_zag_hop") {
+			inst.modelHolder.rotation.y += dt * 5.5 * dDir;
+		} else {
+			inst.modelHolder.rotation.y += dt * 7.2 * dDir;
+		}
 	} else if (isMoving && frameMoved > 0.002) {
 		const desiredYaw = Math.atan2(inst.root.position.x - inst.lastX, inst.root.position.z - inst.lastZ);
 		const diff = spkmodNormalizeAngleDiff(desiredYaw, inst.modelHolder.rotation.y);
@@ -2633,24 +2780,107 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 	const hopScale = Math.max(0.45, Math.min(2.2, ownerScale));
 
 	if (isDancing) {
-		inst.walkPhase += dt * 11.0;
-		const jumpWave = Math.abs(Math.sin(inst.walkPhase));
+		const dStyle = inst.danceStyleId || "orbit_spin";
+		const dT = inst.danceElapsed || 0;
+		const dDir = inst.danceDir || 1;
 		const baseHover = isFlyer ? (1.15 * flyerHoverScale) : 0;
-		poseY = baseHover + jumpWave * 0.46 * hopScale;
-		const squash = Math.cos(inst.walkPhase * 2) * 0.15;
-		poseSX = 1 + squash;
-		poseSY = 1 - squash * 1.2;
-		poseSZ = 1 + squash;
-		poseRotZ = Math.sin(inst.walkPhase) * 0.24;
-		poseRotX = Math.cos(inst.walkPhase * 0.5) * 0.14;
+		inst.walkPhase += dt * 11.0;
+
+		if (dStyle === "figure_eight") {
+			const hop = Math.abs(Math.sin(dT * 7.5));
+			poseY = baseHover + hop * 0.36 * hopScale;
+			const squash = Math.cos(dT * 15.0) * 0.12;
+			poseSX = 1 + squash;
+			poseSY = 1 - squash * 1.15;
+			poseSZ = 1 + squash;
+			poseRotZ = Math.cos(dT * 2.1 * dDir) * 0.36;
+			poseRotX = Math.sin(dT * 7.5) * 0.12;
+		} else if (dStyle === "front_shimmy") {
+			const bounce = Math.abs(Math.sin(dT * 10.4));
+			poseY = baseHover + bounce * 0.32 * hopScale;
+			const squash = Math.sin(dT * 10.4) * 0.14;
+			poseSX = 1 + squash;
+			poseSY = 1 - squash * 1.1;
+			poseSZ = 1 + squash;
+			poseRotZ = Math.sin(dT * 10.4 * dDir) * 0.34;
+			poseRotX = Math.sin(dT * 5.2) * 0.18;
+		} else if (dStyle === "backflip_bounce") {
+			const cycle = (dT * 1.35) % 1;
+			if (cycle < 0.72) {
+				const p = cycle / 0.72;
+				const arc = 4 * p * (1 - p);
+				poseY = baseHover + arc * 1.15 * hopScale;
+				poseRotX = -p * Math.PI * 2;
+				poseRotZ = Math.sin(p * Math.PI) * 0.12 * dDir;
+				poseSX = 1 - arc * 0.1;
+				poseSY = 1 + arc * 0.16;
+				poseSZ = 1 - arc * 0.1;
+			} else {
+				const lp = (cycle - 0.72) / 0.28;
+				const landSquash = Math.sin(lp * Math.PI) * 0.24;
+				poseY = baseHover;
+				poseRotX = 0;
+				poseRotZ = 0;
+				poseSX = 1 + landSquash;
+				poseSY = 1 - landSquash * 1.15;
+				poseSZ = 1 + landSquash;
+			}
+		} else if (dStyle === "flower_petal") {
+			const floatWave = 0.5 + 0.5 * Math.sin(dT * 4.2);
+			poseY = baseHover + (0.14 + floatWave * 0.42) * hopScale;
+			const sway = Math.sin(dT * 3.3);
+			poseSX = 1 + sway * 0.08;
+			poseSY = 1 - sway * 0.08;
+			poseSZ = 1 + sway * 0.08;
+			poseRotZ = Math.sin(dT * 3.3 * dDir) * 0.28;
+			poseRotX = Math.cos(dT * 3.3) * 0.16;
+		} else if (dStyle === "tornado_whirl") {
+			const lift = 0.5 + 0.5 * Math.sin(dT * 2.4 + Math.PI);
+			poseY = baseHover + (0.18 + lift * 0.58) * hopScale;
+			poseSX = 0.92 + Math.sin(dT * 14) * 0.08;
+			poseSY = 1.12 - Math.sin(dT * 14) * 0.08;
+			poseSZ = 0.92 + Math.sin(dT * 14) * 0.08;
+			poseRotX = Math.sin(dT * 7.5) * 0.28;
+			poseRotZ = Math.cos(dT * 7.5) * 0.28;
+		} else if (dStyle === "zig_zag_hop") {
+			const beat = (dT * 3.2) % 1;
+			const arc = 4 * beat * (1 - beat);
+			poseY = baseHover + arc * 0.68 * hopScale;
+			const squash = (beat < 0.16 || beat > 0.84) ? 0.18 : -0.10 * arc;
+			poseSX = 1 + squash;
+			poseSY = 1 - squash * 1.15;
+			poseSZ = 1 + squash;
+			poseRotZ = (Math.floor(dT * 3.2) % 2 === 0 ? 1 : -1) * arc * 0.32;
+			poseRotX = (0.5 - beat) * 0.26 * arc;
+		} else if (dStyle === "moonwalk_groove") {
+			const slideBob = Math.abs(Math.sin(dT * 6.4)) * 0.14;
+			poseY = baseHover + slideBob * hopScale;
+			const groove = Math.sin(dT * 6.4) * 0.08;
+			poseSX = 1 + groove;
+			poseSY = 1 - groove;
+			poseSZ = 1 + groove;
+			poseRotX = -0.22 + Math.sin(dT * 6.4) * 0.08;
+			poseRotZ = Math.sin(dT * 3.2 * dDir) * 0.18;
+		} else {
+			// orbit_spin (classic)
+			const jumpWave = Math.abs(Math.sin(inst.walkPhase));
+			poseY = baseHover + jumpWave * 0.46 * hopScale;
+			const squash = Math.cos(inst.walkPhase * 2) * 0.15;
+			poseSX = 1 + squash;
+			poseSY = 1 - squash * 1.2;
+			poseSZ = 1 + squash;
+			poseRotZ = Math.sin(inst.walkPhase) * 0.24;
+			poseRotX = Math.cos(inst.walkPhase * 0.5) * 0.14;
+		}
 
 		if (nowMs >= inst.nextDanceFxAtMs && gameState?.skillParticles) {
 			inst.nextDanceFxAtMs = nowMs + 750;
+			const danceDef = SPKMOD_PET_DANCES.find(d => d.id === dStyle);
 			try {
 				gameState.skillParticles.emit({
 					count: 6,
 					texture: "star4",
-					color: "#ffd700",
+					color: danceDef?.color || "#ffd700",
 					axis: "up",
 					coneAngleDeg: 55,
 					speedMinMps: 0.8,
@@ -2858,9 +3088,10 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 }
 
 // ============================================================================
-// 8. IN-GAME CHAT TRIGGER SYNC (:pet_<id>:) & CHAT-SAFE QUEUED BROADCAST
+// 8. UNIFIED COMPACT HIDDEN CHAT SYNC (:m_p<N>_s<N>_f<N>_c<N>_v<MC>_t<N>:)
+//    & LEGACY (:pet_...: / :car_...:) COMPATIBILITY + CHAT-SAFE QUEUED BROADCAST
 // ============================================================================
-const SPKMOD_PET_CHAT_MIN_GAP_MS = 1600;           // Hard minimum gap (> 1s server chat CD + jitter) between :pet_...: packets
+const SPKMOD_PET_CHAT_MIN_GAP_MS = 1600;           // Hard minimum gap (> 1s server chat CD + jitter) between hidden sync packets
 const SPKMOD_PET_CHAT_EQUIP_DEBOUNCE_MS = 1100;    // Coalesce rapid equip/unequip clicks into 1 broadcast
 const SPKMOD_PET_CHAT_AFTER_USER_MSG_MS = 2200;    // Quiet window after player sends a message (clears 1s server CD + buffer)
 const SPKMOD_PET_CHAT_AFTER_BURST_MSG_MS = 4500;   // Extended quiet window during active multi-message chat bursts
@@ -2877,6 +3108,7 @@ let _spkmodLastObservedZoneId = null;
 let _spkmodLastObservedRemoteCount = 0;
 let _spkmodAutoRestoringPet = false;
 let _spkmodNeedsZoneSync = false;
+let _spkmodPetHadBroadcast = false;
 
 function spkmodGetSkinBroadcastSnapshot() {
 	if (typeof window !== "undefined" && typeof window.spkmodGetActiveSkinBroadcastState === "function") {
@@ -2888,45 +3120,345 @@ function spkmodGetSkinBroadcastSnapshot() {
 	return { enabled: false, shareInChat: false, skinId: null, widthId: null, hadBroadcastSkinOrWidth: false };
 }
 
+function spkmodGetCartSkinBroadcastSnapshot() {
+	if (typeof window !== "undefined" && typeof window.spkmodGetActiveCartSkinBroadcastState === "function") {
+		try {
+			const st = window.spkmodGetActiveCartSkinBroadcastState();
+			if (st && typeof st === "object") return st;
+		} catch (_) {}
+	}
+	return { enabled: false, shareInChat: false, cartId: null, hadBroadcastCart: false };
+}
+
+function spkmodGetCarBroadcastSnapshot() {
+	if (typeof window !== "undefined" && typeof window.spkmodGetActiveCarBroadcastState === "function") {
+		try {
+			const st = window.spkmodGetActiveCarBroadcastState();
+			if (st && typeof st === "object") return st;
+		} catch (_) {}
+	}
+	return { enabled: false, shareInChat: false, modeIdx: 0, colorIdx: 0, hadBroadcastCar: false };
+}
+
+function spkmodGetSparkBroadcastSnapshot() {
+	if (typeof window !== "undefined" && typeof window.spkmodGetActiveSparkBroadcastState === "function") {
+		try {
+			const st = window.spkmodGetActiveSparkBroadcastState();
+			if (st && typeof st === "object") return st;
+		} catch (_) {}
+	}
+	return { enabled: false, shareInChat: false, sparkId: null, hadBroadcastSpark: false };
+}
+
 function spkmodIsAnyPetOrSkinChatSharingEnabled() {
 	const petCanShare = spkmodIsPetChatSharingEnabled();
 	const skinSnap = spkmodGetSkinBroadcastSnapshot();
-	const skinCanShare = !!(skinSnap.enabled && skinSnap.shareInChat);
-	return petCanShare || skinCanShare;
+	const cartSnap = spkmodGetCartSkinBroadcastSnapshot();
+	const carSnap = spkmodGetCarBroadcastSnapshot();
+	const sparkSnap = spkmodGetSparkBroadcastSnapshot();
+	return petCanShare
+		|| !!(skinSnap.enabled && skinSnap.shareInChat)
+		|| !!(cartSnap.enabled && cartSnap.shareInChat)
+		|| !!(carSnap.enabled && carSnap.shareInChat)
+		|| !!(sparkSnap.enabled && sparkSnap.shareInChat);
 }
 
-function spkmodBuildCombinedPetSyncCode(petId, skinSnap, includeSkinState = false) {
-	const normPet = (!petId || petId === "none" || petId === "off") ? "none" : String(petId).trim().toLowerCase();
-	const canShareSkin = !!(skinSnap && skinSnap.enabled && skinSnap.shareInChat);
-	const normSkin = (canShareSkin && skinSnap.skinId && skinSnap.skinId !== "none" && skinSnap.skinId !== "off")
-		? String(skinSnap.skinId).trim().toLowerCase()
-		: "none";
-	const normWidth = (canShareSkin && skinSnap.widthId && skinSnap.widthId !== "normal" && skinSnap.widthId !== "none" && skinSnap.widthId !== "off")
-		? String(skinSnap.widthId).trim().toLowerCase()
-		: "none";
+function spkmodResolveCodeFromWindow(fnName, val) {
+	if (!val || val === "none" || val === "off" || val === "normal") return 0;
+	if (typeof window !== "undefined" && typeof window[fnName] === "function") {
+		try {
+			const code = Number(window[fnName](val));
+			if (Number.isInteger(code) && code > 0) return code;
+		} catch (_) {}
+	}
+	const s = String(val).trim().toLowerCase();
+	if (/^\d+$/.test(s)) return Number(s);
+	return 0;
+}
 
-	const hasActiveSkin = normSkin !== "none";
-	const hasActiveWidth = normWidth !== "none";
-	const needSkinFields = canShareSkin && (hasActiveSkin || hasActiveWidth || includeSkinState || !!skinSnap.hadBroadcastSkinOrWidth);
+function spkmodResolveWidthCode(widthId) {
+	if (!widthId || widthId === "none" || widthId === "off" || widthId === "normal") return 0;
+	if (typeof window !== "undefined" && typeof window.spkmodWidthIdToCode === "function") {
+		try {
+			const c = Number(window.spkmodWidthIdToCode(widthId));
+			if (Number.isInteger(c) && c > 0) return c;
+		} catch (_) {}
+	}
+	const m = String(widthId).trim().toLowerCase().match(/^w?(\d+)$/);
+	return m ? Number(m[1]) : 0;
+}
 
-	if (!needSkinFields) {
+function spkmodBuildUnifiedSyncCode(state = {}) {
+	const inc = state.include || {};
+	const prev = state.hadBroadcast || {};
+	const tokens = [];
+
+	const petCode = state.petCanShare !== false
+		? (typeof spkmodPetIdToCode === "function" ? spkmodPetIdToCode(state.petId) : spkmodResolveCodeFromWindow("spkmodPetIdToCode", state.petId))
+		: 0;
+	const skinCode = state.skinCanShare
+		? spkmodResolveCodeFromWindow("spkmodSkinIdToCode", state.skinId)
+		: 0;
+	const widthCode = state.skinCanShare
+		? spkmodResolveWidthCode(state.widthId)
+		: 0;
+	const cartCode = state.cartCanShare
+		? spkmodResolveCodeFromWindow("spkmodCartSkinIdToCode", state.cartId)
+		: 0;
+	const carMode = (state.carCanShare && Number(state.carMode) > 0) ? Number(state.carMode) : 0;
+	const carColor = Math.max(0, Math.min(9, Number(state.carColorIdx) || 0));
+	const sparkCode = state.sparkCanShare
+		? spkmodResolveCodeFromWindow("spkmodSparkIdToCode", state.sparkId)
+		: 0;
+
+	const hasActiveAny = (petCode > 0) || (skinCode > 0) || (widthCode > 0) || (cartCode > 0) || (carMode > 0) || (sparkCode > 0);
+	const hadAny = !!(prev.pet || prev.skin || prev.width || prev.cart || prev.car || prev.spark);
+	const forceClearAny = !!(inc.pet || inc.skin || inc.width || inc.cart || inc.car || inc.spark);
+
+	if (!hasActiveAny) {
+		if (hadAny || forceClearAny) {
+			return {
+				code: ":m_0:",
+				hasPet: false,
+				hasSkinOrWidth: false,
+				hasCart: false,
+				hasCar: false,
+				hasSpark: false,
+				isClearAll: true
+			};
+		}
 		return {
-			code: `:pet_${normPet}:`,
-			hasSkinOrWidth: false
+			code: null,
+			hasPet: false,
+			hasSkinOrWidth: false,
+			hasCart: false,
+			hasCar: false,
+			hasSpark: false,
+			isClearAll: false
 		};
 	}
+
+	if (petCode > 0) tokens.push(`p${petCode}`);
+	else if (prev.pet || inc.pet) tokens.push("p0");
+
+	if (skinCode > 0) tokens.push(`s${skinCode}`);
+	else if (prev.skin || inc.skin) tokens.push("s0");
+
+	if (widthCode > 0) tokens.push(`f${widthCode}`);
+	else if (prev.width || inc.width) tokens.push("f0");
+
+	if (cartCode > 0) tokens.push(`c${cartCode}`);
+	else if (prev.cart || inc.cart) tokens.push("c0");
+
+	if (carMode > 0) tokens.push(`v${carMode}c${carColor}`);
+	else if (prev.car || inc.car) tokens.push("v0");
+
+	if (sparkCode > 0) tokens.push(`t${sparkCode}`);
+	else if (prev.spark || inc.spark) tokens.push("t0");
+
 	return {
-		code: `:pet_${normPet}_s_${normSkin}_f_${normWidth}:`,
-		hasSkinOrWidth: hasActiveSkin || hasActiveWidth
+		code: `:m_${tokens.join("_")}:`,
+		hasPet: petCode > 0,
+		hasSkinOrWidth: (skinCode > 0) || (widthCode > 0),
+		hasCart: cartCode > 0,
+		hasCar: carMode > 0,
+		hasSpark: sparkCode > 0,
+		isClearAll: false
 	};
 }
 
-function spkmodParseCombinedPetSyncMessage(rawMsg) {
+function spkmodBuildCombinedPetSyncCode(petId, skinSnap, includeSkinState = false, extra = {}) {
+	const canShareSkin = !!(skinSnap && skinSnap.enabled && skinSnap.shareInChat);
+	const cartSnap = extra.cartSnap || null;
+	const carSnap = extra.carSnap || null;
+	const sparkSnap = extra.sparkSnap || null;
+	const canShareCart = !!(cartSnap && cartSnap.enabled && cartSnap.shareInChat);
+	const canShareCar = !!(carSnap && carSnap.enabled && carSnap.shareInChat);
+	const canShareSpark = !!(sparkSnap && sparkSnap.enabled && sparkSnap.shareInChat);
+	const normPet = (!petId || petId === "none" || petId === "off") ? null : String(petId).trim().toLowerCase();
+	const hadSkin = !!(skinSnap && skinSnap.hadBroadcastSkinOrWidth);
+
+	return spkmodBuildUnifiedSyncCode({
+		petCanShare: extra.petCanShare !== undefined ? !!extra.petCanShare : true,
+		petId: normPet,
+		skinCanShare: canShareSkin,
+		skinId: canShareSkin ? (skinSnap.skinId || null) : null,
+		widthId: canShareSkin ? (skinSnap.widthId || null) : null,
+		cartCanShare: canShareCart,
+		cartId: canShareCart ? (cartSnap.cartId || null) : null,
+		carCanShare: canShareCar,
+		carMode: canShareCar ? (Number(carSnap.modeIdx) || 0) : 0,
+		carColorIdx: canShareCar ? (Number(carSnap.colorIdx) || 0) : 0,
+		sparkCanShare: canShareSpark,
+		sparkId: canShareSpark ? (sparkSnap.sparkId || null) : null,
+		hadBroadcast: {
+			pet: !!extra.hadBroadcastPet,
+			skin: hadSkin,
+			width: hadSkin,
+			cart: !!(cartSnap && cartSnap.hadBroadcastCart),
+			car: !!(carSnap && carSnap.hadBroadcastCar),
+			spark: !!(sparkSnap && sparkSnap.hadBroadcastSpark)
+		},
+		include: {
+			pet: !!(extra.include?.pet || normPet === null),
+			skin: !!(includeSkinState || extra.include?.skin),
+			width: !!(includeSkinState || extra.include?.width),
+			cart: !!extra.include?.cart,
+			car: !!extra.include?.car,
+			spark: !!extra.include?.spark
+		}
+	});
+}
+
+function spkmodParseUnifiedSyncMessage(rawMsg) {
 	if (typeof rawMsg !== "string") return null;
-	const match = rawMsg.trim().match(/^:pet_([a-zA-Z0-9_-]+):$/i);
+	const trimmed = rawMsg.trim();
+
+	// 1. Compact unified protocol (:m_...:)
+	const mMatch = trimmed.match(/^:m_([a-zA-Z0-9_-]+):$/i);
+	if (mMatch) {
+		const body = mMatch[1].toLowerCase();
+		if (body === "0") {
+			return {
+				format: "m",
+				clearAll: true,
+				hasPet: true,
+				petId: "none",
+				hasSkin: true,
+				skinId: "none",
+				hasWidth: true,
+				widthId: "none",
+				hasCart: true,
+				cartId: "none",
+				hasCar: true,
+				carMode: 0,
+				carColorIdx: 0,
+				hasSpark: true,
+				sparkId: "none"
+			};
+		}
+		const res = {
+			format: "m",
+			clearAll: false,
+			hasPet: false,
+			petId: null,
+			hasSkin: false,
+			skinId: null,
+			hasWidth: false,
+			widthId: null,
+			hasCart: false,
+			cartId: null,
+			hasCar: false,
+			carMode: 0,
+			carColorIdx: 0,
+			hasSpark: false,
+			sparkId: null
+		};
+		let recognized = 0;
+		const parts = body.split("_").filter(Boolean);
+		for (const part of parts) {
+			let tok;
+			if ((tok = part.match(/^p(\d+)$/))) {
+				recognized++;
+				const num = Number(tok[1]);
+				res.hasPet = true;
+				if (num === 0) {
+					res.petId = "none";
+				} else {
+					const resolved = (typeof spkmodPetCodeToId === "function")
+						? spkmodPetCodeToId(num)
+						: (typeof window !== "undefined" && typeof window.spkmodPetCodeToId === "function" ? window.spkmodPetCodeToId(num) : null);
+					if (!resolved) res.hasUnknownToken = true;
+					res.petId = resolved || "none";
+				}
+			} else if ((tok = part.match(/^s(\d+)$/))) {
+				recognized++;
+				const num = Number(tok[1]);
+				res.hasSkin = true;
+				if (num === 0) {
+					res.skinId = "none";
+				} else {
+					const resolved = (typeof window !== "undefined" && typeof window.spkmodSkinCodeToId === "function")
+						? window.spkmodSkinCodeToId(num)
+						: null;
+					if (!resolved) res.hasUnknownToken = true;
+					res.skinId = resolved || "none";
+				}
+			} else if ((tok = part.match(/^f(\d+)$/))) {
+				recognized++;
+				const num = Number(tok[1]);
+				res.hasWidth = true;
+				res.widthId = num === 0 ? "none" : `w${num}`;
+			} else if ((tok = part.match(/^c(\d+)$/))) {
+				recognized++;
+				const num = Number(tok[1]);
+				res.hasCart = true;
+				if (num === 0) {
+					res.cartId = "none";
+				} else {
+					const resolved = (typeof window !== "undefined" && typeof window.spkmodCartSkinCodeToId === "function")
+						? window.spkmodCartSkinCodeToId(num)
+						: null;
+					if (!resolved) res.hasUnknownToken = true;
+					res.cartId = resolved || "none";
+				}
+			} else if (part === "v0") {
+				recognized++;
+				res.hasCar = true;
+				res.carMode = 0;
+				res.carColorIdx = 0;
+			} else if ((tok = part.match(/^v(\d+)c(\d+)$/))) {
+				recognized++;
+				res.hasCar = true;
+				res.carMode = Number(tok[1]);
+				res.carColorIdx = Number(tok[2]);
+				if (res.carMode > 0 && typeof window !== "undefined" && typeof window.spkmodVehicleCodeToId === "function" && !window.spkmodVehicleCodeToId(res.carMode)) {
+					res.hasUnknownToken = true;
+				}
+			} else if ((tok = part.match(/^v([12])(\d)$/))) {
+				// Backward compatibility with legacy 2-digit v1X / v2X sedan/van tokens
+				recognized++;
+				res.hasCar = true;
+				res.carMode = Number(tok[1]);
+				res.carColorIdx = Number(tok[2]);
+			} else if ((tok = part.match(/^t(\d+)$/))) {
+				recognized++;
+				const num = Number(tok[1]);
+				res.hasSpark = true;
+				if (num === 0) {
+					res.sparkId = "none";
+				} else {
+					const resolved = (typeof window !== "undefined" && typeof window.spkmodSparkCodeToId === "function")
+						? window.spkmodSparkCodeToId(num)
+						: null;
+					if (!resolved) res.hasUnknownToken = true;
+					res.sparkId = resolved || "none";
+				}
+			} else if (/^[a-z]\d+(?:[a-z]\d+)*$/.test(part)) {
+				// Forward-compatible unknown compact field from a newer mod version
+				recognized++;
+				res.hasUnknownToken = true;
+			}
+		}
+		return recognized > 0 ? res : null;
+	}
+
+	// 2. Legacy :pet_...: format (full backward compatibility)
+	const match = trimmed.match(/^:pet_([a-zA-Z0-9_-]+):$/i);
 	if (!match) return null;
 	const body = match[1];
-	// Backward compatibility for legacy __ or -- delimiters
+	const baseLegacy = {
+		format: "pet",
+		clearAll: false,
+		hasPet: true,
+		hasCart: false,
+		cartId: null,
+		hasCar: false,
+		carMode: 0,
+		carColorIdx: 0,
+		hasSpark: false,
+		sparkId: null
+	};
 	if (body.includes("__") || body.includes("--")) {
 		const parts = body.split(/__|--/);
 		const petId = (parts[0] || "none").toLowerCase();
@@ -2944,46 +3476,52 @@ function spkmodParseCombinedPetSyncMessage(rawMsg) {
 				widthId = seg.slice(2).toLowerCase() || "none";
 			}
 		}
-		return { petId, skinId, widthId, hasSkin, hasWidth };
+		return Object.assign(baseLegacy, { petId, skinId, widthId, hasSkin, hasWidth });
 	}
 	const bothMatch = body.match(/^([a-z0-9_]+?)_s_([a-z0-9_]+?)_f_([a-z0-9_]+)$/i);
 	if (bothMatch) {
-		return {
+		return Object.assign(baseLegacy, {
 			petId: (bothMatch[1] || "none").toLowerCase(),
 			skinId: (bothMatch[2] || "none").toLowerCase(),
 			widthId: (bothMatch[3] || "none").toLowerCase(),
 			hasSkin: true,
 			hasWidth: true
-		};
+		});
 	}
 	const skinOnlyMatch = body.match(/^([a-z0-9_]+?)_s_([a-z0-9_]+)$/i);
 	if (skinOnlyMatch) {
-		return {
+		return Object.assign(baseLegacy, {
 			petId: (skinOnlyMatch[1] || "none").toLowerCase(),
 			skinId: (skinOnlyMatch[2] || "none").toLowerCase(),
 			widthId: null,
 			hasSkin: true,
 			hasWidth: false
-		};
+		});
 	}
 	const widthOnlyMatch = body.match(/^([a-z0-9_]+?)_f_([a-z0-9_]+)$/i);
 	if (widthOnlyMatch) {
-		return {
+		return Object.assign(baseLegacy, {
 			petId: (widthOnlyMatch[1] || "none").toLowerCase(),
 			skinId: null,
 			widthId: (widthOnlyMatch[2] || "none").toLowerCase(),
 			hasSkin: false,
 			hasWidth: true
-		};
+		});
 	}
-	return {
+	return Object.assign(baseLegacy, {
 		petId: (body || "none").toLowerCase(),
 		skinId: null,
 		widthId: null,
 		hasSkin: false,
 		hasWidth: false
-	};
+	});
 }
+
+function spkmodParseCombinedPetSyncMessage(rawMsg) {
+	return spkmodParseUnifiedSyncMessage(rawMsg);
+}
+window.spkmodBuildUnifiedSyncCode = spkmodBuildUnifiedSyncCode;
+window.spkmodParseUnifiedSyncMessage = spkmodParseUnifiedSyncMessage;
 window.spkmodBuildCombinedPetSyncCode = spkmodBuildCombinedPetSyncCode;
 window.spkmodParseCombinedPetSyncMessage = spkmodParseCombinedPetSyncMessage;
 
@@ -3153,9 +3691,15 @@ function spkmodFlushQueuedPetBroadcast() {
 
 	const petCanShare = spkmodIsPetChatSharingEnabled();
 	const skinSnap = spkmodGetSkinBroadcastSnapshot();
+	const cartSnap = spkmodGetCartSkinBroadcastSnapshot();
+	const carSnap = spkmodGetCarBroadcastSnapshot();
+	const sparkSnap = spkmodGetSparkBroadcastSnapshot();
 	const skinCanShare = !!(skinSnap.enabled && skinSnap.shareInChat);
+	const cartCanShare = !!(cartSnap.enabled && cartSnap.shareInChat);
+	const carCanShare = !!(carSnap.enabled && carSnap.shareInChat);
+	const sparkCanShare = !!(sparkSnap.enabled && sparkSnap.shareInChat);
 
-	// Re-resolve passive broadcasts against the latest equipped pet + skin so we never send stale state
+	// Re-resolve passive broadcasts against the latest equipped cosmetics so we never send stale state
 	const effectivePetId = petCanShare
 		? (entry.priority === "passive"
 			? (window.spkmodPetSettings.equippedId || null)
@@ -3165,10 +3709,47 @@ function spkmodFlushQueuedPetBroadcast() {
 	_spkmodQueuedPetBroadcast = null;
 
 	const hasAnySkinOrWidth = skinCanShare && !!(skinSnap.skinId || skinSnap.widthId);
-	if (entry.priority === "passive" && !effectivePetId && !hasAnySkinOrWidth) return;
+	const hasAnyCart = cartCanShare && !!cartSnap.cartId;
+	const hasAnyCar = carCanShare && (Number(carSnap.modeIdx) > 0);
+	const hasAnySpark = sparkCanShare && !!sparkSnap.sparkId;
+	const hasAnyActive = !!(effectivePetId || hasAnySkinOrWidth || hasAnyCart || hasAnyCar || hasAnySpark);
+	if (entry.priority === "passive" && !hasAnyActive) return;
 
-	const normalizedId = effectivePetId || "none";
-	const built = spkmodBuildCombinedPetSyncCode(normalizedId, skinSnap, !!entry.includeSkinState);
+	const normalizedId = (effectivePetId && effectivePetId !== "none" && effectivePetId !== "off") ? effectivePetId : null;
+	const includeFlags = Object.assign({
+		pet: !!entry.includePetState,
+		skin: !!entry.includeSkinState,
+		width: !!entry.includeSkinState,
+		cart: !!entry.includeCartState,
+		car: !!entry.includeCarState,
+		spark: !!entry.includeSparkState
+	}, entry.include || {});
+
+	const built = spkmodBuildUnifiedSyncCode({
+		petCanShare,
+		petId: normalizedId,
+		skinCanShare,
+		skinId: skinCanShare ? (skinSnap.skinId || null) : null,
+		widthId: skinCanShare ? (skinSnap.widthId || null) : null,
+		cartCanShare,
+		cartId: cartCanShare ? (cartSnap.cartId || null) : null,
+		carCanShare,
+		carMode: carCanShare ? (Number(carSnap.modeIdx) || 0) : 0,
+		carColorIdx: carCanShare ? (Number(carSnap.colorIdx) || 0) : 0,
+		sparkCanShare,
+		sparkId: sparkCanShare ? (sparkSnap.sparkId || null) : null,
+		hadBroadcast: {
+			pet: _spkmodPetHadBroadcast,
+			skin: !!skinSnap.hadBroadcastSkinOrWidth,
+			width: !!skinSnap.hadBroadcastSkinOrWidth,
+			cart: !!cartSnap.hadBroadcastCart,
+			car: !!carSnap.hadBroadcastCar,
+			spark: !!sparkSnap.hadBroadcastSpark
+		},
+		include: includeFlags
+	});
+	if (!built || !built.code) return;
+
 	const curZoneId = gameState?.zoneId ?? null;
 	if (!entry.forceResend && _spkmodLastBroadcastAtMs > 0 && _spkmodLastBroadcastCode === built.code && _spkmodLastBroadcastZoneId === curZoneId) {
 		return;
@@ -3176,19 +3757,29 @@ function spkmodFlushQueuedPetBroadcast() {
 
 	_spkmodLastBroadcastAtMs = now;
 	window.__spkmodLastHiddenSyncBroadcastMs = now;
-	_spkmodLastBroadcastPetId = normalizedId;
+	_spkmodLastBroadcastPetId = normalizedId || "none";
 	_spkmodLastBroadcastCode = built.code;
 	_spkmodLastBroadcastZoneId = curZoneId;
+	_spkmodPetHadBroadcast = !!built.hasPet;
 	_spkmodChatRejectStrikeCount = 0;
 	_spkmodNeedsZoneSync = false;
 	if (typeof window.spkmodMarkSkinBroadcastSent === "function") {
 		window.spkmodMarkSkinBroadcastSent(built.hasSkinOrWidth);
 	}
+	if (typeof window.spkmodMarkCartSkinBroadcastSent === "function") {
+		window.spkmodMarkCartSkinBroadcastSent(built.hasCart);
+	}
+	if (typeof window.spkmodMarkCarBroadcastSent === "function") {
+		window.spkmodMarkCarBroadcastSent(built.hasCar);
+	}
+	if (typeof window.spkmodMarkSparkBroadcastSent === "function") {
+		window.spkmodMarkSparkBroadcastSent(built.hasSpark);
+	}
 
 	try {
 		gameState.trySendChat(built.code);
 	} catch (err) {
-		console.warn("[SpeakiMod+ Pets] Failed to broadcast pet/skin chat trigger:", err);
+		console.warn("[SpeakiMod+] Failed to broadcast unified hidden sync trigger:", err);
 	}
 }
 
@@ -3303,6 +3894,10 @@ function spkmodSendPetChatTrigger(petId, optionsOrForce = false) {
 	const forceResend = opts.forceResend !== undefined ? !!opts.forceResend : (priority === "explicit");
 	const reason = opts.reason || priority;
 	const includeSkinState = !!opts.includeSkinState;
+	const includePetState = opts.includePetState !== undefined ? !!opts.includePetState : (opts.reason === "unequip" || opts.reason === "disable");
+	const includeCartState = !!opts.includeCartState;
+	const includeCarState = !!opts.includeCarState;
+	const includeSparkState = !!opts.includeSparkState;
 	const normalizedId = (!petId || petId === "none" || petId === "off") ? "none" : String(petId);
 
 	// Never let a passive background resync clobber a pending explicit equip/unequip
@@ -3312,28 +3907,45 @@ function spkmodSendPetChatTrigger(petId, optionsOrForce = false) {
 
 	const now = Date.now();
 	const earliestAtMs = now + delayMs;
-	const prevForceResend = _spkmodQueuedPetBroadcast ? !!_spkmodQueuedPetBroadcast.forceResend : false;
-	const prevIncludeSkin = _spkmodQueuedPetBroadcast ? !!_spkmodQueuedPetBroadcast.includeSkinState : false;
+	const prev = _spkmodQueuedPetBroadcast || {};
+	const mergedInclude = {
+		pet: !!(prev.include?.pet || prev.includePetState || includePetState || opts.include?.pet),
+		skin: !!(prev.include?.skin || prev.includeSkinState || includeSkinState || opts.include?.skin),
+		width: !!(prev.include?.width || prev.includeSkinState || includeSkinState || opts.include?.width),
+		cart: !!(prev.include?.cart || prev.includeCartState || includeCartState || opts.include?.cart),
+		car: !!(prev.include?.car || prev.includeCarState || includeCarState || opts.include?.car),
+		spark: !!(prev.include?.spark || prev.includeSparkState || includeSparkState || opts.include?.spark)
+	};
 
 	_spkmodQueuedPetBroadcast = {
 		petId: normalizedId,
 		priority,
 		earliestAtMs,
-		forceResend: forceResend || prevForceResend,
-		includeSkinState: includeSkinState || prevIncludeSkin,
+		forceResend: forceResend || !!prev.forceResend,
+		includePetState: mergedInclude.pet,
+		includeSkinState: mergedInclude.skin || mergedInclude.width,
+		includeCartState: mergedInclude.cart,
+		includeCarState: mergedInclude.car,
+		includeSparkState: mergedInclude.spark,
+		include: mergedInclude,
 		reason
 	};
 
 	spkmodScheduleQueuedBroadcastFlush();
 }
 
-window.spkmodQueueUnifiedPetSkinBroadcast = function(opts = {}) {
+window.spkmodQueueUnifiedModSyncBroadcast = function(opts = {}) {
 	if (!spkmodIsAnyPetOrSkinChatSharingEnabled()) return;
 	const activePet = spkmodIsPetChatSharingEnabled() ? (window.spkmodPetSettings.equippedId || "none") : "none";
 	spkmodSendPetChatTrigger(activePet, Object.assign({
 		priority: "explicit",
 		delayMs: SPKMOD_PET_CHAT_EQUIP_DEBOUNCE_MS,
-		forceResend: true,
+		forceResend: true
+	}, opts));
+};
+
+window.spkmodQueueUnifiedPetSkinBroadcast = function(opts = {}) {
+	return window.spkmodQueueUnifiedModSyncBroadcast(Object.assign({
 		includeSkinState: true
 	}, opts));
 };
@@ -3357,10 +3969,61 @@ let _spkmodLocalEquipSeq = 0;
 let _spkmodLocalEquipInFlight = false;
 let _spkmodDidInitialAutoRestore = false;
 
+function spkmodCanonicalizeRemotePetIdentity(playerId, playerName) {
+	let cleanId = (playerId != null && typeof playerId !== "object" && String(playerId).trim() !== "") ? playerId : null;
+	let cleanName = typeof playerName === "string" ? playerName.trim() : "";
+	const rMap = (typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers) || null;
+	if (rMap) {
+		if (cleanId != null) {
+			const rawStr = String(cleanId).trim();
+			const stripped = rawStr.replace(/^(?:remote|player|user|bubble)[_:-]+/i, "");
+			for (const k of [cleanId, Number(cleanId), rawStr, stripped, Number(stripped)]) {
+				if (k === "" || (typeof k === "number" && Number.isNaN(k))) continue;
+				const rp = rMap.get(k);
+				if (rp) {
+					cleanId = k;
+					if (!cleanName) cleanName = (rp.info?.__spkmodOrigName || rp.info?.name || "").trim();
+					break;
+				}
+			}
+		}
+		if (cleanName) {
+			const lower = cleanName.toLowerCase();
+			for (const [k, rp] of rMap) {
+				const rName = (rp?.info?.__spkmodOrigName || rp?.info?.name || "").trim().toLowerCase();
+				if (rName && rName === lower) {
+					cleanId = k;
+					break;
+				}
+			}
+		}
+	}
+	const ownerKey = (cleanId != null && String(cleanId).trim() !== "")
+		? String(cleanId).trim()
+		: (cleanName ? `name:${cleanName.toLowerCase()}` : "");
+	return { playerId: cleanId, playerName: cleanName, ownerKey };
+}
+
 async function spkmodSpawnOrUpdateRemotePet(playerId, playerName, petId) {
 	if (!spkmodIsPetsSystemEnabled()) return;
 	const cleanId = (petId || "").trim().toLowerCase();
-	const ownerKey = playerId != null && playerId !== "" ? String(playerId) : `name:${(playerName || "").trim().toLowerCase()}`;
+	const ident = spkmodCanonicalizeRemotePetIdentity(playerId, playerName);
+	if (!ident.ownerKey) return;
+	playerId = ident.playerId;
+	playerName = ident.playerName;
+	const ownerKey = ident.ownerKey;
+	// Evict any stale alias key (e.g. "name:alice" when canonical ID "42" resolves)
+	if (playerName) {
+		const nameAlias = `name:${playerName.toLowerCase()}`;
+		if (nameAlias !== ownerKey) {
+			const aliasInst = spkmodRemotePetInstances.get(nameAlias);
+			if (aliasInst) {
+				spkmodDisposePetInstance(aliasInst);
+				spkmodRemotePetInstances.delete(nameAlias);
+				spkmodSweepScenePetRoots("spkmod_pet_root_" + nameAlias, null, false);
+			}
+		}
+	}
 
 	if (!cleanId || cleanId === "none" || cleanId === "off") {
 		_spkmodRemoteEquipSeq.set(ownerKey, (_spkmodRemoteEquipSeq.get(ownerKey) || 0) + 1);
@@ -3457,8 +4120,14 @@ async function spkmodSpawnOrUpdateRemotePet(playerId, playerName, petId) {
 }
 
 window.spkmodHandleIncomingPetTrigger = function(playerId, playerName, rawMsg) {
-	const parsed = spkmodParseCombinedPetSyncMessage(rawMsg);
+	const parsed = spkmodParseUnifiedSyncMessage(rawMsg);
 	if (!parsed) return;
+
+	// Never allow raw Object3D / non-primitive values to become "[object Object]" owner keys
+	if (playerId != null && typeof playerId === "object") {
+		if (!playerName) playerName = playerId.info?.__spkmodOrigName || playerId.info?.name || playerId.name || null;
+		playerId = playerId.info?.playerId ?? playerId.info?.id ?? playerId.playerId ?? playerId.id ?? null;
+	}
 
 	const myId = typeof gameState !== "undefined" ? gameState?.myPlayerId : null;
 	const myName = (typeof gameState !== "undefined" && (gameState?.myPlayerName || gameState?.myStat?.name)) || "";
@@ -3468,13 +4137,26 @@ window.spkmodHandleIncomingPetTrigger = function(playerId, playerName, rawMsg) {
 
 	if (isSelf) return;
 
-	if (spkmodIsPetsSystemEnabled()) {
+	if (parsed.hasPet && spkmodIsPetsSystemEnabled()) {
 		spkmodSpawnOrUpdateRemotePet(playerId, playerName, parsed.petId);
 	}
 	if ((parsed.hasSkin || parsed.hasWidth) && typeof window.spkmodHandleIncomingSkinState === "function") {
 		window.spkmodHandleIncomingSkinState(playerId, playerName, parsed.skinId, parsed.widthId, parsed.hasSkin, parsed.hasWidth);
 	}
+	if (parsed.hasCart && typeof window.spkmodHandleIncomingCartSkinState === "function") {
+		window.spkmodHandleIncomingCartSkinState(playerId, playerName, parsed.cartId);
+	}
+	if (parsed.hasCar && typeof window.spkmodHandleIncomingCarState === "function") {
+		window.spkmodHandleIncomingCarState(playerId, playerName, parsed.carMode, parsed.carColorIdx);
+	}
+	if (parsed.hasSpark && typeof window.spkmodHandleIncomingSparkState === "function") {
+		window.spkmodHandleIncomingSparkState(playerId, playerName, parsed.sparkId);
+	}
+	if (parsed.hasUnknownToken && typeof window.spkmodNotifyUnknownSyncToken === "function") {
+		window.spkmodNotifyUnknownSyncToken();
+	}
 };
+window.spkmodHandleIncomingModSync = window.spkmodHandleIncomingPetTrigger;
 
 // ============================================================================
 // 9. EQUIP / UNEQUIP LOCAL PET & MASTER ANIMATION FRAME LOOP
@@ -3647,11 +4329,21 @@ window.spkmodSetPetsSystemEnabled = function(nextEnabled, silentToast = false) {
 		_spkmodDidInitialAutoRestore = false;
 		_spkmodRemoteEquipSeq.clear();
 		_spkmodRemoteInFlightPetId.clear();
-		_spkmodQueuedPetBroadcast = null;
 		_spkmodNeedsZoneSync = false;
-		if (_spkmodPendingBroadcastTimer) {
-			clearTimeout(_spkmodPendingBroadcastTimer);
-			_spkmodPendingBroadcastTimer = null;
+		if (!spkmodIsAnyPetOrSkinChatSharingEnabled()) {
+			_spkmodQueuedPetBroadcast = null;
+			if (_spkmodPendingBroadcastTimer) {
+				clearTimeout(_spkmodPendingBroadcastTimer);
+				_spkmodPendingBroadcastTimer = null;
+			}
+		} else if (_spkmodPetHadBroadcast) {
+			spkmodSendPetChatTrigger("none", {
+				priority: "explicit",
+				delayMs: 500,
+				forceResend: true,
+				includePetState: true,
+				reason: "disable"
+			});
 		}
 		if (spkmodLocalPetInstance) {
 			spkmodDisposePetInstance(spkmodLocalPetInstance);
@@ -4544,6 +5236,7 @@ window.spkmodPets = {
 			if (typeof chatLog === "function") chatLog(spkmodGetPetUiText("equipFirstToast"));
 			return;
 		}
+		spkmodPickRandomPetDance(spkmodLocalPetInstance);
 		spkmodLocalPetInstance.forceDanceUntil = performance.now() + (Number(seconds) || 8) * 1000;
 		spkmodShowPetSpeechBubble(spkmodLocalPetInstance);
 		spkmodPlayPetSfx(spkmodLocalPetInstance.pet, true);

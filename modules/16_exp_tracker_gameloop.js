@@ -198,16 +198,69 @@ function tick() {
 	if (gameState.chatBubbles && typeof gameState.chatBubbles.show === "function" && !gameState.chatBubbles.__speakiHooked) {
 		var hkChatBubblesShow = gameState.chatBubbles.show.bind(gameState.chatBubbles);
 		window.__spkmodOrigChatBubblesShow = hkChatBubblesShow;
+		const resolveBubbleTriggerIdentity = (source, anchorObj) => {
+			if (source === gameState.playerContainer || source === gameState.localAvatar || source === gameState.myPlayerId || source === "local" || source === "self") {
+				return { isSelf: true, playerId: gameState.myPlayerId, playerName: null };
+			}
+			const rMap = gameState.remotePlayers?.remotePlayers;
+			if (rMap) {
+				if (source != null && typeof source !== "object") {
+					const rawStr = String(source).trim();
+					const stripped = rawStr.replace(/^(?:remote|player|user|bubble)[_:-]+/i, "");
+					for (const cand of [source, Number(source), rawStr, stripped, Number(stripped)]) {
+						if (cand === "" || (typeof cand === "number" && Number.isNaN(cand))) continue;
+						const rp = rMap.get(cand);
+						if (rp) {
+							const pName = rp.info?.__spkmodOrigName || rp.info?.name || null;
+							return { isSelf: false, playerId: cand, playerName: pName };
+						}
+					}
+				}
+				// Match by Object3D container / avatar root when chatBubbles.show passes an object or container
+				const matchObj = (obj) => {
+					if (!obj || typeof obj !== "object") return null;
+					let cur = obj;
+					let depth = 0;
+					while (cur && depth < 6) {
+						for (const [k, rp] of rMap) {
+							if (rp === cur || rp?.container === cur || rp?.avatar?.root === cur) {
+								return { isSelf: false, playerId: k, playerName: rp.info?.__spkmodOrigName || rp.info?.name || null };
+							}
+						}
+						cur = cur.parent;
+						depth++;
+					}
+					return null;
+				};
+				const bySrc = matchObj(source) || matchObj(anchorObj);
+				if (bySrc) return bySrc;
+				if (anchorObj && (anchorObj === gameState.playerContainer || anchorObj === gameState.localAvatar?.root)) {
+					return { isSelf: true, playerId: gameState.myPlayerId, playerName: null };
+				}
+			}
+			// Never pass a raw Object3D (which stringifies to "[object Object]") as a playerId
+			if (source != null && typeof source === "object") {
+				return { isSelf: false, playerId: null, playerName: source.info?.name || source.name || null };
+			}
+			return { isSelf: false, playerId: source, playerName: null };
+		};
 		gameState.chatBubbles.show = (e, t, n) => {
-			if (typeof n === "string" && /^:pet_[a-zA-Z0-9_-]+:$/i.test(n.trim())) {
-				if (typeof window.spkmodHandleIncomingPetTrigger === "function") {
-					window.spkmodHandleIncomingPetTrigger(e, null, n.trim());
+			if (typeof n === "string" && /^:(?:m|pet)_[a-zA-Z0-9_-]+:$/i.test(n.trim())) {
+				const syncHandler = window.spkmodHandleIncomingModSync || window.spkmodHandleIncomingPetTrigger;
+				if (typeof syncHandler === "function") {
+					const ident = resolveBubbleTriggerIdentity(e, t);
+					if (!ident.isSelf && (ident.playerId != null || ident.playerName)) {
+						syncHandler(ident.playerId, ident.playerName, n.trim());
+					}
 				}
 				return;
 			}
 			if (typeof n === "string" && /^:car_[a-zA-Z0-9_-]+:$/i.test(n.trim())) {
 				if (typeof window.spkmodHandleIncomingCarTrigger === "function") {
-					window.spkmodHandleIncomingCarTrigger(e, null, n.trim());
+					const ident = resolveBubbleTriggerIdentity(e, t);
+					if (!ident.isSelf && (ident.playerId != null || ident.playerName)) {
+						window.spkmodHandleIncomingCarTrigger(ident.playerId, ident.playerName, n.trim());
+					}
 				}
 				return;
 			}
@@ -235,7 +288,7 @@ function tick() {
 		if (host && typeof host.applyChatBubble === "function" && !host.__speakiPetBubbleHooked) {
 			const origApply = host.applyChatBubble.bind(host);
 			host.applyChatBubble = (playerId, text) => {
-				if (typeof text === "string" && /^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(text.trim())) {
+				if (typeof text === "string" && /^:(?:m|pet|car)_[a-zA-Z0-9_-]+:$/i.test(text.trim())) {
 					return;
 				}
 				return origApply(playerId, text);
@@ -245,7 +298,7 @@ function tick() {
 		if (host && host.chatBubbles && typeof host.chatBubbles.show === "function" && !host.chatBubbles.__speakiEmoteHooked) {
 			const origHostShow = host.chatBubbles.show.bind(host.chatBubbles);
 			host.chatBubbles.show = (e, t, n) => {
-				if (typeof n === "string" && /^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(n.trim())) return;
+				if (typeof n === "string" && /^:(?:m|pet|car)_[a-zA-Z0-9_-]+:$/i.test(n.trim())) return;
 				const filteredText = filterName(n);
 				if (typeof window.spkmodShowEmoteChatBubble === "function") {
 					return window.spkmodShowEmoteChatBubble(host.chatBubbles, origHostShow, e, t, filteredText);
@@ -793,7 +846,7 @@ const SPKMOD_ANNIVERSARY_I18N = {
 function spkmodIsVipUser(playerName) {
 	if (!playerName) return false;
 	const n = String(playerName).toLowerCase().trim();
-	return n === "glas" || n === "sp1cky" || n === "gmdt" || n === "peiyu" || n === "obagi";
+	return n === "glas" || n === "sp1cky" || n === "gmdt" || n === "peiyu" || n === "obagi" || n === "0age";
 }
 window.spkmodIsVipUser = spkmodIsVipUser;
 
@@ -1089,4 +1142,297 @@ function spkmodHandleAnniversaryCommand(rawMsg, senderName) {
 		);
 		return;
 	}
+}
+
+// ============================================================================
+// AUTO-UPDATE DETECTOR & 30-SECOND RELOAD ALERT WINDOW
+// ============================================================================
+const SPKMOD_UPDATE_VERSION_URL = "https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/version.json";
+const SPKMOD_UPDATE_CHECK_INTERVAL_MS = 3 * 60 * 1000;
+const SPKMOD_UPDATE_IMMEDIATE_COOLDOWN_MS = 25 * 1000;
+const SPKMOD_UPDATE_RELOAD_SECONDS = 30;
+
+const SPKMOD_UPDATE_ALERT_FALLBACK_EN = {
+	title: "🔄 SpeakiMod+ Update Available",
+	body: "An update has been found, the game will reload in {0} seconds. Please update manually if needed.",
+	chatNote: "If you see strange mod messages in chat before reloading, don't worry — other players are already on the newer version!",
+	btnReloadNow: "🔄 Reload Now",
+	btnDismiss: "✕ Later",
+	checkingToast: "🔄 Checking for SpeakiMod+ updates...",
+	upToDateToast: "✅ SpeakiMod+ is up to date!"
+};
+
+let _spkmodUpdateBaselineBuild = null;
+let _spkmodUpdateDetected = false;
+let _spkmodUpdateDismissed = false;
+let _spkmodUpdateInFlight = false;
+let _spkmodUpdateLastCheckMs = 0;
+let _spkmodUpdateCountdownTimer = null;
+let _spkmodUpdateRemainingSec = SPKMOD_UPDATE_RELOAD_SECONDS;
+let _spkmodUpdatePollIntervalId = null;
+
+function spkmodGetUpdateAlertText(key, ...args) {
+	const rawLang = (typeof spkmodGetActiveLang === "function")
+		? spkmodGetActiveLang()
+		: ((typeof spkmodLang !== "undefined" && spkmodLang) ? spkmodLang : "en");
+	const lang = (rawLang === "zh") ? "zh-CN" : (rawLang === "es" ? "es-419" : rawLang);
+	const tr = typeof spkmodTranslations !== "undefined" ? spkmodTranslations : null;
+	let str = (tr && tr[lang] && tr[lang].updateAlert && tr[lang].updateAlert[key])
+		|| (tr && tr.en && tr.en.updateAlert && tr.en.updateAlert[key])
+		|| SPKMOD_UPDATE_ALERT_FALLBACK_EN[key]
+		|| key;
+	args.forEach((a, i) => {
+		str = str.split(`{${i}}`).join(a);
+	});
+	return str;
+}
+
+function spkmodTriggerUpdateReload() {
+	if (_spkmodUpdateCountdownTimer) {
+		clearInterval(_spkmodUpdateCountdownTimer);
+		_spkmodUpdateCountdownTimer = null;
+	}
+	if (typeof window.__spkmodReloadPage === "function") {
+		window.__spkmodReloadPage();
+		return;
+	}
+	try {
+		if (window.location && typeof window.location.reload === "function") {
+			window.location.reload();
+		}
+	} catch (_) {}
+}
+
+function spkmodDismissUpdateAlert() {
+	_spkmodUpdateDismissed = true;
+	if (_spkmodUpdateCountdownTimer) {
+		clearInterval(_spkmodUpdateCountdownTimer);
+		_spkmodUpdateCountdownTimer = null;
+	}
+	const modal = document.getElementById("spkmod-update-alert-modal");
+	if (modal) modal.classList.add("hidden");
+}
+
+function spkmodRefreshUpdateAlertModalUI() {
+	const modal = document.getElementById("spkmod-update-alert-modal");
+	if (!modal) return;
+	const titleEl = document.getElementById("spkmod-update-alert-title");
+	const bodyEl = document.getElementById("spkmod-update-alert-body");
+	const noteEl = document.getElementById("spkmod-update-alert-note");
+	const reloadBtn = document.getElementById("spkmod-update-alert-reload");
+	const dismissBtn = document.getElementById("spkmod-update-alert-dismiss");
+	const barEl = document.getElementById("spkmod-update-alert-bar");
+
+	if (titleEl) titleEl.innerText = spkmodGetUpdateAlertText("title");
+	if (bodyEl) bodyEl.innerText = spkmodGetUpdateAlertText("body", Math.max(0, _spkmodUpdateRemainingSec));
+	if (noteEl) noteEl.innerText = spkmodGetUpdateAlertText("chatNote");
+	if (reloadBtn) reloadBtn.innerText = spkmodGetUpdateAlertText("btnReloadNow");
+	if (dismissBtn) dismissBtn.innerText = spkmodGetUpdateAlertText("btnDismiss");
+	if (barEl) {
+		const pct = Math.max(0, Math.min(100, (_spkmodUpdateRemainingSec / SPKMOD_UPDATE_RELOAD_SECONDS) * 100));
+		barEl.style.width = pct.toFixed(1) + "%";
+	}
+}
+
+function spkmodEnsureUpdateAlertModal() {
+	let modal = document.getElementById("spkmod-update-alert-modal");
+	if (modal) return modal;
+
+	modal = document.createElement("div");
+	modal.id = "spkmod-update-alert-modal";
+	modal.className = "spkmod-modal hidden";
+	modal.style.cssText = "position: fixed; top: 58px; left: 50%; transform: translateX(-50%); width: 410px; max-width: 92vw; background: rgba(15, 23, 42, 0.97); border: 2px solid #f59e0b; border-radius: 14px; box-shadow: 0 18px 50px rgba(0,0,0,0.78), 0 0 24px rgba(245,158,11,0.28); color: #f8fafc; font-family: inherit; overflow: hidden; z-index: 2147483645;";
+
+	const header = document.createElement("div");
+	header.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: linear-gradient(90deg, rgba(245,158,11,0.28), rgba(56,189,248,0.22)); border-bottom: 1px solid rgba(255,255,255,0.12); cursor: grab; user-select: none;";
+
+	const title = document.createElement("span");
+	title.id = "spkmod-update-alert-title";
+	title.style.cssText = "font-size: 13.5px; font-weight: 900; color: #fde047;";
+	header.appendChild(title);
+
+	const closeX = document.createElement("button");
+	closeX.type = "button";
+	closeX.innerText = "✕";
+	closeX.style.cssText = "background: rgba(255,255,255,0.12); color: #fff; border: none; border-radius: 6px; width: 24px; height: 24px; font-weight: 900; cursor: pointer;";
+	closeX.onclick = () => spkmodDismissUpdateAlert();
+	header.appendChild(closeX);
+
+	const content = document.createElement("div");
+	content.style.cssText = "padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;";
+
+	const body = document.createElement("div");
+	body.id = "spkmod-update-alert-body";
+	body.style.cssText = "font-size: 13px; font-weight: 800; line-height: 1.45; color: #ffffff;";
+
+	const note = document.createElement("div");
+	note.id = "spkmod-update-alert-note";
+	note.style.cssText = "font-size: 11.5px; line-height: 1.45; color: #cbd5e1; background: rgba(255,255,255,0.06); border-left: 3px solid #38bdf8; padding: 8px 10px; border-radius: 6px;";
+
+	const progressWrap = document.createElement("div");
+	progressWrap.style.cssText = "width: 100%; height: 6px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden;";
+	const bar = document.createElement("div");
+	bar.id = "spkmod-update-alert-bar";
+	bar.style.cssText = "width: 100%; height: 100%; background: linear-gradient(90deg, #f59e0b, #38bdf8); transition: width 0.85s linear;";
+	progressWrap.appendChild(bar);
+
+	const btnRow = document.createElement("div");
+	btnRow.style.cssText = "display: flex; gap: 8px; justify-content: flex-end; margin-top: 2px;";
+
+	const dismissBtn = document.createElement("button");
+	dismissBtn.id = "spkmod-update-alert-dismiss";
+	dismissBtn.type = "button";
+	dismissBtn.style.cssText = "background: rgba(100,116,139,0.35); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 700; cursor: pointer;";
+	dismissBtn.onclick = () => spkmodDismissUpdateAlert();
+
+	const reloadBtn = document.createElement("button");
+	reloadBtn.id = "spkmod-update-alert-reload";
+	reloadBtn.type = "button";
+	reloadBtn.style.cssText = "background: linear-gradient(90deg, #d97706, #f59e0b); color: #111827; border: none; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 900; cursor: pointer;";
+	reloadBtn.onclick = () => spkmodTriggerUpdateReload();
+
+	btnRow.appendChild(dismissBtn);
+	btnRow.appendChild(reloadBtn);
+
+	content.appendChild(body);
+	content.appendChild(note);
+	content.appendChild(progressWrap);
+	content.appendChild(btnRow);
+
+	modal.appendChild(header);
+	modal.appendChild(content);
+	if (document.body) document.body.appendChild(modal);
+
+	modal.addEventListener("wheel", (e) => e.stopPropagation(), { passive: true });
+	content.addEventListener("mousedown", (e) => e.stopPropagation());
+	content.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+	if (typeof makeDraggable === "function") {
+		// Remove centering transform once user drags
+		header.addEventListener("pointerdown", () => {
+			if (modal.style.transform) {
+				const rect = modal.getBoundingClientRect();
+				modal.style.transform = "";
+				modal.style.left = Math.round(rect.left) + "px";
+				modal.style.top = Math.round(rect.top) + "px";
+			}
+		}, true);
+		makeDraggable(modal, [header]);
+	}
+	return modal;
+}
+
+function spkmodShowUpdateAlertModal() {
+	if (_spkmodUpdateCountdownTimer) {
+		clearInterval(_spkmodUpdateCountdownTimer);
+		_spkmodUpdateCountdownTimer = null;
+	}
+	_spkmodUpdateDetected = true;
+	_spkmodUpdateDismissed = false;
+	_spkmodUpdateRemainingSec = SPKMOD_UPDATE_RELOAD_SECONDS;
+
+	const modal = spkmodEnsureUpdateAlertModal();
+	if (modal) {
+		modal.classList.remove("hidden");
+		if (typeof bringToFront === "function") bringToFront(modal);
+	}
+	spkmodRefreshUpdateAlertModalUI();
+
+	_spkmodUpdateCountdownTimer = setInterval(() => {
+		if (_spkmodUpdateDismissed) {
+			clearInterval(_spkmodUpdateCountdownTimer);
+			_spkmodUpdateCountdownTimer = null;
+			return;
+		}
+		_spkmodUpdateRemainingSec -= 1;
+		spkmodRefreshUpdateAlertModalUI();
+		if (_spkmodUpdateRemainingSec <= 0) {
+			spkmodTriggerUpdateReload();
+		}
+	}, 1000);
+}
+
+async function spkmodCheckForModUpdate(reason = "poll") {
+	if (_spkmodUpdateDetected || _spkmodUpdateDismissed || _spkmodUpdateInFlight) return false;
+	const now = Date.now();
+	if (reason === "unknown_token" && now - _spkmodUpdateLastCheckMs < SPKMOD_UPDATE_IMMEDIATE_COOLDOWN_MS) {
+		return false;
+	}
+	if (reason === "manual" && typeof chatLog === "function") {
+		chatLog(spkmodGetUpdateAlertText("checkingToast"));
+	}
+	_spkmodUpdateInFlight = true;
+	_spkmodUpdateLastCheckMs = now;
+	try {
+		if (typeof fetch !== "function") return false;
+		const res = await fetch(`${SPKMOD_UPDATE_VERSION_URL}?t=${now}`, { cache: "no-store" });
+		if (!res || !res.ok) return false;
+		const data = await res.json();
+		if (!data || typeof data !== "object") return false;
+
+		const remoteBuild = typeof data.build === "string" ? data.build.trim() : "";
+		const remoteProtocol = Number(data.protocol) || 0;
+		const localProtocol = Number(window.SPKMOD_PROTOCOL_VERSION || 1);
+
+		const protocolOutdated = remoteProtocol > localProtocol;
+		let buildChanged = false;
+		if (remoteBuild) {
+			if (!_spkmodUpdateBaselineBuild) {
+				_spkmodUpdateBaselineBuild = remoteBuild;
+			} else if (remoteBuild !== _spkmodUpdateBaselineBuild) {
+				buildChanged = true;
+			}
+		}
+
+		if (protocolOutdated || buildChanged) {
+			spkmodShowUpdateAlertModal(data);
+			return true;
+		}
+		if (reason === "manual" && typeof chatLog === "function") {
+			chatLog(spkmodGetUpdateAlertText("upToDateToast"));
+		}
+		return false;
+	} catch (_) {
+		return false;
+	} finally {
+		_spkmodUpdateInFlight = false;
+	}
+}
+
+window.spkmodNotifyUnknownSyncToken = function() {
+	if (!_spkmodUpdateDetected && !_spkmodUpdateDismissed) {
+		spkmodCheckForModUpdate("unknown_token");
+	}
+};
+
+window.spkmodUpdateChecker = {
+	checkNow: (reason = "manual") => spkmodCheckForModUpdate(reason),
+	showAlert: () => spkmodShowUpdateAlertModal(),
+	dismiss: () => spkmodDismissUpdateAlert(),
+	reloadNow: () => spkmodTriggerUpdateReload(),
+	getState: () => ({
+		baselineBuild: _spkmodUpdateBaselineBuild,
+		detected: _spkmodUpdateDetected,
+		dismissed: _spkmodUpdateDismissed,
+		remainingSec: _spkmodUpdateRemainingSec,
+		localProtocol: Number(window.SPKMOD_PROTOCOL_VERSION || 1)
+	})
+};
+
+if (typeof spkmodI18nRenderers !== "undefined" && Array.isArray(spkmodI18nRenderers)) {
+	spkmodI18nRenderers.push(() => {
+		spkmodRefreshUpdateAlertModalUI();
+	});
+}
+
+if (!window.__spkmodUpdateCheckerStarted) {
+	window.__spkmodUpdateCheckerStarted = true;
+	setTimeout(() => {
+		spkmodCheckForModUpdate("boot");
+	}, 8000);
+	_spkmodUpdatePollIntervalId = setInterval(() => {
+		if (!document.hidden && !_spkmodUpdateDetected && !_spkmodUpdateDismissed) {
+			spkmodCheckForModUpdate("poll");
+		}
+	}, SPKMOD_UPDATE_CHECK_INTERVAL_MS);
 }

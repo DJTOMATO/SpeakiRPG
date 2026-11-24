@@ -97,9 +97,8 @@ MODULE_SPECS = [
     {
         "name": "10_cooking_prop_anims.js",
         "anchors": [
-            "// ============================================================================\n// PUMPKIN CART TEXTURE REPLACEMENT SKINS",
-            'const SPKMOD_PUMPKIN_CART_ORIG_TEX = "https://speakirpg.overture.io.kr',
-            "const SPKMOD_PUMPKIN_CART_SKINS = {"
+            "// ============================================================================\n// COOKING ANIMATIONS & PROPS (Chop, Stir, Plate, Serve, Carry)",
+            "window.spkmodCookingState = {"
         ]
     },
     {
@@ -200,6 +199,27 @@ MODULE_SPECS = [
         "anchors": [
             "// ============================================================================\n// MINING MINIGAME FREE-CAMERA MODE (F4) — ANTI-CLIPPING & FULL UI HIDE",
             "const SPKMOD_MINING_FREECAM_CONFIG = {"
+        ]
+    },
+    {
+        "name": "24_cart_skins.js",
+        "anchors": [
+            "// ============================================================================\n// IN-GAME 3D CART SKIN WARDROBE (NORMAL & HALLOWEEN PUMPKIN CARTS + SYNC)",
+            "const SPKMOD_CART_SKIN_STORAGE_KEYS = {"
+        ]
+    },
+    {
+        "name": "25_spark_fx.js",
+        "anchors": [
+            "// ============================================================================\n// IN-GAME 3D SPARK FX WALKING TRAILS SYSTEM (100 LEVELS PROGRESSION + SYNC)",
+            "const SPKMOD_SPARK_STORAGE_KEYS = {"
+        ]
+    },
+    {
+        "name": "26_vehicles.js",
+        "anchors": [
+            "// ============================================================================\n// IN-GAME 3D VEHICLES WARDROBE & STEALTH BOX SYSTEM (LEVELS 10-100 + SYNC)",
+            "const SPKMOD_VEHICLE_STORAGE_KEYS = {"
         ]
     }
 ]

@@ -821,9 +821,12 @@ function positionModalNicely(modal) {
 	} else if (modal.id === "spkmod-cinema-modal") {
 		targetW = isMobile ? Math.min(380, window.innerWidth - 20) : 400;
 		targetH = isMobile ? Math.min(500, window.innerHeight - 30) : 560;
-	} else if (modal.id === "spkmod-pets-modal" || modal.id === "spkmod-skins-modal") {
+	} else if (modal.id === "spkmod-pets-modal" || modal.id === "spkmod-skins-modal" || modal.id === "spkmod-sparks-modal") {
 		targetW = isMobile ? Math.min(780, window.innerWidth - 20) : Math.min(900, window.innerWidth - 40);
 		targetH = isMobile ? Math.min(520, window.innerHeight - 30) : Math.min(640, window.innerHeight - 40);
+	} else if (modal.id === "spkmod-cart-skins-modal") {
+		targetW = isMobile ? Math.min(640, window.innerWidth - 20) : Math.min(680, window.innerWidth - 40);
+		targetH = isMobile ? Math.min(480, window.innerHeight - 30) : Math.min(520, window.innerHeight - 40);
 	} else {
 		targetW = modal.offsetWidth || 380;
 		targetH = modal.offsetHeight || 300;
@@ -857,6 +860,9 @@ function positionModalNicely(modal) {
 		modal === lunHudElements.resourcePackModal || modal.id === "spkmod-resource-pack-modal" ||
 		modal === lunHudElements.petsModal || modal.id === "spkmod-pets-modal" ||
 		modal === lunHudElements.skinsModal || modal.id === "spkmod-skins-modal" ||
+		modal === lunHudElements.cartSkinsModal || modal.id === "spkmod-cart-skins-modal" ||
+		modal === lunHudElements.vehiclesModal || modal.id === "spkmod-vehicles-modal" ||
+		modal === lunHudElements.sparksModal || modal.id === "spkmod-sparks-modal" ||
 		modal.id === "spkmod-cinema-modal") {
 		const safeLeft = Math.max(10, Math.min(window.innerWidth - targetW - 10, (modal.id === "spkmod-cinema-modal" && !isMobile) ? (window.innerWidth - targetW - 25) : Math.round((window.innerWidth - targetW) / 2)));
 		const safeTop = Math.max(15, Math.min(window.innerHeight - targetH - 10, Math.round((window.innerHeight - targetH) / 2)));
@@ -973,6 +979,9 @@ function resetWindowPositions() {
 		lunHudElements.resourcePackModal,
 		lunHudElements.petsModal || document.getElementById("spkmod-pets-modal"),
 		lunHudElements.skinsModal || document.getElementById("spkmod-skins-modal"),
+		lunHudElements.cartSkinsModal || document.getElementById("spkmod-cart-skins-modal"),
+		lunHudElements.vehiclesModal || document.getElementById("spkmod-vehicles-modal"),
+		lunHudElements.sparksModal || document.getElementById("spkmod-sparks-modal"),
 		typeof lunEmojiPickerPanel !== "undefined" ? lunEmojiPickerPanel : null,
 		typeof mapModalElements !== "undefined" ? mapModalElements.modalWindow : null,
 		typeof spkmodCinemaModalEl !== "undefined" ? spkmodCinemaModalEl : null
@@ -1025,7 +1034,10 @@ function resetWindowPositions() {
 		lunHudElements.customCssModal,
 		lunHudElements.resourcePackModal,
 		lunHudElements.petsModal || document.getElementById("spkmod-pets-modal"),
-		lunHudElements.skinsModal || document.getElementById("spkmod-skins-modal")
+		lunHudElements.skinsModal || document.getElementById("spkmod-skins-modal"),
+		lunHudElements.cartSkinsModal || document.getElementById("spkmod-cart-skins-modal"),
+		lunHudElements.vehiclesModal || document.getElementById("spkmod-vehicles-modal"),
+		lunHudElements.sparksModal || document.getElementById("spkmod-sparks-modal")
 	];
 
 	otherOpenModals.forEach(m => {
@@ -1095,6 +1107,12 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-party-highlight-enabled",
 	"spkmod-burger-fat-customers",
 	"spkmod-car-enabled",
+	"spkmod-vehicle-equipped",
+	"spkmod-vehicle-last-equipped",
+	"spkmod-vehicle-color",
+	"spkmod-vehicle-share-chat",
+	"spkmod-vehicle-show-remote",
+	"spkmod-vehicle-favorites",
 	"spkmod-pet-enabled",
 	"spkmod-pet-equipped",
 	"spkmod-pet-my-sfx",
@@ -1107,6 +1125,16 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-skin-width",
 	"spkmod-skin-share-chat",
 	"spkmod-skin-show-remote",
+	"spkmod-cart-skin-enabled",
+	"spkmod-cart-skin-equipped",
+	"spkmod-cart-skin-share-chat",
+	"spkmod-cart-skin-show-remote",
+	"spkmod-spark-enabled",
+	"spkmod-spark-share-chat",
+	"spkmod-spark-show-remote",
+	"spkmod-spark-favorites",
+	"spkmod-step-trail-enabled",
+	"spkmod-step-trail-type",
 	"spkmod-pos-spkmod-bbs-modal",
 	"spkmod-pos-spkmod-effects-modal",
 	"spkmod-pos-spkmod-edits-modal",
@@ -1120,6 +1148,9 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-pos-spkmod-patchnotes-modal",
 	"spkmod-pos-spkmod-pets-modal",
 	"spkmod-pos-spkmod-skins-modal",
+	"spkmod-pos-spkmod-cart-skins-modal",
+	"spkmod-pos-spkmod-vehicles-modal",
+	"spkmod-pos-spkmod-sparks-modal",
 	"spkmod-pos-spkmod-quests-modal",
 	"spkmod-pos-spkmod-settings-modal",
 	"spkmod-pos-spkmod-stats-modal",

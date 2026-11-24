@@ -709,6 +709,24 @@ function updateHudIconTooltips() {
         setSpkmodRichTooltip(lunPanelElements.skinsBtn, "👕 " + skinTip);
     }
 
+    // 12d. Cart Skins button
+    if (lunPanelElements.cartSkinsBtn) {
+        const cartTip = (typeof window.spkmodGetCartSkinUiText === "function" ? window.spkmodGetCartSkinUiText("cartSkinsBtnTooltip") : null) || "Cart Skins Wardrobe (Alt+C)";
+        setSpkmodRichTooltip(lunPanelElements.cartSkinsBtn, "🛒 " + cartTip);
+    }
+
+    // 12e. Vehicles & Stealth Box button
+    if (lunPanelElements.vehiclesBtn) {
+        const vehTip = (typeof window.spkmodGetVehicleUiText === "function" ? window.spkmodGetVehicleUiText("vehiclesBtnTooltip") : null) || "Vehicles & Stealth Box Garage (Alt+V)";
+        setSpkmodRichTooltip(lunPanelElements.vehiclesBtn, "🚗 " + vehTip);
+    }
+
+    // 12f. Spark FX Trails button
+    if (lunPanelElements.sparksBtn) {
+        const sparkTip = (typeof window.spkmodGetSparkUiText === "function" ? window.spkmodGetSparkUiText("sparksBtnTooltip") : null) || "Spark FX Walking Trails (Alt+F)";
+        setSpkmodRichTooltip(lunPanelElements.sparksBtn, "✨ " + sparkTip);
+    }
+
     // 13. Jukebox button
     if (lunPanelElements.jukeboxBtn) {
         const tip = (typeof getJukeboxText === "function" ? getJukeboxText("jukeboxBtnTooltip") : t("jukeboxBtnTooltip")) || "Monatium Radio Station (Alt+M)";
