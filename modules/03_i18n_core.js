@@ -369,7 +369,9 @@ var lunHudElements = {
 	editsModal: null,
 	jukeboxModal: null,
 	customCssModal: null,
-	resourcePackModal: null
+	resourcePackModal: null,
+	cartSkinsModal: null,
+	sparksModal: null
 };
 var customCssModalElements = {
 	headerRow: null,
@@ -553,6 +555,12 @@ var lunPanelElements = {
 	petsSystemToggleInput: null,
 	skinsSystemToggleLabel: null,
 	skinsSystemToggleInput: null,
+	cartSkinsSystemToggleLabel: null,
+	cartSkinsSystemToggleInput: null,
+	sparksSystemToggleLabel: null,
+	sparksSystemToggleInput: null,
+	cartSkinsBtn: null,
+	sparksBtn: null,
 	carSystemToggleLabel: null,
 	carSystemToggleInput: null,
 	burgerFatCustomersToggleLabel: null,

@@ -266,7 +266,7 @@ function hookGameStateOnce() {
 		const origTrySendChat = gameState.trySendChat.bind(gameState);
 		const notifyPlayerChatSend = (payload, kind = "send") => {
 			const pTrim = (typeof payload === "string") ? payload.trim() : "";
-			if (pTrim && !/^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(pTrim)) {
+			if (pTrim && !/^:(?:m|pet|car)_[a-zA-Z0-9_-]+:$/i.test(pTrim)) {
 				if (kind === "send") window.__spkmodLastPlayerChatSentMs = Date.now();
 				if (typeof window.spkmodNotifyUserChatActivity === "function") {
 					window.spkmodNotifyUserChatActivity(kind);
@@ -279,7 +279,7 @@ function hookGameStateOnce() {
 		};
 		gameState.trySendChat = (msg) => {
 			const trimmedMsg = (msg || "").trim();
-			if (/^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(trimmedMsg)) {
+			if (/^:(?:m|pet|car)_[a-zA-Z0-9_-]+:$/i.test(trimmedMsg)) {
 				return origTrySendChat(trimmedMsg);
 			}
 			const lowerTrimmedMsg = trimmedMsg.toLowerCase();
@@ -434,14 +434,49 @@ function hookGameStateOnce() {
 							if (window.spkmodStartCooking) window.spkmodStartCooking(cookType);
 						}
 						break;
+					case "cart":
+					case "cartskins":
+					case "cartskin":
+						if (cmd[1]) {
+							if (window.spkmodCartSkins?.equip) window.spkmodCartSkins.equip(cmd[1]);
+						} else if (typeof window.spkmodToggleCartSkinsModal === "function") {
+							window.spkmodToggleCartSkinsModal();
+						}
+						break;
+					case "sparks":
+					case "spark":
+						if (cmd[1]) {
+							const spSub = cmd[1].toLowerCase();
+							if (spSub === "off" || spSub === "stop") {
+								if (window.spkmodSparks?.unequip) window.spkmodSparks.unequip();
+							} else if (window.spkmodSparks?.equip) {
+								window.spkmodSparks.equip(spSub);
+							}
+						} else if (typeof window.spkmodToggleSparksModal === "function") {
+							window.spkmodToggleSparksModal();
+						}
+						break;
+					case "sparkunlock": {
+						const myName = (typeof gameState !== "undefined" && (gameState.myPlayerName || gameState.myStat?.name))
+							|| document.querySelector(".sr-player-card__name")?.innerText?.trim() || "";
+						if (typeof spkmodIsVipUser !== "function" || !spkmodIsVipUser(myName)) {
+							chatLog("❌ You do not have permission to use !sparkunlock.");
+						} else if (window.spkmodSparksSystemEnabled === false) {
+							chatLog(typeof window.spkmodGetSparkUiText === "function" ? window.spkmodGetSparkUiText("systemDisabledToast") : "✨ Spark FX System is disabled.");
+						} else if (window.spkmodSparks && typeof window.spkmodSparks.unlockAll === "function") {
+							window.spkmodSparks.unlockAll();
+						}
+						break;
+					}
 					case "trail":
 						const trailSub = (cmd[1] || "").toLowerCase();
 						if (trailSub === "off" || trailSub === "stop") {
 							if (window.spkmodToggleStepTrail) window.spkmodToggleStepTrail(false);
-						} else if (trailSub === "stars" || trailSub === "rainbow" || trailSub === "hearts") {
+						} else if (trailSub) {
 							if (window.spkmodSetTrailType) window.spkmodSetTrailType(trailSub);
 						} else {
-							if (window.spkmodToggleStepTrail) window.spkmodToggleStepTrail();
+							if (typeof window.spkmodToggleSparksModal === "function") window.spkmodToggleSparksModal();
+							else if (window.spkmodToggleStepTrail) window.spkmodToggleStepTrail();
 						}
 						break;
 					case "burst":
@@ -750,9 +785,10 @@ function hookGameStateOnce() {
 			// Intercept Anniversary event commands
 			const rawMsg = (msg || "").trim();
 			const lowerRawMsg = rawMsg.toLowerCase();
-			if (/^:pet_[a-zA-Z0-9_-]+:$/i.test(rawMsg)) {
-				if (typeof window.spkmodHandleIncomingPetTrigger === "function") {
-					window.spkmodHandleIncomingPetTrigger(id, name, rawMsg);
+			if (/^:(?:m|pet)_[a-zA-Z0-9_-]+:$/i.test(rawMsg)) {
+				const syncHandler = window.spkmodHandleIncomingModSync || window.spkmodHandleIncomingPetTrigger;
+				if (typeof syncHandler === "function") {
+					syncHandler(id, name, rawMsg);
 				}
 				return;
 			}
@@ -1835,7 +1871,9 @@ window.addEventListener("keydown", e => {
 			lunHudElements.customCssModal,
 			lunHudElements.resourcePackModal,
 			lunHudElements.petsModal,
-			lunHudElements.skinsModal
+			lunHudElements.skinsModal,
+			lunHudElements.cartSkinsModal,
+			lunHudElements.sparksModal
 		].filter(m => m && !m.classList.contains("hidden"));
 
 		if (candidateModals.length > 0) {

@@ -619,62 +619,6 @@ document.body.appendChild(
 						onclick: () => window.spkmodResetCarsEveryone && window.spkmodResetCarsEveryone()
 					})
 				]),
-				buildElement("div", { style: "display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px;" }, [
-					lunPanelElements.pumpkinCartTexBtn = buildElement("button", {
-						className: "spkmod-panel-btn",
-						style: "padding: 5px 2px; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
-						innerHTML: (typeof renderSpkmodInlineEmojis === "function" ? renderSpkmodInlineEmojis(":SPK_88:", "height: 20px; width: 20px; object-fit: contain; vertical-align: middle; display: inline-block; pointer-events: none;") : "🎃"),
-						title: "Pumpkin Cart Skin: Ui (:SPK_88:) (test.png)",
-						onclick: () => {
-							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("uifi");
-						}
-					}),
-					lunPanelElements.pumpkinCartTexBtn1 = buildElement("button", {
-						className: "spkmod-panel-btn",
-						style: "padding: 5px 2px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
-						innerText: "1️⃣",
-						title: "Pumpkin Cart Skin: 1 (test2.png)",
-						onclick: () => {
-							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("1");
-						}
-					}),
-					lunPanelElements.pumpkinCartTexBtn2 = buildElement("button", {
-						className: "spkmod-panel-btn",
-						style: "padding: 5px 2px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
-						innerText: "2️⃣",
-						title: "Pumpkin Cart Skin: 2 (test3.png)",
-						onclick: () => {
-							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("2");
-						}
-					}),
-					lunPanelElements.pumpkinCartTexBtn3 = buildElement("button", {
-						className: "spkmod-panel-btn",
-						style: "padding: 5px 2px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
-						innerText: "3️⃣",
-						title: "Pumpkin Cart Skin: 3 (test4.png)",
-						onclick: () => {
-							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("3");
-						}
-					}),
-					lunPanelElements.pumpkinCartTexBtn4 = buildElement("button", {
-						className: "spkmod-panel-btn",
-						style: "padding: 5px 2px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
-						innerText: "4️⃣",
-						title: "Pumpkin Cart Skin: 4 (dancing.webp)",
-						onclick: () => {
-							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("4");
-						}
-					}),
-					lunPanelElements.pumpkinCartTexBtn5 = buildElement("button", {
-						className: "spkmod-panel-btn",
-						style: "padding: 5px 2px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; min-height: 28px;",
-						innerText: "5️⃣",
-						title: "Pumpkin Cart Skin: 5 (yuki.png)",
-						onclick: () => {
-							if (window.spkmodSelectPumpkinCartSkin) window.spkmodSelectPumpkinCartSkin("5");
-						}
-					})
-				]),
 
 				// 🍳 Cooking & Kitchen Animations
 				buildElement("div", { style: "display: flex; flex-direction: column; gap: 4px; border-top: 1px solid #555; padding-top: 6px;" }, [
@@ -1071,71 +1015,7 @@ document.body.appendChild(
 					className: "spkmod-panel-btn", style: "padding: 6px; font-size: 11px; margin-top: 8px; border-color: #55ff55 !important;",
 					innerText: t("reviveAllBtn"),
 					onclick: () => window.spkmodReviveAll && window.spkmodReviveAll()
-				}),
-
-				// ✨ Step Particle Trail
-				buildElement("div", { style: "display: flex; flex-direction: column; gap: 4px; border-top: 1px solid #555; padding-top: 6px; margin-top: 4px;" }, [
-					editsModalElements.stepTrailHeader = buildElement("div", {
-						className: "spkmod-panel-cat-header",
-						innerText: "✨ " + (t("stepTrailHeader") || "Step Particle Trail"),
-						style: "margin-top: 0px;"
-					}),
-					buildElement("div", { style: "display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px;" }, [
-						editsModalElements.stepTrailToggleBtn = buildElement("button", {
-							className: "spkmod-panel-btn",
-							style: "padding: 5px 2px; font-size: 10px; text-align: center; font-weight: bold; color: " + (window.spkmodStepTrail?.enabled ? "#55ff55" : "#ffaaaa") + ";",
-							innerText: (t("stepTrailToggle") || "Trail: ") + (window.spkmodStepTrail?.enabled ? "ON" : "OFF"),
-							title: "Toggle step particle trail behind your character while moving (Right-click to pin outside HUD!)",
-							onclick: () => {
-								if (window.spkmodToggleStepTrail) window.spkmodToggleStepTrail();
-							}
-						}),
-						editsModalElements.stepTrailBurstBtn = buildElement("button", {
-							className: "spkmod-panel-btn",
-							style: "padding: 5px 2px; font-size: 10px; text-align: center; color: #ffd54a; font-weight: bold;",
-							innerText: t("stepTrailBurst") || "💥 Starburst Explosion",
-							title: "Trigger 50-star firework burst and avatar squash & stretch (Right-click to pin outside HUD!)",
-							onclick: () => {
-								if (window.spkmodBurstTrail) window.spkmodBurstTrail();
-							}
-						}),
-						editsModalElements.stepTrailBurstSpamBtn = buildElement("button", {
-							className: "spkmod-panel-btn",
-							style: "padding: 5px 2px; font-size: 10px; text-align: center; font-weight: bold; color: " + (window.spkmodBurstSpamActive ? "#55ff55" : "#ffd54a") + ";",
-							innerText: (t("stepTrailBurstSpam") || "⚡ Spam: ") + (window.spkmodBurstSpamActive ? (t("burstSpamOn") || "ON") : (t("burstSpamOff") || "OFF")),
-							title: "Pausable / reusable fast burst spam loop (Right-click to pin outside HUD!)",
-							onclick: () => {
-								if (window.spkmodToggleBurstSpam) window.spkmodToggleBurstSpam();
-							}
-						})
-					]),
-					buildElement("div", { style: "display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px;" }, [
-						editsModalElements.stepTrailStarsBtn = buildElement("button", {
-							className: "spkmod-panel-btn",
-							style: "padding: 4px 2px; font-size: 9.5px; text-align: center; color: #ffd700;",
-							innerText: t("stepTrailStars") || "⭐ Stars",
-							onclick: () => {
-								if (window.spkmodSetTrailType) window.spkmodSetTrailType('stars');
-							}
-						}),
-						editsModalElements.stepTrailRainbowBtn = buildElement("button", {
-							className: "spkmod-panel-btn",
-							style: "padding: 4px 2px; font-size: 9.5px; text-align: center; color: #ec4899;",
-							innerText: t("stepTrailRainbow") || "🌈 Rainbow",
-							onclick: () => {
-								if (window.spkmodSetTrailType) window.spkmodSetTrailType('rainbow');
-							}
-						}),
-						editsModalElements.stepTrailHeartsBtn = buildElement("button", {
-							className: "spkmod-panel-btn",
-							style: "padding: 4px 2px; font-size: 9.5px; text-align: center; color: #f43f5e;",
-							innerText: t("stepTrailHearts") || "💖 Hearts",
-							onclick: () => {
-								if (window.spkmodSetTrailType) window.spkmodSetTrailType('hearts');
-							}
-						})
-					])
-				])
+				})
 			])
 		])
 	])
@@ -1699,22 +1579,6 @@ function updateLocalEditsUI() {
 	if (editsModalElements.spellDanceBtn) setText(editsModalElements.spellDanceBtn, t("spellDanceBtn") || "✨🌀 Spell Dance");
 	if (editsModalElements.gatherAnimBtn) setText(editsModalElements.gatherAnimBtn, t("gatherAnimBtn") || "🌿 Gather Loop");
 
-	// Step Trail
-	if (editsModalElements.stepTrailHeader) setText(editsModalElements.stepTrailHeader, "✨ " + (t("stepTrailHeader") || "Step Particle Trail"));
-	if (editsModalElements.stepTrailToggleBtn) {
-		const isEnabled = window.spkmodStepTrail?.enabled;
-		setText(editsModalElements.stepTrailToggleBtn, (t("stepTrailToggle") || "Trail: ") + (isEnabled ? "ON" : "OFF"));
-		editsModalElements.stepTrailToggleBtn.style.color = isEnabled ? "#55ff55" : "#ffaaaa";
-		editsModalElements.stepTrailToggleBtn.style.borderColor = isEnabled ? "#55ff55" : "#555";
-	}
-	if (editsModalElements.stepTrailBurstBtn) setText(editsModalElements.stepTrailBurstBtn, t("stepTrailBurst") || "💥 Starburst Explosion");
-	if (editsModalElements.stepTrailBurstSpamBtn) {
-		const isSpam = window.spkmodBurstSpamActive;
-		setText(editsModalElements.stepTrailBurstSpamBtn, (t("stepTrailBurstSpam") || "⚡ Spam: ") + (isSpam ? (t("burstSpamOn") || "ON") : (t("burstSpamOff") || "OFF")));
-		editsModalElements.stepTrailBurstSpamBtn.style.color = isSpam ? "#55ff55" : "#ffd54a";
-		editsModalElements.stepTrailBurstSpamBtn.style.borderColor = isSpam ? "#55ff55" : "#555";
-		editsModalElements.stepTrailBurstSpamBtn.style.background = isSpam ? "rgba(85, 255, 85, 0.2)" : "";
-	}
 	if (editsModalElements.spellDanceBtn) {
 		const isDancing = window.spkmodSpellDanceActive;
 		setText(editsModalElements.spellDanceBtn, isDancing ? "🛑 Stop Dance" : (t("spellDanceBtn") || "✨🌀 Spell Dance"));
@@ -1727,10 +1591,6 @@ function updateLocalEditsUI() {
 		editsModalElements.gatherAnimBtn.style.color = isGathering ? "#f87171" : "#84cc16";
 		editsModalElements.gatherAnimBtn.style.borderColor = isGathering ? "#f87171" : "#555";
 	}
-	if (editsModalElements.stepTrailStarsBtn) setText(editsModalElements.stepTrailStarsBtn, t("stepTrailStars") || "⭐ Stars");
-	if (editsModalElements.stepTrailRainbowBtn) setText(editsModalElements.stepTrailRainbowBtn, t("stepTrailRainbow") || "🌈 Rainbow");
-	if (editsModalElements.stepTrailHeartsBtn) setText(editsModalElements.stepTrailHeartsBtn, t("stepTrailHearts") || "💖 Hearts");
-	if (window.spkmodUpdatePumpkinCartButtonStyles) window.spkmodUpdatePumpkinCartButtonStyles();
 }
 
 function toggleLocalEditsModal() {

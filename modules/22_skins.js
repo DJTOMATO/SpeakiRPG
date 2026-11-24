@@ -729,6 +729,46 @@ const SPKMOD_SKIN_CATALOG = [
 ];
 
 const SPKMOD_SKINS_BY_ID = new Map(SPKMOD_SKIN_CATALOG.map(s => [s.id, s]));
+const SPKMOD_SKIN_ID_TO_CODE = new Map();
+const SPKMOD_SKIN_CODE_TO_ID = new Map();
+SPKMOD_SKIN_CATALOG.forEach((s, idx) => {
+	const code = idx + 1;
+	SPKMOD_SKIN_ID_TO_CODE.set(s.id, code);
+	SPKMOD_SKIN_CODE_TO_ID.set(code, s.id);
+});
+function spkmodSkinIdToCode(skinId) {
+	if (!skinId || skinId === "none" || skinId === "off") return 0;
+	const key = String(skinId).trim().toLowerCase();
+	if (SPKMOD_SKIN_ID_TO_CODE.has(key)) return SPKMOD_SKIN_ID_TO_CODE.get(key);
+	if (/^\d+$/.test(key)) {
+		const n = Number(key);
+		if (SPKMOD_SKIN_CODE_TO_ID.has(n)) return n;
+	}
+	return 0;
+}
+function spkmodSkinCodeToId(code) {
+	const n = Number(code);
+	if (!Number.isInteger(n) || n <= 0) return "none";
+	return SPKMOD_SKIN_CODE_TO_ID.get(n) || null;
+}
+function spkmodWidthIdToCode(widthId) {
+	if (!widthId || widthId === "normal" || widthId === "none" || widthId === "off") return 0;
+	const m = String(widthId).trim().toLowerCase().match(/^w?(\d+)$/);
+	if (!m) return 0;
+	const n = Number(m[1]);
+	return SPKMOD_BODY_WIDTHS_BY_ID.has(`w${n}`) ? n : 0;
+}
+function spkmodWidthCodeToId(code) {
+	const n = Number(code);
+	if (!Number.isInteger(n) || n <= 0) return "normal";
+	return SPKMOD_BODY_WIDTHS_BY_ID.has(`w${n}`) ? `w${n}` : "normal";
+}
+if (typeof window !== "undefined") {
+	window.spkmodSkinIdToCode = spkmodSkinIdToCode;
+	window.spkmodSkinCodeToId = spkmodSkinCodeToId;
+	window.spkmodWidthIdToCode = spkmodWidthIdToCode;
+	window.spkmodWidthCodeToId = spkmodWidthCodeToId;
+}
 
 function spkmodGetSkinDisplayName(skin) {
 	if (!skin) return "";

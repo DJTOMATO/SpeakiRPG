@@ -245,11 +245,12 @@ function tick() {
 			return { isSelf: false, playerId: source, playerName: null };
 		};
 		gameState.chatBubbles.show = (e, t, n) => {
-			if (typeof n === "string" && /^:pet_[a-zA-Z0-9_-]+:$/i.test(n.trim())) {
-				if (typeof window.spkmodHandleIncomingPetTrigger === "function") {
+			if (typeof n === "string" && /^:(?:m|pet)_[a-zA-Z0-9_-]+:$/i.test(n.trim())) {
+				const syncHandler = window.spkmodHandleIncomingModSync || window.spkmodHandleIncomingPetTrigger;
+				if (typeof syncHandler === "function") {
 					const ident = resolveBubbleTriggerIdentity(e, t);
 					if (!ident.isSelf && (ident.playerId != null || ident.playerName)) {
-						window.spkmodHandleIncomingPetTrigger(ident.playerId, ident.playerName, n.trim());
+						syncHandler(ident.playerId, ident.playerName, n.trim());
 					}
 				}
 				return;
@@ -287,7 +288,7 @@ function tick() {
 		if (host && typeof host.applyChatBubble === "function" && !host.__speakiPetBubbleHooked) {
 			const origApply = host.applyChatBubble.bind(host);
 			host.applyChatBubble = (playerId, text) => {
-				if (typeof text === "string" && /^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(text.trim())) {
+				if (typeof text === "string" && /^:(?:m|pet|car)_[a-zA-Z0-9_-]+:$/i.test(text.trim())) {
 					return;
 				}
 				return origApply(playerId, text);
@@ -297,7 +298,7 @@ function tick() {
 		if (host && host.chatBubbles && typeof host.chatBubbles.show === "function" && !host.chatBubbles.__speakiEmoteHooked) {
 			const origHostShow = host.chatBubbles.show.bind(host.chatBubbles);
 			host.chatBubbles.show = (e, t, n) => {
-				if (typeof n === "string" && /^:(?:pet|car)_[a-zA-Z0-9_-]+:$/i.test(n.trim())) return;
+				if (typeof n === "string" && /^:(?:m|pet|car)_[a-zA-Z0-9_-]+:$/i.test(n.trim())) return;
 				const filteredText = filterName(n);
 				if (typeof window.spkmodShowEmoteChatBubble === "function") {
 					return window.spkmodShowEmoteChatBubble(host.chatBubbles, origHostShow, e, t, filteredText);

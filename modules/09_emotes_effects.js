@@ -556,12 +556,34 @@ function spkmodCarGetPlayerLevel() {
 	return 1;
 }
 
+let _lunCarHadBroadcast = false;
+
 function spkmodGetLocalCarSyncToken() {
 	const mode = window.BurgerCarMode || 0;
 	if (!mode || !LUN_BURGER_CAR_MODES[mode]) return "none";
 	const cIdx = Math.max(0, Math.min(LUN_BURGER_CAR_COLORS.length - 1, Number(window.BurgerCarColorIdx) || 0));
 	return `${mode}_${cIdx}`;
 }
+
+window.spkmodGetActiveCarBroadcastState = function() {
+	const enabled = spkmodIsCarSystemEnabled();
+	const mode = (enabled && window.BurgerCarMode && LUN_BURGER_CAR_MODES[window.BurgerCarMode]) ? Number(window.BurgerCarMode) : 0;
+	const colorIdx = mode > 0
+		? Math.max(0, Math.min(LUN_BURGER_CAR_COLORS.length - 1, Number(window.BurgerCarColorIdx) || 0))
+		: 0;
+	return {
+		enabled,
+		shareInChat: enabled,
+		modeIdx: mode,
+		colorIdx,
+		hadBroadcastCar: _lunCarHadBroadcast
+	};
+};
+
+window.spkmodMarkCarBroadcastSent = function(hasCar) {
+	_lunCarHadBroadcast = !!hasCar;
+	_lunCarNeedsZoneSync = false;
+};
 
 function spkmodComputeCarBroadcastWaitMs(now, entry) {
 	if (!spkmodIsCarSystemEnabled()) {
@@ -670,8 +692,15 @@ function spkmodFlushQueuedCarBroadcast() {
 	_lunCarLastBroadcastToken = effectiveToken;
 	_lunCarLastBroadcastZoneId = curZoneId;
 	_lunCarNeedsZoneSync = false;
+	_lunCarHadBroadcast = effectiveToken !== "none";
 
-	const code = effectiveToken !== "none" ? `:car_${effectiveToken}:` : `:car_none:`;
+	let code = ":m_v0:";
+	if (effectiveToken !== "none") {
+		const parts = String(effectiveToken).split("_");
+		const mIdx = Number(parts[0]) || 0;
+		const cIdx = Number(parts[1]) || 0;
+		code = mIdx > 0 ? `:m_v${mIdx}${cIdx}:` : ":m_v0:";
+	}
 	try {
 		gameState.trySendChat(code);
 	} catch (err) {
@@ -681,6 +710,21 @@ function spkmodFlushQueuedCarBroadcast() {
 
 function spkmodSendCarChatTrigger(token, opts = {}) {
 	if (!spkmodIsCarSystemEnabled()) return;
+	// Prefer the unified :m_...: broadcast queue so car + pet + skin + cart + spark share 1 packet
+	if (typeof window.spkmodQueueUnifiedModSyncBroadcast === "function") {
+		const priority = opts.priority || "explicit";
+		const delayMs = Math.max(0, Number(opts.delayMs) || 0);
+		const forceResend = opts.forceResend !== undefined ? !!opts.forceResend : (priority === "explicit");
+		const reason = opts.reason || priority;
+		window.spkmodQueueUnifiedModSyncBroadcast({
+			priority,
+			delayMs,
+			forceResend,
+			includeCarState: true,
+			reason: "car_" + reason
+		});
+		return;
+	}
 	const priority = opts.priority || "explicit";
 	const delayMs = Math.max(0, Number(opts.delayMs) || 0);
 	const forceResend = opts.forceResend !== undefined ? !!opts.forceResend : (priority === "explicit");
@@ -938,6 +982,18 @@ async function spkmodSpawnOrUpdateRemoteCar(playerId, playerName, modeIdx, color
 	});
 	spkmodEnsureRemoteCarsLoop();
 }
+
+window.spkmodHandleIncomingCarState = function(playerId, playerName, modeIdx, colorIdx) {
+	if (!spkmodIsCarSystemEnabled()) return;
+	const myId = typeof gameState !== "undefined" ? gameState?.myPlayerId : null;
+	const myName = (typeof gameState !== "undefined" && (gameState?.myPlayerName || gameState?.myStat?.name)) || "";
+	const isSelf = (myId != null && playerId != null && String(playerId) === String(myId))
+		|| (myName && playerName && myName.trim().toLowerCase() === playerName.trim().toLowerCase());
+	if (isSelf) return;
+	const m = Number(modeIdx) || 0;
+	const c = Number(colorIdx) || 0;
+	spkmodSpawnOrUpdateRemoteCar(playerId, playerName, m, c);
+};
 
 window.spkmodHandleIncomingCarTrigger = function(playerId, playerName, rawMsg) {
 	if (!spkmodIsCarSystemEnabled()) return;

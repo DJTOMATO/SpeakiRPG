@@ -1047,6 +1047,22 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.skinsSystemToggleInput) {
 		lunPanelElements.skinsSystemToggleInput.title = t("skinsSystemToggleDesc") || "Enable or disable the 3D Skin & Body Wardrobe system, HUD button, Alt+S hotkey, and skin sync";
 	}
+	if (lunPanelElements.cartSkinsSystemToggleLabel) {
+		setText(lunPanelElements.cartSkinsSystemToggleLabel, "🛒 " + tCustom("cartSkinsSystemToggleLabel", "Enable Cart Skins"));
+		lunPanelElements.cartSkinsSystemToggleLabel.title = tCustom("cartSkinsSystemToggleDesc", "Enable or disable Normal & Halloween Pumpkin Cart skins, HUD button (Alt+C), and cart skin sync");
+	}
+	if (lunPanelElements.cartSkinsSystemToggleInput) {
+		lunPanelElements.cartSkinsSystemToggleInput.title = tCustom("cartSkinsSystemToggleDesc", "Enable or disable Normal & Halloween Pumpkin Cart skins, HUD button (Alt+C), and cart skin sync");
+	}
+	if (lunPanelElements.sparksSystemToggleLabel) {
+		setText(lunPanelElements.sparksSystemToggleLabel, "✨ " + tCustom("sparksSystemToggleLabel", "Enable Spark FX Trails"));
+		lunPanelElements.sparksSystemToggleLabel.title = tCustom("sparksSystemToggleDesc", "Enable or disable the 100-level Spark FX walking trails, HUD button (Alt+F), and multiplayer trail sync");
+	}
+	if (lunPanelElements.sparksSystemToggleInput) {
+		lunPanelElements.sparksSystemToggleInput.title = tCustom("sparksSystemToggleDesc", "Enable or disable the 100-level Spark FX walking trails, HUD button (Alt+F), and multiplayer trail sync");
+	}
+	if (typeof window.spkmodRefreshCartSkinsModalUI === "function") window.spkmodRefreshCartSkinsModalUI();
+	if (typeof window.spkmodRefreshSparksModalUI === "function") window.spkmodRefreshSparksModalUI();
 	if (lunPanelElements.carSystemToggleLabel) {
 		setText(lunPanelElements.carSystemToggleLabel, "🚗 " + (t("carSystemToggleLabel") || "Enable Cars (Display & Sync)"));
 		lunPanelElements.carSystemToggleLabel.title = t("carSystemToggleDesc") || "Enable or disable 3D car display, HUD button, and multiplayer car sync";

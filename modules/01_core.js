@@ -682,6 +682,16 @@ window.spkmodCarSystemEnabled = (typeof window !== "undefined" && window.localSt
 	? localStorage.getItem("spkmod-car-enabled") !== "false"
 	: true;
 
+// 3D Cart Skins System Master Toggle (ON by default; persisted in localStorage)
+window.spkmodCartSkinsSystemEnabled = (typeof window !== "undefined" && window.localStorage)
+	? localStorage.getItem("spkmod-cart-skin-enabled") !== "false"
+	: true;
+
+// 3D Spark FX Walking Trails System Master Toggle (ON by default; persisted in localStorage)
+window.spkmodSparksSystemEnabled = (typeof window !== "undefined" && window.localStorage)
+	? localStorage.getItem("spkmod-spark-enabled") !== "false"
+	: true;
+
 // Burger Shop Big-Order Fat Customers Toggle (ON by default; persisted in localStorage)
 window.spkmodBurgerFatCustomersEnabled = (typeof window !== "undefined" && window.localStorage)
 	? localStorage.getItem("spkmod-burger-fat-customers") !== "false"
