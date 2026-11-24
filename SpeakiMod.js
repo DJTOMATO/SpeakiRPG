@@ -50057,13 +50057,14 @@ function spkmodPFAxes(bone, cont) {
 	return { x: ax, z: az };
 }
 
-
+// test 
 
 
 
 
 function spkmodPFCollectHandProps(entry) {
 	console.log("collect prop");
+	console log("test");
 	const out = [];
 	if (!entry) return out;
 	if (!entry.back && entry.root) {                                          // bones that carry back accessories: pelvis, spine(s), neck, clavicles ...
