@@ -55347,7 +55347,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "1",
 		code: 2,
-		level: 20,
+		level: 60,
 		icon: "1️⃣",
 		accent: "#fbbf24",
 		file: "test2.png",
@@ -55392,7 +55392,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "5",
 		code: 6,
-		level: 60,
+		level: 20,
 		icon: "5️⃣",
 		accent: "#f43f5e",
 		file: "yuki.png",
