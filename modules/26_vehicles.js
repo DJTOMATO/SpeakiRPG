@@ -1504,6 +1504,9 @@ function spkmodGetUifiTextures(THREE) {
 	// 1. Glossy soft emerald-green Trickcal Ui frog eye with delicate dark-brown rim & cute anime highlights
 	const eyeTex = makeTex(256, 256, (ctx) => {
 		ctx.save();
+		// Fill outer corners with rim color so opaque (transparent: false) eye cap has zero dark/alpha seam
+		ctx.fillStyle = "#362520";
+		ctx.fillRect(0, 0, 256, 256);
 		ctx.beginPath();
 		ctx.arc(128, 128, 116, 0, Math.PI * 2);
 		const irisGrad = ctx.createRadialGradient(128, 166, 16, 128, 122, 118);
@@ -1688,7 +1691,7 @@ function spkmodBuildProceduralVehicle(THREE, builderName, colorHex) {
 	const rimMat = spkmodVehMat(THREE, 0xe2e8f0);
 	const paintMat = spkmodVehMat(THREE, colorHex);
 	const chromeMat = spkmodVehMat(THREE, 0xcbd5e1);
-	const glassMat = spkmodVehMat(THREE, 0x38bdf8, { transparent: true, opacity: 0.62 });
+	const glassMat = spkmodVehMat(THREE, 0x38bdf8, { transparent: true, opacity: 0.62, depthWrite: false });
 	const darkMat = spkmodVehMat(THREE, 0x111827);
 	const headLightMat = spkmodVehMat(THREE, 0xfef08a, { emissive: 0xfacc15, emissiveIntensity: 0.7 });
 	const tailLightMat = spkmodVehMat(THREE, 0xf87171, { emissive: 0xef4444, emissiveIntensity: 0.65 });
@@ -2128,7 +2131,7 @@ function spkmodBuildProceduralVehicle(THREE, builderName, colorHex) {
 		bodyGroup.add(dome);
 
 		// Glowing tractor beam ring underneath
-		const beamMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.42, side: THREE.DoubleSide });
+		const beamMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide });
 		const beamRing = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.78, 20), beamMat);
 		beamRing.rotation.x = Math.PI / 2;
 		beamRing.position.set(0, -0.34, 0);
@@ -2918,11 +2921,12 @@ function spkmodBuildCenturyProceduralVehicle(THREE, builderName, colorHex, root,
 		put(bodyGroup, new THREE.TorusGeometry(0.46, 0.065, 8, 18), col, [0, 0.96, 0.88], [1.2, 0, 0]);
 		return { seatOffsetY: 1.14, extra: { hopAmp: 0.18 } };
 	} else if (builderName === "hamsterBall") {
-		const shellMat = spkmodVehMat(THREE, colorHex, { transparent: true, opacity: 0.36 });
-		const bandMat = spkmodVehMat(THREE, colorHex, { transparent: true, opacity: 0.78 });
+		const shellMat = spkmodVehMat(THREE, colorHex, { transparent: true, opacity: 0.36, depthWrite: false });
+		const bandMat = spkmodVehMat(THREE, colorHex, { transparent: true, opacity: 0.78, depthWrite: false });
 		const ballGrp = new THREE.Group();
 		ballGrp.position.set(0, 1.12, 0);
-		put(ballGrp, new THREE.SphereGeometry(1.12, 22, 18), shellMat);
+		const shellMesh = put(ballGrp, new THREE.SphereGeometry(1.12, 22, 18), shellMat);
+		shellMesh.renderOrder = 2;
 		put(ballGrp, new THREE.TorusGeometry(1.12, 0.065, 8, 28), bandMat, [0, 0, 0], [0, Math.PI / 2, 0]);
 		put(ballGrp, new THREE.TorusGeometry(1.12, 0.055, 8, 28), chromeMat, [0, 0, 0], [Math.PI / 2, 0, 0]);
 		for (let i = 0; i < 6; i++) {
@@ -3473,11 +3477,9 @@ function spkmodBuildCenturyProceduralVehicle(THREE, builderName, colorHex, root,
 			if (uifiTex?.eyeTex) {
 				const eyeMat = new THREE.MeshBasicMaterial({
 					map: uifiTex.eyeTex,
-					transparent: true,
-					depthWrite: false
+					transparent: false
 				});
 				const eyeCap = makeEyeCap(0.205, Math.PI * 0.48, eyeMat);
-				eyeCap.renderOrder = 4;
 				eyeGroup.add(eyeCap);
 			}
 			bodyGroup.add(eyeGroup);
