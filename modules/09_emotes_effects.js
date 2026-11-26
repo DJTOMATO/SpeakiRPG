@@ -234,25 +234,28 @@ function spkmodHasActiveNativeMount(container, playerId) {
 function spkmodSetNativeCartVisible(container, playerId, visible) {
 	try {
 		const entries = typeof gameState !== "undefined" ? gameState?.mountVisuals?.entries : null;
-		if (!entries) return;
-		const visited = new Set();
-		const applyEntry = (entry) => {
-			if (!entry || !entry.cartGroup || visited.has(entry.cartGroup)) return;
-			visited.add(entry.cartGroup);
-			entry.cartGroup.visible = !!visible;
-			entry.cartGroup.__spkmodHiddenByCar = !visible;
-		};
+		if (!entries || entries.size === 0) return;
+		const vis = !!visible;
+		let matched = false;
 		if (playerId != null && playerId !== "") {
-			const keys = [playerId, Number(playerId), String(playerId)];
-			for (const k of keys) {
-				const e = entries.get(k);
-				if (e) applyEntry(e);
+			let e = entries.get(playerId);
+			if (!e) {
+				const numId = Number(playerId);
+				if (!Number.isNaN(numId)) e = entries.get(numId);
+			}
+			if (!e) e = entries.get(String(playerId));
+			if (e && e.cartGroup) {
+				if (e.cartGroup.visible !== vis) e.cartGroup.visible = vis;
+				e.cartGroup.__spkmodHiddenByCar = !vis;
+				matched = true;
 			}
 		}
-		if (container) {
+		if (!matched && container) {
 			for (const entry of entries.values()) {
 				if (entry && entry.cartGroup && entry.cartGroup.parent === container) {
-					applyEntry(entry);
+					if (entry.cartGroup.visible !== vis) entry.cartGroup.visible = vis;
+					entry.cartGroup.__spkmodHiddenByCar = !vis;
+					break;
 				}
 			}
 		}
@@ -288,17 +291,22 @@ function spkmodCreateBurgerCarInstance(scene, modelName, colorHex) {
 	const carObj = prefab.clone(true);
 	carObj.scale.multiplyScalar(SPKMOD_BURGER_CAR_SCALE);
 	carObj.traverse(node => {
-		if (node.isMesh && node.material) {
-			const mats = Array.isArray(node.material) ? node.material : [node.material];
-			const replaced = mats.map(m => {
-				if (m && m.name === "car_body") {
-					const cloned = m.clone();
-					if (cloned.color) cloned.color.setHex(colorHex);
-					return cloned;
-				}
-				return m;
-			});
-			node.material = Array.isArray(node.material) ? replaced : replaced[0];
+		if (node.isMesh) {
+			if (!node.userData) node.userData = {};
+			node.userData.spkmodVehSharedGlb = true;
+			if (node.material) {
+				const mats = Array.isArray(node.material) ? node.material : [node.material];
+				const replaced = mats.map(m => {
+					if (m && m.name === "car_body") {
+						const cloned = m.clone();
+						if (cloned.color) cloned.color.setHex(colorHex);
+						cloned.userData = Object.assign({}, cloned.userData, { spkmodVehOwnedMat: true });
+						return cloned;
+					}
+					return m;
+				});
+				node.material = Array.isArray(node.material) ? replaced : replaced[0];
+			}
 		}
 	});
 
@@ -326,8 +334,19 @@ window.spkmodResetCarsEveryone = function(silent = false, clearLocalCar = true) 
 	if (_lunEveryoneCarsState) {
 		if (_lunEveryoneCarsState.rafId) cancelAnimationFrame(_lunEveryoneCarsState.rafId);
 		for (const entry of _lunEveryoneCarsState.entries) {
-			if (entry.root && entry.root.parent) {
-				entry.root.parent.remove(entry.root);
+			if (entry.root) {
+				if (entry.root.parent) entry.root.parent.remove(entry.root);
+				if (typeof entry.root.traverse === "function") {
+					entry.root.traverse(node => {
+						if (!node || !node.isMesh || !node.material) return;
+						const mats = Array.isArray(node.material) ? node.material : [node.material];
+						for (const m of mats) {
+							if (m && m.userData?.spkmodVehOwnedMat && typeof m.dispose === "function") {
+								try { m.dispose(); } catch (_) {}
+							}
+						}
+					});
+				}
 			}
 			spkmodSetNativeCartVisible(entry.container, entry.playerId, true);
 			if (!spkmodHasActiveNativeMount(entry.container, entry.playerId)) {

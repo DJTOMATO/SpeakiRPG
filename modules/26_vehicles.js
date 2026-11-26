@@ -1073,11 +1073,250 @@ async function spkmodLoadVehicleGlbScene(url, fallbackUrl) {
 	return null;
 }
 
+const _spkmodVehMatPool = new Map();
+const SPKMOD_VEH_NOOP_RAYCAST = () => {};
+
 function spkmodVehMat(THREE, color, extra = {}) {
+	const hasCustomComplex = extra && (extra.map || extra.alphaMap || extra.gradientMap || extra.onBeforeCompile || extra.userData);
+	if (!hasCustomComplex) {
+		const isToon = !!THREE.MeshToonMaterial;
+		const em = extra?.emissive ?? 0;
+		const emI = extra?.emissiveIntensity ?? 1;
+		const tr = extra?.transparent ? 1 : 0;
+		const op = extra?.opacity ?? 1;
+		const sd = extra?.side ?? 0;
+		const dw = extra?.depthWrite === false ? 0 : 1;
+		const wf = extra?.wireframe ? 1 : 0;
+		const rg = extra?.roughness ?? (isToon ? 0 : 0.55);
+		const mt = extra?.metalness ?? (isToon ? 0 : 0.1);
+		const key = `${isToon ? 1 : 0}|${color}|${em}|${emI}|${tr}|${op}|${sd}|${dw}|${wf}|${rg}|${mt}`;
+		const cached = _spkmodVehMatPool.get(key);
+		if (cached) return cached;
+		const mat = isToon
+			? new THREE.MeshToonMaterial(Object.assign({ color }, extra))
+			: new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.55, metalness: 0.1 }, extra));
+		mat.userData = mat.userData || {};
+		mat.userData.spkmodVehSharedMat = true;
+		_spkmodVehMatPool.set(key, mat);
+		return mat;
+	}
 	if (THREE.MeshToonMaterial) {
 		return new THREE.MeshToonMaterial(Object.assign({ color }, extra));
 	}
 	return new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.55, metalness: 0.1 }, extra));
+}
+
+function spkmodDisposeVehicleObject(root) {
+	if (!root) return;
+	if (root.parent) {
+		root.parent.remove(root);
+	}
+	if (typeof root.traverse !== "function") return;
+	const disposedGeoms = new Set();
+	const disposedMats = new Set();
+	const disposedTex = new Set();
+	root.traverse(c => {
+		if (!c) return;
+		const isSharedGlb = !!c.userData?.spkmodVehSharedGlb;
+		if (!isSharedGlb && c.geometry && !c.isSprite && !disposedGeoms.has(c.geometry)) {
+			disposedGeoms.add(c.geometry);
+			try { c.geometry.dispose?.(); } catch (_) {}
+		}
+		if (c.material) {
+			const mats = Array.isArray(c.material) ? c.material : [c.material];
+			for (let i = 0; i < mats.length; i++) {
+				const m = mats[i];
+				if (!m || disposedMats.has(m)) continue;
+				if (isSharedGlb && !m.userData?.spkmodVehOwnedMat) continue;
+				if (m.userData?.spkmodVehSharedMat) continue;
+				disposedMats.add(m);
+				if (m.map && !m.map.userData?.spkmodVehSharedTex && !disposedTex.has(m.map)) {
+					disposedTex.add(m.map);
+					try { m.map.dispose?.(); } catch (_) {}
+				}
+				try { m.dispose?.(); } catch (_) {}
+			}
+		}
+	});
+}
+
+function spkmodVehMergeStaticScope(THREE, scopeRoot, excludeSet) {
+	if (!THREE || !scopeRoot || !THREE.BufferGeometry || !THREE.BufferAttribute || !THREE.Matrix3 || !THREE.Matrix4) return;
+	if (typeof scopeRoot.updateMatrixWorld !== "function") return;
+	const buckets = new Map(); // material -> Mesh[]
+	const collect = (node) => {
+		if (!node || !node.children) return;
+		for (let i = 0; i < node.children.length; i++) {
+			const c = node.children[i];
+			if (!c || excludeSet.has(c)) continue;
+			if (c.isMesh) {
+				if (
+					!c.isSkinnedMesh &&
+					!c.isInstancedMesh &&
+					!c.userData?.spkmodVehSharedGlb &&
+					!c.userData?.spkmodVehNoMerge &&
+					c.geometry &&
+					c.geometry.attributes &&
+					c.geometry.attributes.position &&
+					c.geometry.attributes.normal &&
+					(!c.geometry.morphAttributes || Object.keys(c.geometry.morphAttributes).length === 0) &&
+					c.material &&
+					!Array.isArray(c.material) &&
+					!c.material.map
+				) {
+					let arr = buckets.get(c.material);
+					if (!arr) { arr = []; buckets.set(c.material, arr); }
+					arr.push(c);
+				}
+			}
+			if (c.children && c.children.length > 0) collect(c);
+		}
+	};
+	collect(scopeRoot);
+	if (buckets.size === 0) return;
+
+	scopeRoot.updateMatrixWorld(true);
+	if (!scopeRoot.matrixWorld || typeof scopeRoot.matrixWorld.clone !== "function") return;
+	const invRoot = scopeRoot.matrixWorld.clone().invert();
+	const relMat = new THREE.Matrix4();
+	const normMat = new THREE.Matrix3();
+	const vPos = new THREE.Vector3();
+	const vNorm = new THREE.Vector3();
+
+	for (const [mat, meshes] of buckets) {
+		if (meshes.length < 2) continue;
+		let totalVerts = 0;
+		const valid = [];
+		for (let i = 0; i < meshes.length; i++) {
+			const m = meshes[i];
+			const g = m.geometry;
+			const idx = g.index;
+			const count = idx ? idx.count : g.attributes.position.count;
+			if (count >= 3 && count % 3 === 0) {
+				totalVerts += count;
+				valid.push(m);
+			}
+		}
+		if (valid.length < 2 || totalVerts < 3) continue;
+
+		const positions = new Float32Array(totalVerts * 3);
+		const normals = new Float32Array(totalVerts * 3);
+		let writeOff = 0;
+		const mergedFrom = [];
+
+		for (let i = 0; i < valid.length; i++) {
+			const m = valid[i];
+			relMat.multiplyMatrices(invRoot, m.matrixWorld);
+			const det = relMat.determinant();
+			if (!Number.isFinite(det) || Math.abs(det) < 1e-10) continue;
+			const flipWinding = det < 0;
+			normMat.getNormalMatrix(relMat);
+
+			const g = m.geometry;
+			const posAttr = g.attributes.position;
+			const normAttr = g.attributes.normal;
+			const idx = g.index;
+			const count = idx ? idx.count : posAttr.count;
+
+			for (let t = 0; t < count; t += 3) {
+				const i0 = idx ? idx.getX(t) : t;
+				const i1 = idx ? idx.getX(flipWinding ? t + 2 : t + 1) : (flipWinding ? t + 2 : t + 1);
+				const i2 = idx ? idx.getX(flipWinding ? t + 1 : t + 2) : (flipWinding ? t + 1 : t + 2);
+				for (let k = 0; k < 3; k++) {
+					const vi = k === 0 ? i0 : (k === 1 ? i1 : i2);
+					vPos.set(posAttr.getX(vi), posAttr.getY(vi), posAttr.getZ(vi)).applyMatrix4(relMat);
+					vNorm.set(normAttr.getX(vi), normAttr.getY(vi), normAttr.getZ(vi)).applyMatrix3(normMat).normalize();
+					positions[writeOff] = vPos.x;
+					positions[writeOff + 1] = vPos.y;
+					positions[writeOff + 2] = vPos.z;
+					normals[writeOff] = vNorm.x;
+					normals[writeOff + 1] = vNorm.y;
+					normals[writeOff + 2] = vNorm.z;
+					writeOff += 3;
+				}
+			}
+			mergedFrom.push(m);
+		}
+		if (mergedFrom.length < 2 || writeOff < 9) continue;
+
+		const finalPos = writeOff === positions.length ? positions : positions.subarray(0, writeOff);
+		const finalNorm = writeOff === normals.length ? normals : normals.subarray(0, writeOff);
+		const mergedGeom = new THREE.BufferGeometry();
+		mergedGeom.setAttribute("position", new THREE.BufferAttribute(finalPos, 3));
+		mergedGeom.setAttribute("normal", new THREE.BufferAttribute(finalNorm, 3));
+		mergedGeom.computeBoundingSphere();
+
+		const mergedMesh = new THREE.Mesh(mergedGeom, mat);
+		mergedMesh.name = "spkmod_veh_merged";
+		mergedMesh.raycast = SPKMOD_VEH_NOOP_RAYCAST;
+		mergedMesh.frustumCulled = true;
+		scopeRoot.add(mergedMesh);
+
+		for (let i = 0; i < mergedFrom.length; i++) {
+			const m = mergedFrom[i];
+			if (m.parent) m.parent.remove(m);
+			try { m.geometry?.dispose?.(); } catch (_) {}
+		}
+	}
+
+	const prune = (node) => {
+		if (!node || !node.children) return;
+		for (let i = node.children.length - 1; i >= 0; i--) {
+			const c = node.children[i];
+			if (!c || c.isMesh || excludeSet.has(c)) continue;
+			prune(c);
+			if (c.children && c.children.length === 0) {
+				node.remove(c);
+			}
+		}
+	};
+	prune(scopeRoot);
+}
+
+function spkmodVehOptimizeBuilt(THREE, built) {
+	if (!THREE || !built || !built.root) return built;
+	try {
+		const excludeSet = new Set();
+		if (built.leftFoot) excludeSet.add(built.leftFoot);
+		if (built.rightFoot) excludeSet.add(built.rightFoot);
+		if (built.alertSprite) excludeSet.add(built.alertSprite);
+		if (Array.isArray(built.wheels)) {
+			for (let i = 0; i < built.wheels.length; i++) {
+				if (built.wheels[i]) excludeSet.add(built.wheels[i]);
+			}
+		}
+		if (Array.isArray(built.animParts)) {
+			for (let i = 0; i < built.animParts.length; i++) {
+				const p = built.animParts[i];
+				if (!p) continue;
+				if (p.node && p.node !== built.bodyGroup) excludeSet.add(p.node);
+				if (p.red) excludeSet.add(p.red);
+				if (p.blue) excludeSet.add(p.blue);
+				if (Array.isArray(p.tiers)) {
+					for (let ti = 0; ti < p.tiers.length; ti++) {
+						const tierNodes = p.tiers[ti];
+						if (Array.isArray(tierNodes)) {
+							for (let ni = 0; ni < tierNodes.length; ni++) {
+								if (tierNodes[ni]) excludeSet.add(tierNodes[ni]);
+							}
+						}
+					}
+				}
+			}
+		}
+		if (built.bodyGroup) {
+			spkmodVehMergeStaticScope(THREE, built.bodyGroup, excludeSet);
+		}
+		if (Array.isArray(built.wheels)) {
+			for (let i = 0; i < built.wheels.length; i++) {
+				const w = built.wheels[i];
+				if (w && !w.isMesh) {
+					spkmodVehMergeStaticScope(THREE, w, excludeSet);
+				}
+			}
+		}
+	} catch (_) {}
+	return built;
 }
 
 function spkmodGetMgsBoxTextures(THREE) {
@@ -1192,6 +1431,8 @@ function spkmodGetMgsBoxTextures(THREE) {
 		sideTex.colorSpace = THREE.SRGBColorSpace;
 		topTex.colorSpace = THREE.SRGBColorSpace;
 	}
+	sideTex.userData = Object.assign(sideTex.userData || {}, { spkmodVehSharedTex: true });
+	topTex.userData = Object.assign(topTex.userData || {}, { spkmodVehSharedTex: true });
 	sideTex.needsUpdate = true;
 	topTex.needsUpdate = true;
 	_spkmodMgsBoxTextures = { sideTex, topTex };
@@ -1234,6 +1475,7 @@ function spkmodGetAlertSpriteTexture(THREE, symbol) {
 
 	const tex = new THREE.CanvasTexture(c);
 	if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+	tex.userData = Object.assign(tex.userData || {}, { spkmodVehSharedTex: true });
 	tex.needsUpdate = true;
 	_spkmodAlertTextures.set(key, tex);
 	return tex;
@@ -1254,6 +1496,7 @@ function spkmodGetUifiTextures(THREE) {
 		}
 		const tex = new THREE.CanvasTexture(c);
 		if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+		tex.userData = Object.assign(tex.userData || {}, { spkmodVehSharedTex: true });
 		tex.needsUpdate = true;
 		return tex;
 	};
@@ -3397,7 +3640,10 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 			if (!node) return;
 			node.visible = true;
 			if (node.isMesh || node.isSkinnedMesh) {
-				node.frustumCulled = false;
+				node.userData = Object.assign(node.userData || {}, { spkmodVehSharedGlb: true });
+				if (node.isSkinnedMesh) {
+					node.frustumCulled = false;
+				}
 			}
 		});
 		if (typeof cloned.updateMatrixWorld === "function") cloned.updateMatrixWorld(true);
@@ -3457,6 +3703,7 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 	// 3. Procedural 3D Vehicles & MGS Stealth Cardboard Box
 	if (!built && spec.kind === "procedural") {
 		built = spkmodBuildProceduralVehicle(THREE, spec.builder, colorHex);
+		if (built) spkmodVehOptimizeBuilt(THREE, built);
 	}
 	return built ? spkmodAttachVehicleAlertSprite(THREE, built, vehicle) : null;
 }
@@ -3683,8 +3930,15 @@ function spkmodEnsureMountVisualsHook() {
 						spkmodApplyVehiclePoseOverride(_spkmodLocalVehicleEntry, gameState.localAvatarPose, _spkmodLocalVehicleEntry.visualScaleCurrent);
 					}
 					if (_spkmodRemoteVehicleInstances.size > 0) {
+						const rMap = gameState.remotePlayers?.remotePlayers;
 						for (const entry of _spkmodRemoteVehicleInstances.values()) {
-							const rp = entry.resolveRp ? entry.resolveRp() : null;
+							let rp = (rMap && entry.cachedRp && entry.lastRpKey !== undefined && rMap.get(entry.lastRpKey) === entry.cachedRp)
+								? entry.cachedRp
+								: null;
+							if (!rp && entry.resolveRp) {
+								rp = entry.resolveRp();
+								entry.cachedRp = rp || null;
+							}
 							if (rp) {
 								if (typeof spkmodSetNativeCartVisible === "function") {
 									spkmodSetNativeCartVisible(rp.container, entry.lastRpKey ?? entry.playerId, false);
@@ -3704,8 +3958,8 @@ function spkmodEnsureMountVisualsHook() {
 
 function spkmodRestoreVehicleEntry(entry, isLocal) {
 	if (!entry) return;
-	if (entry.root && entry.root.parent) {
-		entry.root.parent.remove(entry.root);
+	if (entry.root) {
+		spkmodDisposeVehicleObject(entry.root);
 	}
 	// Unconditionally restore any avatar hidden by MGS Cardboard Box!
 	if (entry.hiddenAvatarRoot) {
@@ -3771,7 +4025,7 @@ function spkmodRemoveLocalVehicle() {
 		const ch = gameState.playerContainer.children;
 		for (let i = ch.length - 1; i >= 0; i--) {
 			if (ch[i] && ch[i].name === "spkmod_local_vehicle") {
-				gameState.playerContainer.remove(ch[i]);
+				spkmodDisposeVehicleObject(ch[i]);
 			}
 		}
 	}
@@ -3821,8 +4075,10 @@ async function spkmodSpawnLocalVehicle(vehicleId, colorIdx) {
 	const mySeq = ++_spkmodLocalVehicleSeq;
 	const safeColor = spkmodClampVehicleColorIdx(colorIdx);
 	const built = await spkmodCreateVehicleModelInstance(vehicle, safeColor);
-	if (!built || mySeq !== _spkmodLocalVehicleSeq || !spkmodIsVehiclesSystemEnabled()) return false;
-	if (window.spkmodVehicleSettings.equippedId !== vehicle.id) return false;
+	if (!built || mySeq !== _spkmodLocalVehicleSeq || !spkmodIsVehiclesSystemEnabled() || window.spkmodVehicleSettings.equippedId !== vehicle.id) {
+		if (built && built.root) spkmodDisposeVehicleObject(built.root);
+		return false;
+	}
 
 	if (_spkmodLocalVehicleEntry) {
 		spkmodRestoreVehicleEntry(_spkmodLocalVehicleEntry, true);
@@ -3831,7 +4087,7 @@ async function spkmodSpawnLocalVehicle(vehicleId, colorIdx) {
 	if (gameState.playerContainer.children) {
 		for (let i = gameState.playerContainer.children.length - 1; i >= 0; i--) {
 			if (gameState.playerContainer.children[i]?.name === "spkmod_local_vehicle") {
-				gameState.playerContainer.remove(gameState.playerContainer.children[i]);
+				spkmodDisposeVehicleObject(gameState.playerContainer.children[i]);
 			}
 		}
 	}
@@ -4185,10 +4441,16 @@ async function spkmodSpawnOrUpdateRemoteVehicle(ownerKey, state, resolved) {
 	if (_spkmodRemoteVehicleInFlight.get(ownerKey) === token) {
 		_spkmodRemoteVehicleInFlight.delete(ownerKey);
 	}
-	if (!built || !spkmodIsVehiclesSystemEnabled() || _spkmodRemoteVehicleSeq.get(ownerKey) !== mySeq) return;
+	if (!built || !spkmodIsVehiclesSystemEnabled() || _spkmodRemoteVehicleSeq.get(ownerKey) !== mySeq) {
+		if (built && built.root) spkmodDisposeVehicleObject(built.root);
+		return;
+	}
 
 	const live = spkmodResolveRemotePlayerForVehicle(state.playerId, state.playerName);
-	if (!live || !live.rp || !live.rp.container) return;
+	if (!live || !live.rp || !live.rp.container) {
+		if (built && built.root) spkmodDisposeVehicleObject(built.root);
+		return;
+	}
 
 	const prev = _spkmodRemoteVehicleInstances.get(ownerKey);
 	if (prev) {
@@ -4199,7 +4461,7 @@ async function spkmodSpawnOrUpdateRemoteVehicle(ownerKey, state, resolved) {
 		for (let i = live.rp.container.children.length - 1; i >= 0; i--) {
 			const ch = live.rp.container.children[i];
 			if (ch && typeof ch.name === "string" && (ch.name.startsWith("spkmod_remote_vehicle_") || ch.name.startsWith("spkmod_remote_car_"))) {
-				live.rp.container.remove(ch);
+				spkmodDisposeVehicleObject(ch);
 			}
 		}
 	}
@@ -4215,6 +4477,7 @@ async function spkmodSpawnOrUpdateRemoteVehicle(ownerKey, state, resolved) {
 		vehicle,
 		colorIdx: safeColor,
 		resolveRp,
+		cachedRp: live.rp,
 		lastRpKey: live.rpKey,
 		lastContainer: live.rp.container,
 		lastPosePos: live.rp.avatarPose?.position || live.rp.avatar?.root?.position || null,
@@ -4610,20 +4873,56 @@ function spkmodVehiclesMasterLoop(nowMs) {
 			}
 		}
 
-		// 2. Tick active remote vehicles every frame
+		// 2. Tick active remote vehicles every frame (O(1) cached rp lookup + 45m animation distance culling)
 		if (_spkmodRemoteVehicleInstances.size > 0) {
-			for (const [ownerKey, entry] of [..._spkmodRemoteVehicleInstances.entries()]) {
-				const rp = entry.resolveRp ? entry.resolveRp() : null;
+			const rMapTick = gameState.remotePlayers?.remotePlayers;
+			const camPos = gameState.camera?.position || pc?.position || null;
+			const MAX_REMOTE_VEH_ANIM_DIST_SQ = 45 * 45;
+			let staleKeys = null;
+			for (const [ownerKey, entry] of _spkmodRemoteVehicleInstances) {
+				let rp = (rMapTick && entry.cachedRp && entry.lastRpKey !== undefined && rMapTick.get(entry.lastRpKey) === entry.cachedRp)
+					? entry.cachedRp
+					: null;
+				if (!rp) {
+					const resolved = spkmodResolveRemotePlayerForVehicle(entry.playerId, entry.playerName);
+					if (resolved && resolved.rp) {
+						rp = resolved.rp;
+						entry.cachedRp = rp;
+						entry.lastRpKey = resolved.rpKey;
+					}
+				}
 				if (!rp || !rp.container) {
-					spkmodClearRemoteVehicleOwner(ownerKey);
+					if (!staleKeys) staleKeys = [];
+					staleKeys.push(ownerKey);
 					continue;
 				}
 				entry.lastContainer = rp.container;
+				if (rp.container.visible === false) continue;
 				const posePos = rp.avatarPose?.position || rp.avatar?.root?.position || null;
 				const ctrl = rp.avatar?.animationController || rp.container?.controller || null;
 				entry.lastPosePos = posePos;
 				entry.lastCtrl = ctrl;
+				if (camPos && rp.container.position) {
+					const dx = rp.container.position.x - camPos.x;
+					const dz = rp.container.position.z - camPos.z;
+					if (dx * dx + dz * dz > MAX_REMOTE_VEH_ANIM_DIST_SQ) {
+						if (entry.root.parent !== rp.container) rp.container.add(entry.root);
+						if (typeof spkmodSetNativeCartVisible === "function") {
+							spkmodSetNativeCartVisible(rp.container, entry.lastRpKey ?? entry.playerId, false);
+						}
+						if (entry.vehicle.hidePlayer && rp.avatar?.root && rp.avatar.root.visible !== false) {
+							entry.hiddenAvatarRoot = rp.avatar.root;
+							rp.avatar.root.visible = false;
+						}
+						continue;
+					}
+				}
 				spkmodTickVehicleEntry(entry, false, rp.container, entry.lastRpKey ?? entry.playerId, rp.avatar?.root || null, posePos, ctrl, dt, nowMs, rp);
+			}
+			if (staleKeys) {
+				for (let i = 0; i < staleKeys.length; i++) {
+					spkmodClearRemoteVehicleOwner(staleKeys[i]);
+				}
 			}
 		}
 
@@ -4685,13 +4984,34 @@ function spkmodVehiclesMasterLoop(nowMs) {
 			}
 			_spkmodVehicleLastRemoteCount = rCount;
 
-			// Reconcile remote vehicles (level-checked + showRemote toggle)
+			// Reconcile remote vehicles (level-checked + showRemote toggle + prune departed players after 15s grace)
 			const showRemote = window.spkmodVehicleSettings.showRemoteVehicles !== false;
 			const seenRemote = new Set();
-			if (showRemote && rMap && _spkmodRemoteVehicleStates.size > 0) {
+			if (rMap && _spkmodRemoteVehicleStates.size > 0) {
 				for (const [ownerKey, st] of _spkmodRemoteVehicleStates) {
-					const resolved = spkmodResolveRemotePlayerForVehicle(st.playerId, st.playerName);
-					if (!resolved || !resolved.rp || !resolved.rp.container) continue;
+					let resolved = null;
+					if (st.cachedRp && st.cachedRpKey !== undefined && rMap.get(st.cachedRpKey) === st.cachedRp) {
+						resolved = { key: String(st.cachedRpKey), rpKey: st.cachedRpKey, rp: st.cachedRp };
+					} else {
+						resolved = spkmodResolveRemotePlayerForVehicle(st.playerId, st.playerName);
+						if (resolved && resolved.rp) {
+							st.cachedRp = resolved.rp;
+							st.cachedRpKey = resolved.rpKey;
+						} else {
+							st.cachedRp = null;
+							st.cachedRpKey = undefined;
+						}
+					}
+					if (!resolved || !resolved.rp || !resolved.rp.container) {
+						if (!st._missingSinceMs) st._missingSinceMs = nowMs;
+						else if (nowMs - st._missingSinceMs > 15000) {
+							_spkmodRemoteVehicleStates.delete(ownerKey);
+							spkmodClearRemoteVehicleOwner(ownerKey);
+						}
+						continue;
+					}
+					st._missingSinceMs = 0;
+					if (!showRemote) continue;
 					const vehicle = SPKMOD_VEHICLES_BY_ID.get(st.vehicleId);
 					if (!vehicle) continue;
 					const rpLevel = resolved.rp.info?.level ?? 0;

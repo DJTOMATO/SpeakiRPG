@@ -601,9 +601,11 @@ function spkmodExtractCartSubGeometry(T, srcGeo, predicate, offsetVec) {
 	return out;
 }
 
-function spkmodBuildHwCartOverlayGroup(template, cartMode, texture) {
-	const T = typeof window !== "undefined" ? window.THREE : null;
-	if (!T || !template || !template.geometry) return null;
+const SPKMOD_CART_NOOP_RAYCAST = () => {};
+
+function spkmodGetOrBuildCartModeGeoms(T, template, cartMode) {
+	if (!template.modeGeoms) template.modeGeoms = {};
+	if (template.modeGeoms[cartMode]) return template.modeGeoms[cartMode];
 
 	const dims = cartMode === "tandem" ? SPKMOD_CART_DIMS_TANDEM : SPKMOD_CART_DIMS_SOLO;
 	const stretched = template.geometry.clone();
@@ -632,25 +634,11 @@ function spkmodBuildHwCartOverlayGroup(template, cartMode, texture) {
 		stretched.computeBoundingSphere();
 	}
 
-	const MatCtor = T.MeshToonMaterial || T.MeshLambertMaterial || T.MeshBasicMaterial;
-	const mat = new MatCtor({
-		color: 0xffffff,
-		map: texture,
-		transparent: true,
-		alphaTest: 0.5,
-		depthWrite: true
-	});
-
-	const group = new T.Group();
-	group.name = "spkmod_cart_skin_overlay";
 	const zeroVec = new T.Vector3(0, 0, 0);
-
 	const bodyGeo = spkmodExtractCartSubGeometry(T, stretched, i => template.vertexRole[i] !== 2, zeroVec);
-	const bodyMesh = new T.Mesh(bodyGeo, mat);
-	bodyMesh.raycast = () => {};
-	group.add(bodyMesh);
+	bodyGeo.userData = Object.assign(bodyGeo.userData || {}, { spkmodCartSharedGeo: true });
 
-	const wheels = [];
+	const wheelDefs = [];
 	for (let slot = 0; slot < 4; slot++) {
 		const pred = i => template.vertexWheelSlot[i] === slot;
 		const probeGeo = spkmodExtractCartSubGeometry(T, stretched, pred, zeroVec);
@@ -664,17 +652,54 @@ function spkmodBuildHwCartOverlayGroup(template, cartMode, texture) {
 		probeGeo.dispose();
 
 		const wheelGeo = spkmodExtractCartSubGeometry(T, stretched, pred, center.clone().negate());
-		const wheelMesh = new T.Mesh(wheelGeo, mat);
-		wheelMesh.position.copy(center);
-		wheelMesh.raycast = () => {};
-		group.add(wheelMesh);
-		wheels.push({
-			mesh: wheelMesh,
+		wheelGeo.userData = Object.assign(wheelGeo.userData || {}, { spkmodCartSharedGeo: true });
+		wheelDefs.push({
+			geo: wheelGeo,
+			center,
 			radiusM: Math.max(0.05, Math.max(size.y, size.z) / 2)
 		});
 	}
 
 	stretched.dispose();
+	const built = { bodyGeo, wheelDefs };
+	template.modeGeoms[cartMode] = built;
+	return built;
+}
+
+function spkmodBuildHwCartOverlayGroup(template, cartMode, texture) {
+	const T = typeof window !== "undefined" ? window.THREE : null;
+	if (!T || !template || !template.geometry) return null;
+
+	const modeGeoms = spkmodGetOrBuildCartModeGeoms(T, template, cartMode);
+	const MatCtor = T.MeshToonMaterial || T.MeshLambertMaterial || T.MeshBasicMaterial;
+	const mat = new MatCtor({
+		color: 0xffffff,
+		map: texture,
+		transparent: true,
+		alphaTest: 0.5,
+		depthWrite: true
+	});
+
+	const group = new T.Group();
+	group.name = "spkmod_cart_skin_overlay";
+
+	const bodyMesh = new T.Mesh(modeGeoms.bodyGeo, mat);
+	bodyMesh.raycast = SPKMOD_CART_NOOP_RAYCAST;
+	group.add(bodyMesh);
+
+	const wheels = [];
+	for (let i = 0; i < modeGeoms.wheelDefs.length; i++) {
+		const wd = modeGeoms.wheelDefs[i];
+		const wheelMesh = new T.Mesh(wd.geo, mat);
+		wheelMesh.position.copy(wd.center);
+		wheelMesh.raycast = SPKMOD_CART_NOOP_RAYCAST;
+		group.add(wheelMesh);
+		wheels.push({
+			mesh: wheelMesh,
+			radiusM: wd.radiusM
+		});
+	}
+
 	group.userData = {
 		isSpkmodCartOverlay: true,
 		material: mat,
@@ -687,7 +712,7 @@ function spkmodDisposeCartOverlayGroup(overlay) {
 	if (!overlay) return;
 	if (overlay.parent) overlay.parent.remove(overlay);
 	overlay.traverse(ch => {
-		if (ch && ch.isMesh && ch.geometry && typeof ch.geometry.dispose === "function") {
+		if (ch && ch.isMesh && ch.geometry && !ch.geometry.userData?.spkmodCartSharedGeo && typeof ch.geometry.dispose === "function") {
 			try { ch.geometry.dispose(); } catch (_) {}
 		}
 	});
@@ -787,6 +812,17 @@ function spkmodApplySkinToEntry(entry, skinId) {
 	}
 
 	const cartMode = entry.cartMode === "tandem" ? "tandem" : "solo";
+	// Fast path: skip full cg.traverse() when skin & mode are already applied (unless a Halloween cart is still on temporary normal_overlay waiting for FBX)
+	if (cg.__spkmodAppliedCartSkinId === skinId && cg.__spkmodAppliedCartMode === cartMode) {
+		if (!(isHalloween && cg.__spkmodAppliedCartKind === "normal_overlay")) {
+			const res = _spkmodCartSkinResources.get(skinId);
+			if (res && res.frames && res.frames.length > 1) {
+				spkmodCartEnsureAnimTick(res);
+			}
+			return;
+		}
+	}
+
 	const hasTexturedMesh = spkmodCartGroupHasTexturedBody(cg);
 	const effectiveKind = (isHalloween && hasTexturedMesh) ? "hw" : "normal_overlay";
 
@@ -1130,6 +1166,24 @@ function spkmodCartSkinsMasterLoop(nowMs) {
 				}
 			}
 			_spkmodCartLastObservedRemoteCount = rCount;
+
+			// Prune departed players from _spkmodRemoteCartSkinStates (15s grace) so animated cart skins stop uploading GPU frames
+			if (_spkmodRemoteCartSkinStates.size > 0 && gameState.remotePlayers?.remotePlayers) {
+				for (const [k, st] of _spkmodRemoteCartSkinStates) {
+					if (!st) {
+						_spkmodRemoteCartSkinStates.delete(k);
+						continue;
+					}
+					const live = spkmodResolveRemotePlayerForCart(st.playerId, st.playerName);
+					if (live) {
+						st._missingSinceMs = 0;
+					} else if (!st._missingSinceMs) {
+						st._missingSinceMs = nowMs;
+					} else if (nowMs - st._missingSinceMs > 15000) {
+						_spkmodRemoteCartSkinStates.delete(k);
+					}
+				}
+			}
 
 			spkmodReconcileAllCartSkins();
 		}

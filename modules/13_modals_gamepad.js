@@ -334,7 +334,30 @@ document.body.appendChild(
 	])
 );
 
-function pollGamepadLoop() {
+let _spkmodGamepadRafId = null;
+let _spkmodGamepadIdleCheckMs = 0;
+
+function spkmodHasAnyGamepadConnected() {
+	if (typeof navigator === "undefined" || typeof navigator.getGamepads !== "function") return false;
+	const gamepads = navigator.getGamepads();
+	for (let i = 0; i < gamepads.length; i++) {
+		if (gamepads[i] && gamepads[i].connected) return true;
+	}
+	return false;
+}
+
+function spkmodStartGamepadLoop() {
+	if (_spkmodGamepadRafId !== null) return;
+	_spkmodGamepadRafId = requestAnimationFrame(pollGamepadLoop);
+}
+
+function pollGamepadLoop(nowMs) {
+	_spkmodGamepadRafId = null;
+	if (typeof document !== "undefined" && document.hidden) {
+		_spkmodGamepadRafId = requestAnimationFrame(pollGamepadLoop);
+		return;
+	}
+
 	const gamepads = typeof navigator.getGamepads === "function" ? navigator.getGamepads() : [];
 	let gp = null;
 	for (let i = 0; i < gamepads.length; i++) {
@@ -415,15 +438,40 @@ function pollGamepadLoop() {
 		} else {
 			gamepadMoveVector = null;
 		}
+		_spkmodGamepadRafId = requestAnimationFrame(pollGamepadLoop);
 	} else {
 		gamepadMoveVector = null;
-		updateGamepadModalLive(null);
+		const modalOpen = !!(lunHudElements.gamepadModal && !lunHudElements.gamepadModal.classList.contains("hidden"));
+		if (modalOpen) {
+			updateGamepadModalLive(null);
+			_spkmodGamepadRafId = requestAnimationFrame(pollGamepadLoop);
+		}
+		// Otherwise sleep until gamepadconnected event or periodic 1.5s probe
 	}
-
-	requestAnimationFrame(pollGamepadLoop);
 }
 
-requestAnimationFrame(pollGamepadLoop);
+if (typeof window !== "undefined") {
+	window.addEventListener("gamepadconnected", () => spkmodStartGamepadLoop());
+	window.addEventListener("gamepaddisconnected", () => {
+		if (!spkmodHasAnyGamepadConnected()) {
+			gamepadMoveVector = null;
+			if (lunPanelElements.freeCamBtn && lunPanelElements.freeCamBtn.style.display !== "none") {
+				lunPanelElements.freeCamBtn.style.display = "none";
+			}
+		}
+	});
+	// Lightweight 1.5s fallback wake in case a controller was already plugged in or modal opened
+	setInterval(() => {
+		if (_spkmodGamepadRafId !== null || (typeof document !== "undefined" && document.hidden)) return;
+		const modalOpen = !!(lunHudElements.gamepadModal && !lunHudElements.gamepadModal.classList.contains("hidden"));
+		if (modalOpen || spkmodHasAnyGamepadConnected()) {
+			spkmodStartGamepadLoop();
+		}
+	}, 1500);
+}
+if (spkmodHasAnyGamepadConnected()) {
+	spkmodStartGamepadLoop();
+}
 
 document.body.appendChild(
 	lunHudElements.hotkeysModal = buildElement("div", {

@@ -1967,8 +1967,8 @@ function spkmodGetOwnerAnimController(instance) {
 	return rp?.avatar?.animationController || null;
 }
 
-function spkmodIsOwnerDancing(instance) {
-	const now = performance.now();
+function spkmodIsOwnerDancing(instance, cachedCtrl, nowMs) {
+	const now = nowMs !== undefined ? nowMs : performance.now();
 	if (instance.forceDanceUntil > now) return true;
 
 	if (instance.isLocal) {
@@ -1983,11 +1983,11 @@ function spkmodIsOwnerDancing(instance) {
 			return true;
 		}
 	}
-	const ctrl = spkmodGetOwnerAnimController(instance);
+	const ctrl = cachedCtrl !== undefined ? cachedCtrl : spkmodGetOwnerAnimController(instance);
 	if (ctrl) {
 		if (ctrl.freeDancePlaying) return true;
 		const clipName = ctrl.activeAction?.getClip?.()?.name || "";
-		if (/^dance/i.test(clipName)) return true;
+		if (clipName && /^dance/i.test(clipName)) return true;
 	}
 	return false;
 }
@@ -2017,17 +2017,17 @@ function spkmodPickRandomPetDance(inst) {
 	return picked;
 }
 
-function spkmodIsOwnerFallenDown(instance) {
-	const now = performance.now();
+function spkmodIsOwnerFallenDown(instance, cachedCtrl, nowMs) {
+	const now = nowMs !== undefined ? nowMs : performance.now();
 	if (instance.forceFallDownUntil > now) return true;
 	if (instance.isLocal && typeof gameState !== "undefined" && gameState?.isDead) return true;
-	const ctrl = spkmodGetOwnerAnimController(instance);
+	const ctrl = cachedCtrl !== undefined ? cachedCtrl : spkmodGetOwnerAnimController(instance);
 	if (!ctrl) return false;
 	if (ctrl.fallDownPlaying || ctrl.isDead) return true;
 	const deathAct = ctrl.actions?.get?.("death");
 	if (deathAct && ctrl.activeAction === deathAct) return true;
 	const clipName = ctrl.activeAction?.getClip?.()?.name || "";
-	if (/^(death|falldown|faint)/i.test(clipName)) return true;
+	if (clipName && /^(death|falldown|faint)/i.test(clipName)) return true;
 	return false;
 }
 
@@ -2315,7 +2315,7 @@ function spkmodPickIdleWanderPoint(inst, ownerPos, ownerYaw) {
 	}
 }
 
-function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
+function spkmodUpdateSinglePetInstance(inst, dt, nowMs, preResolvedContainer) {
 	if (!inst || inst.disposed || !inst.root) return;
 	if (typeof gameState === "undefined" || !gameState?.scene) return;
 
@@ -2323,7 +2323,7 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		gameState.scene.add(inst.root);
 	}
 
-	const ownerContainer = inst.resolveContainer?.();
+	const ownerContainer = preResolvedContainer !== undefined ? preResolvedContainer : inst.resolveContainer?.();
 	if (!ownerContainer || !ownerContainer.position) {
 		inst.root.visible = false;
 		return;
@@ -2338,12 +2338,14 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		}
 		const myPos = gameState?.playerContainer?.position;
 		if (myPos) {
-			const distToMe = Math.hypot(ownerContainer.position.x - myPos.x, ownerContainer.position.z - myPos.z);
-			if (distToMe > 28) {
+			const dxMe = ownerContainer.position.x - myPos.x;
+			const dzMe = ownerContainer.position.z - myPos.z;
+			const distSq = dxMe * dxMe + dzMe * dzMe;
+			if (distSq > 784) { // 28 * 28
 				inst.root.visible = false;
 				return;
 			}
-			if (distToMe > 12) {
+			if (distSq > 144) { // 12 * 12
 				remoteAnimThrottleSec = 0.05; // ~20 FPS skeletal animation LOD for distant remote pets
 			}
 		}
@@ -2353,8 +2355,8 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 	const ownerPos = ownerContainer.position;
 	const ownerYaw = ownerContainer.rotation ? (ownerContainer.rotation.y || 0) : 0;
 	const ownerCtrl = spkmodGetOwnerAnimController(inst);
-	const isFallenDown = spkmodIsOwnerFallenDown(inst);
-	const isDancing = !isFallenDown && spkmodIsOwnerDancing(inst);
+	const isFallenDown = spkmodIsOwnerFallenDown(inst, ownerCtrl, nowMs);
+	const isDancing = !isFallenDown && spkmodIsOwnerDancing(inst, ownerCtrl, nowMs);
 	if (isDancing && !inst._wasDancing) {
 		spkmodPickRandomPetDance(inst);
 	}
@@ -4459,7 +4461,7 @@ function spkmodPetsMasterLoop(nowMs) {
 				continue;
 			}
 			rInst._missingOwnerSinceMs = 0;
-			spkmodUpdateSinglePetInstance(rInst, dt, nowMs);
+			spkmodUpdateSinglePetInstance(rInst, dt, nowMs, container);
 		}
 
 		// Update showcase ring pets if any

@@ -55,6 +55,7 @@ try {
 						patchRendererBloomMaterial(r);
 					}
 				};
+				probeAfter.__spkmodPrevAfter = prevAfter;
 				sc.onAfterRender = probeAfter;
 			} else if (bloomGuardTries > 160) {
 				clearInterval(bloomGuardTimer);
@@ -3851,7 +3852,13 @@ function updateMuteButtonUI() {
 	}
 }
 
+let _spkmodCachedMuteCheckbox = null;
+
 function findGameMuteCheckbox() {
+	if (_spkmodCachedMuteCheckbox && _spkmodCachedMuteCheckbox.isConnected) {
+		return _spkmodCachedMuteCheckbox;
+	}
+	_spkmodCachedMuteCheckbox = null;
 	const rows = document.querySelectorAll(".sr-panel__row");
 	for (const row of rows) {
 		const checkbox = row.querySelector("input[type='checkbox']");
@@ -3867,6 +3874,7 @@ function findGameMuteCheckbox() {
 				txt.includes("静音") ||
 				txt.includes("silenciar")
 			) {
+				_spkmodCachedMuteCheckbox = checkbox;
 				return checkbox;
 			}
 		}
@@ -3875,6 +3883,9 @@ function findGameMuteCheckbox() {
 }
 
 function hookNativeMuteCheckbox() {
+	if (_spkmodCachedMuteCheckbox && _spkmodCachedMuteCheckbox.isConnected && _spkmodCachedMuteCheckbox.__spkmodMuteHooked) {
+		return;
+	}
 	const cb = findGameMuteCheckbox();
 	if (cb && !cb.__spkmodMuteHooked) {
 		cb.__spkmodMuteHooked = true;
@@ -16636,25 +16647,28 @@ function spkmodHasActiveNativeMount(container, playerId) {
 function spkmodSetNativeCartVisible(container, playerId, visible) {
 	try {
 		const entries = typeof gameState !== "undefined" ? gameState?.mountVisuals?.entries : null;
-		if (!entries) return;
-		const visited = new Set();
-		const applyEntry = (entry) => {
-			if (!entry || !entry.cartGroup || visited.has(entry.cartGroup)) return;
-			visited.add(entry.cartGroup);
-			entry.cartGroup.visible = !!visible;
-			entry.cartGroup.__spkmodHiddenByCar = !visible;
-		};
+		if (!entries || entries.size === 0) return;
+		const vis = !!visible;
+		let matched = false;
 		if (playerId != null && playerId !== "") {
-			const keys = [playerId, Number(playerId), String(playerId)];
-			for (const k of keys) {
-				const e = entries.get(k);
-				if (e) applyEntry(e);
+			let e = entries.get(playerId);
+			if (!e) {
+				const numId = Number(playerId);
+				if (!Number.isNaN(numId)) e = entries.get(numId);
+			}
+			if (!e) e = entries.get(String(playerId));
+			if (e && e.cartGroup) {
+				if (e.cartGroup.visible !== vis) e.cartGroup.visible = vis;
+				e.cartGroup.__spkmodHiddenByCar = !vis;
+				matched = true;
 			}
 		}
-		if (container) {
+		if (!matched && container) {
 			for (const entry of entries.values()) {
 				if (entry && entry.cartGroup && entry.cartGroup.parent === container) {
-					applyEntry(entry);
+					if (entry.cartGroup.visible !== vis) entry.cartGroup.visible = vis;
+					entry.cartGroup.__spkmodHiddenByCar = !vis;
+					break;
 				}
 			}
 		}
@@ -16690,17 +16704,22 @@ function spkmodCreateBurgerCarInstance(scene, modelName, colorHex) {
 	const carObj = prefab.clone(true);
 	carObj.scale.multiplyScalar(SPKMOD_BURGER_CAR_SCALE);
 	carObj.traverse(node => {
-		if (node.isMesh && node.material) {
-			const mats = Array.isArray(node.material) ? node.material : [node.material];
-			const replaced = mats.map(m => {
-				if (m && m.name === "car_body") {
-					const cloned = m.clone();
-					if (cloned.color) cloned.color.setHex(colorHex);
-					return cloned;
-				}
-				return m;
-			});
-			node.material = Array.isArray(node.material) ? replaced : replaced[0];
+		if (node.isMesh) {
+			if (!node.userData) node.userData = {};
+			node.userData.spkmodVehSharedGlb = true;
+			if (node.material) {
+				const mats = Array.isArray(node.material) ? node.material : [node.material];
+				const replaced = mats.map(m => {
+					if (m && m.name === "car_body") {
+						const cloned = m.clone();
+						if (cloned.color) cloned.color.setHex(colorHex);
+						cloned.userData = Object.assign({}, cloned.userData, { spkmodVehOwnedMat: true });
+						return cloned;
+					}
+					return m;
+				});
+				node.material = Array.isArray(node.material) ? replaced : replaced[0];
+			}
 		}
 	});
 
@@ -16728,8 +16747,19 @@ window.spkmodResetCarsEveryone = function(silent = false, clearLocalCar = true) 
 	if (_lunEveryoneCarsState) {
 		if (_lunEveryoneCarsState.rafId) cancelAnimationFrame(_lunEveryoneCarsState.rafId);
 		for (const entry of _lunEveryoneCarsState.entries) {
-			if (entry.root && entry.root.parent) {
-				entry.root.parent.remove(entry.root);
+			if (entry.root) {
+				if (entry.root.parent) entry.root.parent.remove(entry.root);
+				if (typeof entry.root.traverse === "function") {
+					entry.root.traverse(node => {
+						if (!node || !node.isMesh || !node.material) return;
+						const mats = Array.isArray(node.material) ? node.material : [node.material];
+						for (const m of mats) {
+							if (m && m.userData?.spkmodVehOwnedMat && typeof m.dispose === "function") {
+								try { m.dispose(); } catch (_) {}
+							}
+						}
+					});
+				}
 			}
 			spkmodSetNativeCartVisible(entry.container, entry.playerId, true);
 			if (!spkmodHasActiveNativeMount(entry.container, entry.playerId)) {
@@ -20319,11 +20349,20 @@ function spkmodEnsureBurgerFatSceneHook() {
 			} catch (_) {}
 		};
 	}
-	if (!scene.__spkmodCAAfterFn || scene.onAfterRender !== scene.__spkmodCAAfterFn) {
-		// Avoid re-wrapping while shaders or bloom guard temporarily wrap onAfterRender if ours is already in the chain
-		const curAfter = scene.onAfterRender;
-		if (!curAfter || !curAfter.__spkmodCAInChain) {
-			const prevAfter = curAfter;
+	if (!scene.__spkmodCAAfterHooked) {
+		scene.__spkmodCAAfterHooked = true;
+		let alreadyInChain = false;
+		let cursor = scene.onAfterRender;
+		let guard = 0;
+		while (typeof cursor === "function" && guard++ < 32) {
+			if (cursor === scene.__spkmodCAAfterFn || cursor.__spkmodCAInChain) {
+				alreadyInChain = true;
+				break;
+			}
+			cursor = cursor.__spkmodPrevAfter;
+		}
+		if (!alreadyInChain) {
+			const prevAfter = scene.onAfterRender;
 			const wrappedAfter = function(renderer, sc, camera, ...rest) {
 				if (typeof prevAfter === "function") {
 					try { prevAfter.call(this, renderer, sc, camera, ...rest); } catch (_) {}
@@ -20335,6 +20374,7 @@ function spkmodEnsureBurgerFatSceneHook() {
 				} catch (_) {}
 			};
 			wrappedAfter.__spkmodCAInChain = true;
+			wrappedAfter.__spkmodPrevAfter = prevAfter;
 			scene.__spkmodCAAfterFn = wrappedAfter;
 			scene.onAfterRender = wrappedAfter;
 		}
@@ -25037,7 +25077,30 @@ document.body.appendChild(
 	])
 );
 
-function pollGamepadLoop() {
+let _spkmodGamepadRafId = null;
+let _spkmodGamepadIdleCheckMs = 0;
+
+function spkmodHasAnyGamepadConnected() {
+	if (typeof navigator === "undefined" || typeof navigator.getGamepads !== "function") return false;
+	const gamepads = navigator.getGamepads();
+	for (let i = 0; i < gamepads.length; i++) {
+		if (gamepads[i] && gamepads[i].connected) return true;
+	}
+	return false;
+}
+
+function spkmodStartGamepadLoop() {
+	if (_spkmodGamepadRafId !== null) return;
+	_spkmodGamepadRafId = requestAnimationFrame(pollGamepadLoop);
+}
+
+function pollGamepadLoop(nowMs) {
+	_spkmodGamepadRafId = null;
+	if (typeof document !== "undefined" && document.hidden) {
+		_spkmodGamepadRafId = requestAnimationFrame(pollGamepadLoop);
+		return;
+	}
+
 	const gamepads = typeof navigator.getGamepads === "function" ? navigator.getGamepads() : [];
 	let gp = null;
 	for (let i = 0; i < gamepads.length; i++) {
@@ -25118,15 +25181,40 @@ function pollGamepadLoop() {
 		} else {
 			gamepadMoveVector = null;
 		}
+		_spkmodGamepadRafId = requestAnimationFrame(pollGamepadLoop);
 	} else {
 		gamepadMoveVector = null;
-		updateGamepadModalLive(null);
+		const modalOpen = !!(lunHudElements.gamepadModal && !lunHudElements.gamepadModal.classList.contains("hidden"));
+		if (modalOpen) {
+			updateGamepadModalLive(null);
+			_spkmodGamepadRafId = requestAnimationFrame(pollGamepadLoop);
+		}
+		// Otherwise sleep until gamepadconnected event or periodic 1.5s probe
 	}
-
-	requestAnimationFrame(pollGamepadLoop);
 }
 
-requestAnimationFrame(pollGamepadLoop);
+if (typeof window !== "undefined") {
+	window.addEventListener("gamepadconnected", () => spkmodStartGamepadLoop());
+	window.addEventListener("gamepaddisconnected", () => {
+		if (!spkmodHasAnyGamepadConnected()) {
+			gamepadMoveVector = null;
+			if (lunPanelElements.freeCamBtn && lunPanelElements.freeCamBtn.style.display !== "none") {
+				lunPanelElements.freeCamBtn.style.display = "none";
+			}
+		}
+	});
+	// Lightweight 1.5s fallback wake in case a controller was already plugged in or modal opened
+	setInterval(() => {
+		if (_spkmodGamepadRafId !== null || (typeof document !== "undefined" && document.hidden)) return;
+		const modalOpen = !!(lunHudElements.gamepadModal && !lunHudElements.gamepadModal.classList.contains("hidden"));
+		if (modalOpen || spkmodHasAnyGamepadConnected()) {
+			spkmodStartGamepadLoop();
+		}
+	}, 1500);
+}
+if (spkmodHasAnyGamepadConnected()) {
+	spkmodStartGamepadLoop();
+}
 
 document.body.appendChild(
 	lunHudElements.hotkeysModal = buildElement("div", {
@@ -28525,6 +28613,47 @@ if (typeof spkmodI18nRenderers !== 'undefined') {
 	});
 }
 
+let _lunHudLastPlayersNearby = -1;
+let _lunHudLastZoneId = null;
+let _lunHudLastExpL1 = null;
+let _lunHudLastExpL2 = null;
+
+window.spkmodForceNametagRedraw = function() {
+	if (typeof gameState === 'undefined' || !gameState) return;
+
+	const redrawAvatar = (entity) => {
+		if (!entity || !entity.avatar || typeof entity.avatar.setLabel !== 'function') return;
+		hookAvatarLabel(entity);
+		if (entity.info && entity.info.name) {
+			const lvl = entity.info.__spkmodOrigLevel || entity.info.level || 1;
+			entity.avatar.setLabel("LV" + lvl + " " + entity.info.name);
+		} else if (typeof entity.avatar.__spkmodLastRawLabel === "string" && entity.avatar.__spkmodLastRawLabel) {
+			entity.avatar.setLabel(entity.avatar.__spkmodLastRawLabel);
+		}
+	};
+
+	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+		gameState.remotePlayers.remotePlayers.forEach(redrawAvatar);
+	}
+	if (gameState.remotePetRegistry && gameState.remotePetRegistry.pets) {
+		gameState.remotePetRegistry.pets.forEach(redrawAvatar);
+	}
+	if (gameState.remoteDroneCoreRegistry && gameState.remoteDroneCoreRegistry.droneCores) {
+		gameState.remoteDroneCoreRegistry.droneCores.forEach(redrawAvatar);
+	}
+
+	const lvl = (gameState.myStat && gameState.myStat.level) ? gameState.myStat.level : 1;
+	const name = (gameState.myPlayerName || (gameState.myStat && gameState.myStat.name)) || "";
+	if (gameState.playerContainer && gameState.playerContainer.avatar && typeof gameState.playerContainer.avatar.setLabel === 'function') {
+		hookAvatarLabel(gameState.playerContainer, gameState.playerContainer);
+		if (name) gameState.playerContainer.avatar.setLabel("LV" + lvl + " " + name);
+	}
+	if (gameState.localAvatar && typeof gameState.localAvatar.setLabel === 'function') {
+		hookAvatarLabel({ avatar: gameState.localAvatar, container: gameState.playerContainer, isLocalPlayer: true }, gameState.playerContainer);
+		if (name) gameState.localAvatar.setLabel("LV" + lvl + " " + name);
+	}
+};
+
 function tick() {
 	if (window.__spkmodPauseTick) return;
 	if (lunTickCount % 20 === 0) spkmodAvatarController.sync();
@@ -28936,10 +29065,23 @@ function tick() {
 	lunTickCount++;
 	lunSleep--;
 
-	setText(lunHudElements.playersNearby, t("playersNearby", gameState.remotePlayers?.remotePlayers?.size ?? 0));
-	setText(lunHudElements.zoneId, t("zoneId", zoneId));
-	setText(lunHudElements.expTrackerL1, expTrackerL1);
-	setText(lunHudElements.expTrackerL2, expTrackerL2);
+	const remoteNearbyCount = gameState.remotePlayers?.remotePlayers?.size ?? 0;
+	if (remoteNearbyCount !== _lunHudLastPlayersNearby) {
+		_lunHudLastPlayersNearby = remoteNearbyCount;
+		setText(lunHudElements.playersNearby, t("playersNearby", remoteNearbyCount));
+	}
+	if (zoneId !== _lunHudLastZoneId) {
+		_lunHudLastZoneId = zoneId;
+		setText(lunHudElements.zoneId, t("zoneId", zoneId));
+	}
+	if (expTrackerL1 !== _lunHudLastExpL1) {
+		_lunHudLastExpL1 = expTrackerL1;
+		setText(lunHudElements.expTrackerL1, expTrackerL1);
+	}
+	if (expTrackerL2 !== _lunHudLastExpL2) {
+		_lunHudLastExpL2 = expTrackerL2;
+		setText(lunHudElements.expTrackerL2, expTrackerL2);
+	}
 
 	if (lunChannelTrackerEnabled && lunMenuFoldingLevel < 2 && lunTickCount >= lunChannelTrackerNextTicks) {
 		const token = getAuthToken();
@@ -29086,43 +29228,7 @@ function tick() {
 	}
 
 
-window.spkmodForceNametagRedraw = function() {
-	if (typeof gameState === 'undefined' || !gameState) return;
-
-	const redrawAvatar = (entity) => {
-		if (!entity || !entity.avatar || typeof entity.avatar.setLabel !== 'function') return;
-		hookAvatarLabel(entity);
-		if (entity.info && entity.info.name) {
-			const lvl = entity.info.__spkmodOrigLevel || entity.info.level || 1;
-			entity.avatar.setLabel("LV" + lvl + " " + entity.info.name);
-		} else if (typeof entity.avatar.__spkmodLastRawLabel === "string" && entity.avatar.__spkmodLastRawLabel) {
-			entity.avatar.setLabel(entity.avatar.__spkmodLastRawLabel);
-		}
-	};
-
-	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
-		gameState.remotePlayers.remotePlayers.forEach(redrawAvatar);
-	}
-	if (gameState.remotePetRegistry && gameState.remotePetRegistry.pets) {
-		gameState.remotePetRegistry.pets.forEach(redrawAvatar);
-	}
-	if (gameState.remoteDroneCoreRegistry && gameState.remoteDroneCoreRegistry.droneCores) {
-		gameState.remoteDroneCoreRegistry.droneCores.forEach(redrawAvatar);
-	}
-
-	const lvl = (gameState.myStat && gameState.myStat.level) ? gameState.myStat.level : 1;
-	const name = (gameState.myPlayerName || (gameState.myStat && gameState.myStat.name)) || "";
-	if (gameState.playerContainer && gameState.playerContainer.avatar && typeof gameState.playerContainer.avatar.setLabel === 'function') {
-		hookAvatarLabel(gameState.playerContainer, gameState.playerContainer);
-		if (name) gameState.playerContainer.avatar.setLabel("LV" + lvl + " " + name);
-	}
-	if (gameState.localAvatar && typeof gameState.localAvatar.setLabel === 'function') {
-		hookAvatarLabel({ avatar: gameState.localAvatar, container: gameState.playerContainer, isLocalPlayer: true }, gameState.playerContainer);
-		if (name) gameState.localAvatar.setLabel("LV" + lvl + " " + name);
-	}
-};
-
-	if (lunPanelElements.renameLevelInput && lunPanelElements.renameLevelInput.style.display === "none") {
+	if (lunPanelElements.renameLevelInput && lunPanelElements.renameLevelInput.style.display === "none" && lunTickCount % 20 === 0) {
 		let isVip = false;
 		const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
 		if (playerName) {
@@ -31274,7 +31380,7 @@ function spkmodIsGameGl(gl) {
 			if (original.__spkmodActualFpsHook) continue;
 
 			const wrapped = function () {
-				if (spkmodFpsState.enabled && spkmodIsGameGl(this)) {
+				if (spkmodFpsState.enabled && !spkmodFpsState.drawn && spkmodIsGameGl(this)) {
 					spkmodFpsState.drawn = true;
 				}
 				return original.apply(this, arguments);
@@ -34723,6 +34829,10 @@ function spkmodSyncCinemaPlayback(force = false) {
 	}
 }
 
+let _spkmodMinigameDomCacheVal = false;
+let _spkmodMinigameDomCacheMs = -1000;
+let _spkmodMinigameDomCachedEl = null;
+
 function spkmodIsInMinigame() {
 	if (typeof gameState !== 'undefined' && gameState) {
 		try {
@@ -34758,19 +34868,29 @@ function spkmodIsInMinigame() {
 		if (document.body && document.body.classList && document.body.classList.contains('sr-minigame-active')) {
 			return true;
 		}
-		const mgEl = document.querySelector('.sr-minigame, .sr-minigame-game, .sr-minigame-canvas, .sr-minigame-entry-dialog.sr-panel--open');
-		if (mgEl && !mgEl.hidden && mgEl.style.display !== 'none') {
-			return true;
+		if (_spkmodMinigameDomCachedEl && _spkmodMinigameDomCachedEl.isConnected) {
+			if (!_spkmodMinigameDomCachedEl.hidden && _spkmodMinigameDomCachedEl.style.display !== 'none') {
+				return true;
+			}
 		}
+		const nowMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
+		if (nowMs - _spkmodMinigameDomCacheMs >= 200) {
+			_spkmodMinigameDomCacheMs = nowMs;
+			const mgEl = document.querySelector('.sr-minigame, .sr-minigame-game, .sr-minigame-canvas, .sr-minigame-entry-dialog.sr-panel--open');
+			_spkmodMinigameDomCachedEl = mgEl || null;
+			_spkmodMinigameDomCacheVal = !!(mgEl && !mgEl.hidden && mgEl.style.display !== 'none');
+		}
+		if (_spkmodMinigameDomCacheVal) return true;
 	}
 	return false;
 }
 window.spkmodIsInMinigame = spkmodIsInMinigame;
 
-function spkmodIsPlayerInCinemaSeats(playerPos) {
+function spkmodIsPlayerInCinemaSeats(playerPos, cachedInMinigame, cachedZone) {
 	if (!playerPos) return false;
-	if (spkmodIsInMinigame()) return false;
-	const curZone = spkmodGetExactCinemaZone();
+	const inMg = cachedInMinigame !== undefined ? cachedInMinigame : spkmodIsInMinigame();
+	if (inMg) return false;
+	const curZone = cachedZone !== undefined ? cachedZone : spkmodGetExactCinemaZone();
 	if (curZone !== 1) return false;
 
 	// Tight bounding box matching measured cinema area corners (+0.5m rounding cushion):
@@ -36146,9 +36266,19 @@ function spkmodUpdateCinemaSpatialAudio() {
 	}
 }
 
+let _spkmodCinemaIdleLastTickMs = 0;
+
 function spkmodCinemaTick() {
+	if (typeof document !== 'undefined' && document.hidden && !spkmodCinemaInZone) return;
+	// When not actively inside the cinema, throttle idle zone/seat checks to ~10Hz instead of 144Hz
+	if (!spkmodCinemaInZone) {
+		const nowPerf = typeof performance !== 'undefined' ? performance.now() : Date.now();
+		if (nowPerf - _spkmodCinemaIdleLastTickMs < 100) return;
+		_spkmodCinemaIdleLastTickMs = nowPerf;
+	}
 	const curZone = spkmodGetExactCinemaZone();
-	if (curZone !== 1 || (typeof spkmodIsInMinigame === "function" && spkmodIsInMinigame())) {
+	const inMinigame = (typeof spkmodIsInMinigame === "function") ? spkmodIsInMinigame() : false;
+	if (curZone !== 1 || inMinigame) {
 		if (typeof spkmodFwStop === 'function' && typeof spkmodFw !== 'undefined' && spkmodFw) {
 			spkmodFwStop();
 		}
@@ -36197,7 +36327,7 @@ function spkmodCinemaTick() {
 		? gameState.playerContainer.position
 		: null;
 
-	const inSeats = spkmodIsPlayerInCinemaSeats(playerPos);
+	const inSeats = spkmodIsPlayerInCinemaSeats(playerPos, inMinigame, curZone);
 	const shouldBeActive = spkmodCinemaConfig.enabled && inSeats;
 
 	if (!shouldBeActive) {
@@ -36241,8 +36371,7 @@ function spkmodCinemaTick() {
 		}
 
 		// When outside cinema seats (in minigame, other map, or walked away):
-		const curZone = spkmodGetExactCinemaZone();
-		const isOutsideZone1OrMinigame = curZone !== 1 || spkmodIsInMinigame();
+		const isOutsideZone1OrMinigame = curZone !== 1 || inMinigame;
 		const isLongAway = spkmodCinemaLeftZoneTimeMs > 0 && (Date.now() - spkmodCinemaLeftZoneTimeMs >= 60000);
 
 		// If player transitioned to another map/minigame or has been away for > 60s, completely unload the player
@@ -38184,7 +38313,7 @@ function spkmodCaptureRenderer(scene) {
 			spkmodShaderRuntime.capturing = false;
 			reject(new Error("[SpeakiMod Shaders] Timed out waiting for a rendered frame."));
 		}, 4000);
-		scene.onAfterRender = function (r) {
+		const shaderCaptureAfter = function (r) {
 			if (typeof prevAfter === "function") {
 				try {
 					prevAfter.apply(this, arguments);
@@ -38192,12 +38321,14 @@ function spkmodCaptureRenderer(scene) {
 			}
 			if (r && typeof r.render === "function" && r.shadowMap) {
 				clearTimeout(timer);
-				scene.onAfterRender = prevAfter;
+				if (scene.onAfterRender === shaderCaptureAfter) scene.onAfterRender = prevAfter;
 				spkmodShaderRuntime.capturing = false;
 				spkmodShaderRuntime.renderer = r;
 				resolve(r);
 			}
 		};
+		shaderCaptureAfter.__spkmodPrevAfter = prevAfter;
+		scene.onAfterRender = shaderCaptureAfter;
 	});
 	return spkmodShaderRuntime.initPromise;
 }
@@ -40912,8 +41043,8 @@ function spkmodGetOwnerAnimController(instance) {
 	return rp?.avatar?.animationController || null;
 }
 
-function spkmodIsOwnerDancing(instance) {
-	const now = performance.now();
+function spkmodIsOwnerDancing(instance, cachedCtrl, nowMs) {
+	const now = nowMs !== undefined ? nowMs : performance.now();
 	if (instance.forceDanceUntil > now) return true;
 
 	if (instance.isLocal) {
@@ -40928,11 +41059,11 @@ function spkmodIsOwnerDancing(instance) {
 			return true;
 		}
 	}
-	const ctrl = spkmodGetOwnerAnimController(instance);
+	const ctrl = cachedCtrl !== undefined ? cachedCtrl : spkmodGetOwnerAnimController(instance);
 	if (ctrl) {
 		if (ctrl.freeDancePlaying) return true;
 		const clipName = ctrl.activeAction?.getClip?.()?.name || "";
-		if (/^dance/i.test(clipName)) return true;
+		if (clipName && /^dance/i.test(clipName)) return true;
 	}
 	return false;
 }
@@ -40962,17 +41093,17 @@ function spkmodPickRandomPetDance(inst) {
 	return picked;
 }
 
-function spkmodIsOwnerFallenDown(instance) {
-	const now = performance.now();
+function spkmodIsOwnerFallenDown(instance, cachedCtrl, nowMs) {
+	const now = nowMs !== undefined ? nowMs : performance.now();
 	if (instance.forceFallDownUntil > now) return true;
 	if (instance.isLocal && typeof gameState !== "undefined" && gameState?.isDead) return true;
-	const ctrl = spkmodGetOwnerAnimController(instance);
+	const ctrl = cachedCtrl !== undefined ? cachedCtrl : spkmodGetOwnerAnimController(instance);
 	if (!ctrl) return false;
 	if (ctrl.fallDownPlaying || ctrl.isDead) return true;
 	const deathAct = ctrl.actions?.get?.("death");
 	if (deathAct && ctrl.activeAction === deathAct) return true;
 	const clipName = ctrl.activeAction?.getClip?.()?.name || "";
-	if (/^(death|falldown|faint)/i.test(clipName)) return true;
+	if (clipName && /^(death|falldown|faint)/i.test(clipName)) return true;
 	return false;
 }
 
@@ -41260,7 +41391,7 @@ function spkmodPickIdleWanderPoint(inst, ownerPos, ownerYaw) {
 	}
 }
 
-function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
+function spkmodUpdateSinglePetInstance(inst, dt, nowMs, preResolvedContainer) {
 	if (!inst || inst.disposed || !inst.root) return;
 	if (typeof gameState === "undefined" || !gameState?.scene) return;
 
@@ -41268,7 +41399,7 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		gameState.scene.add(inst.root);
 	}
 
-	const ownerContainer = inst.resolveContainer?.();
+	const ownerContainer = preResolvedContainer !== undefined ? preResolvedContainer : inst.resolveContainer?.();
 	if (!ownerContainer || !ownerContainer.position) {
 		inst.root.visible = false;
 		return;
@@ -41283,12 +41414,14 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 		}
 		const myPos = gameState?.playerContainer?.position;
 		if (myPos) {
-			const distToMe = Math.hypot(ownerContainer.position.x - myPos.x, ownerContainer.position.z - myPos.z);
-			if (distToMe > 28) {
+			const dxMe = ownerContainer.position.x - myPos.x;
+			const dzMe = ownerContainer.position.z - myPos.z;
+			const distSq = dxMe * dxMe + dzMe * dzMe;
+			if (distSq > 784) { // 28 * 28
 				inst.root.visible = false;
 				return;
 			}
-			if (distToMe > 12) {
+			if (distSq > 144) { // 12 * 12
 				remoteAnimThrottleSec = 0.05; // ~20 FPS skeletal animation LOD for distant remote pets
 			}
 		}
@@ -41298,8 +41431,8 @@ function spkmodUpdateSinglePetInstance(inst, dt, nowMs) {
 	const ownerPos = ownerContainer.position;
 	const ownerYaw = ownerContainer.rotation ? (ownerContainer.rotation.y || 0) : 0;
 	const ownerCtrl = spkmodGetOwnerAnimController(inst);
-	const isFallenDown = spkmodIsOwnerFallenDown(inst);
-	const isDancing = !isFallenDown && spkmodIsOwnerDancing(inst);
+	const isFallenDown = spkmodIsOwnerFallenDown(inst, ownerCtrl, nowMs);
+	const isDancing = !isFallenDown && spkmodIsOwnerDancing(inst, ownerCtrl, nowMs);
 	if (isDancing && !inst._wasDancing) {
 		spkmodPickRandomPetDance(inst);
 	}
@@ -43404,7 +43537,7 @@ function spkmodPetsMasterLoop(nowMs) {
 				continue;
 			}
 			rInst._missingOwnerSinceMs = 0;
-			spkmodUpdateSinglePetInstance(rInst, dt, nowMs);
+			spkmodUpdateSinglePetInstance(rInst, dt, nowMs, container);
 		}
 
 		// Update showcase ring pets if any
@@ -45556,6 +45689,7 @@ async function spkmodGetRecoloredBodyTexture(skinId, spec) {
 		ctx.putImageData(imgData, 0, 0);
 		const tex = new THREE.CanvasTexture(canvas);
 		if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+		tex.userData = Object.assign(tex.userData || {}, { spkmodSkinSharedTex: true });
 		tex.needsUpdate = true;
 		return tex;
 	})().catch(err => {
@@ -51497,12 +51631,18 @@ function spkmodSkinDisposeNode(node) {
 	}
 	if (typeof node.traverse === "function") {
 		node.traverse(c => {
-			if (c && c.isMesh && !c.userData?.spkmodSkinSharedGlb) {
-				try { c.geometry?.dispose?.(); } catch (_) {}
+			if (!c || c.userData?.spkmodSkinSharedGlb) return;
+			if (c.isMesh || c.isLine || c.isPoints || c.isSprite) {
+				if (c.geometry && !c.isSprite) {
+					try { c.geometry.dispose?.(); } catch (_) {}
+				}
 				if (c.material) {
 					const mats = Array.isArray(c.material) ? c.material : [c.material];
 					for (const m of mats) {
 						if (m && !m.userData?.spkmodSkinSharedMat) {
+							if (m.map && !m.map.userData?.spkmodSkinSharedTex && typeof m.map.dispose === "function") {
+								try { m.map.dispose(); } catch (_) {}
+							}
 							try { m.dispose?.(); } catch (_) {}
 						}
 					}
@@ -51996,6 +52136,9 @@ function spkmodPFSetTarget(ownerKey, avatarRoot, widthScale) {
 
 function spkmodPFApplyAll() {
 	if (!spkmodIsSkinsSystemEnabled() || spkmodPlayerFat.entries.size === 0) return;
+	const gs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
+	const camPos = gs?.camera?.position || gs?.playerContainer?.position || null;
+	const MAX_REMOTE_PF_DIST_SQ = 45 * 45;
 	for (const [key, e] of spkmodPlayerFat.entries) {
 		if (!e.root || !e.root.parent || e.scale <= 1.001) {
 			spkmodPFRelease(e);
@@ -52003,6 +52146,24 @@ function spkmodPFApplyAll() {
 			continue;
 		}
 		if (e.root.visible === false || e.root.parent.visible === false) continue;
+		if (key !== "local_self" && camPos) {
+			let cont = e.container;
+			if (!cont || !cont.parent) {
+				let p = e.root.parent;
+				while (p && p.parent && p.parent !== gs?.scene) p = p.parent;
+				cont = p || e.root.parent;
+				e.container = cont;
+			}
+			const rPos = cont?.position;
+			if (rPos) {
+				const dx = rPos.x - camPos.x;
+				const dz = rPos.z - camPos.z;
+				if (dx * dx + dz * dz > MAX_REMOTE_PF_DIST_SQ) {
+					if (!e.rel) spkmodPFRelease(e);
+					continue;
+				}
+			}
+		}
 		const pel = e.pel, head = e.head, neck = head.parent;
 		if (!pel || !head || !neck) continue;
 		if (!_spkmodPFMatH1 || _spkmodPFMatH1.constructor !== e.M) {
@@ -52099,6 +52260,9 @@ function spkmodEnsurePlayerFatSceneHook() {
 	const gs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
 	const scene = gs && gs.scene;
 	if (!scene) return false;
+	if (scene.__spkmodPFBeforeHooked && scene.__spkmodPFAfterHooked) {
+		return true;
+	}
 	if (!scene.__spkmodPFBeforeHooked) {
 		scene.__spkmodPFBeforeHooked = true;
 		const prevBefore = scene.onBeforeRender;
@@ -52117,10 +52281,20 @@ function spkmodEnsurePlayerFatSceneHook() {
 			} catch (_) {}
 		};
 	}
-	if (!scene.__spkmodPFAfterFn || scene.onAfterRender !== scene.__spkmodPFAfterFn) {
-		const curAfter = scene.onAfterRender;
-		if (!curAfter || !curAfter.__spkmodPFInChain) {
-			const prevAfter = curAfter;
+	if (!scene.__spkmodPFAfterHooked) {
+		scene.__spkmodPFAfterHooked = true;
+		let alreadyInChain = false;
+		let cursor = scene.onAfterRender;
+		let guard = 0;
+		while (typeof cursor === "function" && guard++ < 32) {
+			if (cursor === scene.__spkmodPFAfterFn || cursor.__spkmodPFInChain) {
+				alreadyInChain = true;
+				break;
+			}
+			cursor = cursor.__spkmodPrevAfter;
+		}
+		if (!alreadyInChain) {
+			const prevAfter = scene.onAfterRender;
 			const wrappedAfter = function(renderer, sc, camera, ...rest) {
 				if (typeof prevAfter === "function") {
 					try { prevAfter.call(this, renderer, sc, camera, ...rest); } catch (_) {}
@@ -52132,6 +52306,7 @@ function spkmodEnsurePlayerFatSceneHook() {
 				} catch (_) {}
 			};
 			wrappedAfter.__spkmodPFInChain = true;
+			wrappedAfter.__spkmodPrevAfter = prevAfter;
 			scene.__spkmodPFAfterFn = wrappedAfter;
 			scene.onAfterRender = wrappedAfter;
 		}
@@ -52828,19 +53003,42 @@ function spkmodSkinsMasterLoop(nowMs) {
 				const winnersByRoot = new Map(); // rpRoot -> { ownerKey, state, rp, canonicalKey }
 				const staleDuplicateKeys = [];
 				for (const [ownerKey, state] of _spkmodRemoteSkinStates) {
-					const resolved = spkmodResolveRemotePlayerForSkin(state.playerId, state.playerName);
-					if (!resolved || !resolved.rp || !resolved.rp.avatar?.root) continue;
-					const rpRoot = resolved.rp.avatar.root;
+					let rp = (state.cachedRp && state.cachedRpKey !== undefined && rMap.get(state.cachedRpKey) === state.cachedRp)
+						? state.cachedRp
+						: null;
+					let canonicalKey = state.cachedCanonicalKey;
+					if (!rp) {
+						const resolved = spkmodResolveRemotePlayerForSkin(state.playerId, state.playerName);
+						if (resolved && resolved.rp) {
+							rp = resolved.rp;
+							canonicalKey = resolved.key;
+							state.cachedRp = rp;
+							state.cachedCanonicalKey = canonicalKey;
+							state.cachedRpKey = rMap.has(Number(canonicalKey)) ? Number(canonicalKey) : canonicalKey;
+							if (rMap.get(state.cachedRpKey) !== rp) state.cachedRpKey = canonicalKey;
+						}
+					}
+					if (!rp || !rp.avatar?.root) {
+						if (!state._missingSinceMs) state._missingSinceMs = nowMs;
+						else if (nowMs - state._missingSinceMs > 15000) {
+							staleDuplicateKeys.push(ownerKey);
+							if (state.playerId != null) _spkmodRemoteSkinPendingById.delete(String(state.playerId));
+							if (state.playerName) _spkmodRemoteSkinPendingByName.delete(state.playerName.trim().toLowerCase());
+						}
+						continue;
+					}
+					state._missingSinceMs = 0;
+					const rpRoot = rp.avatar.root;
 					const prevWin = winnersByRoot.get(rpRoot);
 					if (prevWin) {
 						if ((state.updatedAtMs || 0) >= (prevWin.state.updatedAtMs || 0)) {
 							staleDuplicateKeys.push(prevWin.ownerKey);
-							winnersByRoot.set(rpRoot, { ownerKey, state, rp: resolved.rp, canonicalKey: resolved.key });
+							winnersByRoot.set(rpRoot, { ownerKey, state, rp, canonicalKey });
 						} else {
 							staleDuplicateKeys.push(ownerKey);
 						}
 					} else {
-						winnersByRoot.set(rpRoot, { ownerKey, state, rp: resolved.rp, canonicalKey: resolved.key });
+						winnersByRoot.set(rpRoot, { ownerKey, state, rp, canonicalKey });
 					}
 				}
 				for (let i = 0; i < staleDuplicateKeys.length; i++) {
@@ -52934,23 +53132,22 @@ function spkmodSkinsMasterLoop(nowMs) {
 			const isLocal = ownerKey === "local_self";
 			if (!isLocal) {
 				if (entry.root.visible === false || entry.root.parent?.visible === false) continue;
-				if (camPos) {
-					let rpPos = null;
-					if (tmpAnimPos && typeof entry.root.getWorldPosition === "function") {
-						rpPos = entry.root.getWorldPosition(tmpAnimPos);
-					} else {
-						// Walk up past avatarPose (local 0,0,0) to remote container in world space
-						let p = entry.root.parent;
-						while (p && p.parent && p.parent !== gameState.scene) p = p.parent;
-						rpPos = p?.position || entry.root.parent?.position || null;
+					if (camPos) {
+						let cont = entry.container;
+						if (!cont || !cont.parent) {
+							let p = entry.root.parent;
+							while (p && p.parent && p.parent !== gameState.scene) p = p.parent;
+							cont = p || entry.root.parent;
+							entry.container = cont;
+						}
+						const rpPos = cont?.position || null;
+						if (rpPos) {
+							const dx = rpPos.x - camPos.x;
+							const dy = rpPos.y - camPos.y;
+							const dz = rpPos.z - camPos.z;
+							if (dx * dx + dy * dy + dz * dz > MAX_REMOTE_ANIM_DIST_SQ) continue;
+						}
 					}
-					if (rpPos) {
-						const dx = rpPos.x - camPos.x;
-						const dy = rpPos.y - camPos.y;
-						const dz = rpPos.z - camPos.z;
-						if (dx * dx + dy * dy + dz * dz > MAX_REMOTE_ANIM_DIST_SQ) continue;
-					}
-				}
 			}
 			if (entry.hideMagicStaff && (!entry._lastStaffCheckMs || nowMs - entry._lastStaffCheckMs >= 900)) {
 				entry._lastStaffCheckMs = nowMs;
@@ -55918,9 +56115,11 @@ function spkmodExtractCartSubGeometry(T, srcGeo, predicate, offsetVec) {
 	return out;
 }
 
-function spkmodBuildHwCartOverlayGroup(template, cartMode, texture) {
-	const T = typeof window !== "undefined" ? window.THREE : null;
-	if (!T || !template || !template.geometry) return null;
+const SPKMOD_CART_NOOP_RAYCAST = () => {};
+
+function spkmodGetOrBuildCartModeGeoms(T, template, cartMode) {
+	if (!template.modeGeoms) template.modeGeoms = {};
+	if (template.modeGeoms[cartMode]) return template.modeGeoms[cartMode];
 
 	const dims = cartMode === "tandem" ? SPKMOD_CART_DIMS_TANDEM : SPKMOD_CART_DIMS_SOLO;
 	const stretched = template.geometry.clone();
@@ -55949,25 +56148,11 @@ function spkmodBuildHwCartOverlayGroup(template, cartMode, texture) {
 		stretched.computeBoundingSphere();
 	}
 
-	const MatCtor = T.MeshToonMaterial || T.MeshLambertMaterial || T.MeshBasicMaterial;
-	const mat = new MatCtor({
-		color: 0xffffff,
-		map: texture,
-		transparent: true,
-		alphaTest: 0.5,
-		depthWrite: true
-	});
-
-	const group = new T.Group();
-	group.name = "spkmod_cart_skin_overlay";
 	const zeroVec = new T.Vector3(0, 0, 0);
-
 	const bodyGeo = spkmodExtractCartSubGeometry(T, stretched, i => template.vertexRole[i] !== 2, zeroVec);
-	const bodyMesh = new T.Mesh(bodyGeo, mat);
-	bodyMesh.raycast = () => {};
-	group.add(bodyMesh);
+	bodyGeo.userData = Object.assign(bodyGeo.userData || {}, { spkmodCartSharedGeo: true });
 
-	const wheels = [];
+	const wheelDefs = [];
 	for (let slot = 0; slot < 4; slot++) {
 		const pred = i => template.vertexWheelSlot[i] === slot;
 		const probeGeo = spkmodExtractCartSubGeometry(T, stretched, pred, zeroVec);
@@ -55981,17 +56166,54 @@ function spkmodBuildHwCartOverlayGroup(template, cartMode, texture) {
 		probeGeo.dispose();
 
 		const wheelGeo = spkmodExtractCartSubGeometry(T, stretched, pred, center.clone().negate());
-		const wheelMesh = new T.Mesh(wheelGeo, mat);
-		wheelMesh.position.copy(center);
-		wheelMesh.raycast = () => {};
-		group.add(wheelMesh);
-		wheels.push({
-			mesh: wheelMesh,
+		wheelGeo.userData = Object.assign(wheelGeo.userData || {}, { spkmodCartSharedGeo: true });
+		wheelDefs.push({
+			geo: wheelGeo,
+			center,
 			radiusM: Math.max(0.05, Math.max(size.y, size.z) / 2)
 		});
 	}
 
 	stretched.dispose();
+	const built = { bodyGeo, wheelDefs };
+	template.modeGeoms[cartMode] = built;
+	return built;
+}
+
+function spkmodBuildHwCartOverlayGroup(template, cartMode, texture) {
+	const T = typeof window !== "undefined" ? window.THREE : null;
+	if (!T || !template || !template.geometry) return null;
+
+	const modeGeoms = spkmodGetOrBuildCartModeGeoms(T, template, cartMode);
+	const MatCtor = T.MeshToonMaterial || T.MeshLambertMaterial || T.MeshBasicMaterial;
+	const mat = new MatCtor({
+		color: 0xffffff,
+		map: texture,
+		transparent: true,
+		alphaTest: 0.5,
+		depthWrite: true
+	});
+
+	const group = new T.Group();
+	group.name = "spkmod_cart_skin_overlay";
+
+	const bodyMesh = new T.Mesh(modeGeoms.bodyGeo, mat);
+	bodyMesh.raycast = SPKMOD_CART_NOOP_RAYCAST;
+	group.add(bodyMesh);
+
+	const wheels = [];
+	for (let i = 0; i < modeGeoms.wheelDefs.length; i++) {
+		const wd = modeGeoms.wheelDefs[i];
+		const wheelMesh = new T.Mesh(wd.geo, mat);
+		wheelMesh.position.copy(wd.center);
+		wheelMesh.raycast = SPKMOD_CART_NOOP_RAYCAST;
+		group.add(wheelMesh);
+		wheels.push({
+			mesh: wheelMesh,
+			radiusM: wd.radiusM
+		});
+	}
+
 	group.userData = {
 		isSpkmodCartOverlay: true,
 		material: mat,
@@ -56004,7 +56226,7 @@ function spkmodDisposeCartOverlayGroup(overlay) {
 	if (!overlay) return;
 	if (overlay.parent) overlay.parent.remove(overlay);
 	overlay.traverse(ch => {
-		if (ch && ch.isMesh && ch.geometry && typeof ch.geometry.dispose === "function") {
+		if (ch && ch.isMesh && ch.geometry && !ch.geometry.userData?.spkmodCartSharedGeo && typeof ch.geometry.dispose === "function") {
 			try { ch.geometry.dispose(); } catch (_) {}
 		}
 	});
@@ -56104,6 +56326,17 @@ function spkmodApplySkinToEntry(entry, skinId) {
 	}
 
 	const cartMode = entry.cartMode === "tandem" ? "tandem" : "solo";
+	// Fast path: skip full cg.traverse() when skin & mode are already applied (unless a Halloween cart is still on temporary normal_overlay waiting for FBX)
+	if (cg.__spkmodAppliedCartSkinId === skinId && cg.__spkmodAppliedCartMode === cartMode) {
+		if (!(isHalloween && cg.__spkmodAppliedCartKind === "normal_overlay")) {
+			const res = _spkmodCartSkinResources.get(skinId);
+			if (res && res.frames && res.frames.length > 1) {
+				spkmodCartEnsureAnimTick(res);
+			}
+			return;
+		}
+	}
+
 	const hasTexturedMesh = spkmodCartGroupHasTexturedBody(cg);
 	const effectiveKind = (isHalloween && hasTexturedMesh) ? "hw" : "normal_overlay";
 
@@ -56447,6 +56680,24 @@ function spkmodCartSkinsMasterLoop(nowMs) {
 				}
 			}
 			_spkmodCartLastObservedRemoteCount = rCount;
+
+			// Prune departed players from _spkmodRemoteCartSkinStates (15s grace) so animated cart skins stop uploading GPU frames
+			if (_spkmodRemoteCartSkinStates.size > 0 && gameState.remotePlayers?.remotePlayers) {
+				for (const [k, st] of _spkmodRemoteCartSkinStates) {
+					if (!st) {
+						_spkmodRemoteCartSkinStates.delete(k);
+						continue;
+					}
+					const live = spkmodResolveRemotePlayerForCart(st.playerId, st.playerName);
+					if (live) {
+						st._missingSinceMs = 0;
+					} else if (!st._missingSinceMs) {
+						st._missingSinceMs = nowMs;
+					} else if (nowMs - st._missingSinceMs > 15000) {
+						_spkmodRemoteCartSkinStates.delete(k);
+					}
+				}
+			}
 
 			spkmodReconcileAllCartSkins();
 		}
@@ -57967,24 +58218,77 @@ function spkmodGetSparkShapeTexture(shape) {
 // ============================================================================
 const SPKMOD_SPARK_MAX_PARTICLES = 360;
 const SPKMOD_SPARK_REMOTE_MAX_DIST = 48;
+const SPKMOD_SPARK_REMOTE_MAX_DIST_SQ = SPKMOD_SPARK_REMOTE_MAX_DIST * SPKMOD_SPARK_REMOTE_MAX_DIST;
+const SPKMOD_SPARK_NOOP_RAYCAST = () => {};
 const _spkmodActiveSparkParticles = [];
+const _spkmodSparkSpritePoolAdditive = [];
+const _spkmodSparkSpritePoolNormal = [];
+const _spkmodSparkObjPool = [];
+let _spkmodSparkFxGroup = null;
 let _spkmodSparkColorCycleIdx = 0;
+
+function spkmodGetOrCreateSparkFxGroup(T, scene) {
+	if (!scene) return null;
+	if (!T || !T.Group) return scene;
+	if (!_spkmodSparkFxGroup) {
+		_spkmodSparkFxGroup = new T.Group();
+		_spkmodSparkFxGroup.name = "spkmod_spark_fx_group";
+		_spkmodSparkFxGroup.frustumCulled = false;
+	}
+	if (_spkmodSparkFxGroup.parent !== scene) {
+		if (_spkmodSparkFxGroup.parent) _spkmodSparkFxGroup.parent.remove(_spkmodSparkFxGroup);
+		scene.add(_spkmodSparkFxGroup);
+	}
+	return _spkmodSparkFxGroup;
+}
 
 function spkmodRemoveSparkParticleAt(idx) {
 	const p = _spkmodActiveSparkParticles[idx];
 	if (!p) return;
-	if (p.sprite && p.sprite.parent) p.sprite.parent.remove(p.sprite);
-	if (p.sprite && p.sprite.material && typeof p.sprite.material.dispose === "function") {
-		try { p.sprite.material.dispose(); } catch (_) {}
+	if (p.sprite) {
+		p.sprite.visible = false;
+		const pool = p.additive ? _spkmodSparkSpritePoolAdditive : _spkmodSparkSpritePoolNormal;
+		if (pool.length < SPKMOD_SPARK_MAX_PARTICLES) {
+			pool.push(p.sprite);
+		} else {
+			if (p.sprite.parent) p.sprite.parent.remove(p.sprite);
+			if (p.sprite.material && typeof p.sprite.material.dispose === "function") {
+				try { p.sprite.material.dispose(); } catch (_) {}
+			}
+		}
+		p.sprite = null;
+	}
+	if (_spkmodSparkObjPool.length < SPKMOD_SPARK_MAX_PARTICLES) {
+		_spkmodSparkObjPool.push(p);
 	}
 	const last = _spkmodActiveSparkParticles.length - 1;
 	if (idx !== last) _spkmodActiveSparkParticles[idx] = _spkmodActiveSparkParticles[last];
 	_spkmodActiveSparkParticles.pop();
 }
 
-function spkmodClearAllSparkParticles() {
+function spkmodClearAllSparkParticles(disposePool = false) {
 	while (_spkmodActiveSparkParticles.length > 0) {
 		spkmodRemoveSparkParticleAt(_spkmodActiveSparkParticles.length - 1);
+	}
+	if (disposePool) {
+		const drain = (pool) => {
+			while (pool.length > 0) {
+				const sp = pool.pop();
+				if (sp) {
+					if (sp.parent) sp.parent.remove(sp);
+					if (sp.material && typeof sp.material.dispose === "function") {
+						try { sp.material.dispose(); } catch (_) {}
+					}
+				}
+			}
+		};
+		drain(_spkmodSparkSpritePoolAdditive);
+		drain(_spkmodSparkSpritePoolNormal);
+		_spkmodSparkObjPool.length = 0;
+		if (_spkmodSparkFxGroup && _spkmodSparkFxGroup.parent) {
+			_spkmodSparkFxGroup.parent.remove(_spkmodSparkFxGroup);
+		}
+		_spkmodSparkFxGroup = null;
 	}
 }
 
@@ -58008,39 +58312,64 @@ function spkmodSpawnSparkParticle(scene, opts) {
 		spkmodRemoveSparkParticleAt(oldestIdx);
 	}
 
-	const mat = new T.SpriteMaterial({
-		map: tex,
-		color: opts.color || "#ffd700",
-		transparent: true,
-		opacity: 1,
-		depthWrite: false,
-		blending: opts.additive ? (T.AdditiveBlending || 2) : (T.NormalBlending || 1)
-	});
-	const sprite = new T.Sprite(mat);
+	const isAdditive = !!opts.additive;
+	const container = spkmodGetOrCreateSparkFxGroup(T, scene);
+	const pool = isAdditive ? _spkmodSparkSpritePoolAdditive : _spkmodSparkSpritePoolNormal;
+	let sprite = pool.pop();
+	const col = opts.color || "#ffd700";
+
+	if (sprite) {
+		const mat = sprite.material;
+		if (mat) {
+			if (mat.map !== tex) mat.map = tex;
+			if (mat.color && typeof mat.color.set === "function") mat.color.set(col);
+			else mat.color = col;
+			mat.opacity = 1;
+			mat.rotation = 0;
+		}
+		if (sprite.parent !== container) {
+			if (sprite.parent) sprite.parent.remove(sprite);
+			container.add(sprite);
+		}
+		sprite.visible = true;
+	} else {
+		const mat = new T.SpriteMaterial({
+			map: tex,
+			color: col,
+			transparent: true,
+			opacity: 1,
+			depthWrite: false,
+			blending: isAdditive ? (T.AdditiveBlending || 2) : (T.NormalBlending || 1)
+		});
+		sprite = new T.Sprite(mat);
+		sprite.renderOrder = 95;
+		sprite.raycast = SPKMOD_SPARK_NOOP_RAYCAST;
+		container.add(sprite);
+	}
+
 	sprite.position.set(opts.x, opts.y, opts.z);
 	sprite.scale.setScalar(opts.size || 0.35);
-	sprite.renderOrder = 95;
-	sprite.raycast = () => {};
-	scene.add(sprite);
 
-	_spkmodActiveSparkParticles.push({
-		sprite,
-		age: 0,
-		life: opts.life || 0.9,
-		baseSize: opts.size || 0.35,
-		vx: opts.vx || 0,
-		vy: opts.vy || 0,
-		vz: opts.vz || 0,
-		gravity: opts.gravity || 0,
-		spin: opts.spin || 0,
-		motion: opts.motion || "burst",
-		cx: opts.cx ?? opts.x,
-		cz: opts.cz ?? opts.z,
-		phase: Math.random() * Math.PI * 2,
-		orbitRadius: opts.orbitRadius || 0.45,
-		orbitSpeed: opts.orbitSpeed || 4.0,
-		growRing: !!opts.growRing
-	});
+	const p = _spkmodSparkObjPool.pop() || {};
+	p.sprite = sprite;
+	p.additive = isAdditive;
+	p.age = 0;
+	p.life = opts.life || 0.9;
+	p.baseSize = opts.size || 0.35;
+	p.vx = opts.vx || 0;
+	p.vy = opts.vy || 0;
+	p.vz = opts.vz || 0;
+	p.gravity = opts.gravity || 0;
+	p.spin = opts.spin || 0;
+	p.motion = opts.motion || "burst";
+	p.cx = opts.cx ?? opts.x;
+	p.cz = opts.cz ?? opts.z;
+	p.phase = Math.random() * Math.PI * 2;
+	p.orbitRadius = opts.orbitRadius || 0.45;
+	p.orbitSpeed = opts.orbitSpeed || 4.0;
+	p.growRing = !!opts.growRing;
+
+	_spkmodActiveSparkParticles.push(p);
 }
 
 function spkmodEmitSparkTrailAt(spark, pos, burstScale = 1.0, isRemote = false) {
@@ -58055,7 +58384,8 @@ function spkmodEmitSparkTrailAt(spark, pos, burstScale = 1.0, isRemote = false) 
 		return colors[Math.floor(Math.random() * colors.length)];
 	};
 
-	const baseCount = Math.max(2, Math.round((spark.count || 7) * (isRemote ? 0.6 : 1.0) * burstScale));
+	const crowdRemoteScale = (isRemote && _spkmodActiveSparkParticles.length > 200) ? 0.35 : (isRemote ? 0.6 : 1.0);
+	const baseCount = Math.max(2, Math.round((spark.count || 7) * crowdRemoteScale * burstScale));
 	const speedMul = burstScale > 1 ? 1.85 : 1.0;
 	const motion = spark.motion || "burst";
 	const yBase = (pos.y || 0) + 0.18;
@@ -58351,6 +58681,37 @@ function spkmodSparksMasterLoop(nowMs) {
 				}
 			}
 			_spkmodSparkLastObservedRemoteCount = rCount;
+
+			// Periodically refresh remote player cache & prune departed players (15s grace) so rAF never scans linearly
+			const rMapSync = gameState.remotePlayers?.remotePlayers;
+			if (rMapSync && _spkmodRemoteSparkStates.size > 0) {
+				for (const [k, st] of _spkmodRemoteSparkStates) {
+					if (!st || !st.sparkId) {
+						_spkmodRemoteSparkStates.delete(k);
+						continue;
+					}
+					if (st.cachedRp && st.cachedRpKey !== undefined && rMapSync.get(st.cachedRpKey) === st.cachedRp) {
+						st._missingSinceMs = 0;
+						continue;
+					}
+					const res = spkmodResolveRemotePlayerForSpark(st.playerId, st.playerName);
+					if (res && res.rp) {
+						st.cachedRp = res.rp;
+						st.cachedRpKey = rMapSync.has(Number(res.key)) ? Number(res.key) : res.key;
+						if (rMapSync.get(st.cachedRpKey) !== res.rp) {
+							st.cachedRpKey = res.key;
+						}
+						st._missingSinceMs = 0;
+					} else {
+						st.cachedRp = null;
+						st.cachedRpKey = undefined;
+						if (!st._missingSinceMs) st._missingSinceMs = nowMs;
+						else if (nowMs - st._missingSinceMs > 15000) {
+							_spkmodRemoteSparkStates.delete(k);
+						}
+					}
+				}
+			}
 		}
 
 		// 2. Local walking trail emission
@@ -58380,30 +58741,33 @@ function spkmodSparksMasterLoop(nowMs) {
 			_spkmodLocalSparkDistAccum = 0;
 		}
 
-		// 3. Remote players' synced walking trails (distance-culled for high FPS)
+		// 3. Remote players' synced walking trails (O(1) cached lookup + distance-culled for high FPS)
 		if (window.spkmodSparkSettings.showRemoteSparks !== false && _spkmodRemoteSparkStates.size > 0 && gameState.remotePlayers?.remotePlayers) {
 			const rMap = gameState.remotePlayers.remotePlayers;
 			for (const [, st] of _spkmodRemoteSparkStates) {
 				if (!st || !st.sparkId) continue;
-				const spark = SPKMOD_SPARKS_BY_ID.get(st.sparkId);
-				if (!spark) continue;
-				const res = spkmodResolveRemotePlayerForSpark(st.playerId, st.playerName);
-				const rp = res?.rp;
+				const rp = (st.cachedRp && st.cachedRpKey !== undefined && rMap.get(st.cachedRpKey) === st.cachedRp)
+					? st.cachedRp
+					: null;
 				const rpPos = rp?.container?.position;
 				if (!rp || !rpPos || rp.container.visible === false) continue;
 
-				const rLvl = rp.info?.level ?? rp.level ?? 0;
-				const rName = rp.info?.__spkmodOrigName || rp.info?.name || st.playerName || "";
-				if (!spkmodCheckSparkRemoteLevelAllowed(spark.level, rLvl, rName)) continue;
-
 				if (localPos) {
-					const distToMe = Math.hypot(rpPos.x - localPos.x, rpPos.z - localPos.z);
-					if (distToMe > SPKMOD_SPARK_REMOTE_MAX_DIST) {
+					const dxMe = rpPos.x - localPos.x;
+					const dzMe = rpPos.z - localPos.z;
+					if (dxMe * dxMe + dzMe * dzMe > SPKMOD_SPARK_REMOTE_MAX_DIST_SQ) {
 						st.lastX = rpPos.x;
 						st.lastZ = rpPos.z;
 						continue;
 					}
 				}
+
+				const spark = SPKMOD_SPARKS_BY_ID.get(st.sparkId);
+				if (!spark) continue;
+
+				const rLvl = rp.info?.level ?? rp.level ?? 0;
+				const rName = rp.info?.__spkmodOrigName || rp.info?.name || st.playerName || "";
+				if (!spkmodCheckSparkRemoteLevelAllowed(spark.level, rLvl, rName)) continue;
 
 				if (st.lastX !== null && st.lastZ !== null) {
 					const d = Math.hypot(rpPos.x - st.lastX, rpPos.z - st.lastZ);
@@ -58614,7 +58978,7 @@ window.spkmodSetSparksSystemEnabled = function(nextEnabled, silentToast = false)
 	if (!enabled) {
 		spkmodStopSparksLoop();
 		if (window.spkmodBurstSpamActive) window.spkmodToggleBurstSpam(false);
-		spkmodClearAllSparkParticles();
+		spkmodClearAllSparkParticles(true);
 		if (_spkmodSparkHadBroadcast && typeof window.spkmodQueueUnifiedModSyncBroadcast === "function") {
 			window.spkmodQueueUnifiedModSyncBroadcast({
 				priority: "explicit",
@@ -60324,11 +60688,250 @@ async function spkmodLoadVehicleGlbScene(url, fallbackUrl) {
 	return null;
 }
 
+const _spkmodVehMatPool = new Map();
+const SPKMOD_VEH_NOOP_RAYCAST = () => {};
+
 function spkmodVehMat(THREE, color, extra = {}) {
+	const hasCustomComplex = extra && (extra.map || extra.alphaMap || extra.gradientMap || extra.onBeforeCompile || extra.userData);
+	if (!hasCustomComplex) {
+		const isToon = !!THREE.MeshToonMaterial;
+		const em = extra?.emissive ?? 0;
+		const emI = extra?.emissiveIntensity ?? 1;
+		const tr = extra?.transparent ? 1 : 0;
+		const op = extra?.opacity ?? 1;
+		const sd = extra?.side ?? 0;
+		const dw = extra?.depthWrite === false ? 0 : 1;
+		const wf = extra?.wireframe ? 1 : 0;
+		const rg = extra?.roughness ?? (isToon ? 0 : 0.55);
+		const mt = extra?.metalness ?? (isToon ? 0 : 0.1);
+		const key = `${isToon ? 1 : 0}|${color}|${em}|${emI}|${tr}|${op}|${sd}|${dw}|${wf}|${rg}|${mt}`;
+		const cached = _spkmodVehMatPool.get(key);
+		if (cached) return cached;
+		const mat = isToon
+			? new THREE.MeshToonMaterial(Object.assign({ color }, extra))
+			: new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.55, metalness: 0.1 }, extra));
+		mat.userData = mat.userData || {};
+		mat.userData.spkmodVehSharedMat = true;
+		_spkmodVehMatPool.set(key, mat);
+		return mat;
+	}
 	if (THREE.MeshToonMaterial) {
 		return new THREE.MeshToonMaterial(Object.assign({ color }, extra));
 	}
 	return new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.55, metalness: 0.1 }, extra));
+}
+
+function spkmodDisposeVehicleObject(root) {
+	if (!root) return;
+	if (root.parent) {
+		root.parent.remove(root);
+	}
+	if (typeof root.traverse !== "function") return;
+	const disposedGeoms = new Set();
+	const disposedMats = new Set();
+	const disposedTex = new Set();
+	root.traverse(c => {
+		if (!c) return;
+		const isSharedGlb = !!c.userData?.spkmodVehSharedGlb;
+		if (!isSharedGlb && c.geometry && !c.isSprite && !disposedGeoms.has(c.geometry)) {
+			disposedGeoms.add(c.geometry);
+			try { c.geometry.dispose?.(); } catch (_) {}
+		}
+		if (c.material) {
+			const mats = Array.isArray(c.material) ? c.material : [c.material];
+			for (let i = 0; i < mats.length; i++) {
+				const m = mats[i];
+				if (!m || disposedMats.has(m)) continue;
+				if (isSharedGlb && !m.userData?.spkmodVehOwnedMat) continue;
+				if (m.userData?.spkmodVehSharedMat) continue;
+				disposedMats.add(m);
+				if (m.map && !m.map.userData?.spkmodVehSharedTex && !disposedTex.has(m.map)) {
+					disposedTex.add(m.map);
+					try { m.map.dispose?.(); } catch (_) {}
+				}
+				try { m.dispose?.(); } catch (_) {}
+			}
+		}
+	});
+}
+
+function spkmodVehMergeStaticScope(THREE, scopeRoot, excludeSet) {
+	if (!THREE || !scopeRoot || !THREE.BufferGeometry || !THREE.BufferAttribute || !THREE.Matrix3 || !THREE.Matrix4) return;
+	if (typeof scopeRoot.updateMatrixWorld !== "function") return;
+	const buckets = new Map(); // material -> Mesh[]
+	const collect = (node) => {
+		if (!node || !node.children) return;
+		for (let i = 0; i < node.children.length; i++) {
+			const c = node.children[i];
+			if (!c || excludeSet.has(c)) continue;
+			if (c.isMesh) {
+				if (
+					!c.isSkinnedMesh &&
+					!c.isInstancedMesh &&
+					!c.userData?.spkmodVehSharedGlb &&
+					!c.userData?.spkmodVehNoMerge &&
+					c.geometry &&
+					c.geometry.attributes &&
+					c.geometry.attributes.position &&
+					c.geometry.attributes.normal &&
+					(!c.geometry.morphAttributes || Object.keys(c.geometry.morphAttributes).length === 0) &&
+					c.material &&
+					!Array.isArray(c.material) &&
+					!c.material.map
+				) {
+					let arr = buckets.get(c.material);
+					if (!arr) { arr = []; buckets.set(c.material, arr); }
+					arr.push(c);
+				}
+			}
+			if (c.children && c.children.length > 0) collect(c);
+		}
+	};
+	collect(scopeRoot);
+	if (buckets.size === 0) return;
+
+	scopeRoot.updateMatrixWorld(true);
+	if (!scopeRoot.matrixWorld || typeof scopeRoot.matrixWorld.clone !== "function") return;
+	const invRoot = scopeRoot.matrixWorld.clone().invert();
+	const relMat = new THREE.Matrix4();
+	const normMat = new THREE.Matrix3();
+	const vPos = new THREE.Vector3();
+	const vNorm = new THREE.Vector3();
+
+	for (const [mat, meshes] of buckets) {
+		if (meshes.length < 2) continue;
+		let totalVerts = 0;
+		const valid = [];
+		for (let i = 0; i < meshes.length; i++) {
+			const m = meshes[i];
+			const g = m.geometry;
+			const idx = g.index;
+			const count = idx ? idx.count : g.attributes.position.count;
+			if (count >= 3 && count % 3 === 0) {
+				totalVerts += count;
+				valid.push(m);
+			}
+		}
+		if (valid.length < 2 || totalVerts < 3) continue;
+
+		const positions = new Float32Array(totalVerts * 3);
+		const normals = new Float32Array(totalVerts * 3);
+		let writeOff = 0;
+		const mergedFrom = [];
+
+		for (let i = 0; i < valid.length; i++) {
+			const m = valid[i];
+			relMat.multiplyMatrices(invRoot, m.matrixWorld);
+			const det = relMat.determinant();
+			if (!Number.isFinite(det) || Math.abs(det) < 1e-10) continue;
+			const flipWinding = det < 0;
+			normMat.getNormalMatrix(relMat);
+
+			const g = m.geometry;
+			const posAttr = g.attributes.position;
+			const normAttr = g.attributes.normal;
+			const idx = g.index;
+			const count = idx ? idx.count : posAttr.count;
+
+			for (let t = 0; t < count; t += 3) {
+				const i0 = idx ? idx.getX(t) : t;
+				const i1 = idx ? idx.getX(flipWinding ? t + 2 : t + 1) : (flipWinding ? t + 2 : t + 1);
+				const i2 = idx ? idx.getX(flipWinding ? t + 1 : t + 2) : (flipWinding ? t + 1 : t + 2);
+				for (let k = 0; k < 3; k++) {
+					const vi = k === 0 ? i0 : (k === 1 ? i1 : i2);
+					vPos.set(posAttr.getX(vi), posAttr.getY(vi), posAttr.getZ(vi)).applyMatrix4(relMat);
+					vNorm.set(normAttr.getX(vi), normAttr.getY(vi), normAttr.getZ(vi)).applyMatrix3(normMat).normalize();
+					positions[writeOff] = vPos.x;
+					positions[writeOff + 1] = vPos.y;
+					positions[writeOff + 2] = vPos.z;
+					normals[writeOff] = vNorm.x;
+					normals[writeOff + 1] = vNorm.y;
+					normals[writeOff + 2] = vNorm.z;
+					writeOff += 3;
+				}
+			}
+			mergedFrom.push(m);
+		}
+		if (mergedFrom.length < 2 || writeOff < 9) continue;
+
+		const finalPos = writeOff === positions.length ? positions : positions.subarray(0, writeOff);
+		const finalNorm = writeOff === normals.length ? normals : normals.subarray(0, writeOff);
+		const mergedGeom = new THREE.BufferGeometry();
+		mergedGeom.setAttribute("position", new THREE.BufferAttribute(finalPos, 3));
+		mergedGeom.setAttribute("normal", new THREE.BufferAttribute(finalNorm, 3));
+		mergedGeom.computeBoundingSphere();
+
+		const mergedMesh = new THREE.Mesh(mergedGeom, mat);
+		mergedMesh.name = "spkmod_veh_merged";
+		mergedMesh.raycast = SPKMOD_VEH_NOOP_RAYCAST;
+		mergedMesh.frustumCulled = true;
+		scopeRoot.add(mergedMesh);
+
+		for (let i = 0; i < mergedFrom.length; i++) {
+			const m = mergedFrom[i];
+			if (m.parent) m.parent.remove(m);
+			try { m.geometry?.dispose?.(); } catch (_) {}
+		}
+	}
+
+	const prune = (node) => {
+		if (!node || !node.children) return;
+		for (let i = node.children.length - 1; i >= 0; i--) {
+			const c = node.children[i];
+			if (!c || c.isMesh || excludeSet.has(c)) continue;
+			prune(c);
+			if (c.children && c.children.length === 0) {
+				node.remove(c);
+			}
+		}
+	};
+	prune(scopeRoot);
+}
+
+function spkmodVehOptimizeBuilt(THREE, built) {
+	if (!THREE || !built || !built.root) return built;
+	try {
+		const excludeSet = new Set();
+		if (built.leftFoot) excludeSet.add(built.leftFoot);
+		if (built.rightFoot) excludeSet.add(built.rightFoot);
+		if (built.alertSprite) excludeSet.add(built.alertSprite);
+		if (Array.isArray(built.wheels)) {
+			for (let i = 0; i < built.wheels.length; i++) {
+				if (built.wheels[i]) excludeSet.add(built.wheels[i]);
+			}
+		}
+		if (Array.isArray(built.animParts)) {
+			for (let i = 0; i < built.animParts.length; i++) {
+				const p = built.animParts[i];
+				if (!p) continue;
+				if (p.node && p.node !== built.bodyGroup) excludeSet.add(p.node);
+				if (p.red) excludeSet.add(p.red);
+				if (p.blue) excludeSet.add(p.blue);
+				if (Array.isArray(p.tiers)) {
+					for (let ti = 0; ti < p.tiers.length; ti++) {
+						const tierNodes = p.tiers[ti];
+						if (Array.isArray(tierNodes)) {
+							for (let ni = 0; ni < tierNodes.length; ni++) {
+								if (tierNodes[ni]) excludeSet.add(tierNodes[ni]);
+							}
+						}
+					}
+				}
+			}
+		}
+		if (built.bodyGroup) {
+			spkmodVehMergeStaticScope(THREE, built.bodyGroup, excludeSet);
+		}
+		if (Array.isArray(built.wheels)) {
+			for (let i = 0; i < built.wheels.length; i++) {
+				const w = built.wheels[i];
+				if (w && !w.isMesh) {
+					spkmodVehMergeStaticScope(THREE, w, excludeSet);
+				}
+			}
+		}
+	} catch (_) {}
+	return built;
 }
 
 function spkmodGetMgsBoxTextures(THREE) {
@@ -60443,6 +61046,8 @@ function spkmodGetMgsBoxTextures(THREE) {
 		sideTex.colorSpace = THREE.SRGBColorSpace;
 		topTex.colorSpace = THREE.SRGBColorSpace;
 	}
+	sideTex.userData = Object.assign(sideTex.userData || {}, { spkmodVehSharedTex: true });
+	topTex.userData = Object.assign(topTex.userData || {}, { spkmodVehSharedTex: true });
 	sideTex.needsUpdate = true;
 	topTex.needsUpdate = true;
 	_spkmodMgsBoxTextures = { sideTex, topTex };
@@ -60485,6 +61090,7 @@ function spkmodGetAlertSpriteTexture(THREE, symbol) {
 
 	const tex = new THREE.CanvasTexture(c);
 	if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+	tex.userData = Object.assign(tex.userData || {}, { spkmodVehSharedTex: true });
 	tex.needsUpdate = true;
 	_spkmodAlertTextures.set(key, tex);
 	return tex;
@@ -60505,6 +61111,7 @@ function spkmodGetUifiTextures(THREE) {
 		}
 		const tex = new THREE.CanvasTexture(c);
 		if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+		tex.userData = Object.assign(tex.userData || {}, { spkmodVehSharedTex: true });
 		tex.needsUpdate = true;
 		return tex;
 	};
@@ -62648,7 +63255,10 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 			if (!node) return;
 			node.visible = true;
 			if (node.isMesh || node.isSkinnedMesh) {
-				node.frustumCulled = false;
+				node.userData = Object.assign(node.userData || {}, { spkmodVehSharedGlb: true });
+				if (node.isSkinnedMesh) {
+					node.frustumCulled = false;
+				}
 			}
 		});
 		if (typeof cloned.updateMatrixWorld === "function") cloned.updateMatrixWorld(true);
@@ -62708,6 +63318,7 @@ async function spkmodCreateVehicleModelInstance(vehicle, colorIdx) {
 	// 3. Procedural 3D Vehicles & MGS Stealth Cardboard Box
 	if (!built && spec.kind === "procedural") {
 		built = spkmodBuildProceduralVehicle(THREE, spec.builder, colorHex);
+		if (built) spkmodVehOptimizeBuilt(THREE, built);
 	}
 	return built ? spkmodAttachVehicleAlertSprite(THREE, built, vehicle) : null;
 }
@@ -62934,8 +63545,15 @@ function spkmodEnsureMountVisualsHook() {
 						spkmodApplyVehiclePoseOverride(_spkmodLocalVehicleEntry, gameState.localAvatarPose, _spkmodLocalVehicleEntry.visualScaleCurrent);
 					}
 					if (_spkmodRemoteVehicleInstances.size > 0) {
+						const rMap = gameState.remotePlayers?.remotePlayers;
 						for (const entry of _spkmodRemoteVehicleInstances.values()) {
-							const rp = entry.resolveRp ? entry.resolveRp() : null;
+							let rp = (rMap && entry.cachedRp && entry.lastRpKey !== undefined && rMap.get(entry.lastRpKey) === entry.cachedRp)
+								? entry.cachedRp
+								: null;
+							if (!rp && entry.resolveRp) {
+								rp = entry.resolveRp();
+								entry.cachedRp = rp || null;
+							}
 							if (rp) {
 								if (typeof spkmodSetNativeCartVisible === "function") {
 									spkmodSetNativeCartVisible(rp.container, entry.lastRpKey ?? entry.playerId, false);
@@ -62955,8 +63573,8 @@ function spkmodEnsureMountVisualsHook() {
 
 function spkmodRestoreVehicleEntry(entry, isLocal) {
 	if (!entry) return;
-	if (entry.root && entry.root.parent) {
-		entry.root.parent.remove(entry.root);
+	if (entry.root) {
+		spkmodDisposeVehicleObject(entry.root);
 	}
 	// Unconditionally restore any avatar hidden by MGS Cardboard Box!
 	if (entry.hiddenAvatarRoot) {
@@ -63022,7 +63640,7 @@ function spkmodRemoveLocalVehicle() {
 		const ch = gameState.playerContainer.children;
 		for (let i = ch.length - 1; i >= 0; i--) {
 			if (ch[i] && ch[i].name === "spkmod_local_vehicle") {
-				gameState.playerContainer.remove(ch[i]);
+				spkmodDisposeVehicleObject(ch[i]);
 			}
 		}
 	}
@@ -63072,8 +63690,10 @@ async function spkmodSpawnLocalVehicle(vehicleId, colorIdx) {
 	const mySeq = ++_spkmodLocalVehicleSeq;
 	const safeColor = spkmodClampVehicleColorIdx(colorIdx);
 	const built = await spkmodCreateVehicleModelInstance(vehicle, safeColor);
-	if (!built || mySeq !== _spkmodLocalVehicleSeq || !spkmodIsVehiclesSystemEnabled()) return false;
-	if (window.spkmodVehicleSettings.equippedId !== vehicle.id) return false;
+	if (!built || mySeq !== _spkmodLocalVehicleSeq || !spkmodIsVehiclesSystemEnabled() || window.spkmodVehicleSettings.equippedId !== vehicle.id) {
+		if (built && built.root) spkmodDisposeVehicleObject(built.root);
+		return false;
+	}
 
 	if (_spkmodLocalVehicleEntry) {
 		spkmodRestoreVehicleEntry(_spkmodLocalVehicleEntry, true);
@@ -63082,7 +63702,7 @@ async function spkmodSpawnLocalVehicle(vehicleId, colorIdx) {
 	if (gameState.playerContainer.children) {
 		for (let i = gameState.playerContainer.children.length - 1; i >= 0; i--) {
 			if (gameState.playerContainer.children[i]?.name === "spkmod_local_vehicle") {
-				gameState.playerContainer.remove(gameState.playerContainer.children[i]);
+				spkmodDisposeVehicleObject(gameState.playerContainer.children[i]);
 			}
 		}
 	}
@@ -63436,10 +64056,16 @@ async function spkmodSpawnOrUpdateRemoteVehicle(ownerKey, state, resolved) {
 	if (_spkmodRemoteVehicleInFlight.get(ownerKey) === token) {
 		_spkmodRemoteVehicleInFlight.delete(ownerKey);
 	}
-	if (!built || !spkmodIsVehiclesSystemEnabled() || _spkmodRemoteVehicleSeq.get(ownerKey) !== mySeq) return;
+	if (!built || !spkmodIsVehiclesSystemEnabled() || _spkmodRemoteVehicleSeq.get(ownerKey) !== mySeq) {
+		if (built && built.root) spkmodDisposeVehicleObject(built.root);
+		return;
+	}
 
 	const live = spkmodResolveRemotePlayerForVehicle(state.playerId, state.playerName);
-	if (!live || !live.rp || !live.rp.container) return;
+	if (!live || !live.rp || !live.rp.container) {
+		if (built && built.root) spkmodDisposeVehicleObject(built.root);
+		return;
+	}
 
 	const prev = _spkmodRemoteVehicleInstances.get(ownerKey);
 	if (prev) {
@@ -63450,7 +64076,7 @@ async function spkmodSpawnOrUpdateRemoteVehicle(ownerKey, state, resolved) {
 		for (let i = live.rp.container.children.length - 1; i >= 0; i--) {
 			const ch = live.rp.container.children[i];
 			if (ch && typeof ch.name === "string" && (ch.name.startsWith("spkmod_remote_vehicle_") || ch.name.startsWith("spkmod_remote_car_"))) {
-				live.rp.container.remove(ch);
+				spkmodDisposeVehicleObject(ch);
 			}
 		}
 	}
@@ -63466,6 +64092,7 @@ async function spkmodSpawnOrUpdateRemoteVehicle(ownerKey, state, resolved) {
 		vehicle,
 		colorIdx: safeColor,
 		resolveRp,
+		cachedRp: live.rp,
 		lastRpKey: live.rpKey,
 		lastContainer: live.rp.container,
 		lastPosePos: live.rp.avatarPose?.position || live.rp.avatar?.root?.position || null,
@@ -63861,20 +64488,56 @@ function spkmodVehiclesMasterLoop(nowMs) {
 			}
 		}
 
-		// 2. Tick active remote vehicles every frame
+		// 2. Tick active remote vehicles every frame (O(1) cached rp lookup + 45m animation distance culling)
 		if (_spkmodRemoteVehicleInstances.size > 0) {
-			for (const [ownerKey, entry] of [..._spkmodRemoteVehicleInstances.entries()]) {
-				const rp = entry.resolveRp ? entry.resolveRp() : null;
+			const rMapTick = gameState.remotePlayers?.remotePlayers;
+			const camPos = gameState.camera?.position || pc?.position || null;
+			const MAX_REMOTE_VEH_ANIM_DIST_SQ = 45 * 45;
+			let staleKeys = null;
+			for (const [ownerKey, entry] of _spkmodRemoteVehicleInstances) {
+				let rp = (rMapTick && entry.cachedRp && entry.lastRpKey !== undefined && rMapTick.get(entry.lastRpKey) === entry.cachedRp)
+					? entry.cachedRp
+					: null;
+				if (!rp) {
+					const resolved = spkmodResolveRemotePlayerForVehicle(entry.playerId, entry.playerName);
+					if (resolved && resolved.rp) {
+						rp = resolved.rp;
+						entry.cachedRp = rp;
+						entry.lastRpKey = resolved.rpKey;
+					}
+				}
 				if (!rp || !rp.container) {
-					spkmodClearRemoteVehicleOwner(ownerKey);
+					if (!staleKeys) staleKeys = [];
+					staleKeys.push(ownerKey);
 					continue;
 				}
 				entry.lastContainer = rp.container;
+				if (rp.container.visible === false) continue;
 				const posePos = rp.avatarPose?.position || rp.avatar?.root?.position || null;
 				const ctrl = rp.avatar?.animationController || rp.container?.controller || null;
 				entry.lastPosePos = posePos;
 				entry.lastCtrl = ctrl;
+				if (camPos && rp.container.position) {
+					const dx = rp.container.position.x - camPos.x;
+					const dz = rp.container.position.z - camPos.z;
+					if (dx * dx + dz * dz > MAX_REMOTE_VEH_ANIM_DIST_SQ) {
+						if (entry.root.parent !== rp.container) rp.container.add(entry.root);
+						if (typeof spkmodSetNativeCartVisible === "function") {
+							spkmodSetNativeCartVisible(rp.container, entry.lastRpKey ?? entry.playerId, false);
+						}
+						if (entry.vehicle.hidePlayer && rp.avatar?.root && rp.avatar.root.visible !== false) {
+							entry.hiddenAvatarRoot = rp.avatar.root;
+							rp.avatar.root.visible = false;
+						}
+						continue;
+					}
+				}
 				spkmodTickVehicleEntry(entry, false, rp.container, entry.lastRpKey ?? entry.playerId, rp.avatar?.root || null, posePos, ctrl, dt, nowMs, rp);
+			}
+			if (staleKeys) {
+				for (let i = 0; i < staleKeys.length; i++) {
+					spkmodClearRemoteVehicleOwner(staleKeys[i]);
+				}
 			}
 		}
 
@@ -63936,13 +64599,34 @@ function spkmodVehiclesMasterLoop(nowMs) {
 			}
 			_spkmodVehicleLastRemoteCount = rCount;
 
-			// Reconcile remote vehicles (level-checked + showRemote toggle)
+			// Reconcile remote vehicles (level-checked + showRemote toggle + prune departed players after 15s grace)
 			const showRemote = window.spkmodVehicleSettings.showRemoteVehicles !== false;
 			const seenRemote = new Set();
-			if (showRemote && rMap && _spkmodRemoteVehicleStates.size > 0) {
+			if (rMap && _spkmodRemoteVehicleStates.size > 0) {
 				for (const [ownerKey, st] of _spkmodRemoteVehicleStates) {
-					const resolved = spkmodResolveRemotePlayerForVehicle(st.playerId, st.playerName);
-					if (!resolved || !resolved.rp || !resolved.rp.container) continue;
+					let resolved = null;
+					if (st.cachedRp && st.cachedRpKey !== undefined && rMap.get(st.cachedRpKey) === st.cachedRp) {
+						resolved = { key: String(st.cachedRpKey), rpKey: st.cachedRpKey, rp: st.cachedRp };
+					} else {
+						resolved = spkmodResolveRemotePlayerForVehicle(st.playerId, st.playerName);
+						if (resolved && resolved.rp) {
+							st.cachedRp = resolved.rp;
+							st.cachedRpKey = resolved.rpKey;
+						} else {
+							st.cachedRp = null;
+							st.cachedRpKey = undefined;
+						}
+					}
+					if (!resolved || !resolved.rp || !resolved.rp.container) {
+						if (!st._missingSinceMs) st._missingSinceMs = nowMs;
+						else if (nowMs - st._missingSinceMs > 15000) {
+							_spkmodRemoteVehicleStates.delete(ownerKey);
+							spkmodClearRemoteVehicleOwner(ownerKey);
+						}
+						continue;
+					}
+					st._missingSinceMs = 0;
+					if (!showRemote) continue;
 					const vehicle = SPKMOD_VEHICLES_BY_ID.get(st.vehicleId);
 					if (!vehicle) continue;
 					const rpLevel = resolved.rp.info?.level ?? 0;

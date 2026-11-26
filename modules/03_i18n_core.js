@@ -2180,7 +2180,13 @@ function updateMuteButtonUI() {
 	}
 }
 
+let _spkmodCachedMuteCheckbox = null;
+
 function findGameMuteCheckbox() {
+	if (_spkmodCachedMuteCheckbox && _spkmodCachedMuteCheckbox.isConnected) {
+		return _spkmodCachedMuteCheckbox;
+	}
+	_spkmodCachedMuteCheckbox = null;
 	const rows = document.querySelectorAll(".sr-panel__row");
 	for (const row of rows) {
 		const checkbox = row.querySelector("input[type='checkbox']");
@@ -2196,6 +2202,7 @@ function findGameMuteCheckbox() {
 				txt.includes("静音") ||
 				txt.includes("silenciar")
 			) {
+				_spkmodCachedMuteCheckbox = checkbox;
 				return checkbox;
 			}
 		}
@@ -2204,6 +2211,9 @@ function findGameMuteCheckbox() {
 }
 
 function hookNativeMuteCheckbox() {
+	if (_spkmodCachedMuteCheckbox && _spkmodCachedMuteCheckbox.isConnected && _spkmodCachedMuteCheckbox.__spkmodMuteHooked) {
+		return;
+	}
 	const cb = findGameMuteCheckbox();
 	if (cb && !cb.__spkmodMuteHooked) {
 		cb.__spkmodMuteHooked = true;

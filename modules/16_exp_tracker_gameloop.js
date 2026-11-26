@@ -85,6 +85,47 @@ if (typeof spkmodI18nRenderers !== 'undefined') {
 	});
 }
 
+let _lunHudLastPlayersNearby = -1;
+let _lunHudLastZoneId = null;
+let _lunHudLastExpL1 = null;
+let _lunHudLastExpL2 = null;
+
+window.spkmodForceNametagRedraw = function() {
+	if (typeof gameState === 'undefined' || !gameState) return;
+
+	const redrawAvatar = (entity) => {
+		if (!entity || !entity.avatar || typeof entity.avatar.setLabel !== 'function') return;
+		hookAvatarLabel(entity);
+		if (entity.info && entity.info.name) {
+			const lvl = entity.info.__spkmodOrigLevel || entity.info.level || 1;
+			entity.avatar.setLabel("LV" + lvl + " " + entity.info.name);
+		} else if (typeof entity.avatar.__spkmodLastRawLabel === "string" && entity.avatar.__spkmodLastRawLabel) {
+			entity.avatar.setLabel(entity.avatar.__spkmodLastRawLabel);
+		}
+	};
+
+	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+		gameState.remotePlayers.remotePlayers.forEach(redrawAvatar);
+	}
+	if (gameState.remotePetRegistry && gameState.remotePetRegistry.pets) {
+		gameState.remotePetRegistry.pets.forEach(redrawAvatar);
+	}
+	if (gameState.remoteDroneCoreRegistry && gameState.remoteDroneCoreRegistry.droneCores) {
+		gameState.remoteDroneCoreRegistry.droneCores.forEach(redrawAvatar);
+	}
+
+	const lvl = (gameState.myStat && gameState.myStat.level) ? gameState.myStat.level : 1;
+	const name = (gameState.myPlayerName || (gameState.myStat && gameState.myStat.name)) || "";
+	if (gameState.playerContainer && gameState.playerContainer.avatar && typeof gameState.playerContainer.avatar.setLabel === 'function') {
+		hookAvatarLabel(gameState.playerContainer, gameState.playerContainer);
+		if (name) gameState.playerContainer.avatar.setLabel("LV" + lvl + " " + name);
+	}
+	if (gameState.localAvatar && typeof gameState.localAvatar.setLabel === 'function') {
+		hookAvatarLabel({ avatar: gameState.localAvatar, container: gameState.playerContainer, isLocalPlayer: true }, gameState.playerContainer);
+		if (name) gameState.localAvatar.setLabel("LV" + lvl + " " + name);
+	}
+};
+
 function tick() {
 	if (window.__spkmodPauseTick) return;
 	if (lunTickCount % 20 === 0) spkmodAvatarController.sync();
@@ -496,10 +537,23 @@ function tick() {
 	lunTickCount++;
 	lunSleep--;
 
-	setText(lunHudElements.playersNearby, t("playersNearby", gameState.remotePlayers?.remotePlayers?.size ?? 0));
-	setText(lunHudElements.zoneId, t("zoneId", zoneId));
-	setText(lunHudElements.expTrackerL1, expTrackerL1);
-	setText(lunHudElements.expTrackerL2, expTrackerL2);
+	const remoteNearbyCount = gameState.remotePlayers?.remotePlayers?.size ?? 0;
+	if (remoteNearbyCount !== _lunHudLastPlayersNearby) {
+		_lunHudLastPlayersNearby = remoteNearbyCount;
+		setText(lunHudElements.playersNearby, t("playersNearby", remoteNearbyCount));
+	}
+	if (zoneId !== _lunHudLastZoneId) {
+		_lunHudLastZoneId = zoneId;
+		setText(lunHudElements.zoneId, t("zoneId", zoneId));
+	}
+	if (expTrackerL1 !== _lunHudLastExpL1) {
+		_lunHudLastExpL1 = expTrackerL1;
+		setText(lunHudElements.expTrackerL1, expTrackerL1);
+	}
+	if (expTrackerL2 !== _lunHudLastExpL2) {
+		_lunHudLastExpL2 = expTrackerL2;
+		setText(lunHudElements.expTrackerL2, expTrackerL2);
+	}
 
 	if (lunChannelTrackerEnabled && lunMenuFoldingLevel < 2 && lunTickCount >= lunChannelTrackerNextTicks) {
 		const token = getAuthToken();
@@ -646,43 +700,7 @@ function tick() {
 	}
 
 
-window.spkmodForceNametagRedraw = function() {
-	if (typeof gameState === 'undefined' || !gameState) return;
-
-	const redrawAvatar = (entity) => {
-		if (!entity || !entity.avatar || typeof entity.avatar.setLabel !== 'function') return;
-		hookAvatarLabel(entity);
-		if (entity.info && entity.info.name) {
-			const lvl = entity.info.__spkmodOrigLevel || entity.info.level || 1;
-			entity.avatar.setLabel("LV" + lvl + " " + entity.info.name);
-		} else if (typeof entity.avatar.__spkmodLastRawLabel === "string" && entity.avatar.__spkmodLastRawLabel) {
-			entity.avatar.setLabel(entity.avatar.__spkmodLastRawLabel);
-		}
-	};
-
-	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
-		gameState.remotePlayers.remotePlayers.forEach(redrawAvatar);
-	}
-	if (gameState.remotePetRegistry && gameState.remotePetRegistry.pets) {
-		gameState.remotePetRegistry.pets.forEach(redrawAvatar);
-	}
-	if (gameState.remoteDroneCoreRegistry && gameState.remoteDroneCoreRegistry.droneCores) {
-		gameState.remoteDroneCoreRegistry.droneCores.forEach(redrawAvatar);
-	}
-
-	const lvl = (gameState.myStat && gameState.myStat.level) ? gameState.myStat.level : 1;
-	const name = (gameState.myPlayerName || (gameState.myStat && gameState.myStat.name)) || "";
-	if (gameState.playerContainer && gameState.playerContainer.avatar && typeof gameState.playerContainer.avatar.setLabel === 'function') {
-		hookAvatarLabel(gameState.playerContainer, gameState.playerContainer);
-		if (name) gameState.playerContainer.avatar.setLabel("LV" + lvl + " " + name);
-	}
-	if (gameState.localAvatar && typeof gameState.localAvatar.setLabel === 'function') {
-		hookAvatarLabel({ avatar: gameState.localAvatar, container: gameState.playerContainer, isLocalPlayer: true }, gameState.playerContainer);
-		if (name) gameState.localAvatar.setLabel("LV" + lvl + " " + name);
-	}
-};
-
-	if (lunPanelElements.renameLevelInput && lunPanelElements.renameLevelInput.style.display === "none") {
+	if (lunPanelElements.renameLevelInput && lunPanelElements.renameLevelInput.style.display === "none" && lunTickCount % 20 === 0) {
 		let isVip = false;
 		const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
 		if (playerName) {

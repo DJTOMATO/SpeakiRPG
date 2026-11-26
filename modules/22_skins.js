@@ -1232,6 +1232,7 @@ async function spkmodGetRecoloredBodyTexture(skinId, spec) {
 		ctx.putImageData(imgData, 0, 0);
 		const tex = new THREE.CanvasTexture(canvas);
 		if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+		tex.userData = Object.assign(tex.userData || {}, { spkmodSkinSharedTex: true });
 		tex.needsUpdate = true;
 		return tex;
 	})().catch(err => {
@@ -7173,12 +7174,18 @@ function spkmodSkinDisposeNode(node) {
 	}
 	if (typeof node.traverse === "function") {
 		node.traverse(c => {
-			if (c && c.isMesh && !c.userData?.spkmodSkinSharedGlb) {
-				try { c.geometry?.dispose?.(); } catch (_) {}
+			if (!c || c.userData?.spkmodSkinSharedGlb) return;
+			if (c.isMesh || c.isLine || c.isPoints || c.isSprite) {
+				if (c.geometry && !c.isSprite) {
+					try { c.geometry.dispose?.(); } catch (_) {}
+				}
 				if (c.material) {
 					const mats = Array.isArray(c.material) ? c.material : [c.material];
 					for (const m of mats) {
 						if (m && !m.userData?.spkmodSkinSharedMat) {
+							if (m.map && !m.map.userData?.spkmodSkinSharedTex && typeof m.map.dispose === "function") {
+								try { m.map.dispose(); } catch (_) {}
+							}
 							try { m.dispose?.(); } catch (_) {}
 						}
 					}
@@ -7672,6 +7679,9 @@ function spkmodPFSetTarget(ownerKey, avatarRoot, widthScale) {
 
 function spkmodPFApplyAll() {
 	if (!spkmodIsSkinsSystemEnabled() || spkmodPlayerFat.entries.size === 0) return;
+	const gs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
+	const camPos = gs?.camera?.position || gs?.playerContainer?.position || null;
+	const MAX_REMOTE_PF_DIST_SQ = 45 * 45;
 	for (const [key, e] of spkmodPlayerFat.entries) {
 		if (!e.root || !e.root.parent || e.scale <= 1.001) {
 			spkmodPFRelease(e);
@@ -7679,6 +7689,24 @@ function spkmodPFApplyAll() {
 			continue;
 		}
 		if (e.root.visible === false || e.root.parent.visible === false) continue;
+		if (key !== "local_self" && camPos) {
+			let cont = e.container;
+			if (!cont || !cont.parent) {
+				let p = e.root.parent;
+				while (p && p.parent && p.parent !== gs?.scene) p = p.parent;
+				cont = p || e.root.parent;
+				e.container = cont;
+			}
+			const rPos = cont?.position;
+			if (rPos) {
+				const dx = rPos.x - camPos.x;
+				const dz = rPos.z - camPos.z;
+				if (dx * dx + dz * dz > MAX_REMOTE_PF_DIST_SQ) {
+					if (!e.rel) spkmodPFRelease(e);
+					continue;
+				}
+			}
+		}
 		const pel = e.pel, head = e.head, neck = head.parent;
 		if (!pel || !head || !neck) continue;
 		if (!_spkmodPFMatH1 || _spkmodPFMatH1.constructor !== e.M) {
@@ -7775,6 +7803,9 @@ function spkmodEnsurePlayerFatSceneHook() {
 	const gs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
 	const scene = gs && gs.scene;
 	if (!scene) return false;
+	if (scene.__spkmodPFBeforeHooked && scene.__spkmodPFAfterHooked) {
+		return true;
+	}
 	if (!scene.__spkmodPFBeforeHooked) {
 		scene.__spkmodPFBeforeHooked = true;
 		const prevBefore = scene.onBeforeRender;
@@ -7793,10 +7824,20 @@ function spkmodEnsurePlayerFatSceneHook() {
 			} catch (_) {}
 		};
 	}
-	if (!scene.__spkmodPFAfterFn || scene.onAfterRender !== scene.__spkmodPFAfterFn) {
-		const curAfter = scene.onAfterRender;
-		if (!curAfter || !curAfter.__spkmodPFInChain) {
-			const prevAfter = curAfter;
+	if (!scene.__spkmodPFAfterHooked) {
+		scene.__spkmodPFAfterHooked = true;
+		let alreadyInChain = false;
+		let cursor = scene.onAfterRender;
+		let guard = 0;
+		while (typeof cursor === "function" && guard++ < 32) {
+			if (cursor === scene.__spkmodPFAfterFn || cursor.__spkmodPFInChain) {
+				alreadyInChain = true;
+				break;
+			}
+			cursor = cursor.__spkmodPrevAfter;
+		}
+		if (!alreadyInChain) {
+			const prevAfter = scene.onAfterRender;
 			const wrappedAfter = function(renderer, sc, camera, ...rest) {
 				if (typeof prevAfter === "function") {
 					try { prevAfter.call(this, renderer, sc, camera, ...rest); } catch (_) {}
@@ -7808,6 +7849,7 @@ function spkmodEnsurePlayerFatSceneHook() {
 				} catch (_) {}
 			};
 			wrappedAfter.__spkmodPFInChain = true;
+			wrappedAfter.__spkmodPrevAfter = prevAfter;
 			scene.__spkmodPFAfterFn = wrappedAfter;
 			scene.onAfterRender = wrappedAfter;
 		}
@@ -8504,19 +8546,42 @@ function spkmodSkinsMasterLoop(nowMs) {
 				const winnersByRoot = new Map(); // rpRoot -> { ownerKey, state, rp, canonicalKey }
 				const staleDuplicateKeys = [];
 				for (const [ownerKey, state] of _spkmodRemoteSkinStates) {
-					const resolved = spkmodResolveRemotePlayerForSkin(state.playerId, state.playerName);
-					if (!resolved || !resolved.rp || !resolved.rp.avatar?.root) continue;
-					const rpRoot = resolved.rp.avatar.root;
+					let rp = (state.cachedRp && state.cachedRpKey !== undefined && rMap.get(state.cachedRpKey) === state.cachedRp)
+						? state.cachedRp
+						: null;
+					let canonicalKey = state.cachedCanonicalKey;
+					if (!rp) {
+						const resolved = spkmodResolveRemotePlayerForSkin(state.playerId, state.playerName);
+						if (resolved && resolved.rp) {
+							rp = resolved.rp;
+							canonicalKey = resolved.key;
+							state.cachedRp = rp;
+							state.cachedCanonicalKey = canonicalKey;
+							state.cachedRpKey = rMap.has(Number(canonicalKey)) ? Number(canonicalKey) : canonicalKey;
+							if (rMap.get(state.cachedRpKey) !== rp) state.cachedRpKey = canonicalKey;
+						}
+					}
+					if (!rp || !rp.avatar?.root) {
+						if (!state._missingSinceMs) state._missingSinceMs = nowMs;
+						else if (nowMs - state._missingSinceMs > 15000) {
+							staleDuplicateKeys.push(ownerKey);
+							if (state.playerId != null) _spkmodRemoteSkinPendingById.delete(String(state.playerId));
+							if (state.playerName) _spkmodRemoteSkinPendingByName.delete(state.playerName.trim().toLowerCase());
+						}
+						continue;
+					}
+					state._missingSinceMs = 0;
+					const rpRoot = rp.avatar.root;
 					const prevWin = winnersByRoot.get(rpRoot);
 					if (prevWin) {
 						if ((state.updatedAtMs || 0) >= (prevWin.state.updatedAtMs || 0)) {
 							staleDuplicateKeys.push(prevWin.ownerKey);
-							winnersByRoot.set(rpRoot, { ownerKey, state, rp: resolved.rp, canonicalKey: resolved.key });
+							winnersByRoot.set(rpRoot, { ownerKey, state, rp, canonicalKey });
 						} else {
 							staleDuplicateKeys.push(ownerKey);
 						}
 					} else {
-						winnersByRoot.set(rpRoot, { ownerKey, state, rp: resolved.rp, canonicalKey: resolved.key });
+						winnersByRoot.set(rpRoot, { ownerKey, state, rp, canonicalKey });
 					}
 				}
 				for (let i = 0; i < staleDuplicateKeys.length; i++) {
@@ -8610,23 +8675,22 @@ function spkmodSkinsMasterLoop(nowMs) {
 			const isLocal = ownerKey === "local_self";
 			if (!isLocal) {
 				if (entry.root.visible === false || entry.root.parent?.visible === false) continue;
-				if (camPos) {
-					let rpPos = null;
-					if (tmpAnimPos && typeof entry.root.getWorldPosition === "function") {
-						rpPos = entry.root.getWorldPosition(tmpAnimPos);
-					} else {
-						// Walk up past avatarPose (local 0,0,0) to remote container in world space
-						let p = entry.root.parent;
-						while (p && p.parent && p.parent !== gameState.scene) p = p.parent;
-						rpPos = p?.position || entry.root.parent?.position || null;
+					if (camPos) {
+						let cont = entry.container;
+						if (!cont || !cont.parent) {
+							let p = entry.root.parent;
+							while (p && p.parent && p.parent !== gameState.scene) p = p.parent;
+							cont = p || entry.root.parent;
+							entry.container = cont;
+						}
+						const rpPos = cont?.position || null;
+						if (rpPos) {
+							const dx = rpPos.x - camPos.x;
+							const dy = rpPos.y - camPos.y;
+							const dz = rpPos.z - camPos.z;
+							if (dx * dx + dy * dy + dz * dz > MAX_REMOTE_ANIM_DIST_SQ) continue;
+						}
 					}
-					if (rpPos) {
-						const dx = rpPos.x - camPos.x;
-						const dy = rpPos.y - camPos.y;
-						const dz = rpPos.z - camPos.z;
-						if (dx * dx + dy * dy + dz * dz > MAX_REMOTE_ANIM_DIST_SQ) continue;
-					}
-				}
 			}
 			if (entry.hideMagicStaff && (!entry._lastStaffCheckMs || nowMs - entry._lastStaffCheckMs >= 900)) {
 				entry._lastStaffCheckMs = nowMs;

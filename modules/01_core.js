@@ -55,6 +55,7 @@ try {
 						patchRendererBloomMaterial(r);
 					}
 				};
+				probeAfter.__spkmodPrevAfter = prevAfter;
 				sc.onAfterRender = probeAfter;
 			} else if (bloomGuardTries > 160) {
 				clearInterval(bloomGuardTimer);

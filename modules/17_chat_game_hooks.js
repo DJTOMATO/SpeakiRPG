@@ -1349,7 +1349,7 @@ function spkmodIsGameGl(gl) {
 			if (original.__spkmodActualFpsHook) continue;
 
 			const wrapped = function () {
-				if (spkmodFpsState.enabled && spkmodIsGameGl(this)) {
+				if (spkmodFpsState.enabled && !spkmodFpsState.drawn && spkmodIsGameGl(this)) {
 					spkmodFpsState.drawn = true;
 				}
 				return original.apply(this, arguments);
