@@ -28527,14 +28527,100 @@ function beyBladeRenderLoop(currentTime) {
 
 
 // --- MOD PLAYERS TELEMETRY & HOURLY PING ---
-var lunModPlayersCounts = { count1h: null, count24h: null, count7d: null, countAllTime: null };
+var lunModPlayersCounts = { count10m: null, count1h: null, count24h: null, count7d: null, countAllTime: null };
 var lunLastTelemetryPingTime = 0;
-var lunTelemetryPingIntervalMs = 10 * 60 * 1000; // 10 minutes
+var lunLastTelemetryStatsTime = 0;
+var lunTelemetryIdentifiedKey = "";
+var lunTelemetryLastSavedName = "";
+var lunTelemetryLastSavedId = "";
+var lunTelemetryPingIntervalMs = 5 * 60 * 1000; // 5 minutes (keeps 10m active window accurate without dropouts)
+var lunTelemetryActiveWindowMs = 10 * 60 * 1000; // 10-minute active window (matches concurrent Total SPK)
+
+function spkmodGetTelemetryIdentity() {
+	const gs = (typeof gameState !== "undefined" && gameState)
+		? gameState
+		: (typeof window !== "undefined" ? window.gameState : null);
+	const rawName = (gs && (gs.myPlayerName || gs.myStat?.name))
+		? String(gs.myPlayerName || gs.myStat.name).trim()
+		: "";
+	const rawId = (gs && gs.myPlayerId != null)
+		? String(gs.myPlayerId).trim()
+		: "";
+
+	if (rawName && rawName !== lunTelemetryLastSavedName) {
+		lunTelemetryLastSavedName = rawName;
+		try { if (window.localStorage) localStorage.setItem("spkmod-last-player-name", rawName); } catch (_) {}
+	}
+	if (rawId && rawId !== lunTelemetryLastSavedId) {
+		lunTelemetryLastSavedId = rawId;
+		try { if (window.localStorage) localStorage.setItem("spkmod-last-player-id", rawId); } catch (_) {}
+	}
+
+	return {
+		username: rawName,
+		playerId: rawId,
+		isIdentified: Boolean(rawName)
+	};
+}
+
+function spkmodComputeActiveCount(active24h, windowMs, serverDateMs) {
+	if (!Array.isArray(active24h)) return null;
+	if (active24h.length === 0) return 0;
+
+	let maxLastSeen = 0;
+	for (let i = 0; i < active24h.length; i++) {
+		const ts = Number(active24h[i]?.lastSeen);
+		if (Number.isFinite(ts) && ts > maxLastSeen) maxLastSeen = ts;
+	}
+
+	let nowMs = Date.now();
+	if (Number.isFinite(serverDateMs) && serverDateMs > 0) {
+		nowMs = serverDateMs;
+	} else if (maxLastSeen > 0 && (nowMs < maxLastSeen || (nowMs - maxLastSeen) > 5 * 60 * 1000)) {
+		// Guard against skewed client system clocks
+		nowMs = maxLastSeen;
+	}
+
+	let count = 0;
+	for (let i = 0; i < active24h.length; i++) {
+		const ts = Number(active24h[i]?.lastSeen);
+		if (Number.isFinite(ts) && (nowMs - ts) <= windowMs) {
+			count++;
+		}
+	}
+	return count;
+}
+
+function spkmodApplyTelemetryCounts(data, serverDateMs) {
+	if (!data || !data.success) return false;
+	let count10m = null;
+	if (typeof data.count10m === "number" && Number.isFinite(data.count10m)) {
+		count10m = data.count10m;
+	} else if (Array.isArray(data.active24h)) {
+		count10m = spkmodComputeActiveCount(data.active24h, lunTelemetryActiveWindowMs, serverDateMs);
+	}
+	lunModPlayersCounts = {
+		count10m: count10m !== null ? count10m : lunModPlayersCounts.count10m,
+		count1h: data.count1h ?? lunModPlayersCounts.count1h,
+		count24h: data.count24h ?? lunModPlayersCounts.count24h,
+		count7d: data.count7d ?? lunModPlayersCounts.count7d,
+		countAllTime: data.countAllTime ?? lunModPlayersCounts.countAllTime
+	};
+	window.spkmodRenderChannelTracker();
+	return count10m !== null;
+}
+
+function spkmodGetDisplayModCount() {
+	if (lunModPlayersCounts.count10m !== null) return lunModPlayersCounts.count10m;
+	if (lunModPlayersCounts.count1h !== null) return lunModPlayersCounts.count1h;
+	return null;
+}
 
 window.spkmodRenderChannelTracker = function() {
 	if (!window.__spkmodLastChannelResp || !lunHudElements.channelTracker) return;
-	const modLine = (lunModPlayersCounts.count1h !== null)
-		? "\n" + t("totalModPlayers", lunModPlayersCounts.count1h)
+	const displayModCount = spkmodGetDisplayModCount();
+	const modLine = (displayModCount !== null)
+		? "\n" + t("totalModPlayers", displayModCount.toLocaleString())
 		: "\n" + t("totalModPlayers", "--");
 
 	setText(lunHudElements.channelTracker,
@@ -28543,59 +28629,79 @@ window.spkmodRenderChannelTracker = function() {
 		+ modLine);
 };
 
+window.spkmodFetchTelemetryStats = function() {
+	lunLastTelemetryStatsTime = Date.now();
+	const safeFetch = window.spkmodSafeFetch || window.fetch;
+	return safeFetch(`${SPKMOD_SERVER_URL}/api/telemetry/stats`, {}, 4000)
+	.then(async res => {
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const dateHeader = res.headers && typeof res.headers.get === "function" ? res.headers.get("date") : null;
+		const serverDateMs = dateHeader ? Date.parse(dateHeader) : NaN;
+		const data = await res.json();
+		return { data, serverDateMs };
+	})
+	.then(({ data, serverDateMs }) => {
+		if (window.spkmodServerHealth) window.spkmodServerHealth.recordSuccess();
+		spkmodApplyTelemetryCounts(data, serverDateMs);
+	})
+	.catch(_ => {
+		if (window.spkmodServerHealth) window.spkmodServerHealth.recordFailure();
+	});
+};
+
 window.spkmodSendTelemetryPing = function() {
 	const consent = window.localStorage ? localStorage.getItem("spkmod-telemetry-consent") : null;
-
-	// Always mark attempt timestamp so failures never trigger repeated pings every second
-	lunLastTelemetryPingTime = Date.now();
+	const identity = spkmodGetTelemetryIdentity();
 	const safeFetch = window.spkmodSafeFetch || window.fetch;
 
-	if (consent === "granted") {
-		const username = (window.gameState && window.gameState.myPlayerName) ? String(window.gameState.myPlayerName).trim() : (localStorage.getItem("spkmod-last-player-name") || "Player");
-		const playerId = (window.gameState && window.gameState.myPlayerId) ? String(window.gameState.myPlayerId) : (localStorage.getItem("spkmod-last-player-id") || "");
+	// Only send an identified ping once logged in with consent; otherwise just fetch stats
+	if (consent === "granted" && identity.isIdentified) {
+		// Always mark attempt timestamp so failures never trigger repeated pings every second
+		lunLastTelemetryPingTime = Date.now();
+		lunTelemetryIdentifiedKey = `${identity.username}|${identity.playerId}`;
 
 		safeFetch(`${SPKMOD_SERVER_URL}/api/telemetry/ping`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ username, playerId })
+			body: JSON.stringify({ username: identity.username, playerId: identity.playerId })
 		}, 4000)
-		.then(res => {
+		.then(async res => {
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			return res.json();
+			const dateHeader = res.headers && typeof res.headers.get === "function" ? res.headers.get("date") : null;
+			const serverDateMs = dateHeader ? Date.parse(dateHeader) : NaN;
+			const data = await res.json();
+			return { data, serverDateMs };
 		})
-		.then(data => {
+		.then(({ data, serverDateMs }) => {
 			if (window.spkmodServerHealth) window.spkmodServerHealth.recordSuccess();
-			if (data && data.success) {
-				lunModPlayersCounts = { count1h: data.count1h, count24h: data.count24h, count7d: data.count7d, countAllTime: data.countAllTime };
-				window.spkmodRenderChannelTracker();
+			const has10m = spkmodApplyTelemetryCounts(data, serverDateMs);
+			// If /ping does not return active24h/count10m, fetch /stats to compute the 10-minute active count
+			if (!has10m) {
+				window.spkmodFetchTelemetryStats();
 			}
 		})
 		.catch(_ => {
+			lunTelemetryIdentifiedKey = "";
 			if (window.spkmodServerHealth) window.spkmodServerHealth.recordFailure();
 		});
 	} else {
-		safeFetch(`${SPKMOD_SERVER_URL}/api/telemetry/stats`, {}, 4000)
-		.then(res => {
-			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			return res.json();
-		})
-		.then(data => {
-			if (window.spkmodServerHealth) window.spkmodServerHealth.recordSuccess();
-			if (data && data.success) {
-				lunModPlayersCounts = { count1h: data.count1h, count24h: data.count24h, count7d: data.count7d, countAllTime: data.countAllTime };
-				window.spkmodRenderChannelTracker();
-			}
-		})
-		.catch(_ => {
-			if (window.spkmodServerHealth) window.spkmodServerHealth.recordFailure();
-		});
+		window.spkmodFetchTelemetryStats();
 	}
 };
 
 window.spkmodCheckTelemetryPing = function() {
 	if (window.spkmodServerHealth && !window.spkmodServerHealth.isAvailable()) return;
-	if (Date.now() - lunLastTelemetryPingTime >= lunTelemetryPingIntervalMs) {
-		window.spkmodSendTelemetryPing();
+	const consent = window.localStorage ? localStorage.getItem("spkmod-telemetry-consent") : null;
+	const identity = spkmodGetTelemetryIdentity();
+
+	if (consent === "granted" && identity.isIdentified) {
+		const currentKey = `${identity.username}|${identity.playerId}`;
+		const needsInitialOrSwitchPing = currentKey !== lunTelemetryIdentifiedKey;
+		if (needsInitialOrSwitchPing || Date.now() - lunLastTelemetryPingTime >= lunTelemetryPingIntervalMs) {
+			window.spkmodSendTelemetryPing();
+		}
+	} else if (Date.now() - lunLastTelemetryStatsTime >= lunTelemetryPingIntervalMs) {
+		window.spkmodFetchTelemetryStats();
 	}
 };
 
@@ -28675,7 +28781,7 @@ function tick() {
 	if (lunTickCount % 20 === 0 && typeof hookChatEmojiButton === "function") {
 		hookChatEmojiButton();
 	}
-	if (lunTickCount % 1800 === 0 && typeof window.spkmodCheckTelemetryPing === "function") {
+	if (lunTickCount % 600 === 0 && typeof window.spkmodCheckTelemetryPing === "function") {
 		window.spkmodCheckTelemetryPing();
 	}
 
@@ -29107,8 +29213,9 @@ function tick() {
 				var totalPop = resp.reduce((sum, ch) => sum + (ch.population || 0), 0);
 				window.__spkmodLastChannelResp = resp;
 				window.__spkmodLastTotalPop = totalPop;
-				var modLine = (lunModPlayersCounts.count1h !== null)
-					? "\n" + t("totalModPlayers", lunModPlayersCounts.count1h)
+				var displayModCount = spkmodGetDisplayModCount();
+				var modLine = (displayModCount !== null)
+					? "\n" + t("totalModPlayers", displayModCount.toLocaleString())
 					: "\n" + t("totalModPlayers", "--");
 
 				setText(lunHudElements.channelTracker,
