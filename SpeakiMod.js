@@ -1422,14 +1422,25 @@ const DEFAULT_RAIDS = [
 	},
 	{
 		"raidId": 8,
-		"templateZoneId": 910,
+		"templateZoneId": 283,
 		"altarZoneId": 303,
-		"altarX": 534,
-		"altarZ": -884,
-		"bossMonsterId": 1393,
-		"bossLevel": 85,
+		"altarX": 484,
+		"altarZ": -868,
+		"bossMonsterId": 1399,
+		"bossLevel": 90,
 		"requiredLevel": 85,
 		"name": "Errand Lane Sealed Altar"
+	},
+	{
+		"raidId": 9,
+		"templateZoneId": 285,
+		"altarZoneId": 309,
+		"altarX": 1696,
+		"altarZ": -794,
+		"bossMonsterId": 1400,
+		"bossLevel": 100,
+		"requiredLevel": 95,
+		"name": "Wither Root Dock Sealed Altar"
 	},
 	{
 		"raidId": 10,
@@ -1439,12 +1450,12 @@ const DEFAULT_RAIDS = [
 		"altarZ": -806,
 		"bossMonsterId": 1385,
 		"bossLevel": 94,
-		"requiredLevel": 85,
+		"requiredLevel": 1,
 		"name": "Theater Backstage (Soggy Stage Curtain)"
 	}
 ];
 
-const DEFAULT_WORLD_ZONES = [{"zoneId": 1, "minX": 0, "maxX": 100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 2, "minX": 100, "maxX": 200, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 3, "minX": 200, "maxX": 300, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 4, "minX": 300, "maxX": 430, "minZ": 60, "maxZ": 140, "requiredQuestCode": null}, {"zoneId": 5, "minX": 430, "maxX": 560, "minZ": 60, "maxZ": 140, "requiredQuestCode": null}, {"zoneId": 6, "minX": 560, "maxX": 660, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 7, "minX": 660, "maxX": 760, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 8, "minX": 760, "maxX": 960, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 9, "minX": 960, "maxX": 1140, "minZ": 40, "maxZ": 160, "requiredQuestCode": null}, {"zoneId": 10, "minX": 1140, "maxX": 1360, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 11, "minX": 2000, "maxX": 2040, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 12, "minX": 2100, "maxX": 2140, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 13, "minX": 2200, "maxX": 2240, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 101, "minX": 100, "maxX": 300, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 102, "minX": 350, "maxX": 450, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 103, "minX": 550, "maxX": 650, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 104, "minX": 712.5, "maxX": 787.5, "minZ": 212.5, "maxZ": 287.5, "requiredQuestCode": "MQ_BOSS_WORLDTREE"}, {"zoneId": 105, "minX": 850, "maxX": 950, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 106, "minX": 1050, "maxX": 1150, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 107, "minX": 1250, "maxX": 1350, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 108, "minX": 1400, "maxX": 1600, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 181, "minX": 2300, "maxX": 2340, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 182, "minX": 2400, "maxX": 2440, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 201, "minX": 120, "maxX": 280, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 202, "minX": 340, "maxX": 460, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 203, "minX": 520, "maxX": 680, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 204, "minX": 725, "maxX": 775, "minZ": -75, "maxZ": -25, "requiredQuestCode": "MQ2_CORE3"}, {"zoneId": 205, "minX": 840, "maxX": 960, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 206, "minX": 1040, "maxX": 1160, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 207, "minX": 1240, "maxX": 1360, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 208, "minX": 1440, "maxX": 1560, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 209, "minX": 1620, "maxX": 1780, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 281, "minX": 2500, "maxX": 2540, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 282, "minX": 2588, "maxX": 2652, "minZ": -12, "maxZ": 52, "requiredQuestCode": null}, {"zoneId": 900, "minX": 0, "maxX": 1200, "minZ": 0, "maxZ": 25, "requiredQuestCode": null}, {"zoneId": 901, "minX": 0, "maxX": 100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 902, "minX": 0, "maxX": 50, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 903, "minX": 0, "maxX": 120, "minZ": 0, "maxZ": 90, "requiredQuestCode": null}, {"zoneId": 905, "minX": 0, "maxX": 40, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 910, "minX": 2700, "maxX": 2740, "minZ": 0, "maxZ": 30, "requiredQuestCode": null}, {"zoneId": 911, "minX": -2048, "maxX": 2048, "minZ": -2048, "maxZ": 2048, "requiredQuestCode": null}, {"zoneId": 301, "minX": 0, "maxX": 140, "minZ": -900, "maxZ": -760, "requiredQuestCode": null}, {"zoneId": 302, "minX": 220, "maxX": 320, "minZ": -940, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 303, "minX": 400, "maxX": 550, "minZ": -900, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 304, "minX": 620, "maxX": 690, "minZ": -855, "maxZ": -785, "requiredQuestCode": "MQ3_THUNDER3"}, {"zoneId": 305, "minX": 730, "maxX": 890, "minZ": -940, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 306, "minX": 930, "maxX": 1070, "minZ": -910, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 307, "minX": 1150, "maxX": 1310, "minZ": -900, "maxZ": -800, "requiredQuestCode": null}, {"zoneId": 308, "minX": 1350, "maxX": 1480, "minZ": -950, "maxZ": -800, "requiredQuestCode": null}, {"zoneId": 309, "minX": 1550, "maxX": 1710, "minZ": -940, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 909, "minX": 1.4, "maxX": 22.6, "minZ": 1.4, "maxZ": 12.6, "requiredQuestCode": null}, {"zoneId": 950, "minX": 3000, "maxX": 3100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 283, "minX": 2800, "maxX": 2840, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}];
+const DEFAULT_WORLD_ZONES = [{"zoneId": 1, "minX": 0, "maxX": 100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 2, "minX": 100, "maxX": 200, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 3, "minX": 200, "maxX": 300, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 4, "minX": 300, "maxX": 430, "minZ": 60, "maxZ": 140, "requiredQuestCode": null}, {"zoneId": 5, "minX": 430, "maxX": 560, "minZ": 60, "maxZ": 140, "requiredQuestCode": null}, {"zoneId": 6, "minX": 560, "maxX": 660, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 7, "minX": 660, "maxX": 760, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 8, "minX": 760, "maxX": 960, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 9, "minX": 960, "maxX": 1140, "minZ": 40, "maxZ": 160, "requiredQuestCode": null}, {"zoneId": 10, "minX": 1140, "maxX": 1360, "minZ": 0, "maxZ": 200, "requiredQuestCode": null}, {"zoneId": 11, "minX": 2000, "maxX": 2040, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 12, "minX": 2100, "maxX": 2140, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 13, "minX": 2200, "maxX": 2240, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 101, "minX": 100, "maxX": 300, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 102, "minX": 350, "maxX": 450, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 103, "minX": 550, "maxX": 650, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 104, "minX": 712.5, "maxX": 787.5, "minZ": 212.5, "maxZ": 287.5, "requiredQuestCode": "MQ_BOSS_WORLDTREE"}, {"zoneId": 105, "minX": 850, "maxX": 950, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 106, "minX": 1050, "maxX": 1150, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 107, "minX": 1250, "maxX": 1350, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 108, "minX": 1400, "maxX": 1600, "minZ": 200, "maxZ": 400, "requiredQuestCode": null}, {"zoneId": 181, "minX": 2300, "maxX": 2340, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 182, "minX": 2400, "maxX": 2440, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 201, "minX": 120, "maxX": 280, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 202, "minX": 340, "maxX": 460, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 203, "minX": 520, "maxX": 680, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 204, "minX": 725, "maxX": 775, "minZ": -75, "maxZ": -25, "requiredQuestCode": "MQ2_CORE3"}, {"zoneId": 205, "minX": 840, "maxX": 960, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 206, "minX": 1040, "maxX": 1160, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 207, "minX": 1240, "maxX": 1360, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 208, "minX": 1440, "maxX": 1560, "minZ": -200, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 209, "minX": 1620, "maxX": 1780, "minZ": -160, "maxZ": 0, "requiredQuestCode": null}, {"zoneId": 281, "minX": 2500, "maxX": 2540, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 282, "minX": 2588, "maxX": 2652, "minZ": -12, "maxZ": 52, "requiredQuestCode": null}, {"zoneId": 900, "minX": 0, "maxX": 1200, "minZ": 0, "maxZ": 25, "requiredQuestCode": null}, {"zoneId": 901, "minX": 0, "maxX": 100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 902, "minX": 0, "maxX": 50, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 903, "minX": 0, "maxX": 120, "minZ": 0, "maxZ": 90, "requiredQuestCode": null}, {"zoneId": 905, "minX": 0, "maxX": 40, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 910, "minX": 2700, "maxX": 2740, "minZ": 0, "maxZ": 30, "requiredQuestCode": null}, {"zoneId": 911, "minX": -2048, "maxX": 2048, "minZ": -2048, "maxZ": 2048, "requiredQuestCode": null}, {"zoneId": 301, "minX": 0, "maxX": 140, "minZ": -900, "maxZ": -760, "requiredQuestCode": null}, {"zoneId": 302, "minX": 220, "maxX": 320, "minZ": -940, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 303, "minX": 400, "maxX": 550, "minZ": -900, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 304, "minX": 620, "maxX": 690, "minZ": -855, "maxZ": -785, "requiredQuestCode": "MQ3_THUNDER3"}, {"zoneId": 305, "minX": 730, "maxX": 890, "minZ": -940, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 306, "minX": 930, "maxX": 1070, "minZ": -910, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 307, "minX": 1150, "maxX": 1310, "minZ": -900, "maxZ": -800, "requiredQuestCode": null}, {"zoneId": 308, "minX": 1350, "maxX": 1480, "minZ": -950, "maxZ": -800, "requiredQuestCode": null}, {"zoneId": 309, "minX": 1550, "maxX": 1710, "minZ": -940, "maxZ": -780, "requiredQuestCode": null}, {"zoneId": 909, "minX": 1.4, "maxX": 22.6, "minZ": 1.4, "maxZ": 12.6, "requiredQuestCode": null}, {"zoneId": 950, "minX": 3000, "maxX": 3100, "minZ": 0, "maxZ": 100, "requiredQuestCode": null}, {"zoneId": 283, "minX": 2800, "maxX": 2840, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}, {"zoneId": 285, "minX": 2900, "maxX": 2940, "minZ": 0, "maxZ": 40, "requiredQuestCode": null}];
 
 var spkmodConstants = (function() {
 	try {
@@ -9670,6 +9681,43 @@ document.body.appendChild(
 					onclick: () => {
 						if (typeof window.spkmodToggleActiveVehicle === "function") window.spkmodToggleActiveVehicle();
 					}
+				}),
+				lunPanelElements.hyperShakeBtn = buildElement("button", {
+					id: "spkmod-hypershake-main-btn",
+					className: "spkmod-panel-btn",
+					innerText: window.HyperShakeActive ? t("hyperShakeOn") : t("hyperShakeOff"),
+					value: "",
+					onclick: e => {
+						window.HyperShakeActive = !window.HyperShakeActive;
+
+						if (window.HyperShakeActive) {
+							window.ShakeActive = false;
+							window.SuperShakeActive = false;
+							window.BeyBladeActive = false;
+							window.MoonwalkActive = false;
+							window.ReverseBeyBladeActive = false;
+							if (window.vibrateTimer) clearInterval(window.vibrateTimer);
+							window.vibrateTimer = setInterval(() => {
+								if (!gameState || !gameState.playerContainer) return;
+								const base = gameState.cameraController?.cameraYaw || 0;
+								gameState.playerContainer.rotation.y = base + (Math.random() - 0.5) * 1.5;
+								gameState.moveSendAccumulator = 1;
+							}, 25);
+							updateMovementButtonsUI();
+							chatLog(t("hyperShakeActivatedMsg"));
+						} else {
+							if (window.vibrateTimer) {
+								clearInterval(window.vibrateTimer);
+								window.vibrateTimer = null;
+							}
+							updateMovementButtonsUI();
+							if (gameState.playerContainer && gameState.cameraController) {
+								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
+								gameState.moveSendAccumulator = 1;
+							}
+							chatLog(t("hyperShakeDeactivatedMsg"));
+						}
+					}
 				})
 			]),
 
@@ -9794,6 +9842,123 @@ document.body.appendChild(
 								}
 							} else {
 								chatLog(t("playersRadarNone"));
+							}
+						}
+					}
+				}),
+				lunPanelElements.freeCamBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					innerText: t("freeCamOff"),
+					style: "flex: 1;",
+					onclick: e => {
+						lunDroneModeActive = !lunDroneModeActive;
+						setText(e.target, t(lunDroneModeActive ? "freeCamOn" : "freeCamOff"));
+						if (lunDroneModeActive) {
+							lunFirstPersonActive = false;
+							if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t("firstPersonOff"));
+							if (lunTrueFirstPersonActive) {
+								lunTrueFirstPersonActive = false;
+								if (window.lunInvisibilityActive && typeof window.spkmodToggleInvisibility === "function") window.spkmodToggleInvisibility();
+								if (lunPanelElements.trueFirstPersonBtn) setText(lunPanelElements.trueFirstPersonBtn, t("trueFirstPersonOff"));
+							}
+							if (gameState.playerContainer) {
+								const remoteContainers = gameState.remotePlayers?.remotePlayers ? 
+									Array.from(gameState.remotePlayers.remotePlayers.values()).map(rp => rp.container) : [];
+								gameState.playerContainer.children.forEach(c => {
+									if (remoteContainers.includes(c) || c === gameState.selfMinigameRing) return;
+									c.visible = true;
+								});
+							}
+							if (gameState.playerContainer && gameState.cameraController) {
+								window.spkmodDroneTarget = { position: { x: gameState.playerContainer.position.x, y: gameState.playerContainer.position.y, z: gameState.playerContainer.position.z } };
+								gameState.cameraController.target = window.spkmodDroneTarget;
+								
+								if (!gameState.cameraController._spkmodPatchedUpdate) {
+									const origUpdate = gameState.cameraController.update;
+									gameState.cameraController.update = function(dt) {
+										if (lunDroneModeActive && window.spkmodDroneTarget) {
+											const now = performance.now();
+											window.lunDroneLastFrame = window.lunDroneLastFrame || now;
+											const dtNormalized = Math.min(now - window.lunDroneLastFrame, 100) / 16.666;
+											window.lunDroneLastFrame = now;
+
+											let targetVX = 0;
+											let targetVZ = 0;
+											let targetVY = 0;
+
+											if (typeof gamepadMoveVector !== 'undefined' && gamepadMoveVector) {
+												targetVX = gamepadMoveVector.x;
+												targetVZ = gamepadMoveVector.z;
+											} else {
+												let lx = 0, ly = 0;
+												if (window.spkmodDroneKeys) {
+													if (window.spkmodDroneKeys.w) ly -= 1;
+													if (window.spkmodDroneKeys.s) ly += 1;
+													if (window.spkmodDroneKeys.a) lx -= 1;
+													if (window.spkmodDroneKeys.d) lx += 1;
+												}
+												if (lx !== 0 || ly !== 0) {
+													const camYaw = this.cameraYaw || 0;
+													targetVX = lx * Math.cos(camYaw) + ly * Math.sin(camYaw);
+													targetVZ = -lx * Math.sin(camYaw) + ly * Math.cos(camYaw);
+													const mag = Math.sqrt(targetVX * targetVX + targetVZ * targetVZ);
+													targetVX /= mag;
+													targetVZ /= mag;
+												}
+											}
+
+											if (window.spkmodDroneKeys) {
+												if (window.spkmodDroneKeys.up) targetVY += 1;
+												if (window.spkmodDroneKeys.down) targetVY -= 1;
+											}
+											
+											window.lunDroneVX = window.lunDroneVX || 0;
+											window.lunDroneVZ = window.lunDroneVZ || 0;
+											window.lunDroneVY = window.lunDroneVY || 0;
+											
+											const lerp = 1 - Math.pow(0.7, Math.max(0.001, dtNormalized));
+											window.lunDroneVX += (targetVX - window.lunDroneVX) * lerp;
+											window.lunDroneVZ += (targetVZ - window.lunDroneVZ) * lerp;
+											window.lunDroneVY += (targetVY - window.lunDroneVY) * lerp;
+											
+											const speed = ((typeof window.lunDroneSpeed !== 'undefined' ? window.lunDroneSpeed : (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10)));
+											
+											// Stop completely if the velocity is extremely small to prevent endless micro-drifting
+											if (Math.abs(window.lunDroneVX) < 0.001) window.lunDroneVX = 0;
+											if (Math.abs(window.lunDroneVZ) < 0.001) window.lunDroneVZ = 0;
+											if (Math.abs(window.lunDroneVY) < 0.001) window.lunDroneVY = 0;
+											
+											window.spkmodDroneTarget.position.x += window.lunDroneVX * speed * dtNormalized;
+											window.spkmodDroneTarget.position.z += window.lunDroneVZ * speed * dtNormalized;
+											window.spkmodDroneTarget.position.y += window.lunDroneVY * speed * dtNormalized;
+										}
+										
+										origUpdate.call(this, dt);
+										
+										if (lunDroneModeActive && typeof this.snapToTarget === "function") {
+											this.snapToTarget();
+										}
+									};
+									gameState.cameraController._spkmodPatchedUpdate = true;
+								}
+								
+								// Debugging hooks
+								console.log("[DroneMode] Activated. Target:", window.spkmodDroneTarget);
+								window.spkmodDebugCamera = () => {
+									console.log("Camera Yaw:", gameState.cameraController.cameraYaw);
+									console.log("Camera Pitch:", gameState.cameraController.cameraPitch);
+									console.log("Camera Zoom:", gameState.cameraController.cameraZoomDistance);
+									console.log("Camera Target:", gameState.cameraController.target);
+									console.log("Camera Position:", gameState.cameraController.camera.position);
+									console.log("Drone Keys:", window.spkmodDroneKeys);
+								};
+								chatLog("Drone Mode ON (Run spkmodDebugCamera() in console to debug)");
+							}
+						} else {
+							if (gameState.cameraController && gameState.playerContainer) {
+								gameState.cameraController.target = gameState.playerContainer;
+								console.log("[DroneMode] Deactivated. Target restored to player.");
+								chatLog("Drone Mode OFF");
 							}
 						}
 					}
@@ -10131,160 +10296,6 @@ document.body.appendChild(
 							}
 						}
 					}
-				}),
-				lunPanelElements.hyperShakeBtn = buildElement("button", {
-					id: "spkmod-hypershake-main-btn",
-					className: "spkmod-panel-btn",
-					innerText: window.HyperShakeActive ? t("hyperShakeOn") : t("hyperShakeOff"),
-					value: "",
-					onclick: e => {
-						window.HyperShakeActive = !window.HyperShakeActive;
-
-						if (window.HyperShakeActive) {
-							window.ShakeActive = false;
-							window.SuperShakeActive = false;
-							window.BeyBladeActive = false;
-							window.MoonwalkActive = false;
-							window.ReverseBeyBladeActive = false;
-							if (window.vibrateTimer) clearInterval(window.vibrateTimer);
-							window.vibrateTimer = setInterval(() => {
-								if (!gameState || !gameState.playerContainer) return;
-								const base = gameState.cameraController?.cameraYaw || 0;
-								gameState.playerContainer.rotation.y = base + (Math.random() - 0.5) * 1.5;
-								gameState.moveSendAccumulator = 1;
-							}, 25);
-							updateMovementButtonsUI();
-							chatLog(t("hyperShakeActivatedMsg"));
-						} else {
-							if (window.vibrateTimer) {
-								clearInterval(window.vibrateTimer);
-								window.vibrateTimer = null;
-							}
-							updateMovementButtonsUI();
-							if (gameState.playerContainer && gameState.cameraController) {
-								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
-								gameState.moveSendAccumulator = 1;
-							}
-							chatLog(t("hyperShakeDeactivatedMsg"));
-						}
-					}
-				}),
-				lunPanelElements.freeCamBtn = buildElement("button", {
-					className: "spkmod-panel-btn",
-					innerText: t("freeCamOff"),
-					style: "flex: 1;",
-					onclick: e => {
-						lunDroneModeActive = !lunDroneModeActive;
-						setText(e.target, t(lunDroneModeActive ? "freeCamOn" : "freeCamOff"));
-						if (lunDroneModeActive) {
-							lunFirstPersonActive = false;
-							if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t("firstPersonOff"));
-							if (lunTrueFirstPersonActive) {
-								lunTrueFirstPersonActive = false;
-								if (window.lunInvisibilityActive && typeof window.spkmodToggleInvisibility === "function") window.spkmodToggleInvisibility();
-								if (lunPanelElements.trueFirstPersonBtn) setText(lunPanelElements.trueFirstPersonBtn, t("trueFirstPersonOff"));
-							}
-							if (gameState.playerContainer) {
-								const remoteContainers = gameState.remotePlayers?.remotePlayers ? 
-									Array.from(gameState.remotePlayers.remotePlayers.values()).map(rp => rp.container) : [];
-								gameState.playerContainer.children.forEach(c => {
-									if (remoteContainers.includes(c) || c === gameState.selfMinigameRing) return;
-									c.visible = true;
-								});
-							}
-							if (gameState.playerContainer && gameState.cameraController) {
-								window.spkmodDroneTarget = { position: { x: gameState.playerContainer.position.x, y: gameState.playerContainer.position.y, z: gameState.playerContainer.position.z } };
-								gameState.cameraController.target = window.spkmodDroneTarget;
-								
-								if (!gameState.cameraController._spkmodPatchedUpdate) {
-									const origUpdate = gameState.cameraController.update;
-									gameState.cameraController.update = function(dt) {
-										if (lunDroneModeActive && window.spkmodDroneTarget) {
-											const now = performance.now();
-											window.lunDroneLastFrame = window.lunDroneLastFrame || now;
-											const dtNormalized = Math.min(now - window.lunDroneLastFrame, 100) / 16.666;
-											window.lunDroneLastFrame = now;
-
-											let targetVX = 0;
-											let targetVZ = 0;
-											let targetVY = 0;
-
-											if (typeof gamepadMoveVector !== 'undefined' && gamepadMoveVector) {
-												targetVX = gamepadMoveVector.x;
-												targetVZ = gamepadMoveVector.z;
-											} else {
-												let lx = 0, ly = 0;
-												if (window.spkmodDroneKeys) {
-													if (window.spkmodDroneKeys.w) ly -= 1;
-													if (window.spkmodDroneKeys.s) ly += 1;
-													if (window.spkmodDroneKeys.a) lx -= 1;
-													if (window.spkmodDroneKeys.d) lx += 1;
-												}
-												if (lx !== 0 || ly !== 0) {
-													const camYaw = this.cameraYaw || 0;
-													targetVX = lx * Math.cos(camYaw) + ly * Math.sin(camYaw);
-													targetVZ = -lx * Math.sin(camYaw) + ly * Math.cos(camYaw);
-													const mag = Math.sqrt(targetVX * targetVX + targetVZ * targetVZ);
-													targetVX /= mag;
-													targetVZ /= mag;
-												}
-											}
-
-											if (window.spkmodDroneKeys) {
-												if (window.spkmodDroneKeys.up) targetVY += 1;
-												if (window.spkmodDroneKeys.down) targetVY -= 1;
-											}
-											
-											window.lunDroneVX = window.lunDroneVX || 0;
-											window.lunDroneVZ = window.lunDroneVZ || 0;
-											window.lunDroneVY = window.lunDroneVY || 0;
-											
-											const lerp = 1 - Math.pow(0.7, Math.max(0.001, dtNormalized));
-											window.lunDroneVX += (targetVX - window.lunDroneVX) * lerp;
-											window.lunDroneVZ += (targetVZ - window.lunDroneVZ) * lerp;
-											window.lunDroneVY += (targetVY - window.lunDroneVY) * lerp;
-											
-											const speed = ((typeof window.lunDroneSpeed !== 'undefined' ? window.lunDroneSpeed : (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10)));
-											
-											// Stop completely if the velocity is extremely small to prevent endless micro-drifting
-											if (Math.abs(window.lunDroneVX) < 0.001) window.lunDroneVX = 0;
-											if (Math.abs(window.lunDroneVZ) < 0.001) window.lunDroneVZ = 0;
-											if (Math.abs(window.lunDroneVY) < 0.001) window.lunDroneVY = 0;
-											
-											window.spkmodDroneTarget.position.x += window.lunDroneVX * speed * dtNormalized;
-											window.spkmodDroneTarget.position.z += window.lunDroneVZ * speed * dtNormalized;
-											window.spkmodDroneTarget.position.y += window.lunDroneVY * speed * dtNormalized;
-										}
-										
-										origUpdate.call(this, dt);
-										
-										if (lunDroneModeActive && typeof this.snapToTarget === "function") {
-											this.snapToTarget();
-										}
-									};
-									gameState.cameraController._spkmodPatchedUpdate = true;
-								}
-								
-								// Debugging hooks
-								console.log("[DroneMode] Activated. Target:", window.spkmodDroneTarget);
-								window.spkmodDebugCamera = () => {
-									console.log("Camera Yaw:", gameState.cameraController.cameraYaw);
-									console.log("Camera Pitch:", gameState.cameraController.cameraPitch);
-									console.log("Camera Zoom:", gameState.cameraController.cameraZoomDistance);
-									console.log("Camera Target:", gameState.cameraController.target);
-									console.log("Camera Position:", gameState.cameraController.camera.position);
-									console.log("Drone Keys:", window.spkmodDroneKeys);
-								};
-								chatLog("Drone Mode ON (Run spkmodDebugCamera() in console to debug)");
-							}
-						} else {
-							if (gameState.cameraController && gameState.playerContainer) {
-								gameState.cameraController.target = gameState.playerContainer;
-								console.log("[DroneMode] Deactivated. Target restored to player.");
-								chatLog("Drone Mode OFF");
-							}
-						}
-					}
 				})
 			]),
 			buildElement("div", { className: "spkmod-panel-cat", style: "display: flex; gap: 4px;" }, [
@@ -10412,20 +10423,6 @@ document.body.appendChild(
 						togglePatchNotesModal();
 					}
 				}),
-				lunPanelElements.bbsBtn = buildElement("button", {
-					id: "spkmod-bbs-btn",
-					className: "spkmod-panel-btn",
-					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer; position: relative;",
-					onclick: _ => {
-						if (typeof toggleBbsModal === "function") toggleBbsModal();
-					}
-				}, [
-					buildElement("span", {
-						id: "spkmod-bbs-btn-icon",
-						style: "display: inline-flex; align-items: center; justify-content: center; pointer-events: none;",
-						innerHTML: renderSpkmodInlineEmojis(":t_280:", "height: 20px; width: 20px; object-fit: contain; display: block; pointer-events: none; user-select: none;")
-					})
-				]),
 				lunPanelElements.infoBtn = buildElement("button", {
 					id: "spkmod-info-btn",
 					className: "spkmod-panel-btn",
@@ -10434,7 +10431,11 @@ document.body.appendChild(
 					onclick: _ => {
 						toggleInfoModal();
 					}
-				}),
+				})
+			]),
+			buildElement("div", {
+				className: "spkmod-panel-cat"
+			}, [
 				lunPanelElements.minigameBtn = buildElement("button", {
 					id: "spkmod-minigame-btn",
 					className: "spkmod-panel-btn",
@@ -10453,11 +10454,7 @@ document.body.appendChild(
 					onclick: _ => {
 						toggleEventModal();
 					}
-				})
-			]),
-			buildElement("div", {
-				className: "spkmod-panel-cat"
-			}, [
+				}),
 				lunPanelElements.mapBtn = buildElement("button", {
 					id: "spkmod-map-btn",
 					className: "spkmod-panel-btn",
@@ -10485,6 +10482,47 @@ document.body.appendChild(
 						if (typeof toggleQuestsModal === "function") toggleQuestsModal();
 					}
 				}),
+				lunPanelElements.dragBtn = buildElement("button", {
+					id: "spkmod-drag-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: grab;",
+					innerText: "⚓",
+					ondblclick: (e) => {
+						const isLocked = lunHudElements.hud.dataset.spkmodLocked === "true";
+						if (isLocked) {
+							lunHudElements.hud.dataset.spkmodLocked = "false";
+							e.target.innerText = "⚓";
+							e.target.style.cursor = "grab";
+							if (window.localStorage) localStorage.setItem("spkmod-hud-locked", "false");
+						} else {
+							lunHudElements.hud.dataset.spkmodLocked = "true";
+							e.target.innerText = "🔒";
+							e.target.style.cursor = "not-allowed";
+							if (window.localStorage) localStorage.setItem("spkmod-hud-locked", "true");
+						}
+						if (typeof updateHudIconTooltips === "function") {
+							updateHudIconTooltips();
+						}
+					}
+				})
+			]),
+			buildElement("div", {
+				className: "spkmod-panel-cat"
+			}, [
+				lunPanelElements.bbsBtn = buildElement("button", {
+					id: "spkmod-bbs-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer; position: relative;",
+					onclick: _ => {
+						if (typeof toggleBbsModal === "function") toggleBbsModal();
+					}
+				}, [
+					buildElement("span", {
+						id: "spkmod-bbs-btn-icon",
+						style: "display: inline-flex; align-items: center; justify-content: center; pointer-events: none;",
+						innerHTML: renderSpkmodInlineEmojis(":t_280:", "height: 20px; width: 20px; object-fit: contain; display: block; pointer-events: none; user-select: none;")
+					})
+				]),
 				lunPanelElements.petsBtn = buildElement("button", {
 					id: "spkmod-pets-btn",
 					className: "spkmod-panel-btn" + (window.spkmodPetsSystemEnabled === false ? " hidden" : ""),
@@ -10543,29 +10581,6 @@ document.body.appendChild(
 					title: (typeof getJukeboxText === "function" ? getJukeboxText("jukeboxBtnTooltip") : (typeof t === "function" ? t("jukeboxBtnTooltip") : null)) || "Monatium Radio Station (Alt+M)",
 					onclick: _ => {
 						if (typeof toggleMusicPlayer === "function") toggleMusicPlayer();
-					}
-				}),
-				lunPanelElements.dragBtn = buildElement("button", {
-					id: "spkmod-drag-btn",
-					className: "spkmod-panel-btn",
-					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: grab;",
-					innerText: "⚓",
-					ondblclick: (e) => {
-						const isLocked = lunHudElements.hud.dataset.spkmodLocked === "true";
-						if (isLocked) {
-							lunHudElements.hud.dataset.spkmodLocked = "false";
-							e.target.innerText = "⚓";
-							e.target.style.cursor = "grab";
-							if (window.localStorage) localStorage.setItem("spkmod-hud-locked", "false");
-						} else {
-							lunHudElements.hud.dataset.spkmodLocked = "true";
-							e.target.innerText = "🔒";
-							e.target.style.cursor = "not-allowed";
-							if (window.localStorage) localStorage.setItem("spkmod-hud-locked", "true");
-						}
-						if (typeof updateHudIconTooltips === "function") {
-							updateHudIconTooltips();
-						}
 					}
 				})
 			])
