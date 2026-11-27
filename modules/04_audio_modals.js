@@ -1590,12 +1590,22 @@ function applyRadioTrackList(data, options = {}) {
         if (state && typeof getActiveJukeboxTracks === "function") {
             const tracks = getActiveJukeboxTracks();
             if (tracks && tracks.length > 0) {
-                if (prevActiveVid && (state.activePlaylistKey === "ost" || state.activePlaylistKey === "bolpop")) {
-                    const matchedIdx = tracks.findIndex(t => t[0] === prevActiveVid);
+                let desiredVid = prevActiveVid;
+                if (!state.isPlaying && !state.isChangingTrack && !state._userChangedTrack && typeof window !== "undefined" && window.localStorage) {
+                    try {
+                        const savedVid = localStorage.getItem("spkmod-jukebox-track-vid");
+                        if (savedVid) desiredVid = savedVid;
+                    } catch (_) {}
+                }
+                if (desiredVid && (state.activePlaylistKey === "ost" || state.activePlaylistKey === "bolpop")) {
+                    const matchedIdx = tracks.findIndex(t => t[0] === desiredVid);
                     if (matchedIdx >= 0) {
                         state.currentTrackIndex = matchedIdx;
                         state.currentTrackTitle = tracks[matchedIdx][1];
                         state.currentTrackAuthor = tracks[matchedIdx][2] || "";
+                        if (!state.isPlaying && !state.isChangingTrack && state.player && state.isReady && desiredVid !== prevActiveVid && typeof state.player.cueVideoById === "function") {
+                            try { state.player.cueVideoById(desiredVid); } catch (_) {}
+                        }
                     } else if (state.currentTrackIndex >= tracks.length) {
                         state.currentTrackIndex = Math.max(0, tracks.length - 1);
                     }
@@ -2081,15 +2091,58 @@ function getActiveJukeboxTracks() {
     return (state.activePlaylistKey === "bolpop") ? SPKMOD_BOLPOP_TRACKS : SPKMOD_OST_TRACKS;
 }
 
-// Initial track metadata
-(function() {
+function saveJukeboxTrackState(playlistKey, vid, idx) {
+    try {
+        if (typeof window === "undefined" || !window.localStorage) return;
+        if (playlistKey) localStorage.setItem("spkmod-jukebox-playlist-key", playlistKey);
+        if (vid) localStorage.setItem("spkmod-jukebox-track-vid", String(vid));
+        else localStorage.removeItem("spkmod-jukebox-track-vid");
+        if (typeof idx === "number" && idx >= 0) {
+            localStorage.setItem("spkmod-jukebox-track-idx", String(idx));
+        }
+    } catch (_) {}
+}
+
+function restoreSavedJukeboxTrack() {
     const state = window.__speakiMusicState;
+    if (!state) return false;
     const tracks = getActiveJukeboxTracks();
-    if (!state.currentTrackTitle && tracks && tracks.length > 0) {
-        state.currentTrackTitle = tracks[0][1];
-        state.currentTrackAuthor = tracks[0][2] || "";
+    if (!tracks || tracks.length === 0) return false;
+
+    let savedVid = "";
+    let savedIdx = -1;
+    try {
+        if (typeof window !== "undefined" && window.localStorage) {
+            savedVid = localStorage.getItem("spkmod-jukebox-track-vid") || "";
+            const rawIdx = localStorage.getItem("spkmod-jukebox-track-idx");
+            if (rawIdx !== null && rawIdx !== "") {
+                const parsed = parseInt(rawIdx, 10);
+                if (Number.isFinite(parsed) && parsed >= 0) savedIdx = parsed;
+            }
+        }
+    } catch (_) {}
+
+    let targetIdx = 0;
+    if (savedVid) {
+        const byVid = tracks.findIndex(t => t[0] === savedVid);
+        if (byVid >= 0) {
+            targetIdx = byVid;
+        } else if (savedIdx >= 0 && savedIdx < tracks.length) {
+            targetIdx = savedIdx;
+        }
+    } else if (savedIdx >= 0 && savedIdx < tracks.length) {
+        targetIdx = savedIdx;
     }
-})();
+
+    state.currentTrackIndex = targetIdx;
+    state.currentTrackTitle = tracks[targetIdx][1];
+    state.currentTrackAuthor = tracks[targetIdx][2] || "";
+    state.isPlaying = false;
+    return true;
+}
+
+// Initial track metadata (restores last played song in paused state)
+restoreSavedJukeboxTrack();
 
 function cleanJukeboxTitle(title) {
     if (!title) return 'Track';
@@ -2435,6 +2488,8 @@ function playTrackAtIndex(idx, userInitiated = true) {
     const item = tracks[idx];
     state.currentTrackTitle = item[1];
     state.currentTrackAuthor = item[2] || "";
+    state._userChangedTrack = true;
+    saveJukeboxTrackState(state.activePlaylistKey, item[0], idx);
 
     state.isChangingTrack = true;
     spkmodSuppressGameBgm(true, "jukebox");
@@ -2515,12 +2570,13 @@ function switchJukeboxPlaylist(key, autoPlay = false) {
 
     state.activePlaylistKey = key;
     state.currentTrackIndex = 0;
-    if (window.localStorage) localStorage.setItem("spkmod-jukebox-playlist-key", key);
+    state._userChangedTrack = true;
 
     const tracks = getActiveJukeboxTracks();
     const item = tracks[0] || ["", getJukeboxText(key === 'favorites' ? "jukeboxFavoritesEmpty" : "jukeboxNoTracks"), ""];
     state.currentTrackTitle = item[1];
     state.currentTrackAuthor = item[2] || "";
+    saveJukeboxTrackState(key, item[0] || "", 0);
 
     if (key === 'favorites' && (!tracks || tracks.length === 0)) {
         if (state.changeTrackTimeout) clearTimeout(state.changeTrackTimeout);
@@ -2962,6 +3018,7 @@ function buildJukeboxUI() {
 
     populateJukeboxDrawer(modal);
     updateJukeboxI18n();
+    updateJukeboxUI();
     return modal;
 }
 
@@ -3243,6 +3300,7 @@ function initJukeboxPlayer() {
                             state.currentTrackIndex = foundIdx;
                             state.currentTrackTitle = tracks[foundIdx][1];
                             state.currentTrackAuthor = tracks[foundIdx][2] || '';
+                            saveJukeboxTrackState(state.activePlaylistKey, curVid, foundIdx);
                         } else {
                             const data = state.player.getVideoData();
                             state.currentTrackTitle = cleanJukeboxTitle(data?.title || 'Trickcal BGM');
