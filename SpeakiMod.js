@@ -8907,7 +8907,7 @@ document.head.appendChild(buildElement(
 			background: #000C;
 			border: ${spkmodBorderWidth} solid #DDD;
 			border-radius: 8px;
-			padding: 4px 8px;
+			padding: 4px 6px;
 			font-size: 10pt;
 			cursor: pointer;
 			outline: none;
@@ -9499,7 +9499,7 @@ document.body.appendChild(
 			}),
 			lunHudElements.currencyTracker = buildElement("span", {
 				// innerText: t("currencyTracker", "--", "--", "--"),
-				innerText: t("currencyTracker", "--", "--", "--").replace(/ \| 🟣.*/, ""),
+				innerText: t("currencyTracker", "--", "--", "--").replace(/ 🟣.*/, ""),
 				style: lunCurrencyTrackerEnabled ? "" : "display: none;"
 			}),
 			lunHudElements.sessionGoldTracker = buildElement("span", {
@@ -9637,7 +9637,7 @@ document.body.appendChild(
 				lunPanelElements.petDanceBtn = buildElement("button", {
 					id: "spkmod-petdance-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.PetDanceActive ? "petDanceOn" : "petDanceOff") || (window.PetDanceActive ? "Pet Dance: ⏸️" : "Pet Dance: ▶️"),
+					innerText: t(window.PetDanceActive ? "petDanceOn" : "petDanceOff") || (window.PetDanceActive ? "Pet Dance ⏸️" : "Pet Dance ▶️"),
 					value: "",
 					onclick: e => {
 						togglePetDance(e.target);
@@ -9646,7 +9646,7 @@ document.body.appendChild(
 				lunPanelElements.justPetBtn = buildElement("button", {
 					id: "spkmod-justpet-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.JustPetActive ? "justPetOn" : "justPetOff") || (window.JustPetActive ? "Just Pet: ⏸️" : "Just Pet: ▶️"),
+					innerText: t(window.JustPetActive ? "justPetOn" : "justPetOff") || (window.JustPetActive ? "Just Pet ⏸️" : "Just Pet ▶️"),
 					value: "",
 					onclick: e => {
 						toggleJustPet(e.target);
@@ -9666,20 +9666,10 @@ document.body.appendChild(
 				lunPanelElements.autoMopBtn = buildElement("button", {
 					id: "spkmod-automop-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.AutoMopActive ? "autoMopOn" : "autoMopOff") || (window.AutoMopActive ? "Mop: ⏸️" : "Mop: ▶️"),
+					innerText: t(window.AutoMopActive ? "autoMopOn" : "autoMopOff") || (window.AutoMopActive ? "Mop ⏸️" : "Mop ▶️"),
 					value: "",
 					onclick: e => {
 						if (typeof toggleAutoMop === "function") toggleAutoMop(e.target);
-					}
-				}),
-				lunPanelElements.vehicleToggleBtn = buildElement("button", {
-					id: "spkmod-vehicle-toggle-btn",
-					className: "spkmod-panel-btn" + (window.spkmodCarSystemEnabled === false ? " hidden" : ""),
-					innerText: typeof window.spkmodGetVehicleQuickToggleLabel === "function" ? window.spkmodGetVehicleQuickToggleLabel() : "🚗 Vehicle: OFF",
-					title: "Quick Toggle Vehicle (Alt+X)",
-					value: "",
-					onclick: () => {
-						if (typeof window.spkmodToggleActiveVehicle === "function") window.spkmodToggleActiveVehicle();
 					}
 				}),
 				lunPanelElements.hyperShakeBtn = buildElement("button", {
@@ -9779,7 +9769,7 @@ document.body.appendChild(
 				lunPanelElements.partnerDanceBtn = buildElement("button", {
 					id: "spkmod-partner-dance-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.PartnerDanceState === 1 ? "partnerDanceOn" : (window.PartnerDanceState === 2 ? "partnerDanceInverted" : "partnerDanceOff")) || (window.PartnerDanceState === 0 ? "8 Dance: ▶️" : (window.PartnerDanceState === 1 ? "8 Dance: ⏸️" : "Rev 8: ⏸️")),
+					innerText: t(window.PartnerDanceState === 1 ? "partnerDanceOn" : (window.PartnerDanceState === 2 ? "partnerDanceInverted" : "partnerDanceOff")) || (window.PartnerDanceState === 0 ? "8 Dance ▶️" : (window.PartnerDanceState === 1 ? "8 Dance ⏸️" : "Rev 8 ⏸️")),
 					value: "",
 					onclick: e => {
 						togglePartnerDance(e.target);
@@ -10202,6 +10192,16 @@ document.body.appendChild(
 					onclick: () => {
 						if (typeof window.cycleCameraZoom === "function") window.cycleCameraZoom();
 					}
+				}),
+				lunPanelElements.vehicleToggleBtn = buildElement("button", {
+					id: "spkmod-vehicle-toggle-btn",
+					className: "spkmod-panel-btn" + (window.spkmodCarSystemEnabled === false ? " hidden" : ""),
+					innerText: typeof window.spkmodGetVehicleQuickToggleLabel === "function" ? window.spkmodGetVehicleQuickToggleLabel() : "🚗 Vehicle OFF",
+					title: "Quick Toggle Vehicle (Alt+X)",
+					value: "",
+					onclick: () => {
+						if (typeof window.spkmodToggleActiveVehicle === "function") window.spkmodToggleActiveVehicle();
+					}
 				})
 			]),
 
@@ -10360,11 +10360,11 @@ document.body.appendChild(
 				}),
 				lunPanelElements.targetZone = buildElement("select", {
 					className: "spkmod-panel-combo",
-					style: "flex: 1; min-width: 0; height: 28px; padding: 0 4px; font-size: 9.5pt; box-sizing: border-box;"
+					style: "flex: 1; width: 0; min-width: 0; height: 28px; padding: 0 4px; font-size: 9.5pt; box-sizing: border-box;"
 				}),
 				lunPanelElements.langSelect = buildElement("select", {
 					className: "spkmod-panel-combo",
-					style: "flex: 0 0 88px; width: 88px; height: 28px; padding: 0 4px; font-size: 9pt; box-sizing: border-box;",
+					style: "flex: 0 0 74px; width: 74px; height: 28px; padding: 0 4px; font-size: 9pt; box-sizing: border-box;",
 					value: spkmodLang,
 					onchange: e => {
 						setLanguage(e.target.value);
@@ -60418,8 +60418,8 @@ function spkmodCheckVehicleRemoteLevelAllowed(requiredLevel, remoteLevel, sender
 // ============================================================================
 const SPKMOD_VEHICLE_UI_FALLBACK_EN = {
 	vehiclesBtnTooltip: "Vehicles & Stealth Box Garage (Alt+V)",
-	quickToggleOn: "{0} Vehicle: ON",
-	quickToggleOff: "{0} Vehicle: OFF",
+	quickToggleOn: "{0} Vehicle ON",
+	quickToggleOff: "{0} Vehicle OFF",
 	quickToggleTooltip: "Quick Toggle {0} (Alt+X)",
 	quickTogglePickTooltip: "Pick a vehicle in Garage (Alt+V / Alt+X)",
 	modalTitle: "🚗 SpeakiMod+ Vehicles & Stealth Garage",

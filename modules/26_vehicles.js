@@ -681,8 +681,8 @@ function spkmodCheckVehicleRemoteLevelAllowed(requiredLevel, remoteLevel, sender
 // ============================================================================
 const SPKMOD_VEHICLE_UI_FALLBACK_EN = {
 	vehiclesBtnTooltip: "Vehicles & Stealth Box Garage (Alt+V)",
-	quickToggleOn: "{0} Vehicle: ON",
-	quickToggleOff: "{0} Vehicle: OFF",
+	quickToggleOn: "{0} Vehicle ON",
+	quickToggleOff: "{0} Vehicle OFF",
 	quickToggleTooltip: "Quick Toggle {0} (Alt+X)",
 	quickTogglePickTooltip: "Pick a vehicle in Garage (Alt+V / Alt+X)",
 	modalTitle: "🚗 SpeakiMod+ Vehicles & Stealth Garage",
