@@ -4592,6 +4592,267 @@ function makeDraggable(element, handles) {
 	});
 }
 
+// Vanilla UI fix: The game's Enhancement / Boost panel (upgradePanel, hotkey U) omits the
+// drag registration call (pS(..., { drag: true })) that all other .sr-panel menus use.
+// This attaches a vanilla-compatible drag handler (--sr-drag-x / --sr-drag-y / sr-panel--dragging)
+// to any closable in-game .sr-panel that vanilla did not already wire up (detected via header.style.touchAction !== "none").
+(function initVanillaPanelDragFix() {
+	if (typeof document === "undefined" || typeof window === "undefined") return;
+
+	const DRAG_X_VAR = "--sr-drag-x";
+	const DRAG_Y_VAR = "--sr-drag-y";
+	const DRAGGING_CLASS = "sr-panel--dragging";
+	const NO_DRAG_SELECTOR = "button, input, select, textarea, a, [data-no-drag]";
+	const DRAG_THRESHOLD_PX = 10;
+
+	const trackedPanels = new Map();
+	let safeInsetProbe = null;
+	let resizeObserver = null;
+	let resizeListenerAttached = false;
+
+	function getSafeInsets() {
+		if (!safeInsetProbe && document.body) {
+			const el = document.createElement("div");
+			el.style.cssText =
+				"position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;" +
+				"padding:var(--sr-safe-inset-top) var(--sr-safe-inset-right) var(--sr-safe-inset-bottom) var(--sr-safe-inset-left);";
+			document.body.appendChild(el);
+			safeInsetProbe = el;
+		}
+		if (!safeInsetProbe) return { top: 0, right: 0, bottom: 0, left: 0 };
+		const cs = getComputedStyle(safeInsetProbe);
+		return {
+			top: parseFloat(cs.paddingTop) || 0,
+			right: parseFloat(cs.paddingRight) || 0,
+			bottom: parseFloat(cs.paddingBottom) || 0,
+			left: parseFloat(cs.paddingLeft) || 0
+		};
+	}
+
+	function getPanelZoom(panel) {
+		if (typeof lunGameUiScale === "number" && lunGameUiScale > 0 && panel.closest && panel.closest("#app")) {
+			return lunGameUiScale;
+		}
+		return 1;
+	}
+
+	function clampVal(v, min, max) {
+		return Math.max(min, Math.min(v, max));
+	}
+
+	function clampDragOffset(state, nextX, nextY) {
+		const { root, header } = state;
+		const zoom = getPanelZoom(root);
+		const rect = root.getBoundingClientRect();
+		const panelW = (root.offsetWidth || rect.width / zoom) * zoom;
+		const panelH = (root.offsetHeight || rect.height / zoom) * zoom;
+		const headerH = (header.offsetHeight || 48) * zoom;
+		const baseLeft = rect.left + rect.width / 2 - state.x * zoom - panelW / 2;
+		const baseTop = rect.top + rect.height / 2 - state.y * zoom - panelH / 2;
+		const inset = getSafeInsets();
+		const vw = window.innerWidth;
+		const vh = window.innerHeight;
+
+		const rawVx = nextX * zoom;
+		const rawVy = nextY * zoom;
+
+		const clampedVx = panelW <= vw - inset.left - inset.right
+			? clampVal(rawVx, inset.left - baseLeft, vw - inset.right - panelW - baseLeft)
+			: clampVal(rawVx, -baseLeft - panelW + headerH, vw - headerH - baseLeft);
+
+		const clampedVy = panelH <= vh - inset.top - inset.bottom
+			? clampVal(rawVy, inset.top - baseTop, vh - inset.bottom - panelH - baseTop)
+			: clampVal(rawVy, -baseTop, vh - headerH - baseTop);
+
+		return { x: clampedVx / zoom, y: clampedVy / zoom };
+	}
+
+	function applyDragOffset(state, x, y) {
+		state.x = x;
+		state.y = y;
+		state.root.style.setProperty(DRAG_X_VAR, `${x}px`);
+		state.root.style.setProperty(DRAG_Y_VAR, `${y}px`);
+	}
+
+	function reclampPanel(state) {
+		if ((state.x === 0 && state.y === 0) || state.root.offsetWidth === 0) return;
+		const clamped = clampDragOffset(state, state.x, state.y);
+		if (clamped.x !== state.x || clamped.y !== state.y) {
+			applyDragOffset(state, clamped.x, clamped.y);
+		}
+	}
+
+	function ensureResizeWatchers() {
+		if (!resizeObserver && typeof ResizeObserver === "function") {
+			resizeObserver = new ResizeObserver((entries) => {
+				for (const entry of entries) {
+					const st = trackedPanels.get(entry.target);
+					if (st) reclampPanel(st);
+				}
+			});
+		}
+		if (!resizeListenerAttached) {
+			resizeListenerAttached = true;
+			window.addEventListener("resize", () => {
+				for (const st of trackedPanels.values()) {
+					reclampPanel(st);
+				}
+			});
+		}
+	}
+
+	function attachVanillaPanelDrag(panel) {
+		if (!panel || panel.nodeType !== 1) return false;
+		if (panel.__spkmodVanillaDragAttached || trackedPanels.has(panel)) return false;
+		if (panel.closest && panel.closest(".sr-boot-gate")) return false;
+
+		const header = panel.querySelector(":scope > .sr-panel__header");
+		if (!header) return false;
+
+		// Vanilla's drag registration sets header.style.touchAction = "none".
+		// Skip panels that vanilla already made draggable to avoid duplicate handlers.
+		if (header.style.touchAction === "none") return false;
+
+		// Only attach to dismissible in-game panels (have a close button) or the enhancement panel.
+		const isClosableOrEnhance = Boolean(
+			header.querySelector(".sr-panel__close") ||
+			panel.querySelector(":scope > .sr-enhance-banner")
+		);
+		if (!isClosableOrEnhance) return false;
+
+		panel.__spkmodVanillaDragAttached = true;
+		const state = { root: panel, header, x: 0, y: 0, cancel: () => {} };
+		trackedPanels.set(panel, state);
+		ensureResizeWatchers();
+		if (resizeObserver) resizeObserver.observe(panel);
+
+		header.style.touchAction = "none";
+
+		let activePointerId = null;
+		let startX = 0;
+		let startY = 0;
+		let originX = 0;
+		let originY = 0;
+		let dragging = false;
+
+		const cancelDrag = () => {
+			if (activePointerId === null) return;
+			const pid = activePointerId;
+			activePointerId = null;
+			dragging = false;
+			panel.classList.remove(DRAGGING_CLASS);
+			if (header.hasPointerCapture && header.hasPointerCapture(pid)) {
+				try { header.releasePointerCapture(pid); } catch (_) {}
+			}
+		};
+		state.cancel = cancelDrag;
+
+		header.addEventListener("pointerdown", (e) => {
+			if (activePointerId !== null) return;
+			if (e.pointerType === "mouse" && e.button !== 0) return;
+			if (e.target && typeof e.target.closest === "function" && e.target.closest(NO_DRAG_SELECTOR)) return;
+
+			activePointerId = e.pointerId;
+			startX = e.clientX;
+			startY = e.clientY;
+			originX = state.x;
+			originY = state.y;
+			dragging = false;
+
+			if (header.setPointerCapture) {
+				try { header.setPointerCapture(e.pointerId); } catch (_) {}
+			}
+			if (e.pointerType === "mouse") {
+				e.preventDefault();
+			}
+		});
+
+		header.addEventListener("pointermove", (e) => {
+			if (e.pointerId !== activePointerId) return;
+			const rawDx = e.clientX - startX;
+			const rawDy = e.clientY - startY;
+			if (!dragging) {
+				if (Math.hypot(rawDx, rawDy) <= DRAG_THRESHOLD_PX) return;
+				dragging = true;
+				panel.classList.add(DRAGGING_CLASS);
+			}
+			const zoom = getPanelZoom(panel);
+			const clamped = clampDragOffset(state, originX + rawDx / zoom, originY + rawDy / zoom);
+			applyDragOffset(state, clamped.x, clamped.y);
+		});
+
+		const onEnd = (e) => {
+			if (e.pointerId === activePointerId) cancelDrag();
+		};
+		header.addEventListener("pointerup", onEnd);
+		header.addEventListener("pointercancel", onEnd);
+		header.addEventListener("lostpointercapture", onEnd);
+
+		return true;
+	}
+
+	function scanVanillaPanels(root) {
+		const container = root || document;
+		if (!container || typeof container.querySelectorAll !== "function") return;
+		const panels = container.querySelectorAll(".sr-panel");
+		for (let i = 0; i < panels.length; i++) {
+			attachVanillaPanelDrag(panels[i]);
+		}
+	}
+
+	let scanScheduled = false;
+	function scheduleScan() {
+		if (scanScheduled) return;
+		scanScheduled = true;
+		const run = () => {
+			scanScheduled = false;
+			scanVanillaPanels(document);
+		};
+		if (typeof queueMicrotask === "function") {
+			queueMicrotask(run);
+		} else {
+			setTimeout(run, 0);
+		}
+	}
+
+	function startObserver() {
+		const target = document.getElementById("app") || document.body;
+		if (!target) {
+			setTimeout(startObserver, 250);
+			return;
+		}
+		scanVanillaPanels(document);
+		if (typeof MutationObserver === "function") {
+			const obs = new MutationObserver((records) => {
+				for (let i = 0; i < records.length; i++) {
+					const added = records[i].addedNodes;
+					for (let j = 0; j < added.length; j++) {
+						const node = added[j];
+						if (node.nodeType !== 1) continue;
+						if (
+							(node.classList && node.classList.contains("sr-panel")) ||
+							(node.querySelector && node.querySelector(".sr-panel"))
+						) {
+							scheduleScan();
+							return;
+						}
+					}
+				}
+			});
+			obs.observe(target, { childList: true, subtree: true });
+		}
+	}
+
+	window.spkmodAttachVanillaPanelDrag = attachVanillaPanelDrag;
+	window.spkmodScanVanillaPanelsForDrag = scanVanillaPanels;
+
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", startObserver, { once: true });
+	} else {
+		startObserver();
+	}
+})();
+
 function makeResizable(element, handle, options = {}) {
 	if (!element || !handle) return;
 	if (element.__spkmodResizable) return;
