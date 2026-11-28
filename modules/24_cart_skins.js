@@ -30,7 +30,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "1",
 		code: 2,
-		level: 20,
+		level: 60,
 		icon: "1️⃣",
 		accent: "#fbbf24",
 		file: "test2.png",
@@ -75,7 +75,7 @@ const SPKMOD_CART_SKIN_CATALOG = [
 	{
 		id: "5",
 		code: 6,
-		level: 60,
+		level: 20,
 		icon: "5️⃣",
 		accent: "#f43f5e",
 		file: "yuki.png",
@@ -210,6 +210,8 @@ const SPKMOD_CART_SKIN_UI_FALLBACK_EN = {
 	submissionBannerBtn: "📋 Copy Discord Link",
 	submissionBannerCopied: "✅ Copied!",
 	submissionBannerCopiedToast: "📋 Support Discord link copied to clipboard: {0}",
+	hypeTitle: "Keep leveling up to unlock more cart skins!",
+	hypeDesc: "{0} more mystery cart skins await you up to Lv.{2}! Reach Lv.{1} to unlock your next cart skin!",
 	systemDisabledToast: "🛒 Cart Skins System is disabled. Enable it in Settings.",
 	systemEnabledToast: "🛒 Cart Skins System enabled."
 };
@@ -599,9 +601,11 @@ function spkmodExtractCartSubGeometry(T, srcGeo, predicate, offsetVec) {
 	return out;
 }
 
-function spkmodBuildHwCartOverlayGroup(template, cartMode, texture) {
-	const T = typeof window !== "undefined" ? window.THREE : null;
-	if (!T || !template || !template.geometry) return null;
+const SPKMOD_CART_NOOP_RAYCAST = () => {};
+
+function spkmodGetOrBuildCartModeGeoms(T, template, cartMode) {
+	if (!template.modeGeoms) template.modeGeoms = {};
+	if (template.modeGeoms[cartMode]) return template.modeGeoms[cartMode];
 
 	const dims = cartMode === "tandem" ? SPKMOD_CART_DIMS_TANDEM : SPKMOD_CART_DIMS_SOLO;
 	const stretched = template.geometry.clone();
@@ -630,25 +634,11 @@ function spkmodBuildHwCartOverlayGroup(template, cartMode, texture) {
 		stretched.computeBoundingSphere();
 	}
 
-	const MatCtor = T.MeshToonMaterial || T.MeshLambertMaterial || T.MeshBasicMaterial;
-	const mat = new MatCtor({
-		color: 0xffffff,
-		map: texture,
-		transparent: true,
-		alphaTest: 0.5,
-		depthWrite: true
-	});
-
-	const group = new T.Group();
-	group.name = "spkmod_cart_skin_overlay";
 	const zeroVec = new T.Vector3(0, 0, 0);
-
 	const bodyGeo = spkmodExtractCartSubGeometry(T, stretched, i => template.vertexRole[i] !== 2, zeroVec);
-	const bodyMesh = new T.Mesh(bodyGeo, mat);
-	bodyMesh.raycast = () => {};
-	group.add(bodyMesh);
+	bodyGeo.userData = Object.assign(bodyGeo.userData || {}, { spkmodCartSharedGeo: true });
 
-	const wheels = [];
+	const wheelDefs = [];
 	for (let slot = 0; slot < 4; slot++) {
 		const pred = i => template.vertexWheelSlot[i] === slot;
 		const probeGeo = spkmodExtractCartSubGeometry(T, stretched, pred, zeroVec);
@@ -662,17 +652,54 @@ function spkmodBuildHwCartOverlayGroup(template, cartMode, texture) {
 		probeGeo.dispose();
 
 		const wheelGeo = spkmodExtractCartSubGeometry(T, stretched, pred, center.clone().negate());
-		const wheelMesh = new T.Mesh(wheelGeo, mat);
-		wheelMesh.position.copy(center);
-		wheelMesh.raycast = () => {};
-		group.add(wheelMesh);
-		wheels.push({
-			mesh: wheelMesh,
+		wheelGeo.userData = Object.assign(wheelGeo.userData || {}, { spkmodCartSharedGeo: true });
+		wheelDefs.push({
+			geo: wheelGeo,
+			center,
 			radiusM: Math.max(0.05, Math.max(size.y, size.z) / 2)
 		});
 	}
 
 	stretched.dispose();
+	const built = { bodyGeo, wheelDefs };
+	template.modeGeoms[cartMode] = built;
+	return built;
+}
+
+function spkmodBuildHwCartOverlayGroup(template, cartMode, texture) {
+	const T = typeof window !== "undefined" ? window.THREE : null;
+	if (!T || !template || !template.geometry) return null;
+
+	const modeGeoms = spkmodGetOrBuildCartModeGeoms(T, template, cartMode);
+	const MatCtor = T.MeshToonMaterial || T.MeshLambertMaterial || T.MeshBasicMaterial;
+	const mat = new MatCtor({
+		color: 0xffffff,
+		map: texture,
+		transparent: true,
+		alphaTest: 0.5,
+		depthWrite: true
+	});
+
+	const group = new T.Group();
+	group.name = "spkmod_cart_skin_overlay";
+
+	const bodyMesh = new T.Mesh(modeGeoms.bodyGeo, mat);
+	bodyMesh.raycast = SPKMOD_CART_NOOP_RAYCAST;
+	group.add(bodyMesh);
+
+	const wheels = [];
+	for (let i = 0; i < modeGeoms.wheelDefs.length; i++) {
+		const wd = modeGeoms.wheelDefs[i];
+		const wheelMesh = new T.Mesh(wd.geo, mat);
+		wheelMesh.position.copy(wd.center);
+		wheelMesh.raycast = SPKMOD_CART_NOOP_RAYCAST;
+		group.add(wheelMesh);
+		wheels.push({
+			mesh: wheelMesh,
+			radiusM: wd.radiusM
+		});
+	}
+
 	group.userData = {
 		isSpkmodCartOverlay: true,
 		material: mat,
@@ -685,7 +712,7 @@ function spkmodDisposeCartOverlayGroup(overlay) {
 	if (!overlay) return;
 	if (overlay.parent) overlay.parent.remove(overlay);
 	overlay.traverse(ch => {
-		if (ch && ch.isMesh && ch.geometry && typeof ch.geometry.dispose === "function") {
+		if (ch && ch.isMesh && ch.geometry && !ch.geometry.userData?.spkmodCartSharedGeo && typeof ch.geometry.dispose === "function") {
 			try { ch.geometry.dispose(); } catch (_) {}
 		}
 	});
@@ -785,6 +812,17 @@ function spkmodApplySkinToEntry(entry, skinId) {
 	}
 
 	const cartMode = entry.cartMode === "tandem" ? "tandem" : "solo";
+	// Fast path: skip full cg.traverse() when skin & mode are already applied (unless a Halloween cart is still on temporary normal_overlay waiting for FBX)
+	if (cg.__spkmodAppliedCartSkinId === skinId && cg.__spkmodAppliedCartMode === cartMode) {
+		if (!(isHalloween && cg.__spkmodAppliedCartKind === "normal_overlay")) {
+			const res = _spkmodCartSkinResources.get(skinId);
+			if (res && res.frames && res.frames.length > 1) {
+				spkmodCartEnsureAnimTick(res);
+			}
+			return;
+		}
+	}
+
 	const hasTexturedMesh = spkmodCartGroupHasTexturedBody(cg);
 	const effectiveKind = (isHalloween && hasTexturedMesh) ? "hw" : "normal_overlay";
 
@@ -1128,6 +1166,24 @@ function spkmodCartSkinsMasterLoop(nowMs) {
 				}
 			}
 			_spkmodCartLastObservedRemoteCount = rCount;
+
+			// Prune departed players from _spkmodRemoteCartSkinStates (15s grace) so animated cart skins stop uploading GPU frames
+			if (_spkmodRemoteCartSkinStates.size > 0 && gameState.remotePlayers?.remotePlayers) {
+				for (const [k, st] of _spkmodRemoteCartSkinStates) {
+					if (!st) {
+						_spkmodRemoteCartSkinStates.delete(k);
+						continue;
+					}
+					const live = spkmodResolveRemotePlayerForCart(st.playerId, st.playerName);
+					if (live) {
+						st._missingSinceMs = 0;
+					} else if (!st._missingSinceMs) {
+						st._missingSinceMs = nowMs;
+					} else if (nowMs - st._missingSinceMs > 15000) {
+						_spkmodRemoteCartSkinStates.delete(k);
+					}
+				}
+			}
 
 			spkmodReconcileAllCartSkins();
 		}
@@ -1630,15 +1686,20 @@ function spkmodRefreshCartSkinsModalUI() {
 		));
 	}
 
-	// Skins grid
+	// Skins grid (hide locked cart skins and show encouraging hype banner below)
 	const grid = document.getElementById("spkmod-cart-skins-grid");
 	if (grid) {
 		grid.innerHTML = "";
+		const lockedCartSkins = [];
 		for (const skin of SPKMOD_CART_SKIN_CATALOG) {
 			const unlocked = spkmodIsCartSkinUnlocked(skin);
+			if (!unlocked) {
+				lockedCartSkins.push(skin);
+				continue;
+			}
 			const isEquipped = window.spkmodCartSkinSettings.equippedId === skin.id;
 			const card = document.createElement("div");
-			card.className = "spkmod-cart-card" + (isEquipped ? " equipped" : "") + (!unlocked ? " locked" : "");
+			card.className = "spkmod-cart-card" + (isEquipped ? " equipped" : "");
 
 			const thumbWrap = document.createElement("div");
 			thumbWrap.className = "spkmod-cart-thumb-wrap";
@@ -1646,11 +1707,10 @@ function spkmodRefreshCartSkinsModalUI() {
 			img.src = skin.url;
 			img.alt = spkmodGetCartSkinDisplayName(skin);
 			img.loading = "lazy";
-			if (!unlocked) img.style.filter = "grayscale(0.6) brightness(0.65)";
 			thumbWrap.appendChild(img);
 
 			const lvlBadge = document.createElement("span");
-			lvlBadge.style.cssText = `position: absolute; top: 5px; left: 5px; padding: 2px 6px; border-radius: 6px; font-size: 9.5px; font-weight: 800; background: rgba(15,23,42,0.88); color: ${unlocked ? "#7dd3fc" : "#f87171"}; border: 1px solid rgba(255,255,255,0.16);`;
+			lvlBadge.style.cssText = "position: absolute; top: 5px; left: 5px; padding: 2px 6px; border-radius: 6px; font-size: 9.5px; font-weight: 800; background: rgba(15,23,42,0.88); color: #7dd3fc; border: 1px solid rgba(255,255,255,0.16);";
 			lvlBadge.innerText = `Lv.${skin.level || 1}` + (skin.milestone ? " ★" : "");
 			thumbWrap.appendChild(lvlBadge);
 
@@ -1678,19 +1738,11 @@ function spkmodRefreshCartSkinsModalUI() {
 			btn.className = "spkmod-panel-btn";
 			btn.style.cssText = isEquipped
 				? "width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 800; color: #bbf7d0; border-color: #4ade80; background: rgba(22, 163, 74, 0.35); cursor: pointer;"
-				: (unlocked
-					? "width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 700; color: #f8fafc; cursor: pointer;"
-					: "width: 100%; padding: 5px 8px; font-size: 10.5px; font-weight: 700; color: #94a3b8; cursor: not-allowed;");
-			btn.innerText = !unlocked
-				? spkmodGetCartSkinUiText("btnLocked", skin.level || 1)
-				: spkmodGetCartSkinUiText(isEquipped ? "btnEquipped" : "btnEquip");
+				: "width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 700; color: #f8fafc; cursor: pointer;";
+			btn.innerText = spkmodGetCartSkinUiText(isEquipped ? "btnEquipped" : "btnEquip");
 
 			const onSelect = (e) => {
 				if (e) e.stopPropagation();
-				if (!unlocked) {
-					if (typeof chatLog === "function") chatLog(spkmodGetCartSkinUiText("lockedToast", skin.level || 1, spkmodGetCartSkinDisplayName(skin)));
-					return;
-				}
 				if (isEquipped) {
 					spkmodEquipLocalCartSkin(null, true, false);
 				} else {
@@ -1704,6 +1756,18 @@ function spkmodRefreshCartSkinsModalUI() {
 			card.appendChild(nameRow);
 			card.appendChild(btn);
 			grid.appendChild(card);
+		}
+
+		if (lockedCartSkins.length > 0) {
+			lockedCartSkins.sort((a, b) => (a.level || 1) - (b.level || 1));
+			const maxLvl = Math.max(...SPKMOD_CART_SKIN_CATALOG.map(s => s.level || 1));
+			const hypeCard = document.createElement("div");
+			hypeCard.id = "spkmod-cart-skins-hype-banner";
+			hypeCard.style.cssText = "grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; padding: 18px 16px; margin-top: 4px; border-radius: 12px; border: 1.5px dashed rgba(255, 213, 74, 0.55); background: linear-gradient(135deg, rgba(255, 213, 74, 0.10), rgba(244, 114, 182, 0.14), rgba(15, 23, 42, 0.92)); box-shadow: inset 0 0 24px rgba(255, 213, 74, 0.08);";
+			hypeCard.innerHTML = `<div style="font-size: 22px; line-height: 1;">✨🔒🛒✨</div>`
+				+ `<div style="font-size: 14px; font-weight: 800; color: #ffd54a; letter-spacing: 0.2px;">${spkmodGetCartSkinUiText("hypeTitle")}</div>`
+				+ `<div style="font-size: 11.5px; color: #cbd5e1; max-width: 580px;">${spkmodGetCartSkinUiText("hypeDesc", lockedCartSkins.length, lockedCartSkins[0].level || 1, maxLvl)}</div>`;
+			grid.appendChild(hypeCard);
 		}
 	}
 

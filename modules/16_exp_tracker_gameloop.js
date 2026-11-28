@@ -1,12 +1,98 @@
 // --- MOD PLAYERS TELEMETRY & HOURLY PING ---
-var lunModPlayersCounts = { count1h: null, count24h: null, count7d: null, countAllTime: null };
+var lunModPlayersCounts = { count10m: null, count1h: null, count24h: null, count7d: null, countAllTime: null };
 var lunLastTelemetryPingTime = 0;
-var lunTelemetryPingIntervalMs = 10 * 60 * 1000; // 10 minutes
+var lunLastTelemetryStatsTime = 0;
+var lunTelemetryIdentifiedKey = "";
+var lunTelemetryLastSavedName = "";
+var lunTelemetryLastSavedId = "";
+var lunTelemetryPingIntervalMs = 5 * 60 * 1000; // 5 minutes (keeps 10m active window accurate without dropouts)
+var lunTelemetryActiveWindowMs = 10 * 60 * 1000; // 10-minute active window (matches concurrent Total SPK)
+
+function spkmodGetTelemetryIdentity() {
+	const gs = (typeof gameState !== "undefined" && gameState)
+		? gameState
+		: (typeof window !== "undefined" ? window.gameState : null);
+	const rawName = (gs && (gs.myPlayerName || gs.myStat?.name))
+		? String(gs.myPlayerName || gs.myStat.name).trim()
+		: "";
+	const rawId = (gs && gs.myPlayerId != null)
+		? String(gs.myPlayerId).trim()
+		: "";
+
+	if (rawName && rawName !== lunTelemetryLastSavedName) {
+		lunTelemetryLastSavedName = rawName;
+		try { if (window.localStorage) localStorage.setItem("spkmod-last-player-name", rawName); } catch (_) {}
+	}
+	if (rawId && rawId !== lunTelemetryLastSavedId) {
+		lunTelemetryLastSavedId = rawId;
+		try { if (window.localStorage) localStorage.setItem("spkmod-last-player-id", rawId); } catch (_) {}
+	}
+
+	return {
+		username: rawName,
+		playerId: rawId,
+		isIdentified: Boolean(rawName)
+	};
+}
+
+function spkmodComputeActiveCount(active24h, windowMs, serverDateMs) {
+	if (!Array.isArray(active24h)) return null;
+	if (active24h.length === 0) return 0;
+
+	let maxLastSeen = 0;
+	for (let i = 0; i < active24h.length; i++) {
+		const ts = Number(active24h[i]?.lastSeen);
+		if (Number.isFinite(ts) && ts > maxLastSeen) maxLastSeen = ts;
+	}
+
+	let nowMs = Date.now();
+	if (Number.isFinite(serverDateMs) && serverDateMs > 0) {
+		nowMs = serverDateMs;
+	} else if (maxLastSeen > 0 && (nowMs < maxLastSeen || (nowMs - maxLastSeen) > 5 * 60 * 1000)) {
+		// Guard against skewed client system clocks
+		nowMs = maxLastSeen;
+	}
+
+	let count = 0;
+	for (let i = 0; i < active24h.length; i++) {
+		const ts = Number(active24h[i]?.lastSeen);
+		if (Number.isFinite(ts) && (nowMs - ts) <= windowMs) {
+			count++;
+		}
+	}
+	return count;
+}
+
+function spkmodApplyTelemetryCounts(data, serverDateMs) {
+	if (!data || !data.success) return false;
+	let count10m = null;
+	if (typeof data.count10m === "number" && Number.isFinite(data.count10m)) {
+		count10m = data.count10m;
+	} else if (Array.isArray(data.active24h)) {
+		count10m = spkmodComputeActiveCount(data.active24h, lunTelemetryActiveWindowMs, serverDateMs);
+	}
+	lunModPlayersCounts = {
+		count10m: count10m !== null ? count10m : lunModPlayersCounts.count10m,
+		count1h: data.count1h ?? lunModPlayersCounts.count1h,
+		count24h: data.count24h ?? lunModPlayersCounts.count24h,
+		count7d: data.count7d ?? lunModPlayersCounts.count7d,
+		countAllTime: data.countAllTime ?? lunModPlayersCounts.countAllTime
+	};
+	window.spkmodRenderChannelTracker();
+	return count10m !== null;
+}
+
+function spkmodGetDisplayModCount() {
+	if (lunModPlayersCounts.count10m !== null) return lunModPlayersCounts.count10m;
+	if (lunModPlayersCounts.count1h !== null) return lunModPlayersCounts.count1h;
+	return null;
+}
 
 window.spkmodRenderChannelTracker = function() {
 	if (!window.__spkmodLastChannelResp || !lunHudElements.channelTracker) return;
-	const modLine = (lunModPlayersCounts.count1h !== null)
-		? "\n" + t("totalModPlayers", lunModPlayersCounts.count1h)
+	const displayModCount = spkmodGetDisplayModCount();
+	const modLine = (displayModCount !== null)
+		? "\n" + t("totalModPlayers", displayModCount.toLocaleString())
 		: "\n" + t("totalModPlayers", "--");
 
 	setText(lunHudElements.channelTracker,
@@ -15,59 +101,79 @@ window.spkmodRenderChannelTracker = function() {
 		+ modLine);
 };
 
+window.spkmodFetchTelemetryStats = function() {
+	lunLastTelemetryStatsTime = Date.now();
+	const safeFetch = window.spkmodSafeFetch || window.fetch;
+	return safeFetch(`${SPKMOD_SERVER_URL}/api/telemetry/stats`, {}, 4000)
+	.then(async res => {
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const dateHeader = res.headers && typeof res.headers.get === "function" ? res.headers.get("date") : null;
+		const serverDateMs = dateHeader ? Date.parse(dateHeader) : NaN;
+		const data = await res.json();
+		return { data, serverDateMs };
+	})
+	.then(({ data, serverDateMs }) => {
+		if (window.spkmodServerHealth) window.spkmodServerHealth.recordSuccess();
+		spkmodApplyTelemetryCounts(data, serverDateMs);
+	})
+	.catch(_ => {
+		if (window.spkmodServerHealth) window.spkmodServerHealth.recordFailure();
+	});
+};
+
 window.spkmodSendTelemetryPing = function() {
 	const consent = window.localStorage ? localStorage.getItem("spkmod-telemetry-consent") : null;
-
-	// Always mark attempt timestamp so failures never trigger repeated pings every second
-	lunLastTelemetryPingTime = Date.now();
+	const identity = spkmodGetTelemetryIdentity();
 	const safeFetch = window.spkmodSafeFetch || window.fetch;
 
-	if (consent === "granted") {
-		const username = (window.gameState && window.gameState.myPlayerName) ? String(window.gameState.myPlayerName).trim() : (localStorage.getItem("spkmod-last-player-name") || "Player");
-		const playerId = (window.gameState && window.gameState.myPlayerId) ? String(window.gameState.myPlayerId) : (localStorage.getItem("spkmod-last-player-id") || "");
+	// Only send an identified ping once logged in with consent; otherwise just fetch stats
+	if (consent === "granted" && identity.isIdentified) {
+		// Always mark attempt timestamp so failures never trigger repeated pings every second
+		lunLastTelemetryPingTime = Date.now();
+		lunTelemetryIdentifiedKey = `${identity.username}|${identity.playerId}`;
 
 		safeFetch(`${SPKMOD_SERVER_URL}/api/telemetry/ping`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ username, playerId })
+			body: JSON.stringify({ username: identity.username, playerId: identity.playerId })
 		}, 4000)
-		.then(res => {
+		.then(async res => {
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			return res.json();
+			const dateHeader = res.headers && typeof res.headers.get === "function" ? res.headers.get("date") : null;
+			const serverDateMs = dateHeader ? Date.parse(dateHeader) : NaN;
+			const data = await res.json();
+			return { data, serverDateMs };
 		})
-		.then(data => {
+		.then(({ data, serverDateMs }) => {
 			if (window.spkmodServerHealth) window.spkmodServerHealth.recordSuccess();
-			if (data && data.success) {
-				lunModPlayersCounts = { count1h: data.count1h, count24h: data.count24h, count7d: data.count7d, countAllTime: data.countAllTime };
-				window.spkmodRenderChannelTracker();
+			const has10m = spkmodApplyTelemetryCounts(data, serverDateMs);
+			// If /ping does not return active24h/count10m, fetch /stats to compute the 10-minute active count
+			if (!has10m) {
+				window.spkmodFetchTelemetryStats();
 			}
 		})
 		.catch(_ => {
+			lunTelemetryIdentifiedKey = "";
 			if (window.spkmodServerHealth) window.spkmodServerHealth.recordFailure();
 		});
 	} else {
-		safeFetch(`${SPKMOD_SERVER_URL}/api/telemetry/stats`, {}, 4000)
-		.then(res => {
-			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			return res.json();
-		})
-		.then(data => {
-			if (window.spkmodServerHealth) window.spkmodServerHealth.recordSuccess();
-			if (data && data.success) {
-				lunModPlayersCounts = { count1h: data.count1h, count24h: data.count24h, count7d: data.count7d, countAllTime: data.countAllTime };
-				window.spkmodRenderChannelTracker();
-			}
-		})
-		.catch(_ => {
-			if (window.spkmodServerHealth) window.spkmodServerHealth.recordFailure();
-		});
+		window.spkmodFetchTelemetryStats();
 	}
 };
 
 window.spkmodCheckTelemetryPing = function() {
 	if (window.spkmodServerHealth && !window.spkmodServerHealth.isAvailable()) return;
-	if (Date.now() - lunLastTelemetryPingTime >= lunTelemetryPingIntervalMs) {
-		window.spkmodSendTelemetryPing();
+	const consent = window.localStorage ? localStorage.getItem("spkmod-telemetry-consent") : null;
+	const identity = spkmodGetTelemetryIdentity();
+
+	if (consent === "granted" && identity.isIdentified) {
+		const currentKey = `${identity.username}|${identity.playerId}`;
+		const needsInitialOrSwitchPing = currentKey !== lunTelemetryIdentifiedKey;
+		if (needsInitialOrSwitchPing || Date.now() - lunLastTelemetryPingTime >= lunTelemetryPingIntervalMs) {
+			window.spkmodSendTelemetryPing();
+		}
+	} else if (Date.now() - lunLastTelemetryStatsTime >= lunTelemetryPingIntervalMs) {
+		window.spkmodFetchTelemetryStats();
 	}
 };
 
@@ -84,6 +190,47 @@ if (typeof spkmodI18nRenderers !== 'undefined') {
 		}
 	});
 }
+
+let _lunHudLastPlayersNearby = -1;
+let _lunHudLastZoneId = null;
+let _lunHudLastExpL1 = null;
+let _lunHudLastExpL2 = null;
+
+window.spkmodForceNametagRedraw = function() {
+	if (typeof gameState === 'undefined' || !gameState) return;
+
+	const redrawAvatar = (entity) => {
+		if (!entity || !entity.avatar || typeof entity.avatar.setLabel !== 'function') return;
+		hookAvatarLabel(entity);
+		if (entity.info && entity.info.name) {
+			const lvl = entity.info.__spkmodOrigLevel || entity.info.level || 1;
+			entity.avatar.setLabel("LV" + lvl + " " + entity.info.name);
+		} else if (typeof entity.avatar.__spkmodLastRawLabel === "string" && entity.avatar.__spkmodLastRawLabel) {
+			entity.avatar.setLabel(entity.avatar.__spkmodLastRawLabel);
+		}
+	};
+
+	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
+		gameState.remotePlayers.remotePlayers.forEach(redrawAvatar);
+	}
+	if (gameState.remotePetRegistry && gameState.remotePetRegistry.pets) {
+		gameState.remotePetRegistry.pets.forEach(redrawAvatar);
+	}
+	if (gameState.remoteDroneCoreRegistry && gameState.remoteDroneCoreRegistry.droneCores) {
+		gameState.remoteDroneCoreRegistry.droneCores.forEach(redrawAvatar);
+	}
+
+	const lvl = (gameState.myStat && gameState.myStat.level) ? gameState.myStat.level : 1;
+	const name = (gameState.myPlayerName || (gameState.myStat && gameState.myStat.name)) || "";
+	if (gameState.playerContainer && gameState.playerContainer.avatar && typeof gameState.playerContainer.avatar.setLabel === 'function') {
+		hookAvatarLabel(gameState.playerContainer, gameState.playerContainer);
+		if (name) gameState.playerContainer.avatar.setLabel("LV" + lvl + " " + name);
+	}
+	if (gameState.localAvatar && typeof gameState.localAvatar.setLabel === 'function') {
+		hookAvatarLabel({ avatar: gameState.localAvatar, container: gameState.playerContainer, isLocalPlayer: true }, gameState.playerContainer);
+		if (name) gameState.localAvatar.setLabel("LV" + lvl + " " + name);
+	}
+};
 
 function tick() {
 	if (window.__spkmodPauseTick) return;
@@ -106,7 +253,7 @@ function tick() {
 	if (lunTickCount % 20 === 0 && typeof hookChatEmojiButton === "function") {
 		hookChatEmojiButton();
 	}
-	if (lunTickCount % 1800 === 0 && typeof window.spkmodCheckTelemetryPing === "function") {
+	if (lunTickCount % 600 === 0 && typeof window.spkmodCheckTelemetryPing === "function") {
 		window.spkmodCheckTelemetryPing();
 	}
 
@@ -496,10 +643,23 @@ function tick() {
 	lunTickCount++;
 	lunSleep--;
 
-	setText(lunHudElements.playersNearby, t("playersNearby", gameState.remotePlayers?.remotePlayers?.size ?? 0));
-	setText(lunHudElements.zoneId, t("zoneId", zoneId));
-	setText(lunHudElements.expTrackerL1, expTrackerL1);
-	setText(lunHudElements.expTrackerL2, expTrackerL2);
+	const remoteNearbyCount = gameState.remotePlayers?.remotePlayers?.size ?? 0;
+	if (remoteNearbyCount !== _lunHudLastPlayersNearby) {
+		_lunHudLastPlayersNearby = remoteNearbyCount;
+		setText(lunHudElements.playersNearby, t("playersNearby", remoteNearbyCount));
+	}
+	if (zoneId !== _lunHudLastZoneId) {
+		_lunHudLastZoneId = zoneId;
+		setText(lunHudElements.zoneId, t("zoneId", zoneId));
+	}
+	if (expTrackerL1 !== _lunHudLastExpL1) {
+		_lunHudLastExpL1 = expTrackerL1;
+		setText(lunHudElements.expTrackerL1, expTrackerL1);
+	}
+	if (expTrackerL2 !== _lunHudLastExpL2) {
+		_lunHudLastExpL2 = expTrackerL2;
+		setText(lunHudElements.expTrackerL2, expTrackerL2);
+	}
 
 	if (lunChannelTrackerEnabled && lunMenuFoldingLevel < 2 && lunTickCount >= lunChannelTrackerNextTicks) {
 		const token = getAuthToken();
@@ -525,8 +685,9 @@ function tick() {
 				var totalPop = resp.reduce((sum, ch) => sum + (ch.population || 0), 0);
 				window.__spkmodLastChannelResp = resp;
 				window.__spkmodLastTotalPop = totalPop;
-				var modLine = (lunModPlayersCounts.count1h !== null)
-					? "\n" + t("totalModPlayers", lunModPlayersCounts.count1h)
+				var displayModCount = spkmodGetDisplayModCount();
+				var modLine = (displayModCount !== null)
+					? "\n" + t("totalModPlayers", displayModCount.toLocaleString())
 					: "\n" + t("totalModPlayers", "--");
 
 				setText(lunHudElements.channelTracker,
@@ -646,43 +807,7 @@ function tick() {
 	}
 
 
-window.spkmodForceNametagRedraw = function() {
-	if (typeof gameState === 'undefined' || !gameState) return;
-
-	const redrawAvatar = (entity) => {
-		if (!entity || !entity.avatar || typeof entity.avatar.setLabel !== 'function') return;
-		hookAvatarLabel(entity);
-		if (entity.info && entity.info.name) {
-			const lvl = entity.info.__spkmodOrigLevel || entity.info.level || 1;
-			entity.avatar.setLabel("LV" + lvl + " " + entity.info.name);
-		} else if (typeof entity.avatar.__spkmodLastRawLabel === "string" && entity.avatar.__spkmodLastRawLabel) {
-			entity.avatar.setLabel(entity.avatar.__spkmodLastRawLabel);
-		}
-	};
-
-	if (gameState.remotePlayers && gameState.remotePlayers.remotePlayers) {
-		gameState.remotePlayers.remotePlayers.forEach(redrawAvatar);
-	}
-	if (gameState.remotePetRegistry && gameState.remotePetRegistry.pets) {
-		gameState.remotePetRegistry.pets.forEach(redrawAvatar);
-	}
-	if (gameState.remoteDroneCoreRegistry && gameState.remoteDroneCoreRegistry.droneCores) {
-		gameState.remoteDroneCoreRegistry.droneCores.forEach(redrawAvatar);
-	}
-
-	const lvl = (gameState.myStat && gameState.myStat.level) ? gameState.myStat.level : 1;
-	const name = (gameState.myPlayerName || (gameState.myStat && gameState.myStat.name)) || "";
-	if (gameState.playerContainer && gameState.playerContainer.avatar && typeof gameState.playerContainer.avatar.setLabel === 'function') {
-		hookAvatarLabel(gameState.playerContainer, gameState.playerContainer);
-		if (name) gameState.playerContainer.avatar.setLabel("LV" + lvl + " " + name);
-	}
-	if (gameState.localAvatar && typeof gameState.localAvatar.setLabel === 'function') {
-		hookAvatarLabel({ avatar: gameState.localAvatar, container: gameState.playerContainer, isLocalPlayer: true }, gameState.playerContainer);
-		if (name) gameState.localAvatar.setLabel("LV" + lvl + " " + name);
-	}
-};
-
-	if (lunPanelElements.renameLevelInput && lunPanelElements.renameLevelInput.style.display === "none") {
+	if (lunPanelElements.renameLevelInput && lunPanelElements.renameLevelInput.style.display === "none" && lunTickCount % 20 === 0) {
 		let isVip = false;
 		const playerName = (typeof gameState !== 'undefined' && (gameState.myPlayerName || gameState.myStat?.name)) || document.querySelector('.sr-player-card__name')?.innerText?.trim() || "";
 		if (playerName) {
@@ -1155,6 +1280,7 @@ const SPKMOD_UPDATE_RELOAD_SECONDS = 30;
 const SPKMOD_UPDATE_ALERT_FALLBACK_EN = {
 	title: "🔄 SpeakiMod+ Update Available",
 	body: "An update has been found, the game will reload in {0} seconds. Please update manually if needed.",
+	bodyManual: "A new update is available! Click Reload Now whenever you're ready to apply it.",
 	chatNote: "If you see strange mod messages in chat before reloading, don't worry — other players are already on the newer version!",
 	btnReloadNow: "🔄 Reload Now",
 	btnDismiss: "✕ Later",
@@ -1163,8 +1289,10 @@ const SPKMOD_UPDATE_ALERT_FALLBACK_EN = {
 };
 
 let _spkmodUpdateBaselineBuild = null;
+let _spkmodUpdatePendingBuild = null;
 let _spkmodUpdateDetected = false;
 let _spkmodUpdateDismissed = false;
+let _spkmodUpdateAutoReloadActive = false;
 let _spkmodUpdateInFlight = false;
 let _spkmodUpdateLastCheckMs = 0;
 let _spkmodUpdateCountdownTimer = null;
@@ -1204,7 +1332,10 @@ function spkmodTriggerUpdateReload() {
 }
 
 function spkmodDismissUpdateAlert() {
-	_spkmodUpdateDismissed = true;
+	if (_spkmodUpdateAutoReloadActive) {
+		_spkmodUpdateDismissed = true;
+	}
+	_spkmodUpdateAutoReloadActive = false;
 	if (_spkmodUpdateCountdownTimer) {
 		clearInterval(_spkmodUpdateCountdownTimer);
 		_spkmodUpdateCountdownTimer = null;
@@ -1221,14 +1352,22 @@ function spkmodRefreshUpdateAlertModalUI() {
 	const noteEl = document.getElementById("spkmod-update-alert-note");
 	const reloadBtn = document.getElementById("spkmod-update-alert-reload");
 	const dismissBtn = document.getElementById("spkmod-update-alert-dismiss");
+	const progressEl = document.getElementById("spkmod-update-alert-progress");
 	const barEl = document.getElementById("spkmod-update-alert-bar");
 
 	if (titleEl) titleEl.innerText = spkmodGetUpdateAlertText("title");
-	if (bodyEl) bodyEl.innerText = spkmodGetUpdateAlertText("body", Math.max(0, _spkmodUpdateRemainingSec));
+	if (bodyEl) {
+		bodyEl.innerText = _spkmodUpdateAutoReloadActive
+			? spkmodGetUpdateAlertText("body", Math.max(0, _spkmodUpdateRemainingSec))
+			: spkmodGetUpdateAlertText("bodyManual");
+	}
 	if (noteEl) noteEl.innerText = spkmodGetUpdateAlertText("chatNote");
 	if (reloadBtn) reloadBtn.innerText = spkmodGetUpdateAlertText("btnReloadNow");
 	if (dismissBtn) dismissBtn.innerText = spkmodGetUpdateAlertText("btnDismiss");
-	if (barEl) {
+	if (progressEl) {
+		progressEl.style.display = _spkmodUpdateAutoReloadActive ? "" : "none";
+	}
+	if (barEl && _spkmodUpdateAutoReloadActive) {
 		const pct = Math.max(0, Math.min(100, (_spkmodUpdateRemainingSec / SPKMOD_UPDATE_RELOAD_SECONDS) * 100));
 		barEl.style.width = pct.toFixed(1) + "%";
 	}
@@ -1270,6 +1409,7 @@ function spkmodEnsureUpdateAlertModal() {
 	note.style.cssText = "font-size: 11.5px; line-height: 1.45; color: #cbd5e1; background: rgba(255,255,255,0.06); border-left: 3px solid #38bdf8; padding: 8px 10px; border-radius: 6px;";
 
 	const progressWrap = document.createElement("div");
+	progressWrap.id = "spkmod-update-alert-progress";
 	progressWrap.style.cssText = "width: 100%; height: 6px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden;";
 	const bar = document.createElement("div");
 	bar.id = "spkmod-update-alert-bar";
@@ -1322,14 +1462,24 @@ function spkmodEnsureUpdateAlertModal() {
 	return modal;
 }
 
-function spkmodShowUpdateAlertModal() {
+function spkmodShowUpdateAlertModal(data, options) {
 	if (_spkmodUpdateCountdownTimer) {
 		clearInterval(_spkmodUpdateCountdownTimer);
 		_spkmodUpdateCountdownTimer = null;
 	}
-	_spkmodUpdateDetected = true;
-	_spkmodUpdateDismissed = false;
-	_spkmodUpdateRemainingSec = SPKMOD_UPDATE_RELOAD_SECONDS;
+	let shouldAutoReload = true;
+	if (options && typeof options.autoReload === "boolean") {
+		shouldAutoReload = options.autoReload;
+	} else if (data && typeof data.autoReload === "boolean") {
+		shouldAutoReload = data.autoReload;
+	}
+
+	_spkmodUpdateAutoReloadActive = shouldAutoReload;
+	if (shouldAutoReload) {
+		_spkmodUpdateDetected = true;
+		_spkmodUpdateDismissed = false;
+		_spkmodUpdateRemainingSec = SPKMOD_UPDATE_RELOAD_SECONDS;
+	}
 
 	const modal = spkmodEnsureUpdateAlertModal();
 	if (modal) {
@@ -1338,22 +1488,25 @@ function spkmodShowUpdateAlertModal() {
 	}
 	spkmodRefreshUpdateAlertModalUI();
 
-	_spkmodUpdateCountdownTimer = setInterval(() => {
-		if (_spkmodUpdateDismissed) {
-			clearInterval(_spkmodUpdateCountdownTimer);
-			_spkmodUpdateCountdownTimer = null;
-			return;
-		}
-		_spkmodUpdateRemainingSec -= 1;
-		spkmodRefreshUpdateAlertModalUI();
-		if (_spkmodUpdateRemainingSec <= 0) {
-			spkmodTriggerUpdateReload();
-		}
-	}, 1000);
+	if (shouldAutoReload) {
+		_spkmodUpdateCountdownTimer = setInterval(() => {
+			if (_spkmodUpdateDismissed || !_spkmodUpdateAutoReloadActive) {
+				clearInterval(_spkmodUpdateCountdownTimer);
+				_spkmodUpdateCountdownTimer = null;
+				return;
+			}
+			_spkmodUpdateRemainingSec -= 1;
+			spkmodRefreshUpdateAlertModalUI();
+			if (_spkmodUpdateRemainingSec <= 0) {
+				spkmodTriggerUpdateReload();
+			}
+		}, 1000);
+	}
 }
 
 async function spkmodCheckForModUpdate(reason = "poll") {
-	if (_spkmodUpdateDetected || _spkmodUpdateDismissed || _spkmodUpdateInFlight) return false;
+	if (_spkmodUpdateInFlight) return false;
+	if (reason !== "manual" && (_spkmodUpdateDetected || _spkmodUpdateDismissed)) return false;
 	const now = Date.now();
 	if (reason === "unknown_token" && now - _spkmodUpdateLastCheckMs < SPKMOD_UPDATE_IMMEDIATE_COOLDOWN_MS) {
 		return false;
@@ -1373,21 +1526,35 @@ async function spkmodCheckForModUpdate(reason = "poll") {
 		const remoteBuild = typeof data.build === "string" ? data.build.trim() : "";
 		const remoteProtocol = Number(data.protocol) || 0;
 		const localProtocol = Number(window.SPKMOD_PROTOCOL_VERSION || 1);
+		const autoReloadEnabled = data.autoReload === true;
 
 		const protocolOutdated = remoteProtocol > localProtocol;
 		let buildChanged = false;
 		if (remoteBuild) {
 			if (!_spkmodUpdateBaselineBuild) {
 				_spkmodUpdateBaselineBuild = remoteBuild;
+				if (typeof data.version === "string" && data.version.trim() && typeof window.spkmodSetModVersion === "function") {
+					window.spkmodSetModVersion(data.version);
+				}
 			} else if (remoteBuild !== _spkmodUpdateBaselineBuild) {
 				buildChanged = true;
 			}
 		}
 
 		if (protocolOutdated || buildChanged) {
-			spkmodShowUpdateAlertModal(data);
-			return true;
+			_spkmodUpdatePendingBuild = remoteBuild || _spkmodUpdatePendingBuild;
+			if (autoReloadEnabled) {
+				spkmodShowUpdateAlertModal(data, { autoReload: true });
+				return true;
+			}
+			if (reason === "manual") {
+				spkmodShowUpdateAlertModal(data, { autoReload: false });
+				return true;
+			}
+			// Silent patch: keep baseline unchanged and do not interrupt players until autoReload is enabled or they refresh naturally.
+			return false;
 		}
+		_spkmodUpdatePendingBuild = null;
 		if (reason === "manual" && typeof chatLog === "function") {
 			chatLog(spkmodGetUpdateAlertText("upToDateToast"));
 		}
@@ -1407,13 +1574,16 @@ window.spkmodNotifyUnknownSyncToken = function() {
 
 window.spkmodUpdateChecker = {
 	checkNow: (reason = "manual") => spkmodCheckForModUpdate(reason),
-	showAlert: () => spkmodShowUpdateAlertModal(),
+	showAlert: (data, options) => spkmodShowUpdateAlertModal(data, options),
 	dismiss: () => spkmodDismissUpdateAlert(),
 	reloadNow: () => spkmodTriggerUpdateReload(),
 	getState: () => ({
+		version: typeof window.spkmodModVersion === "string" ? window.spkmodModVersion : null,
 		baselineBuild: _spkmodUpdateBaselineBuild,
+		pendingBuild: _spkmodUpdatePendingBuild,
 		detected: _spkmodUpdateDetected,
 		dismissed: _spkmodUpdateDismissed,
+		autoReload: _spkmodUpdateAutoReloadActive,
 		remainingSec: _spkmodUpdateRemainingSec,
 		localProtocol: Number(window.SPKMOD_PROTOCOL_VERSION || 1)
 	})

@@ -55,6 +55,7 @@ try {
 						patchRendererBloomMaterial(r);
 					}
 				};
+				probeAfter.__spkmodPrevAfter = prevAfter;
 				sc.onAfterRender = probeAfter;
 			} else if (bloomGuardTries > 160) {
 				clearInterval(bloomGuardTimer);
@@ -621,7 +622,7 @@ const LUN_BURGER_SKIN_KEYS = ["burgerSkinOff", "burgerSkinA", "burgerSkinB"];
 const LUN_BURGER_SKIN_FALLBACKS = ["Burger: OFF", "Burger: A", "Burger: B"];
 const LUN_BURGER_CAR_MODES = [null, "Vehicle_Sedan", "Vehicle_Van"];
 const LUN_BURGER_CAR_KEYS = ["burgerCarOff", "burgerCarSedan", "burgerCarVan"];
-const LUN_BURGER_CAR_FALLBACKS = ["Car: OFF", "Car: Sedan (F/G)", "Car: Van (F/G)"];
+const LUN_BURGER_CAR_FALLBACKS = ["Car: OFF", "Car: Sedan (G)", "Car: Van (G)"];
 const LUN_BURGER_CAR_COLORS = [13653578, 3964880, 5025658, 15254855, 15239740, 15856108, 7259880, 9069513];
 
 // True First Person & Speedometer State

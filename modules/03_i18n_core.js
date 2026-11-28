@@ -195,6 +195,44 @@ function filterName(name) {
 
 loadAllBadWordLists();
 
+const SPKMOD_VERSION_CACHE_KEY = "spkmod-version-cache";
+
+function spkmodFormatVersionLabel(raw) {
+	const clean = typeof raw === "string" ? raw.trim() : "";
+	if (!clean) return "";
+	return /^\d/.test(clean) ? ("v" + clean) : clean;
+}
+
+var spkmodModVersion = (function() {
+	try {
+		if (typeof window !== "undefined" && window.localStorage) {
+			const cached = spkmodFormatVersionLabel(localStorage.getItem(SPKMOD_VERSION_CACHE_KEY));
+			if (cached) return cached;
+		}
+	} catch (_) {}
+	return "v3.1.0";
+})();
+window.spkmodModVersion = spkmodModVersion;
+window.spkmodFormatVersionLabel = spkmodFormatVersionLabel;
+
+function spkmodSetModVersion(rawVersion, shouldRefresh = true) {
+	const formatted = spkmodFormatVersionLabel(rawVersion);
+	if (!formatted) return spkmodModVersion;
+	const changed = formatted !== spkmodModVersion;
+	spkmodModVersion = formatted;
+	window.spkmodModVersion = formatted;
+	if (typeof window !== "undefined" && window.localStorage) {
+		try {
+			localStorage.setItem(SPKMOD_VERSION_CACHE_KEY, formatted);
+		} catch (_) {}
+	}
+	if (shouldRefresh && changed && typeof refreshI18n === "function") {
+		refreshI18n();
+	}
+	return formatted;
+}
+window.spkmodSetModVersion = spkmodSetModVersion;
+
 var spkmodTranslations = (function() {
 	try {
 		if (typeof window !== "undefined" && window.localStorage) {
@@ -206,6 +244,20 @@ var spkmodTranslations = (function() {
 })();
 
 var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) || "en";
+
+(async function() {
+	try {
+		const res = await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/main/version.json?t=" + Date.now(), { cache: "no-store" });
+		if (res && res.ok) {
+			const data = await res.json();
+			if (data && typeof data.version === "string" && data.version.trim()) {
+				spkmodSetModVersion(data.version);
+			}
+		}
+	} catch (e) {
+		console.warn("[SpeakiMod+] Failed to load version.json from GitHub:", e);
+	}
+})();
 
 (async function() {
 	try {
@@ -228,20 +280,26 @@ var spkmodLang = (window.localStorage && localStorage.getItem("spkmod-lang")) ||
 	}
 })();
 
+function spkmodApplyBuiltInPlaceholders(str) {
+	if (typeof str !== "string" || !str.includes("{version}")) return str;
+	const ver = spkmodModVersion || "";
+	return ver ? str.split("{version}").join(ver) : str.split("{version}").join("").replace(/\s{2,}/g, " ").trim();
+}
+
 function t(key, ...args) {
 	var str = (spkmodTranslations[spkmodLang] && spkmodTranslations[spkmodLang][key])
 		|| (spkmodTranslations.en && spkmodTranslations.en[key])
 		|| key;
 	args.forEach((a, i) => { str = str.split(`{${i}}`).join(a); });
-	return str;
+	return spkmodApplyBuiltInPlaceholders(str);
 }
 
 function tCustom(key, fallback, ...args) {
 	var str = (typeof spkmodTranslations !== "undefined" && spkmodTranslations[spkmodLang] && spkmodTranslations[spkmodLang][key])
 		|| (typeof spkmodTranslations !== "undefined" && spkmodTranslations.en && spkmodTranslations.en[key]);
-	if (!str) return fallback || key;
+	if (!str) return spkmodApplyBuiltInPlaceholders(fallback || key);
 	args.forEach((a, i) => { str = str.split(`{${i}}`).join(a); });
-	return str;
+	return spkmodApplyBuiltInPlaceholders(str);
 }
 window.tCustom = tCustom;
 
@@ -652,7 +710,7 @@ function getPlayerNametagSprite(player) {
     if (cached && cached.parent === root) return cached;
 
     // In the current game source, the nametag is a direct child of avatar.root.
-    const sprite = root.children?.find(obj => obj?.isSprite && obj.position && obj.position.y > 0.5) ?? null;
+    const sprite = root.children?.find(obj => obj?.isSprite && !obj.userData?.spkmodSkipNametagClear && !obj.userData?.spkmodVehicleAlert && obj.position && obj.position.y > 0.5) ?? null;
 
     if (sprite) {
         player.__spkmodNametagSprite = sprite;
@@ -722,8 +780,8 @@ function hookAvatarLabel(entity, explicitContainer) {
 			const targetContainer = resolveContainer();
 			if (targetContainer && typeof targetContainer.traverse === 'function') {
 				targetContainer.traverse(obj => {
-					// Position check ensures we only hit the floating nametag sprite above the player
-					if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+					// Position check ensures we only hit the floating nametag sprite above the player (never mod sprites like vehicle !/? alerts)
+					if (obj && obj.isSprite && !obj.userData?.spkmodSkipNametagClear && !obj.userData?.spkmodVehicleAlert && obj.name !== "spkmod_vehicle_alert_sprite" && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
 						obj.material.map.dispose();
 
 						if (obj.material.map.image && typeof obj.material.map.image.getContext === 'function') {
@@ -2122,7 +2180,13 @@ function updateMuteButtonUI() {
 	}
 }
 
+let _spkmodCachedMuteCheckbox = null;
+
 function findGameMuteCheckbox() {
+	if (_spkmodCachedMuteCheckbox && _spkmodCachedMuteCheckbox.isConnected) {
+		return _spkmodCachedMuteCheckbox;
+	}
+	_spkmodCachedMuteCheckbox = null;
 	const rows = document.querySelectorAll(".sr-panel__row");
 	for (const row of rows) {
 		const checkbox = row.querySelector("input[type='checkbox']");
@@ -2138,6 +2202,7 @@ function findGameMuteCheckbox() {
 				txt.includes("静音") ||
 				txt.includes("silenciar")
 			) {
+				_spkmodCachedMuteCheckbox = checkbox;
 				return checkbox;
 			}
 		}
@@ -2146,6 +2211,9 @@ function findGameMuteCheckbox() {
 }
 
 function hookNativeMuteCheckbox() {
+	if (_spkmodCachedMuteCheckbox && _spkmodCachedMuteCheckbox.isConnected && _spkmodCachedMuteCheckbox.__spkmodMuteHooked) {
+		return;
+	}
 	const cb = findGameMuteCheckbox();
 	if (cb && !cb.__spkmodMuteHooked) {
 		cb.__spkmodMuteHooked = true;

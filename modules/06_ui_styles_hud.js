@@ -611,7 +611,7 @@ document.head.appendChild(buildElement(
 			background: #000C;
 			border: ${spkmodBorderWidth} solid #DDD;
 			border-radius: 8px;
-			padding: 4px 8px;
+			padding: 4px 6px;
 			font-size: 10pt;
 			cursor: pointer;
 			outline: none;
@@ -1203,7 +1203,7 @@ document.body.appendChild(
 			}),
 			lunHudElements.currencyTracker = buildElement("span", {
 				// innerText: t("currencyTracker", "--", "--", "--"),
-				innerText: t("currencyTracker", "--", "--", "--").replace(/ \| 🟣.*/, ""),
+				innerText: t("currencyTracker", "--", "--", "--").replace(/ 🟣.*/, ""),
 				style: lunCurrencyTrackerEnabled ? "" : "display: none;"
 			}),
 			lunHudElements.sessionGoldTracker = buildElement("span", {
@@ -1341,7 +1341,7 @@ document.body.appendChild(
 				lunPanelElements.petDanceBtn = buildElement("button", {
 					id: "spkmod-petdance-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.PetDanceActive ? "petDanceOn" : "petDanceOff") || (window.PetDanceActive ? "Pet Dance: ⏸️" : "Pet Dance: ▶️"),
+					innerText: t(window.PetDanceActive ? "petDanceOn" : "petDanceOff") || (window.PetDanceActive ? "Pet Dance ⏸️" : "Pet Dance ▶️"),
 					value: "",
 					onclick: e => {
 						togglePetDance(e.target);
@@ -1350,7 +1350,7 @@ document.body.appendChild(
 				lunPanelElements.justPetBtn = buildElement("button", {
 					id: "spkmod-justpet-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.JustPetActive ? "justPetOn" : "justPetOff") || (window.JustPetActive ? "Just Pet: ⏸️" : "Just Pet: ▶️"),
+					innerText: t(window.JustPetActive ? "justPetOn" : "justPetOff") || (window.JustPetActive ? "Just Pet ⏸️" : "Just Pet ▶️"),
 					value: "",
 					onclick: e => {
 						toggleJustPet(e.target);
@@ -1370,20 +1370,47 @@ document.body.appendChild(
 				lunPanelElements.autoMopBtn = buildElement("button", {
 					id: "spkmod-automop-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.AutoMopActive ? "autoMopOn" : "autoMopOff") || (window.AutoMopActive ? "Mop: ⏸️" : "Mop: ▶️"),
+					innerText: t(window.AutoMopActive ? "autoMopOn" : "autoMopOff") || (window.AutoMopActive ? "Mop ⏸️" : "Mop ▶️"),
 					value: "",
 					onclick: e => {
 						if (typeof toggleAutoMop === "function") toggleAutoMop(e.target);
 					}
 				}),
-				lunPanelElements.vehicleToggleBtn = buildElement("button", {
-					id: "spkmod-vehicle-toggle-btn",
-					className: "spkmod-panel-btn" + (window.spkmodCarSystemEnabled === false ? " hidden" : ""),
-					innerText: typeof window.spkmodGetVehicleQuickToggleLabel === "function" ? window.spkmodGetVehicleQuickToggleLabel() : "🚗 Vehicle: OFF",
-					title: "Quick Toggle Vehicle (Alt+X)",
+				lunPanelElements.hyperShakeBtn = buildElement("button", {
+					id: "spkmod-hypershake-main-btn",
+					className: "spkmod-panel-btn",
+					innerText: window.HyperShakeActive ? t("hyperShakeOn") : t("hyperShakeOff"),
 					value: "",
-					onclick: () => {
-						if (typeof window.spkmodToggleActiveVehicle === "function") window.spkmodToggleActiveVehicle();
+					onclick: e => {
+						window.HyperShakeActive = !window.HyperShakeActive;
+
+						if (window.HyperShakeActive) {
+							window.ShakeActive = false;
+							window.SuperShakeActive = false;
+							window.BeyBladeActive = false;
+							window.MoonwalkActive = false;
+							window.ReverseBeyBladeActive = false;
+							if (window.vibrateTimer) clearInterval(window.vibrateTimer);
+							window.vibrateTimer = setInterval(() => {
+								if (!gameState || !gameState.playerContainer) return;
+								const base = gameState.cameraController?.cameraYaw || 0;
+								gameState.playerContainer.rotation.y = base + (Math.random() - 0.5) * 1.5;
+								gameState.moveSendAccumulator = 1;
+							}, 25);
+							updateMovementButtonsUI();
+							chatLog(t("hyperShakeActivatedMsg"));
+						} else {
+							if (window.vibrateTimer) {
+								clearInterval(window.vibrateTimer);
+								window.vibrateTimer = null;
+							}
+							updateMovementButtonsUI();
+							if (gameState.playerContainer && gameState.cameraController) {
+								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
+								gameState.moveSendAccumulator = 1;
+							}
+							chatLog(t("hyperShakeDeactivatedMsg"));
+						}
 					}
 				})
 			]),
@@ -1446,7 +1473,7 @@ document.body.appendChild(
 				lunPanelElements.partnerDanceBtn = buildElement("button", {
 					id: "spkmod-partner-dance-btn",
 					className: "spkmod-panel-btn",
-					innerText: t(window.PartnerDanceState === 1 ? "partnerDanceOn" : (window.PartnerDanceState === 2 ? "partnerDanceInverted" : "partnerDanceOff")) || (window.PartnerDanceState === 0 ? "8 Dance: ▶️" : (window.PartnerDanceState === 1 ? "8 Dance: ⏸️" : "Rev 8: ⏸️")),
+					innerText: t(window.PartnerDanceState === 1 ? "partnerDanceOn" : (window.PartnerDanceState === 2 ? "partnerDanceInverted" : "partnerDanceOff")) || (window.PartnerDanceState === 0 ? "8 Dance ▶️" : (window.PartnerDanceState === 1 ? "8 Dance ⏸️" : "Rev 8 ⏸️")),
 					value: "",
 					onclick: e => {
 						togglePartnerDance(e.target);
@@ -1509,6 +1536,123 @@ document.body.appendChild(
 								}
 							} else {
 								chatLog(t("playersRadarNone"));
+							}
+						}
+					}
+				}),
+				lunPanelElements.freeCamBtn = buildElement("button", {
+					className: "spkmod-panel-btn",
+					innerText: t("freeCamOff"),
+					style: "flex: 1;",
+					onclick: e => {
+						lunDroneModeActive = !lunDroneModeActive;
+						setText(e.target, t(lunDroneModeActive ? "freeCamOn" : "freeCamOff"));
+						if (lunDroneModeActive) {
+							lunFirstPersonActive = false;
+							if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t("firstPersonOff"));
+							if (lunTrueFirstPersonActive) {
+								lunTrueFirstPersonActive = false;
+								if (window.lunInvisibilityActive && typeof window.spkmodToggleInvisibility === "function") window.spkmodToggleInvisibility();
+								if (lunPanelElements.trueFirstPersonBtn) setText(lunPanelElements.trueFirstPersonBtn, t("trueFirstPersonOff"));
+							}
+							if (gameState.playerContainer) {
+								const remoteContainers = gameState.remotePlayers?.remotePlayers ? 
+									Array.from(gameState.remotePlayers.remotePlayers.values()).map(rp => rp.container) : [];
+								gameState.playerContainer.children.forEach(c => {
+									if (remoteContainers.includes(c) || c === gameState.selfMinigameRing) return;
+									c.visible = true;
+								});
+							}
+							if (gameState.playerContainer && gameState.cameraController) {
+								window.spkmodDroneTarget = { position: { x: gameState.playerContainer.position.x, y: gameState.playerContainer.position.y, z: gameState.playerContainer.position.z } };
+								gameState.cameraController.target = window.spkmodDroneTarget;
+								
+								if (!gameState.cameraController._spkmodPatchedUpdate) {
+									const origUpdate = gameState.cameraController.update;
+									gameState.cameraController.update = function(dt) {
+										if (lunDroneModeActive && window.spkmodDroneTarget) {
+											const now = performance.now();
+											window.lunDroneLastFrame = window.lunDroneLastFrame || now;
+											const dtNormalized = Math.min(now - window.lunDroneLastFrame, 100) / 16.666;
+											window.lunDroneLastFrame = now;
+
+											let targetVX = 0;
+											let targetVZ = 0;
+											let targetVY = 0;
+
+											if (typeof gamepadMoveVector !== 'undefined' && gamepadMoveVector) {
+												targetVX = gamepadMoveVector.x;
+												targetVZ = gamepadMoveVector.z;
+											} else {
+												let lx = 0, ly = 0;
+												if (window.spkmodDroneKeys) {
+													if (window.spkmodDroneKeys.w) ly -= 1;
+													if (window.spkmodDroneKeys.s) ly += 1;
+													if (window.spkmodDroneKeys.a) lx -= 1;
+													if (window.spkmodDroneKeys.d) lx += 1;
+												}
+												if (lx !== 0 || ly !== 0) {
+													const camYaw = this.cameraYaw || 0;
+													targetVX = lx * Math.cos(camYaw) + ly * Math.sin(camYaw);
+													targetVZ = -lx * Math.sin(camYaw) + ly * Math.cos(camYaw);
+													const mag = Math.sqrt(targetVX * targetVX + targetVZ * targetVZ);
+													targetVX /= mag;
+													targetVZ /= mag;
+												}
+											}
+
+											if (window.spkmodDroneKeys) {
+												if (window.spkmodDroneKeys.up) targetVY += 1;
+												if (window.spkmodDroneKeys.down) targetVY -= 1;
+											}
+											
+											window.lunDroneVX = window.lunDroneVX || 0;
+											window.lunDroneVZ = window.lunDroneVZ || 0;
+											window.lunDroneVY = window.lunDroneVY || 0;
+											
+											const lerp = 1 - Math.pow(0.7, Math.max(0.001, dtNormalized));
+											window.lunDroneVX += (targetVX - window.lunDroneVX) * lerp;
+											window.lunDroneVZ += (targetVZ - window.lunDroneVZ) * lerp;
+											window.lunDroneVY += (targetVY - window.lunDroneVY) * lerp;
+											
+											const speed = ((typeof window.lunDroneSpeed !== 'undefined' ? window.lunDroneSpeed : (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10)));
+											
+											// Stop completely if the velocity is extremely small to prevent endless micro-drifting
+											if (Math.abs(window.lunDroneVX) < 0.001) window.lunDroneVX = 0;
+											if (Math.abs(window.lunDroneVZ) < 0.001) window.lunDroneVZ = 0;
+											if (Math.abs(window.lunDroneVY) < 0.001) window.lunDroneVY = 0;
+											
+											window.spkmodDroneTarget.position.x += window.lunDroneVX * speed * dtNormalized;
+											window.spkmodDroneTarget.position.z += window.lunDroneVZ * speed * dtNormalized;
+											window.spkmodDroneTarget.position.y += window.lunDroneVY * speed * dtNormalized;
+										}
+										
+										origUpdate.call(this, dt);
+										
+										if (lunDroneModeActive && typeof this.snapToTarget === "function") {
+											this.snapToTarget();
+										}
+									};
+									gameState.cameraController._spkmodPatchedUpdate = true;
+								}
+								
+								// Debugging hooks
+								console.log("[DroneMode] Activated. Target:", window.spkmodDroneTarget);
+								window.spkmodDebugCamera = () => {
+									console.log("Camera Yaw:", gameState.cameraController.cameraYaw);
+									console.log("Camera Pitch:", gameState.cameraController.cameraPitch);
+									console.log("Camera Zoom:", gameState.cameraController.cameraZoomDistance);
+									console.log("Camera Target:", gameState.cameraController.target);
+									console.log("Camera Position:", gameState.cameraController.camera.position);
+									console.log("Drone Keys:", window.spkmodDroneKeys);
+								};
+								chatLog("Drone Mode ON (Run spkmodDebugCamera() in console to debug)");
+							}
+						} else {
+							if (gameState.cameraController && gameState.playerContainer) {
+								gameState.cameraController.target = gameState.playerContainer;
+								console.log("[DroneMode] Deactivated. Target restored to player.");
+								chatLog("Drone Mode OFF");
 							}
 						}
 					}
@@ -1752,6 +1896,16 @@ document.body.appendChild(
 					onclick: () => {
 						if (typeof window.cycleCameraZoom === "function") window.cycleCameraZoom();
 					}
+				}),
+				lunPanelElements.vehicleToggleBtn = buildElement("button", {
+					id: "spkmod-vehicle-toggle-btn",
+					className: "spkmod-panel-btn" + (window.spkmodCarSystemEnabled === false ? " hidden" : ""),
+					innerText: typeof window.spkmodGetVehicleQuickToggleLabel === "function" ? window.spkmodGetVehicleQuickToggleLabel() : "🚗 Vehicle OFF",
+					title: "Quick Toggle Vehicle (Alt+X)",
+					value: "",
+					onclick: () => {
+						if (typeof window.spkmodToggleActiveVehicle === "function") window.spkmodToggleActiveVehicle();
+					}
 				})
 			]),
 
@@ -1846,160 +2000,6 @@ document.body.appendChild(
 							}
 						}
 					}
-				}),
-				lunPanelElements.hyperShakeBtn = buildElement("button", {
-					id: "spkmod-hypershake-main-btn",
-					className: "spkmod-panel-btn",
-					innerText: window.HyperShakeActive ? t("hyperShakeOn") : t("hyperShakeOff"),
-					value: "",
-					onclick: e => {
-						window.HyperShakeActive = !window.HyperShakeActive;
-
-						if (window.HyperShakeActive) {
-							window.ShakeActive = false;
-							window.SuperShakeActive = false;
-							window.BeyBladeActive = false;
-							window.MoonwalkActive = false;
-							window.ReverseBeyBladeActive = false;
-							if (window.vibrateTimer) clearInterval(window.vibrateTimer);
-							window.vibrateTimer = setInterval(() => {
-								if (!gameState || !gameState.playerContainer) return;
-								const base = gameState.cameraController?.cameraYaw || 0;
-								gameState.playerContainer.rotation.y = base + (Math.random() - 0.5) * 1.5;
-								gameState.moveSendAccumulator = 1;
-							}, 25);
-							updateMovementButtonsUI();
-							chatLog(t("hyperShakeActivatedMsg"));
-						} else {
-							if (window.vibrateTimer) {
-								clearInterval(window.vibrateTimer);
-								window.vibrateTimer = null;
-							}
-							updateMovementButtonsUI();
-							if (gameState.playerContainer && gameState.cameraController) {
-								gameState.playerContainer.rotation.y = gameState.cameraController.cameraYaw;
-								gameState.moveSendAccumulator = 1;
-							}
-							chatLog(t("hyperShakeDeactivatedMsg"));
-						}
-					}
-				}),
-				lunPanelElements.freeCamBtn = buildElement("button", {
-					className: "spkmod-panel-btn",
-					innerText: t("freeCamOff"),
-					style: "flex: 1;",
-					onclick: e => {
-						lunDroneModeActive = !lunDroneModeActive;
-						setText(e.target, t(lunDroneModeActive ? "freeCamOn" : "freeCamOff"));
-						if (lunDroneModeActive) {
-							lunFirstPersonActive = false;
-							if (lunPanelElements.firstPersonBtn) setText(lunPanelElements.firstPersonBtn, t("firstPersonOff"));
-							if (lunTrueFirstPersonActive) {
-								lunTrueFirstPersonActive = false;
-								if (window.lunInvisibilityActive && typeof window.spkmodToggleInvisibility === "function") window.spkmodToggleInvisibility();
-								if (lunPanelElements.trueFirstPersonBtn) setText(lunPanelElements.trueFirstPersonBtn, t("trueFirstPersonOff"));
-							}
-							if (gameState.playerContainer) {
-								const remoteContainers = gameState.remotePlayers?.remotePlayers ? 
-									Array.from(gameState.remotePlayers.remotePlayers.values()).map(rp => rp.container) : [];
-								gameState.playerContainer.children.forEach(c => {
-									if (remoteContainers.includes(c) || c === gameState.selfMinigameRing) return;
-									c.visible = true;
-								});
-							}
-							if (gameState.playerContainer && gameState.cameraController) {
-								window.spkmodDroneTarget = { position: { x: gameState.playerContainer.position.x, y: gameState.playerContainer.position.y, z: gameState.playerContainer.position.z } };
-								gameState.cameraController.target = window.spkmodDroneTarget;
-								
-								if (!gameState.cameraController._spkmodPatchedUpdate) {
-									const origUpdate = gameState.cameraController.update;
-									gameState.cameraController.update = function(dt) {
-										if (lunDroneModeActive && window.spkmodDroneTarget) {
-											const now = performance.now();
-											window.lunDroneLastFrame = window.lunDroneLastFrame || now;
-											const dtNormalized = Math.min(now - window.lunDroneLastFrame, 100) / 16.666;
-											window.lunDroneLastFrame = now;
-
-											let targetVX = 0;
-											let targetVZ = 0;
-											let targetVY = 0;
-
-											if (typeof gamepadMoveVector !== 'undefined' && gamepadMoveVector) {
-												targetVX = gamepadMoveVector.x;
-												targetVZ = gamepadMoveVector.z;
-											} else {
-												let lx = 0, ly = 0;
-												if (window.spkmodDroneKeys) {
-													if (window.spkmodDroneKeys.w) ly -= 1;
-													if (window.spkmodDroneKeys.s) ly += 1;
-													if (window.spkmodDroneKeys.a) lx -= 1;
-													if (window.spkmodDroneKeys.d) lx += 1;
-												}
-												if (lx !== 0 || ly !== 0) {
-													const camYaw = this.cameraYaw || 0;
-													targetVX = lx * Math.cos(camYaw) + ly * Math.sin(camYaw);
-													targetVZ = -lx * Math.sin(camYaw) + ly * Math.cos(camYaw);
-													const mag = Math.sqrt(targetVX * targetVX + targetVZ * targetVZ);
-													targetVX /= mag;
-													targetVZ /= mag;
-												}
-											}
-
-											if (window.spkmodDroneKeys) {
-												if (window.spkmodDroneKeys.up) targetVY += 1;
-												if (window.spkmodDroneKeys.down) targetVY -= 1;
-											}
-											
-											window.lunDroneVX = window.lunDroneVX || 0;
-											window.lunDroneVZ = window.lunDroneVZ || 0;
-											window.lunDroneVY = window.lunDroneVY || 0;
-											
-											const lerp = 1 - Math.pow(0.7, Math.max(0.001, dtNormalized));
-											window.lunDroneVX += (targetVX - window.lunDroneVX) * lerp;
-											window.lunDroneVZ += (targetVZ - window.lunDroneVZ) * lerp;
-											window.lunDroneVY += (targetVY - window.lunDroneVY) * lerp;
-											
-											const speed = ((typeof window.lunDroneSpeed !== 'undefined' ? window.lunDroneSpeed : (typeof lunDroneSpeed !== 'undefined' ? lunDroneSpeed : 0.10)));
-											
-											// Stop completely if the velocity is extremely small to prevent endless micro-drifting
-											if (Math.abs(window.lunDroneVX) < 0.001) window.lunDroneVX = 0;
-											if (Math.abs(window.lunDroneVZ) < 0.001) window.lunDroneVZ = 0;
-											if (Math.abs(window.lunDroneVY) < 0.001) window.lunDroneVY = 0;
-											
-											window.spkmodDroneTarget.position.x += window.lunDroneVX * speed * dtNormalized;
-											window.spkmodDroneTarget.position.z += window.lunDroneVZ * speed * dtNormalized;
-											window.spkmodDroneTarget.position.y += window.lunDroneVY * speed * dtNormalized;
-										}
-										
-										origUpdate.call(this, dt);
-										
-										if (lunDroneModeActive && typeof this.snapToTarget === "function") {
-											this.snapToTarget();
-										}
-									};
-									gameState.cameraController._spkmodPatchedUpdate = true;
-								}
-								
-								// Debugging hooks
-								console.log("[DroneMode] Activated. Target:", window.spkmodDroneTarget);
-								window.spkmodDebugCamera = () => {
-									console.log("Camera Yaw:", gameState.cameraController.cameraYaw);
-									console.log("Camera Pitch:", gameState.cameraController.cameraPitch);
-									console.log("Camera Zoom:", gameState.cameraController.cameraZoomDistance);
-									console.log("Camera Target:", gameState.cameraController.target);
-									console.log("Camera Position:", gameState.cameraController.camera.position);
-									console.log("Drone Keys:", window.spkmodDroneKeys);
-								};
-								chatLog("Drone Mode ON (Run spkmodDebugCamera() in console to debug)");
-							}
-						} else {
-							if (gameState.cameraController && gameState.playerContainer) {
-								gameState.cameraController.target = gameState.playerContainer;
-								console.log("[DroneMode] Deactivated. Target restored to player.");
-								chatLog("Drone Mode OFF");
-							}
-						}
-					}
 				})
 			]),
 			buildElement("div", { className: "spkmod-panel-cat", style: "display: flex; gap: 4px;" }, [
@@ -2064,11 +2064,11 @@ document.body.appendChild(
 				}),
 				lunPanelElements.targetZone = buildElement("select", {
 					className: "spkmod-panel-combo",
-					style: "flex: 1; min-width: 0; height: 28px; padding: 0 4px; font-size: 9.5pt; box-sizing: border-box;"
+					style: "flex: 1; width: 0; min-width: 0; height: 28px; padding: 0 4px; font-size: 9.5pt; box-sizing: border-box;"
 				}),
 				lunPanelElements.langSelect = buildElement("select", {
 					className: "spkmod-panel-combo",
-					style: "flex: 0 0 88px; width: 88px; height: 28px; padding: 0 4px; font-size: 9pt; box-sizing: border-box;",
+					style: "flex: 0 0 74px; width: 74px; height: 28px; padding: 0 4px; font-size: 9pt; box-sizing: border-box;",
 					value: spkmodLang,
 					onchange: e => {
 						setLanguage(e.target.value);
@@ -2127,20 +2127,6 @@ document.body.appendChild(
 						togglePatchNotesModal();
 					}
 				}),
-				lunPanelElements.bbsBtn = buildElement("button", {
-					id: "spkmod-bbs-btn",
-					className: "spkmod-panel-btn",
-					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer; position: relative;",
-					onclick: _ => {
-						if (typeof toggleBbsModal === "function") toggleBbsModal();
-					}
-				}, [
-					buildElement("span", {
-						id: "spkmod-bbs-btn-icon",
-						style: "display: inline-flex; align-items: center; justify-content: center; pointer-events: none;",
-						innerHTML: renderSpkmodInlineEmojis(":t_280:", "height: 20px; width: 20px; object-fit: contain; display: block; pointer-events: none; user-select: none;")
-					})
-				]),
 				lunPanelElements.infoBtn = buildElement("button", {
 					id: "spkmod-info-btn",
 					className: "spkmod-panel-btn",
@@ -2149,7 +2135,11 @@ document.body.appendChild(
 					onclick: _ => {
 						toggleInfoModal();
 					}
-				}),
+				})
+			]),
+			buildElement("div", {
+				className: "spkmod-panel-cat"
+			}, [
 				lunPanelElements.minigameBtn = buildElement("button", {
 					id: "spkmod-minigame-btn",
 					className: "spkmod-panel-btn",
@@ -2168,11 +2158,7 @@ document.body.appendChild(
 					onclick: _ => {
 						toggleEventModal();
 					}
-				})
-			]),
-			buildElement("div", {
-				className: "spkmod-panel-cat"
-			}, [
+				}),
 				lunPanelElements.mapBtn = buildElement("button", {
 					id: "spkmod-map-btn",
 					className: "spkmod-panel-btn",
@@ -2200,6 +2186,47 @@ document.body.appendChild(
 						if (typeof toggleQuestsModal === "function") toggleQuestsModal();
 					}
 				}),
+				lunPanelElements.dragBtn = buildElement("button", {
+					id: "spkmod-drag-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: grab;",
+					innerText: "⚓",
+					ondblclick: (e) => {
+						const isLocked = lunHudElements.hud.dataset.spkmodLocked === "true";
+						if (isLocked) {
+							lunHudElements.hud.dataset.spkmodLocked = "false";
+							e.target.innerText = "⚓";
+							e.target.style.cursor = "grab";
+							if (window.localStorage) localStorage.setItem("spkmod-hud-locked", "false");
+						} else {
+							lunHudElements.hud.dataset.spkmodLocked = "true";
+							e.target.innerText = "🔒";
+							e.target.style.cursor = "not-allowed";
+							if (window.localStorage) localStorage.setItem("spkmod-hud-locked", "true");
+						}
+						if (typeof updateHudIconTooltips === "function") {
+							updateHudIconTooltips();
+						}
+					}
+				})
+			]),
+			buildElement("div", {
+				className: "spkmod-panel-cat"
+			}, [
+				lunPanelElements.bbsBtn = buildElement("button", {
+					id: "spkmod-bbs-btn",
+					className: "spkmod-panel-btn",
+					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: pointer; position: relative;",
+					onclick: _ => {
+						if (typeof toggleBbsModal === "function") toggleBbsModal();
+					}
+				}, [
+					buildElement("span", {
+						id: "spkmod-bbs-btn-icon",
+						style: "display: inline-flex; align-items: center; justify-content: center; pointer-events: none;",
+						innerHTML: renderSpkmodInlineEmojis(":t_280:", "height: 20px; width: 20px; object-fit: contain; display: block; pointer-events: none; user-select: none;")
+					})
+				]),
 				lunPanelElements.petsBtn = buildElement("button", {
 					id: "spkmod-pets-btn",
 					className: "spkmod-panel-btn" + (window.spkmodPetsSystemEnabled === false ? " hidden" : ""),
@@ -2258,29 +2285,6 @@ document.body.appendChild(
 					title: (typeof getJukeboxText === "function" ? getJukeboxText("jukeboxBtnTooltip") : (typeof t === "function" ? t("jukeboxBtnTooltip") : null)) || "Monatium Radio Station (Alt+M)",
 					onclick: _ => {
 						if (typeof toggleMusicPlayer === "function") toggleMusicPlayer();
-					}
-				}),
-				lunPanelElements.dragBtn = buildElement("button", {
-					id: "spkmod-drag-btn",
-					className: "spkmod-panel-btn",
-					style: "flex: 1; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; cursor: grab;",
-					innerText: "⚓",
-					ondblclick: (e) => {
-						const isLocked = lunHudElements.hud.dataset.spkmodLocked === "true";
-						if (isLocked) {
-							lunHudElements.hud.dataset.spkmodLocked = "false";
-							e.target.innerText = "⚓";
-							e.target.style.cursor = "grab";
-							if (window.localStorage) localStorage.setItem("spkmod-hud-locked", "false");
-						} else {
-							lunHudElements.hud.dataset.spkmodLocked = "true";
-							e.target.innerText = "🔒";
-							e.target.style.cursor = "not-allowed";
-							if (window.localStorage) localStorage.setItem("spkmod-hud-locked", "true");
-						}
-						if (typeof updateHudIconTooltips === "function") {
-							updateHudIconTooltips();
-						}
 					}
 				})
 			])
@@ -3034,6 +3038,41 @@ document.body.appendChild(
 							} else {
 								window.spkmodBurgerFatCustomersEnabled = !!e.target.checked;
 								if (window.localStorage) localStorage.setItem("spkmod-burger-fat-customers", e.target.checked ? "true" : "false");
+							}
+						}
+					})
+				]),
+
+				// Revival Capsule Fast Hotkey (Click to rebind, Backspace/Delete to unbind, Default: 7)
+				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 4px; gap: 4px;" }, [
+					lunPanelElements.reviveHotkeyLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;",
+						innerText: "💊 " + tCustom("reviveHotkeyLabel", "Revival Capsule Hotkey"),
+						title: tCustom("reviveHotkeyDesc", "Fast hotkey to use Revival Capsule without opening Inventory (click to rebind, Backspace to disable)")
+					}),
+					lunPanelElements.reviveHotkeyBtn = buildElement("button", {
+						id: "spkmod-revive-hotkey-btn",
+						type: "button",
+						className: "spkmod-panel-btn",
+						style: "min-width: 58px; padding: 2px 7px; font-size: 11px; font-weight: bold; color: #fde047;",
+						innerText: typeof window.spkmodGetReviveHotkeyDisplay === "function" ? window.spkmodGetReviveHotkeyDisplay() : "7",
+						title: tCustom("reviveHotkeyDesc", "Fast hotkey to use Revival Capsule without opening Inventory (click to rebind, Backspace to disable)"),
+						onclick: () => {
+							if (typeof window.spkmodStartReviveHotkeyCapture === "function") {
+								window.spkmodStartReviveHotkeyCapture();
+							}
+						}
+					}),
+					lunPanelElements.reviveHotkeyResetBtn = buildElement("button", {
+						id: "spkmod-revive-hotkey-reset-btn",
+						type: "button",
+						className: "spkmod-panel-btn",
+						style: "padding: 2px 6px; font-size: 11px;",
+						innerText: "↺",
+						title: "Reset (7)",
+						onclick: () => {
+							if (typeof window.spkmodReviveHotkey?.reset === "function") {
+								window.spkmodReviveHotkey.reset();
 							}
 						}
 					})

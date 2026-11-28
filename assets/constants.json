@@ -1,5 +1,5 @@
 {
-  "version": 698,
+  "version": 779,
   "raids": [
     {
       "raidId": 1,
@@ -80,14 +80,25 @@
     },
     {
       "raidId": 8,
-      "templateZoneId": 910,
+      "templateZoneId": 283,
       "altarZoneId": 303,
-      "altarX": 534,
-      "altarZ": -884,
-      "bossMonsterId": 1393,
-      "bossLevel": 85,
+      "altarX": 484,
+      "altarZ": -868,
+      "bossMonsterId": 1399,
+      "bossLevel": 90,
       "requiredLevel": 85,
       "name": "Errand Lane Sealed Altar"
+    },
+    {
+      "raidId": 9,
+      "templateZoneId": 285,
+      "altarZoneId": 309,
+      "altarX": 1696,
+      "altarZ": -794,
+      "bossMonsterId": 1400,
+      "bossLevel": 100,
+      "requiredLevel": 95,
+      "name": "Wither Root Dock Sealed Altar"
     },
     {
       "raidId": 10,
@@ -97,7 +108,7 @@
       "altarZ": -806,
       "bossMonsterId": 1385,
       "bossLevel": 94,
-      "requiredLevel": 85,
+      "requiredLevel": 1,
       "name": "Theater Backstage (Soggy Stage Curtain)"
     }
   ],
@@ -1156,6 +1167,14 @@
       "zoneId": 283,
       "minX": 2800,
       "maxX": 2840,
+      "minZ": 0,
+      "maxZ": 40,
+      "requiredQuestCode": null
+    },
+    {
+      "zoneId": 285,
+      "minX": 2900,
+      "maxX": 2940,
       "minZ": 0,
       "maxZ": 40,
       "requiredQuestCode": null

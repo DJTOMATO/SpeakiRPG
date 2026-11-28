@@ -62,7 +62,9 @@ function autoJumpLoop() {
 			spkmodPerformJump();
 		}
 	} else {
-		spkmodPerformJump();
+		if (!(typeof window.spkmodHasActiveLocalVehicle === "function" && window.spkmodHasActiveLocalVehicle())) {
+			spkmodPerformJump();
+		}
 	}
 	
 	window.__autoJumpTimeoutId = setTimeout(autoJumpLoop, nextDelay);
@@ -195,14 +197,16 @@ function spkmodGetCarDisabledToastText() {
 	return (typeof t === "function" && t("carSystemDisabledToast")) || "🚗 Vehicles display & sync is disabled. Enable it in Settings (under Pets).";
 }
 
-function spkmodPlayBurgerCarAudio(sfxPath) {
+function spkmodPlayBurgerCarAudio(sfxPath, gainMultiplier = 1) {
 	try {
+		const gainScale = Number.isFinite(gainMultiplier) ? Math.max(0, Math.min(1, gainMultiplier)) : 1;
+		if (gainScale <= 0.001) return;
 		const sfxVol = typeof window.spkmodGetEffectiveSfxVolume === "function"
 			? window.spkmodGetEffectiveSfxVolume()
 			: ((typeof isGameMuted === "function" && isGameMuted()) ? 0 : 0.5);
 		if (sfxVol <= 0.001) return;
 		const audio = new Audio(sfxPath);
-		audio.volume = Math.max(0, Math.min(1, sfxVol * 0.65));
+		audio.volume = Math.max(0, Math.min(1, sfxVol * 0.65 * gainScale));
 		audio.play().catch(() => {});
 	} catch (_) {}
 }
@@ -230,25 +234,28 @@ function spkmodHasActiveNativeMount(container, playerId) {
 function spkmodSetNativeCartVisible(container, playerId, visible) {
 	try {
 		const entries = typeof gameState !== "undefined" ? gameState?.mountVisuals?.entries : null;
-		if (!entries) return;
-		const visited = new Set();
-		const applyEntry = (entry) => {
-			if (!entry || !entry.cartGroup || visited.has(entry.cartGroup)) return;
-			visited.add(entry.cartGroup);
-			entry.cartGroup.visible = !!visible;
-			entry.cartGroup.__spkmodHiddenByCar = !visible;
-		};
+		if (!entries || entries.size === 0) return;
+		const vis = !!visible;
+		let matched = false;
 		if (playerId != null && playerId !== "") {
-			const keys = [playerId, Number(playerId), String(playerId)];
-			for (const k of keys) {
-				const e = entries.get(k);
-				if (e) applyEntry(e);
+			let e = entries.get(playerId);
+			if (!e) {
+				const numId = Number(playerId);
+				if (!Number.isNaN(numId)) e = entries.get(numId);
+			}
+			if (!e) e = entries.get(String(playerId));
+			if (e && e.cartGroup) {
+				if (e.cartGroup.visible !== vis) e.cartGroup.visible = vis;
+				e.cartGroup.__spkmodHiddenByCar = !vis;
+				matched = true;
 			}
 		}
-		if (container) {
+		if (!matched && container) {
 			for (const entry of entries.values()) {
 				if (entry && entry.cartGroup && entry.cartGroup.parent === container) {
-					applyEntry(entry);
+					if (entry.cartGroup.visible !== vis) entry.cartGroup.visible = vis;
+					entry.cartGroup.__spkmodHiddenByCar = !vis;
+					break;
 				}
 			}
 		}
@@ -284,17 +291,22 @@ function spkmodCreateBurgerCarInstance(scene, modelName, colorHex) {
 	const carObj = prefab.clone(true);
 	carObj.scale.multiplyScalar(SPKMOD_BURGER_CAR_SCALE);
 	carObj.traverse(node => {
-		if (node.isMesh && node.material) {
-			const mats = Array.isArray(node.material) ? node.material : [node.material];
-			const replaced = mats.map(m => {
-				if (m && m.name === "car_body") {
-					const cloned = m.clone();
-					if (cloned.color) cloned.color.setHex(colorHex);
-					return cloned;
-				}
-				return m;
-			});
-			node.material = Array.isArray(node.material) ? replaced : replaced[0];
+		if (node.isMesh) {
+			if (!node.userData) node.userData = {};
+			node.userData.spkmodVehSharedGlb = true;
+			if (node.material) {
+				const mats = Array.isArray(node.material) ? node.material : [node.material];
+				const replaced = mats.map(m => {
+					if (m && m.name === "car_body") {
+						const cloned = m.clone();
+						if (cloned.color) cloned.color.setHex(colorHex);
+						cloned.userData = Object.assign({}, cloned.userData, { spkmodVehOwnedMat: true });
+						return cloned;
+					}
+					return m;
+				});
+				node.material = Array.isArray(node.material) ? replaced : replaced[0];
+			}
 		}
 	});
 
@@ -322,8 +334,19 @@ window.spkmodResetCarsEveryone = function(silent = false, clearLocalCar = true) 
 	if (_lunEveryoneCarsState) {
 		if (_lunEveryoneCarsState.rafId) cancelAnimationFrame(_lunEveryoneCarsState.rafId);
 		for (const entry of _lunEveryoneCarsState.entries) {
-			if (entry.root && entry.root.parent) {
-				entry.root.parent.remove(entry.root);
+			if (entry.root) {
+				if (entry.root.parent) entry.root.parent.remove(entry.root);
+				if (typeof entry.root.traverse === "function") {
+					entry.root.traverse(node => {
+						if (!node || !node.isMesh || !node.material) return;
+						const mats = Array.isArray(node.material) ? node.material : [node.material];
+						for (const m of mats) {
+							if (m && m.userData?.spkmodVehOwnedMat && typeof m.dispose === "function") {
+								try { m.dispose(); } catch (_) {}
+							}
+						}
+					});
+				}
 			}
 			spkmodSetNativeCartVisible(entry.container, entry.playerId, true);
 			if (!spkmodHasActiveNativeMount(entry.container, entry.playerId)) {
@@ -1590,7 +1613,7 @@ function hijackAndRename(player, newName, newLevel) {
 		// We must explicitly dispose the old map to force three.js to reallocate a fresh one.
 		if (!player.avatar.__spkmodLabelPatched) {
 			player.container.traverse(obj => {
-				if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+				if (obj && obj.isSprite && !obj.userData?.spkmodSkipNametagClear && !obj.userData?.spkmodVehicleAlert && obj.name !== "spkmod_vehicle_alert_sprite" && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
 					obj.material.map.dispose();
 				}
 			});
@@ -1685,7 +1708,7 @@ window.spkmodResetNames = function() {
 					
 					if (entity.container && !entity.avatar.__spkmodLabelPatched) {
 						entity.container.traverse(obj => {
-							if (obj && obj.isSprite && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
+							if (obj && obj.isSprite && !obj.userData?.spkmodSkipNametagClear && !obj.userData?.spkmodVehicleAlert && obj.name !== "spkmod_vehicle_alert_sprite" && obj.material && obj.material.map && obj.position && obj.position.y > 1.0) {
 								obj.material.map.dispose();
 							}
 						});

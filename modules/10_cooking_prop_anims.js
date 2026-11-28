@@ -1117,11 +1117,20 @@ function spkmodEnsureBurgerFatSceneHook() {
 			} catch (_) {}
 		};
 	}
-	if (!scene.__spkmodCAAfterFn || scene.onAfterRender !== scene.__spkmodCAAfterFn) {
-		// Avoid re-wrapping while shaders or bloom guard temporarily wrap onAfterRender if ours is already in the chain
-		const curAfter = scene.onAfterRender;
-		if (!curAfter || !curAfter.__spkmodCAInChain) {
-			const prevAfter = curAfter;
+	if (!scene.__spkmodCAAfterHooked) {
+		scene.__spkmodCAAfterHooked = true;
+		let alreadyInChain = false;
+		let cursor = scene.onAfterRender;
+		let guard = 0;
+		while (typeof cursor === "function" && guard++ < 32) {
+			if (cursor === scene.__spkmodCAAfterFn || cursor.__spkmodCAInChain) {
+				alreadyInChain = true;
+				break;
+			}
+			cursor = cursor.__spkmodPrevAfter;
+		}
+		if (!alreadyInChain) {
+			const prevAfter = scene.onAfterRender;
 			const wrappedAfter = function(renderer, sc, camera, ...rest) {
 				if (typeof prevAfter === "function") {
 					try { prevAfter.call(this, renderer, sc, camera, ...rest); } catch (_) {}
@@ -1133,6 +1142,7 @@ function spkmodEnsureBurgerFatSceneHook() {
 				} catch (_) {}
 			};
 			wrappedAfter.__spkmodCAInChain = true;
+			wrappedAfter.__spkmodPrevAfter = prevAfter;
 			scene.__spkmodCAAfterFn = wrappedAfter;
 			scene.onAfterRender = wrappedAfter;
 		}

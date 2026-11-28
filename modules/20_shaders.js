@@ -303,7 +303,7 @@ function spkmodCaptureRenderer(scene) {
 			spkmodShaderRuntime.capturing = false;
 			reject(new Error("[SpeakiMod Shaders] Timed out waiting for a rendered frame."));
 		}, 4000);
-		scene.onAfterRender = function (r) {
+		const shaderCaptureAfter = function (r) {
 			if (typeof prevAfter === "function") {
 				try {
 					prevAfter.apply(this, arguments);
@@ -311,12 +311,14 @@ function spkmodCaptureRenderer(scene) {
 			}
 			if (r && typeof r.render === "function" && r.shadowMap) {
 				clearTimeout(timer);
-				scene.onAfterRender = prevAfter;
+				if (scene.onAfterRender === shaderCaptureAfter) scene.onAfterRender = prevAfter;
 				spkmodShaderRuntime.capturing = false;
 				spkmodShaderRuntime.renderer = r;
 				resolve(r);
 			}
 		};
+		shaderCaptureAfter.__spkmodPrevAfter = prevAfter;
+		scene.onAfterRender = shaderCaptureAfter;
 	});
 	return spkmodShaderRuntime.initPromise;
 }

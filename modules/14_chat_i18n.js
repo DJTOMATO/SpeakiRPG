@@ -1074,6 +1074,13 @@ spkmodI18nRenderers.push(() => {
 		setText(lunPanelElements.burgerFatCustomersToggleLabel, "🍔 " + tCustom("burgerFatCustomersToggleLabel", "Fat Burger Shop Customers"));
 		lunPanelElements.burgerFatCustomersToggleLabel.title = tCustom("burgerFatCustomersToggleDesc", "Make Burger Shop customers who order a big combo (burger + fries + drink + multiplier) wider");
 	}
+	if (lunPanelElements.reviveHotkeyLabel) {
+		setText(lunPanelElements.reviveHotkeyLabel, "💊 " + tCustom("reviveHotkeyLabel", "Revival Capsule Hotkey"));
+		lunPanelElements.reviveHotkeyLabel.title = tCustom("reviveHotkeyDesc", "Fast hotkey to use Revival Capsule without opening Inventory (click to rebind, Backspace to disable)");
+	}
+	if (typeof window.spkmodRefreshReviveHotkeyUI === "function") {
+		window.spkmodRefreshReviveHotkeyUI();
+	}
 	if (lunPanelElements.burgerFatCustomersToggleInput) {
 		lunPanelElements.burgerFatCustomersToggleInput.title = tCustom("burgerFatCustomersToggleDesc", "Make Burger Shop customers who order a big combo (burger + fries + drink + multiplier) wider");
 	}

@@ -1,4 +1,6 @@
 {
-  "build": "48a3fdf282453b8a",
-  "protocol": 2
+  "version": "v3.1.6",
+  "build": "6bb351f749675946",
+  "protocol": 2,
+  "autoReload": false
 }

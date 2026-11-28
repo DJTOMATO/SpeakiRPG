@@ -1401,6 +1401,10 @@ function spkmodSyncCinemaPlayback(force = false) {
 	}
 }
 
+let _spkmodMinigameDomCacheVal = false;
+let _spkmodMinigameDomCacheMs = -1000;
+let _spkmodMinigameDomCachedEl = null;
+
 function spkmodIsInMinigame() {
 	if (typeof gameState !== 'undefined' && gameState) {
 		try {
@@ -1436,19 +1440,29 @@ function spkmodIsInMinigame() {
 		if (document.body && document.body.classList && document.body.classList.contains('sr-minigame-active')) {
 			return true;
 		}
-		const mgEl = document.querySelector('.sr-minigame, .sr-minigame-game, .sr-minigame-canvas, .sr-minigame-entry-dialog.sr-panel--open');
-		if (mgEl && !mgEl.hidden && mgEl.style.display !== 'none') {
-			return true;
+		if (_spkmodMinigameDomCachedEl && _spkmodMinigameDomCachedEl.isConnected) {
+			if (!_spkmodMinigameDomCachedEl.hidden && _spkmodMinigameDomCachedEl.style.display !== 'none') {
+				return true;
+			}
 		}
+		const nowMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
+		if (nowMs - _spkmodMinigameDomCacheMs >= 200) {
+			_spkmodMinigameDomCacheMs = nowMs;
+			const mgEl = document.querySelector('.sr-minigame, .sr-minigame-game, .sr-minigame-canvas, .sr-minigame-entry-dialog.sr-panel--open');
+			_spkmodMinigameDomCachedEl = mgEl || null;
+			_spkmodMinigameDomCacheVal = !!(mgEl && !mgEl.hidden && mgEl.style.display !== 'none');
+		}
+		if (_spkmodMinigameDomCacheVal) return true;
 	}
 	return false;
 }
 window.spkmodIsInMinigame = spkmodIsInMinigame;
 
-function spkmodIsPlayerInCinemaSeats(playerPos) {
+function spkmodIsPlayerInCinemaSeats(playerPos, cachedInMinigame, cachedZone) {
 	if (!playerPos) return false;
-	if (spkmodIsInMinigame()) return false;
-	const curZone = spkmodGetExactCinemaZone();
+	const inMg = cachedInMinigame !== undefined ? cachedInMinigame : spkmodIsInMinigame();
+	if (inMg) return false;
+	const curZone = cachedZone !== undefined ? cachedZone : spkmodGetExactCinemaZone();
 	if (curZone !== 1) return false;
 
 	// Tight bounding box matching measured cinema area corners (+0.5m rounding cushion):
@@ -2824,9 +2838,19 @@ function spkmodUpdateCinemaSpatialAudio() {
 	}
 }
 
+let _spkmodCinemaIdleLastTickMs = 0;
+
 function spkmodCinemaTick() {
+	if (typeof document !== 'undefined' && document.hidden && !spkmodCinemaInZone) return;
+	// When not actively inside the cinema, throttle idle zone/seat checks to ~10Hz instead of 144Hz
+	if (!spkmodCinemaInZone) {
+		const nowPerf = typeof performance !== 'undefined' ? performance.now() : Date.now();
+		if (nowPerf - _spkmodCinemaIdleLastTickMs < 100) return;
+		_spkmodCinemaIdleLastTickMs = nowPerf;
+	}
 	const curZone = spkmodGetExactCinemaZone();
-	if (curZone !== 1 || (typeof spkmodIsInMinigame === "function" && spkmodIsInMinigame())) {
+	const inMinigame = (typeof spkmodIsInMinigame === "function") ? spkmodIsInMinigame() : false;
+	if (curZone !== 1 || inMinigame) {
 		if (typeof spkmodFwStop === 'function' && typeof spkmodFw !== 'undefined' && spkmodFw) {
 			spkmodFwStop();
 		}
@@ -2875,7 +2899,7 @@ function spkmodCinemaTick() {
 		? gameState.playerContainer.position
 		: null;
 
-	const inSeats = spkmodIsPlayerInCinemaSeats(playerPos);
+	const inSeats = spkmodIsPlayerInCinemaSeats(playerPos, inMinigame, curZone);
 	const shouldBeActive = spkmodCinemaConfig.enabled && inSeats;
 
 	if (!shouldBeActive) {
@@ -2919,8 +2943,7 @@ function spkmodCinemaTick() {
 		}
 
 		// When outside cinema seats (in minigame, other map, or walked away):
-		const curZone = spkmodGetExactCinemaZone();
-		const isOutsideZone1OrMinigame = curZone !== 1 || spkmodIsInMinigame();
+		const isOutsideZone1OrMinigame = curZone !== 1 || inMinigame;
 		const isLongAway = spkmodCinemaLeftZoneTimeMs > 0 && (Date.now() - spkmodCinemaLeftZoneTimeMs >= 60000);
 
 		// If player transitioned to another map/minigame or has been away for > 60s, completely unload the player

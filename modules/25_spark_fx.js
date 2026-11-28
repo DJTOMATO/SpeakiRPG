@@ -803,24 +803,77 @@ function spkmodGetSparkShapeTexture(shape) {
 // ============================================================================
 const SPKMOD_SPARK_MAX_PARTICLES = 360;
 const SPKMOD_SPARK_REMOTE_MAX_DIST = 48;
+const SPKMOD_SPARK_REMOTE_MAX_DIST_SQ = SPKMOD_SPARK_REMOTE_MAX_DIST * SPKMOD_SPARK_REMOTE_MAX_DIST;
+const SPKMOD_SPARK_NOOP_RAYCAST = () => {};
 const _spkmodActiveSparkParticles = [];
+const _spkmodSparkSpritePoolAdditive = [];
+const _spkmodSparkSpritePoolNormal = [];
+const _spkmodSparkObjPool = [];
+let _spkmodSparkFxGroup = null;
 let _spkmodSparkColorCycleIdx = 0;
+
+function spkmodGetOrCreateSparkFxGroup(T, scene) {
+	if (!scene) return null;
+	if (!T || !T.Group) return scene;
+	if (!_spkmodSparkFxGroup) {
+		_spkmodSparkFxGroup = new T.Group();
+		_spkmodSparkFxGroup.name = "spkmod_spark_fx_group";
+		_spkmodSparkFxGroup.frustumCulled = false;
+	}
+	if (_spkmodSparkFxGroup.parent !== scene) {
+		if (_spkmodSparkFxGroup.parent) _spkmodSparkFxGroup.parent.remove(_spkmodSparkFxGroup);
+		scene.add(_spkmodSparkFxGroup);
+	}
+	return _spkmodSparkFxGroup;
+}
 
 function spkmodRemoveSparkParticleAt(idx) {
 	const p = _spkmodActiveSparkParticles[idx];
 	if (!p) return;
-	if (p.sprite && p.sprite.parent) p.sprite.parent.remove(p.sprite);
-	if (p.sprite && p.sprite.material && typeof p.sprite.material.dispose === "function") {
-		try { p.sprite.material.dispose(); } catch (_) {}
+	if (p.sprite) {
+		p.sprite.visible = false;
+		const pool = p.additive ? _spkmodSparkSpritePoolAdditive : _spkmodSparkSpritePoolNormal;
+		if (pool.length < SPKMOD_SPARK_MAX_PARTICLES) {
+			pool.push(p.sprite);
+		} else {
+			if (p.sprite.parent) p.sprite.parent.remove(p.sprite);
+			if (p.sprite.material && typeof p.sprite.material.dispose === "function") {
+				try { p.sprite.material.dispose(); } catch (_) {}
+			}
+		}
+		p.sprite = null;
+	}
+	if (_spkmodSparkObjPool.length < SPKMOD_SPARK_MAX_PARTICLES) {
+		_spkmodSparkObjPool.push(p);
 	}
 	const last = _spkmodActiveSparkParticles.length - 1;
 	if (idx !== last) _spkmodActiveSparkParticles[idx] = _spkmodActiveSparkParticles[last];
 	_spkmodActiveSparkParticles.pop();
 }
 
-function spkmodClearAllSparkParticles() {
+function spkmodClearAllSparkParticles(disposePool = false) {
 	while (_spkmodActiveSparkParticles.length > 0) {
 		spkmodRemoveSparkParticleAt(_spkmodActiveSparkParticles.length - 1);
+	}
+	if (disposePool) {
+		const drain = (pool) => {
+			while (pool.length > 0) {
+				const sp = pool.pop();
+				if (sp) {
+					if (sp.parent) sp.parent.remove(sp);
+					if (sp.material && typeof sp.material.dispose === "function") {
+						try { sp.material.dispose(); } catch (_) {}
+					}
+				}
+			}
+		};
+		drain(_spkmodSparkSpritePoolAdditive);
+		drain(_spkmodSparkSpritePoolNormal);
+		_spkmodSparkObjPool.length = 0;
+		if (_spkmodSparkFxGroup && _spkmodSparkFxGroup.parent) {
+			_spkmodSparkFxGroup.parent.remove(_spkmodSparkFxGroup);
+		}
+		_spkmodSparkFxGroup = null;
 	}
 }
 
@@ -844,39 +897,64 @@ function spkmodSpawnSparkParticle(scene, opts) {
 		spkmodRemoveSparkParticleAt(oldestIdx);
 	}
 
-	const mat = new T.SpriteMaterial({
-		map: tex,
-		color: opts.color || "#ffd700",
-		transparent: true,
-		opacity: 1,
-		depthWrite: false,
-		blending: opts.additive ? (T.AdditiveBlending || 2) : (T.NormalBlending || 1)
-	});
-	const sprite = new T.Sprite(mat);
+	const isAdditive = !!opts.additive;
+	const container = spkmodGetOrCreateSparkFxGroup(T, scene);
+	const pool = isAdditive ? _spkmodSparkSpritePoolAdditive : _spkmodSparkSpritePoolNormal;
+	let sprite = pool.pop();
+	const col = opts.color || "#ffd700";
+
+	if (sprite) {
+		const mat = sprite.material;
+		if (mat) {
+			if (mat.map !== tex) mat.map = tex;
+			if (mat.color && typeof mat.color.set === "function") mat.color.set(col);
+			else mat.color = col;
+			mat.opacity = 1;
+			mat.rotation = 0;
+		}
+		if (sprite.parent !== container) {
+			if (sprite.parent) sprite.parent.remove(sprite);
+			container.add(sprite);
+		}
+		sprite.visible = true;
+	} else {
+		const mat = new T.SpriteMaterial({
+			map: tex,
+			color: col,
+			transparent: true,
+			opacity: 1,
+			depthWrite: false,
+			blending: isAdditive ? (T.AdditiveBlending || 2) : (T.NormalBlending || 1)
+		});
+		sprite = new T.Sprite(mat);
+		sprite.renderOrder = 95;
+		sprite.raycast = SPKMOD_SPARK_NOOP_RAYCAST;
+		container.add(sprite);
+	}
+
 	sprite.position.set(opts.x, opts.y, opts.z);
 	sprite.scale.setScalar(opts.size || 0.35);
-	sprite.renderOrder = 95;
-	sprite.raycast = () => {};
-	scene.add(sprite);
 
-	_spkmodActiveSparkParticles.push({
-		sprite,
-		age: 0,
-		life: opts.life || 0.9,
-		baseSize: opts.size || 0.35,
-		vx: opts.vx || 0,
-		vy: opts.vy || 0,
-		vz: opts.vz || 0,
-		gravity: opts.gravity || 0,
-		spin: opts.spin || 0,
-		motion: opts.motion || "burst",
-		cx: opts.cx ?? opts.x,
-		cz: opts.cz ?? opts.z,
-		phase: Math.random() * Math.PI * 2,
-		orbitRadius: opts.orbitRadius || 0.45,
-		orbitSpeed: opts.orbitSpeed || 4.0,
-		growRing: !!opts.growRing
-	});
+	const p = _spkmodSparkObjPool.pop() || {};
+	p.sprite = sprite;
+	p.additive = isAdditive;
+	p.age = 0;
+	p.life = opts.life || 0.9;
+	p.baseSize = opts.size || 0.35;
+	p.vx = opts.vx || 0;
+	p.vy = opts.vy || 0;
+	p.vz = opts.vz || 0;
+	p.gravity = opts.gravity || 0;
+	p.spin = opts.spin || 0;
+	p.motion = opts.motion || "burst";
+	p.cx = opts.cx ?? opts.x;
+	p.cz = opts.cz ?? opts.z;
+	p.phase = Math.random() * Math.PI * 2;
+	p.orbitRadius = opts.orbitRadius || 0.45;
+	p.orbitSpeed = opts.orbitSpeed || 4.0;
+	p.growRing = !!opts.growRing;
+
+	_spkmodActiveSparkParticles.push(p);
 }
 
 function spkmodEmitSparkTrailAt(spark, pos, burstScale = 1.0, isRemote = false) {
@@ -891,7 +969,8 @@ function spkmodEmitSparkTrailAt(spark, pos, burstScale = 1.0, isRemote = false) 
 		return colors[Math.floor(Math.random() * colors.length)];
 	};
 
-	const baseCount = Math.max(2, Math.round((spark.count || 7) * (isRemote ? 0.6 : 1.0) * burstScale));
+	const crowdRemoteScale = (isRemote && _spkmodActiveSparkParticles.length > 200) ? 0.35 : (isRemote ? 0.6 : 1.0);
+	const baseCount = Math.max(2, Math.round((spark.count || 7) * crowdRemoteScale * burstScale));
 	const speedMul = burstScale > 1 ? 1.85 : 1.0;
 	const motion = spark.motion || "burst";
 	const yBase = (pos.y || 0) + 0.18;
@@ -1187,6 +1266,37 @@ function spkmodSparksMasterLoop(nowMs) {
 				}
 			}
 			_spkmodSparkLastObservedRemoteCount = rCount;
+
+			// Periodically refresh remote player cache & prune departed players (15s grace) so rAF never scans linearly
+			const rMapSync = gameState.remotePlayers?.remotePlayers;
+			if (rMapSync && _spkmodRemoteSparkStates.size > 0) {
+				for (const [k, st] of _spkmodRemoteSparkStates) {
+					if (!st || !st.sparkId) {
+						_spkmodRemoteSparkStates.delete(k);
+						continue;
+					}
+					if (st.cachedRp && st.cachedRpKey !== undefined && rMapSync.get(st.cachedRpKey) === st.cachedRp) {
+						st._missingSinceMs = 0;
+						continue;
+					}
+					const res = spkmodResolveRemotePlayerForSpark(st.playerId, st.playerName);
+					if (res && res.rp) {
+						st.cachedRp = res.rp;
+						st.cachedRpKey = rMapSync.has(Number(res.key)) ? Number(res.key) : res.key;
+						if (rMapSync.get(st.cachedRpKey) !== res.rp) {
+							st.cachedRpKey = res.key;
+						}
+						st._missingSinceMs = 0;
+					} else {
+						st.cachedRp = null;
+						st.cachedRpKey = undefined;
+						if (!st._missingSinceMs) st._missingSinceMs = nowMs;
+						else if (nowMs - st._missingSinceMs > 15000) {
+							_spkmodRemoteSparkStates.delete(k);
+						}
+					}
+				}
+			}
 		}
 
 		// 2. Local walking trail emission
@@ -1216,30 +1326,33 @@ function spkmodSparksMasterLoop(nowMs) {
 			_spkmodLocalSparkDistAccum = 0;
 		}
 
-		// 3. Remote players' synced walking trails (distance-culled for high FPS)
+		// 3. Remote players' synced walking trails (O(1) cached lookup + distance-culled for high FPS)
 		if (window.spkmodSparkSettings.showRemoteSparks !== false && _spkmodRemoteSparkStates.size > 0 && gameState.remotePlayers?.remotePlayers) {
 			const rMap = gameState.remotePlayers.remotePlayers;
 			for (const [, st] of _spkmodRemoteSparkStates) {
 				if (!st || !st.sparkId) continue;
-				const spark = SPKMOD_SPARKS_BY_ID.get(st.sparkId);
-				if (!spark) continue;
-				const res = spkmodResolveRemotePlayerForSpark(st.playerId, st.playerName);
-				const rp = res?.rp;
+				const rp = (st.cachedRp && st.cachedRpKey !== undefined && rMap.get(st.cachedRpKey) === st.cachedRp)
+					? st.cachedRp
+					: null;
 				const rpPos = rp?.container?.position;
 				if (!rp || !rpPos || rp.container.visible === false) continue;
 
-				const rLvl = rp.info?.level ?? rp.level ?? 0;
-				const rName = rp.info?.__spkmodOrigName || rp.info?.name || st.playerName || "";
-				if (!spkmodCheckSparkRemoteLevelAllowed(spark.level, rLvl, rName)) continue;
-
 				if (localPos) {
-					const distToMe = Math.hypot(rpPos.x - localPos.x, rpPos.z - localPos.z);
-					if (distToMe > SPKMOD_SPARK_REMOTE_MAX_DIST) {
+					const dxMe = rpPos.x - localPos.x;
+					const dzMe = rpPos.z - localPos.z;
+					if (dxMe * dxMe + dzMe * dzMe > SPKMOD_SPARK_REMOTE_MAX_DIST_SQ) {
 						st.lastX = rpPos.x;
 						st.lastZ = rpPos.z;
 						continue;
 					}
 				}
+
+				const spark = SPKMOD_SPARKS_BY_ID.get(st.sparkId);
+				if (!spark) continue;
+
+				const rLvl = rp.info?.level ?? rp.level ?? 0;
+				const rName = rp.info?.__spkmodOrigName || rp.info?.name || st.playerName || "";
+				if (!spkmodCheckSparkRemoteLevelAllowed(spark.level, rLvl, rName)) continue;
 
 				if (st.lastX !== null && st.lastZ !== null) {
 					const d = Math.hypot(rpPos.x - st.lastX, rpPos.z - st.lastZ);
@@ -1450,7 +1563,7 @@ window.spkmodSetSparksSystemEnabled = function(nextEnabled, silentToast = false)
 	if (!enabled) {
 		spkmodStopSparksLoop();
 		if (window.spkmodBurstSpamActive) window.spkmodToggleBurstSpam(false);
-		spkmodClearAllSparkParticles();
+		spkmodClearAllSparkParticles(true);
 		if (_spkmodSparkHadBroadcast && typeof window.spkmodQueueUnifiedModSyncBroadcast === "function") {
 			window.spkmodQueueUnifiedModSyncBroadcast({
 				priority: "explicit",

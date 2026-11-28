@@ -1232,6 +1232,7 @@ async function spkmodGetRecoloredBodyTexture(skinId, spec) {
 		ctx.putImageData(imgData, 0, 0);
 		const tex = new THREE.CanvasTexture(canvas);
 		if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+		tex.userData = Object.assign(tex.userData || {}, { spkmodSkinSharedTex: true });
 		tex.needsUpdate = true;
 		return tex;
 	})().catch(err => {
@@ -1644,6 +1645,43 @@ function spkmodSkinCreateBodyAnchor(avatarRoot, targetBone, name, localOffsetWor
 	return anchor;
 }
 
+// Backpacks, wings, capes & shells sit behind Speaki's oversized domed veil/hair (which is rigged to `head`).
+// Attaching them to `head` instead of `spine` prevents them from swinging up onto her head when `spine` pitches
+// ~75 deg forward during Fall Down / crying animations, and keeps them unstretched in Wide Body mode too.
+const SPKMOD_HEAD_TO_SPINE_Y_M = 0.14;
+
+function spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, name, spineOffsetWorldM) {
+	const THREE = window.THREE;
+	if (!THREE || !avatarRoot || !skeletonBones) return null;
+	const { head, spine, reviveHat } = skeletonBones;
+	const parentBone = head || spine;
+	if (!parentBone) return null;
+
+	const targetOffset = (parentBone === head && spine && head !== spine)
+		? new THREE.Vector3(spineOffsetWorldM.x, spineOffsetWorldM.y - SPKMOD_HEAD_TO_SPINE_Y_M, spineOffsetWorldM.z)
+		: spineOffsetWorldM.clone();
+
+	if (parentBone === head && reviveHat && reviveHat.parent === head && reviveHat.quaternion && reviveHat.scale) {
+		const anchor = new THREE.Group();
+		anchor.name = name || "spkmod_skin_back_anchor";
+		anchor.userData.spkmodSkinAttachment = true;
+		anchor.userData.spkmodSkinBackAttachment = true;
+		anchor.quaternion.copy(reviveHat.quaternion);
+		anchor.scale.copy(reviveHat.scale);
+		const sx = reviveHat.scale.x || 1;
+		const sy = reviveHat.scale.y || sx;
+		const sz = reviveHat.scale.z || sx;
+		anchor.position.set(targetOffset.x * sx, targetOffset.y * sy, targetOffset.z * sz)
+			.applyQuaternion(reviveHat.quaternion);
+		return { parentBone: head, anchor };
+	}
+
+	const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, parentBone, name, targetOffset, skeletonBones);
+	if (!anchor) return null;
+	anchor.userData.spkmodSkinBackAttachment = true;
+	return { parentBone, anchor };
+}
+
 async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 	const THREE = (window.THREE && window.THREE.Group && window.THREE.Mesh)
 		? window.THREE
@@ -1868,22 +1906,28 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 			const redMat = toon(0xdc2626);
 			const furMat = toon(0xffffff);
 			const hat = new THREE.Group();
-			hat.position.set(0, -0.07, 0);
-			const brim = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.068, 10, 20), furMat);
+			hat.position.set(0, -0.19, -0.01);
+			// Big plush white fur brim hugging snugly around Speaki's dome
+			const brim = new THREE.Mesh(new THREE.TorusGeometry(0.41, 0.105, 12, 26), furMat);
 			brim.rotation.x = Math.PI / 2;
 			brim.position.y = 0.03;
 			hat.add(brim);
-			const lowerCone = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.38, 16), redMat);
-			lowerCone.position.set(0, 0.22, -0.02);
-			lowerCone.rotation.x = -0.18;
-			hat.add(lowerCone);
-			const droopTip = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.26, 12), redMat);
-			droopTip.position.set(0.14, 0.34, -0.10);
-			droopTip.rotation.z = -1.15;
-			droopTip.rotation.x = -0.35;
+			// Full tapered Santa hat crown + smooth rounded fold joint
+			const lowerBody = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.41, 0.38, 20), redMat);
+			lowerBody.position.set(0, 0.22, -0.02);
+			lowerBody.rotation.x = -0.12;
+			hat.add(lowerBody);
+			const bendJoint = new THREE.Mesh(new THREE.SphereGeometry(0.23, 16, 12), redMat);
+			bendJoint.position.set(0.02, 0.40, -0.05);
+			hat.add(bendJoint);
+			// Big floppy drooping tip + chunky fluffy pom-pom
+			const droopTip = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.46, 16), redMat);
+			droopTip.position.set(0.24, 0.35, -0.07);
+			droopTip.rotation.z = -1.85;
+			droopTip.rotation.x = -0.18;
 			hat.add(droopTip);
-			const pom = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), furMat);
-			pom.position.set(0.27, 0.28, -0.14);
+			const pom = new THREE.Mesh(new THREE.SphereGeometry(0.125, 14, 12), furMat);
+			pom.position.set(0.47, 0.27, -0.11);
 			hat.add(pom);
 			anchor.add(hat);
 			spkmodSkinSanitizeObject(anchor);
@@ -1998,8 +2042,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				attachments.push({ parent: head, node: anchor });
 			}
 		}
-		if (spine) {
-			const wingAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_devil_wings", new THREE.Vector3(0, 0.08, -0.70));
+		if (head || spine) {
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_devil_wings", new THREE.Vector3(0, 0.08, -0.70));
+			const wingAnchor = back?.anchor;
 			if (wingAnchor) {
 				const memMat = toon(0x18181b, { side: THREE.DoubleSide });
 				const boneMat = toon(0x991b1b);
@@ -2024,8 +2069,8 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 					animParts.push({ type: "wing", node: wing, side });
 				}
 				spkmodSkinSanitizeObject(wingAnchor);
-				spine.add(wingAnchor);
-				attachments.push({ parent: spine, node: wingAnchor });
+				back.parentBone.add(wingAnchor);
+				attachments.push({ parent: back.parentBone, node: wingAnchor });
 			}
 		}
 	} else if (builder === "angel") {
@@ -2043,8 +2088,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				attachments.push({ parent: head, node: anchor });
 			}
 		}
-		if (spine) {
-			const wingAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_angel_wings", new THREE.Vector3(0, 0.10, -0.70));
+		if (head || spine) {
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_angel_wings", new THREE.Vector3(0, 0.10, -0.70));
+			const wingAnchor = back?.anchor;
 			if (wingAnchor) {
 				const featherMat = toon(0xffffff, { emissive: 0xe0f2fe, emissiveIntensity: 0.24 });
 				const goldMat = toon(0xfde047, { emissive: 0xfacc15, emissiveIntensity: 0.35 });
@@ -2071,8 +2117,8 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 					animParts.push({ type: "wing", node: wing, side });
 				}
 				spkmodSkinSanitizeObject(wingAnchor);
-				spine.add(wingAnchor);
-				attachments.push({ parent: spine, node: wingAnchor });
+				back.parentBone.add(wingAnchor);
+				attachments.push({ parent: back.parentBone, node: wingAnchor });
 			}
 		}
 	} else if (builder === "royal") {
@@ -2109,42 +2155,146 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				attachments.push({ parent: head, node: anchor });
 			}
 		}
-		if (spine) {
-			const capeAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_royal_cape", new THREE.Vector3(0, 0.10, -0.74));
+		if (head || spine) {
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_royal_cape", new THREE.Vector3(0, 0.14, -0.72));
+			const capeAnchor = back?.anchor;
 			if (capeAnchor) {
-				const capeMat = toon(0x991b1b, { side: THREE.DoubleSide });
-				const furMat = toon(0xf8fafc, { side: THREE.DoubleSide });
-				const goldMat = toon(0xffd700, { emissive: 0xb45309, emissiveIntensity: 0.35, side: THREE.DoubleSide });
-				// Keep neck collar & gold clasp anchored smoothly on Speaki's collar
-				const collar = new THREE.Mesh(new THREE.TorusGeometry(0.20, 0.048, 8, 18), furMat);
-				collar.rotation.x = Math.PI / 2;
-				collar.position.set(0, 0.02, 0.69);
-				capeAnchor.add(collar);
-				const clasp = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), goldMat);
-				clasp.position.set(0, 0.02, 0.87);
-				capeAnchor.add(clasp);
-				// Curved royal velvet cape wrapping smoothly outside the rounded back of Speaki's veil
+				const capeMat = toon(0xb91c1c, { side: THREE.DoubleSide });
+				const pleatMat = toon(0x991b1b);
+				const liningMat = toon(0x7f1d1d, { side: THREE.DoubleSide });
+				const furMat = toon(0xf8fafc);
+				const spotMat = toon(0x111827);
+				const goldMat = toon(0xffd700, { emissive: 0xb45309, emissiveIntensity: 0.42, side: THREE.DoubleSide });
+				const gemMat = toon(0x38bdf8, { emissive: 0x0284c7, emissiveIntensity: 0.65 });
+				const rubyMat = toon(0xef4444, { emissive: 0xb91c1c, emissiveIntensity: 0.60 });
+
+				// Sweeping volumetric Lv.100 royal monarch mantle concentric with Speaki's veil, with sculpted pleats, plush ermine fur & gold crest
 				const capeGroup = new THREE.Group();
-				const arcStart = Math.PI - 0.56;
-				const arcLen = 1.12;
-				const cylZ = 0.68;
-				const topTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.71, 0.74, 0.10, 18, 1, true, arcStart, arcLen), furMat);
-				topTrim.position.set(0, -0.05, cylZ);
-				capeGroup.add(topTrim);
-				const mantle = new THREE.Mesh(new THREE.CylinderGeometry(0.715, 0.885, 0.58, 18, 1, true, arcStart, arcLen), capeMat);
-				mantle.position.set(0, -0.30, cylZ);
+				const arcHalf = 0.85;
+				const arcStart = Math.PI - arcHalf;
+				const arcLen = arcHalf * 2;
+				const cylZ = 0.66;
+				const rTop = 0.68;
+				const rBot = 1.12;
+				const capeH = 0.74;
+				const capeCenterY = -0.39;
+				const flareTilt = Math.atan2(rBot - rTop, capeH);
+
+				// Outer royal crimson velvet shell + recessed inner lining for thick fabric volume
+				const mantle = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, capeH, 24, 1, true, arcStart, arcLen), capeMat);
+				mantle.position.set(0, capeCenterY, cylZ);
 				capeGroup.add(mantle);
-				const goldTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.865, 0.88, 0.042, 18, 1, true, arcStart, arcLen), goldMat);
-				goldTrim.position.set(0, -0.52, cylZ);
+
+				const lining = new THREE.Mesh(new THREE.CylinderGeometry(rTop - 0.025, rBot - 0.03, capeH - 0.02, 20, 1, true, arcStart + 0.02, arcLen - 0.04), liningMat);
+				lining.position.set(0, capeCenterY, cylZ);
+				capeGroup.add(lining);
+
+				// 5 sculpted 3D drapery folds catching toon light along the sweeping back
+				for (const aOff of [-0.60, -0.30, 0, 0.30, 0.60]) {
+					const ang = Math.PI + aOff;
+					const rMid = (rTop + rBot) * 0.5 + 0.012;
+					const fold = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.105, capeH + 0.02, 10), aOff === 0 ? capeMat : pleatMat);
+					const pivot = new THREE.Group();
+					pivot.position.set(Math.sin(ang) * rMid, capeCenterY, cylZ + Math.cos(ang) * rMid);
+					pivot.rotation.y = aOff;
+					fold.rotation.x = flareTilt;
+					pivot.add(fold);
+					capeGroup.add(pivot);
+				}
+
+				// Gleaming gold brocade side borders + lower embroidered border band
+				for (const side of [-1, 1]) {
+					const ang = Math.PI + side * (arcHalf - 0.02);
+					const rMid = (rTop + rBot) * 0.5 + 0.015;
+					const edgePivot = new THREE.Group();
+					edgePivot.position.set(Math.sin(ang) * rMid, capeCenterY, cylZ + Math.cos(ang) * rMid);
+					edgePivot.rotation.y = side * (arcHalf - 0.02);
+					const border = new THREE.Mesh(new THREE.BoxGeometry(0.052, capeH + 0.08, 0.042), goldMat);
+					border.rotation.x = flareTilt;
+					edgePivot.add(border);
+					capeGroup.add(edgePivot);
+				}
+
+				const goldTrim = new THREE.Mesh(new THREE.CylinderGeometry(rBot - 0.088, rBot - 0.036, 0.068, 24, 1, true, arcStart, arcLen), goldMat);
+				goldTrim.position.set(0, -0.66, cylZ);
 				capeGroup.add(goldTrim);
-				const hem = new THREE.Mesh(new THREE.CylinderGeometry(0.88, 0.905, 0.09, 18, 1, true, arcStart, arcLen), furMat);
-				hem.position.set(0, -0.58, cylZ);
-				capeGroup.add(hem);
+
+				// Plush 3D snow-white ermine fur collar snug against the upper veil with black ermine spots & golden shoulder brooches
+				const topCount = 11;
+				for (let i = 0; i < topCount; i++) {
+					const t = i / (topCount - 1);
+					const aOff = -arcHalf + t * arcLen;
+					const ang = Math.PI + aOff;
+					const px = Math.sin(ang) * (rTop + 0.015);
+					const pz = cylZ + Math.cos(ang) * (rTop + 0.015);
+					const puff = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 8), furMat);
+					puff.scale.set(1.14, 0.88, 1.0);
+					puff.position.set(px, 0.0, pz);
+					capeGroup.add(puff);
+					if (i > 0 && i < topCount - 1 && i % 2 === 1) {
+						const spot = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 6), spotMat);
+						spot.scale.set(0.8, 1.5, 0.7);
+						spot.position.set(Math.sin(ang) * (rTop + 0.105), -0.01, cylZ + Math.cos(ang) * (rTop + 0.105));
+						capeGroup.add(spot);
+					}
+				}
+				for (const side of [-1, 1]) {
+					const ang = Math.PI + side * (arcHalf - 0.05);
+					const bx = Math.sin(ang) * (rTop + 0.08);
+					const bz = cylZ + Math.cos(ang) * (rTop + 0.08);
+					const brooch = new THREE.Group();
+					brooch.position.set(bx, 0.01, bz);
+					brooch.rotation.y = side * (arcHalf - 0.05);
+					const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.072, 0.072, 0.028, 12), goldMat);
+					plate.rotation.x = Math.PI / 2;
+					brooch.add(plate);
+					const jewel = new THREE.Mesh(new THREE.OctahedronGeometry(0.038, 0), rubyMat);
+					jewel.position.z = -0.02;
+					brooch.add(jewel);
+					capeGroup.add(brooch);
+				}
+
+				// Plush 3D snow-white ermine fur bottom hem with royal black ermine spots
+				const botCount = 13;
+				for (let i = 0; i < botCount; i++) {
+					const t = i / (botCount - 1);
+					const aOff = -arcHalf + t * arcLen;
+					const ang = Math.PI + aOff;
+					const puff = new THREE.Mesh(new THREE.SphereGeometry(0.088, 10, 8), furMat);
+					puff.scale.set(1.18, 0.85, 1.0);
+					puff.position.set(Math.sin(ang) * (rBot + 0.02), -0.75, cylZ + Math.cos(ang) * (rBot + 0.02));
+					capeGroup.add(puff);
+					if (i % 2 === 0) {
+						const spot = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.052, 0.024), spotMat);
+						spot.position.set(Math.sin(ang) * (rBot + 0.105), -0.75, cylZ + Math.cos(ang) * (rBot + 0.105));
+						capeGroup.add(spot);
+					}
+				}
+
+				// Ornate golden royal crown emblem mounted proudly on the center back of the cape
+				const crest = new THREE.Group();
+				const crestR = (rTop + rBot) * 0.5 + 0.10;
+				crest.position.set(0, -0.35, cylZ - crestR);
+				crest.rotation.x = flareTilt;
+				const shield = new THREE.Mesh(new THREE.OctahedronGeometry(0.145, 0), goldMat);
+				shield.scale.set(1.0, 1.25, 0.22);
+				crest.add(shield);
+				const centerGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.064, 0), gemMat);
+				centerGem.position.set(0, -0.01, -0.032);
+				centerGem.scale.set(1.0, 1.2, 0.5);
+				crest.add(centerGem);
+				for (const sx of [-0.088, 0, 0.088]) {
+					const prong = new THREE.Mesh(new THREE.ConeGeometry(0.032, sx === 0 ? 0.115 : 0.088, 4), goldMat);
+					prong.position.set(sx, sx === 0 ? 0.165 : 0.142, -0.01);
+					crest.add(prong);
+				}
+				capeGroup.add(crest);
+
 				capeAnchor.add(capeGroup);
-				animParts.push({ type: "cape", node: capeGroup });
+				animParts.push({ type: "cape", node: capeGroup, baseRotX: 0.08 });
 				spkmodSkinSanitizeObject(capeAnchor);
-				spine.add(capeAnchor);
-				attachments.push({ parent: spine, node: capeAnchor });
+				back.parentBone.add(capeAnchor);
+				attachments.push({ parent: back.parentBone, node: capeAnchor });
 			}
 		}
 	} else if (builder === "burger" && head) {
@@ -2519,13 +2669,14 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				holder.userData.spkmodSkinHandProp = true;
 				leftHand.add(holder);
 				attachments.push({ parent: leftHand, node: holder });
-			} else if (spine) {
-				const backAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_knight_shield", new THREE.Vector3(0, 0.02, -0.48));
+			} else if (head || spine) {
+				const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_knight_shield", new THREE.Vector3(0, 0.02, -0.48));
+				const backAnchor = back?.anchor;
 				if (backAnchor) {
 					backAnchor.add(shield);
 					spkmodSkinSanitizeObject(backAnchor);
-					spine.add(backAnchor);
-					attachments.push({ parent: spine, node: backAnchor });
+					back.parentBone.add(backAnchor);
+					attachments.push({ parent: back.parentBone, node: backAnchor });
 				}
 			}
 		}
@@ -2559,8 +2710,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				attachments.push({ parent: head, node: anchor });
 			}
 		}
-		if (spine) {
-			const wingAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_fairy_wings", new THREE.Vector3(0, 0.08, -0.70));
+		if (head || spine) {
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_fairy_wings", new THREE.Vector3(0, 0.08, -0.70));
+			const wingAnchor = back?.anchor;
 			if (wingAnchor) {
 				const upperMat = toon(0x38bdf8, { emissive: 0x06b6d4, emissiveIntensity: 0.45, transparent: true, opacity: 0.78, side: THREE.DoubleSide });
 				const lowerMat = toon(0xe879f9, { emissive: 0xc026d3, emissiveIntensity: 0.45, transparent: true, opacity: 0.78, side: THREE.DoubleSide });
@@ -2587,8 +2739,8 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 					animParts.push({ type: "flutter", node: wing, side });
 				}
 				spkmodSkinSanitizeObject(wingAnchor);
-				spine.add(wingAnchor);
-				attachments.push({ parent: spine, node: wingAnchor });
+				back.parentBone.add(wingAnchor);
+				attachments.push({ parent: back.parentBone, node: wingAnchor });
 			}
 		}
 	} else if (builder === "samurai") {
@@ -2663,33 +2815,69 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 			rightHand.add(holder);
 			attachments.push({ parent: rightHand, node: holder });
 		}
-		if (spine) {
-			// Crossed back katanas mounted flush behind Speaki's veil so hilts & scabbards stay fully visible
-			const katanaAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_samurai_katanas", new THREE.Vector3(0, 0.06, -0.48));
+		if (head || spine) {
+			// Crossed back katanas mounted cleanly outside Speaki's veil so both hilts, gold tsubas & scabbards stand out boldly
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_samurai_katanas", new THREE.Vector3(0, 0.06, -0.76));
+			const katanaAnchor = back?.anchor;
 			if (katanaAnchor) {
 				const sheathMat = toon(0x18181b);
+				const cordMat = toon(0xb91c1c);
 				const hiltMat = toon(0xdc2626);
-				const guardMat = toon(0xffd700, { emissive: 0xb45309, emissiveIntensity: 0.35 });
+				const wrapMat = toon(0x1f2937);
+				const guardMat = toon(0xffd700, { emissive: 0xb45309, emissiveIntensity: 0.42 });
 				const backRack = new THREE.Group();
-				backRack.rotation.x = 0.26;
+				backRack.rotation.x = 0.14;
+
+				// Central lacquered harness emblem where the twin katanas cross
+				const hubPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.036, 12), cordMat);
+				hubPlate.rotation.x = Math.PI / 2;
+				hubPlate.position.set(0, 0.0, -0.045);
+				backRack.add(hubPlate);
+				const hubCrest = new THREE.Mesh(new THREE.OctahedronGeometry(0.068, 0), guardMat);
+				hubCrest.scale.set(1.0, 1.0, 0.35);
+				hubCrest.position.set(0, 0.0, -0.068);
+				backRack.add(hubCrest);
+
 				for (const side of [-1, 1]) {
 					const sword = new THREE.Group();
-					sword.rotation.z = side * 0.56;
-					const scabbard = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.84, 0.032), sheathMat);
-					scabbard.position.y = -0.04;
+					sword.rotation.z = side * 0.62;
+					sword.position.z = side * 0.024;
+					// Long lacquered scabbard (saya) with gold end-cap (kojiri), crimson cord wrap (sageo) & gold collar (koiguchi)
+					const scabbard = new THREE.Mesh(new THREE.BoxGeometry(0.064, 1.02, 0.044), sheathMat);
+					scabbard.position.y = -0.06;
 					sword.add(scabbard);
-					const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.062, 0.02, 12), guardMat);
-					tsuba.position.y = 0.39;
+					const endCap = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.065, 0.048), guardMat);
+					endCap.position.y = -0.56;
+					sword.add(endCap);
+					const cordWrap = new THREE.Mesh(new THREE.BoxGeometry(0.072, 0.12, 0.052), cordMat);
+					cordWrap.position.y = 0.18;
+					sword.add(cordWrap);
+					const collar = new THREE.Mesh(new THREE.BoxGeometry(0.070, 0.052, 0.050), guardMat);
+					collar.position.y = 0.42;
+					sword.add(collar);
+					// Prominent gleaming gold tsuba handguard
+					const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.088, 0.088, 0.024, 16), guardMat);
+					tsuba.position.y = 0.46;
 					sword.add(tsuba);
-					const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.25, 8), hiltMat);
-					hilt.position.y = 0.53;
+					// Long crimson-and-black diamond-wrapped tsuka hilt projecting clearly above & beside the veil
+					const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.032, 0.32, 10), hiltMat);
+					hilt.position.y = 0.63;
 					sword.add(hilt);
+					for (const ry of [0.53, 0.61, 0.69]) {
+						const ring = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.009, 6, 10), wrapMat);
+						ring.rotation.x = Math.PI / 2;
+						ring.position.y = ry;
+						sword.add(ring);
+					}
+					const pommel = new THREE.Mesh(new THREE.CylinderGeometry(0.040, 0.036, 0.042, 10), guardMat);
+					pommel.position.y = 0.80;
+					sword.add(pommel);
 					backRack.add(sword);
 				}
 				katanaAnchor.add(backRack);
 				spkmodSkinSanitizeObject(katanaAnchor);
-				spine.add(katanaAnchor);
-				attachments.push({ parent: spine, node: katanaAnchor });
+				back.parentBone.add(katanaAnchor);
+				attachments.push({ parent: back.parentBone, node: katanaAnchor });
 			}
 		}
 	} else if (builder === "astronaut") {
@@ -2732,9 +2920,10 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				attachments.push({ parent: head, node: anchor });
 			}
 		}
-		if (spine) {
+		if (head || spine) {
 			// Positioned cleanly outside Speaki's veil and tilted slightly along the veil slope
-			const packAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_astronaut_jetpack", new THREE.Vector3(0, -0.04, -0.72));
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_astronaut_jetpack", new THREE.Vector3(0, -0.04, -0.72));
+			const packAnchor = back?.anchor;
 			if (packAnchor) {
 				const packMat = toon(0xf1f5f9);
 				const trimMat = toon(0x334155);
@@ -2765,8 +2954,8 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				}
 				packAnchor.add(jetpackGroup);
 				spkmodSkinSanitizeObject(packAnchor);
-				spine.add(packAnchor);
-				attachments.push({ parent: spine, node: packAnchor });
+				back.parentBone.add(packAnchor);
+				attachments.push({ parent: back.parentBone, node: packAnchor });
 			}
 		}
 	} else if (builder === "kitsune") {
@@ -3551,8 +3740,9 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 				attachments.push({ parent: head, node: anchor });
 			}
 		}
-		if (spine) {
-			const wingAnchor = spkmodSkinCreateBodyAnchor(avatarRoot, spine, "spkmod_skin_dragon_wings", new THREE.Vector3(0, 0.10, -0.70));
+		if (head || spine) {
+			const back = spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, "spkmod_skin_dragon_wings", new THREE.Vector3(0, 0.10, -0.70));
+			const wingAnchor = back?.anchor;
 			if (wingAnchor) {
 				const memMat = toon(0x991b1b, { emissive: 0x450a0a, emissiveIntensity: 0.3, side: THREE.DoubleSide });
 				const goldMat = toon(0xfacc15, { emissive: 0xb45309, emissiveIntensity: 0.35 });
@@ -3577,8 +3767,8 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 					animParts.push({ type: "wing", node: wing, side });
 				}
 				spkmodSkinSanitizeObject(wingAnchor);
-				spine.add(wingAnchor);
-				attachments.push({ parent: spine, node: wingAnchor });
+				back.parentBone.add(wingAnchor);
+				attachments.push({ parent: back.parentBone, node: wingAnchor });
 			}
 		}
 		if (rightHand) {
@@ -3958,12 +4148,15 @@ async function spkmodBuildExtraCostumeSetA(builder, ctx) {
 	};
 	const addBody = (bone, name, offset, buildFn) => {
 		if (!bone) return;
-		const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones);
-		if (!anchor) return;
-		buildFn(anchor);
-		spkmodSkinSanitizeObject(anchor);
-		bone.add(anchor);
-		attachments.push({ parent: bone, node: anchor });
+		const isBackOnSpine = (bone === spine && Array.isArray(offset) && Number(offset[2]) <= -0.35);
+		const created = isBackOnSpine
+			? spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, name, new THREE.Vector3(offset[0], offset[1], offset[2]))
+			: { parentBone: bone, anchor: spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones) };
+		if (!created || !created.anchor || !created.parentBone) return;
+		buildFn(created.anchor);
+		spkmodSkinSanitizeObject(created.anchor);
+		created.parentBone.add(created.anchor);
+		attachments.push({ parent: created.parentBone, node: created.anchor });
 	};
 
 	if (builder === "panda") {
@@ -4893,12 +5086,15 @@ async function spkmodBuildExtraCostumeSetB(builder, ctx) {
 	};
 	const addBody = (bone, name, offset, buildFn) => {
 		if (!bone) return;
-		const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones);
-		if (!anchor) return;
-		buildFn(anchor);
-		spkmodSkinSanitizeObject(anchor);
-		bone.add(anchor);
-		attachments.push({ parent: bone, node: anchor });
+		const isBackOnSpine = (bone === spine && Array.isArray(offset) && Number(offset[2]) <= -0.35);
+		const created = isBackOnSpine
+			? spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, name, new THREE.Vector3(offset[0], offset[1], offset[2]))
+			: { parentBone: bone, anchor: spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones) };
+		if (!created || !created.anchor || !created.parentBone) return;
+		buildFn(created.anchor);
+		spkmodSkinSanitizeObject(created.anchor);
+		created.parentBone.add(created.anchor);
+		attachments.push({ parent: created.parentBone, node: created.anchor });
 	};
 
 	if (builder === "alchemist") {
@@ -6064,12 +6260,15 @@ async function spkmodBuildExtraCostumeSetC(builder, ctx) {
 	};
 	const addBody = (bone, name, offset, buildFn) => {
 		if (!bone) return;
-		const anchor = spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones);
-		if (!anchor) return;
-		buildFn(anchor);
-		spkmodSkinSanitizeObject(anchor);
-		bone.add(anchor);
-		attachments.push({ parent: bone, node: anchor });
+		const isBackOnSpine = (bone === spine && Array.isArray(offset) && Number(offset[2]) <= -0.35);
+		const created = isBackOnSpine
+			? spkmodSkinCreateBackAnchor(avatarRoot, skeletonBones, name, new THREE.Vector3(offset[0], offset[1], offset[2]))
+			: { parentBone: bone, anchor: spkmodSkinCreateBodyAnchor(avatarRoot, bone, name, new THREE.Vector3(offset[0], offset[1], offset[2]), skeletonBones) };
+		if (!created || !created.anchor || !created.parentBone) return;
+		buildFn(created.anchor);
+		spkmodSkinSanitizeObject(created.anchor);
+		created.parentBone.add(created.anchor);
+		attachments.push({ parent: created.parentBone, node: created.anchor });
 	};
 	const put = (parent, geo, mat, pos = null, rot = null, scale = null) => {
 		const m = new THREE.Mesh(geo, mat);
@@ -6975,12 +7174,18 @@ function spkmodSkinDisposeNode(node) {
 	}
 	if (typeof node.traverse === "function") {
 		node.traverse(c => {
-			if (c && c.isMesh && !c.userData?.spkmodSkinSharedGlb) {
-				try { c.geometry?.dispose?.(); } catch (_) {}
+			if (!c || c.userData?.spkmodSkinSharedGlb) return;
+			if (c.isMesh || c.isLine || c.isPoints || c.isSprite) {
+				if (c.geometry && !c.isSprite) {
+					try { c.geometry.dispose?.(); } catch (_) {}
+				}
 				if (c.material) {
 					const mats = Array.isArray(c.material) ? c.material : [c.material];
 					for (const m of mats) {
 						if (m && !m.userData?.spkmodSkinSharedMat) {
+							if (m.map && !m.map.userData?.spkmodSkinSharedTex && typeof m.map.dispose === "function") {
+								try { m.map.dispose(); } catch (_) {}
+							}
 							try { m.dispose?.(); } catch (_) {}
 						}
 					}
@@ -7474,6 +7679,9 @@ function spkmodPFSetTarget(ownerKey, avatarRoot, widthScale) {
 
 function spkmodPFApplyAll() {
 	if (!spkmodIsSkinsSystemEnabled() || spkmodPlayerFat.entries.size === 0) return;
+	const gs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
+	const camPos = gs?.camera?.position || gs?.playerContainer?.position || null;
+	const MAX_REMOTE_PF_DIST_SQ = 45 * 45;
 	for (const [key, e] of spkmodPlayerFat.entries) {
 		if (!e.root || !e.root.parent || e.scale <= 1.001) {
 			spkmodPFRelease(e);
@@ -7481,6 +7689,24 @@ function spkmodPFApplyAll() {
 			continue;
 		}
 		if (e.root.visible === false || e.root.parent.visible === false) continue;
+		if (key !== "local_self" && camPos) {
+			let cont = e.container;
+			if (!cont || !cont.parent) {
+				let p = e.root.parent;
+				while (p && p.parent && p.parent !== gs?.scene) p = p.parent;
+				cont = p || e.root.parent;
+				e.container = cont;
+			}
+			const rPos = cont?.position;
+			if (rPos) {
+				const dx = rPos.x - camPos.x;
+				const dz = rPos.z - camPos.z;
+				if (dx * dx + dz * dz > MAX_REMOTE_PF_DIST_SQ) {
+					if (!e.rel) spkmodPFRelease(e);
+					continue;
+				}
+			}
+		}
 		const pel = e.pel, head = e.head, neck = head.parent;
 		if (!pel || !head || !neck) continue;
 		if (!_spkmodPFMatH1 || _spkmodPFMatH1.constructor !== e.M) {
@@ -7577,6 +7803,9 @@ function spkmodEnsurePlayerFatSceneHook() {
 	const gs = typeof gameState !== "undefined" ? gameState : (typeof window !== "undefined" ? window.gameState : null);
 	const scene = gs && gs.scene;
 	if (!scene) return false;
+	if (scene.__spkmodPFBeforeHooked && scene.__spkmodPFAfterHooked) {
+		return true;
+	}
 	if (!scene.__spkmodPFBeforeHooked) {
 		scene.__spkmodPFBeforeHooked = true;
 		const prevBefore = scene.onBeforeRender;
@@ -7595,10 +7824,20 @@ function spkmodEnsurePlayerFatSceneHook() {
 			} catch (_) {}
 		};
 	}
-	if (!scene.__spkmodPFAfterFn || scene.onAfterRender !== scene.__spkmodPFAfterFn) {
-		const curAfter = scene.onAfterRender;
-		if (!curAfter || !curAfter.__spkmodPFInChain) {
-			const prevAfter = curAfter;
+	if (!scene.__spkmodPFAfterHooked) {
+		scene.__spkmodPFAfterHooked = true;
+		let alreadyInChain = false;
+		let cursor = scene.onAfterRender;
+		let guard = 0;
+		while (typeof cursor === "function" && guard++ < 32) {
+			if (cursor === scene.__spkmodPFAfterFn || cursor.__spkmodPFInChain) {
+				alreadyInChain = true;
+				break;
+			}
+			cursor = cursor.__spkmodPrevAfter;
+		}
+		if (!alreadyInChain) {
+			const prevAfter = scene.onAfterRender;
 			const wrappedAfter = function(renderer, sc, camera, ...rest) {
 				if (typeof prevAfter === "function") {
 					try { prevAfter.call(this, renderer, sc, camera, ...rest); } catch (_) {}
@@ -7610,6 +7849,7 @@ function spkmodEnsurePlayerFatSceneHook() {
 				} catch (_) {}
 			};
 			wrappedAfter.__spkmodPFInChain = true;
+			wrappedAfter.__spkmodPrevAfter = prevAfter;
 			scene.__spkmodPFAfterFn = wrappedAfter;
 			scene.onAfterRender = wrappedAfter;
 		}
@@ -8306,19 +8546,42 @@ function spkmodSkinsMasterLoop(nowMs) {
 				const winnersByRoot = new Map(); // rpRoot -> { ownerKey, state, rp, canonicalKey }
 				const staleDuplicateKeys = [];
 				for (const [ownerKey, state] of _spkmodRemoteSkinStates) {
-					const resolved = spkmodResolveRemotePlayerForSkin(state.playerId, state.playerName);
-					if (!resolved || !resolved.rp || !resolved.rp.avatar?.root) continue;
-					const rpRoot = resolved.rp.avatar.root;
+					let rp = (state.cachedRp && state.cachedRpKey !== undefined && rMap.get(state.cachedRpKey) === state.cachedRp)
+						? state.cachedRp
+						: null;
+					let canonicalKey = state.cachedCanonicalKey;
+					if (!rp) {
+						const resolved = spkmodResolveRemotePlayerForSkin(state.playerId, state.playerName);
+						if (resolved && resolved.rp) {
+							rp = resolved.rp;
+							canonicalKey = resolved.key;
+							state.cachedRp = rp;
+							state.cachedCanonicalKey = canonicalKey;
+							state.cachedRpKey = rMap.has(Number(canonicalKey)) ? Number(canonicalKey) : canonicalKey;
+							if (rMap.get(state.cachedRpKey) !== rp) state.cachedRpKey = canonicalKey;
+						}
+					}
+					if (!rp || !rp.avatar?.root) {
+						if (!state._missingSinceMs) state._missingSinceMs = nowMs;
+						else if (nowMs - state._missingSinceMs > 15000) {
+							staleDuplicateKeys.push(ownerKey);
+							if (state.playerId != null) _spkmodRemoteSkinPendingById.delete(String(state.playerId));
+							if (state.playerName) _spkmodRemoteSkinPendingByName.delete(state.playerName.trim().toLowerCase());
+						}
+						continue;
+					}
+					state._missingSinceMs = 0;
+					const rpRoot = rp.avatar.root;
 					const prevWin = winnersByRoot.get(rpRoot);
 					if (prevWin) {
 						if ((state.updatedAtMs || 0) >= (prevWin.state.updatedAtMs || 0)) {
 							staleDuplicateKeys.push(prevWin.ownerKey);
-							winnersByRoot.set(rpRoot, { ownerKey, state, rp: resolved.rp, canonicalKey: resolved.key });
+							winnersByRoot.set(rpRoot, { ownerKey, state, rp, canonicalKey });
 						} else {
 							staleDuplicateKeys.push(ownerKey);
 						}
 					} else {
-						winnersByRoot.set(rpRoot, { ownerKey, state, rp: resolved.rp, canonicalKey: resolved.key });
+						winnersByRoot.set(rpRoot, { ownerKey, state, rp, canonicalKey });
 					}
 				}
 				for (let i = 0; i < staleDuplicateKeys.length; i++) {
@@ -8412,23 +8675,22 @@ function spkmodSkinsMasterLoop(nowMs) {
 			const isLocal = ownerKey === "local_self";
 			if (!isLocal) {
 				if (entry.root.visible === false || entry.root.parent?.visible === false) continue;
-				if (camPos) {
-					let rpPos = null;
-					if (tmpAnimPos && typeof entry.root.getWorldPosition === "function") {
-						rpPos = entry.root.getWorldPosition(tmpAnimPos);
-					} else {
-						// Walk up past avatarPose (local 0,0,0) to remote container in world space
-						let p = entry.root.parent;
-						while (p && p.parent && p.parent !== gameState.scene) p = p.parent;
-						rpPos = p?.position || entry.root.parent?.position || null;
+					if (camPos) {
+						let cont = entry.container;
+						if (!cont || !cont.parent) {
+							let p = entry.root.parent;
+							while (p && p.parent && p.parent !== gameState.scene) p = p.parent;
+							cont = p || entry.root.parent;
+							entry.container = cont;
+						}
+						const rpPos = cont?.position || null;
+						if (rpPos) {
+							const dx = rpPos.x - camPos.x;
+							const dy = rpPos.y - camPos.y;
+							const dz = rpPos.z - camPos.z;
+							if (dx * dx + dy * dy + dz * dz > MAX_REMOTE_ANIM_DIST_SQ) continue;
+						}
 					}
-					if (rpPos) {
-						const dx = rpPos.x - camPos.x;
-						const dy = rpPos.y - camPos.y;
-						const dz = rpPos.z - camPos.z;
-						if (dx * dx + dy * dy + dz * dz > MAX_REMOTE_ANIM_DIST_SQ) continue;
-					}
-				}
 			}
 			if (entry.hideMagicStaff && (!entry._lastStaffCheckMs || nowMs - entry._lastStaffCheckMs >= 900)) {
 				entry._lastStaffCheckMs = nowMs;
@@ -9108,10 +9370,15 @@ function spkmodRenderSkinsGrid() {
 		frag.appendChild(card);
 	}
 
-	// Render encouraging "Keep leveling up to unlock more!" Hype Banner whenever locked skins are hidden
-	if (hiddenLockedCount > 0 && _spkmodSkinsActiveTab !== "favorites" && (_spkmodSkinsActiveTab !== "unlocked" || filtered.length === 0)) {
-		const nextUnlockLvl = isFinite(nextLockedLevel) ? nextLockedLevel : Math.min(100, spkmodGetSkinPlayerLevel() + 1);
+	// Render encouraging "Keep leveling up to unlock more!" Hype Banner whenever locked skins remain (including Unlocked tab)
+	const allLockedSkins = SPKMOD_SKIN_CATALOG.filter(s => !spkmodIsSkinUnlocked(s)).sort((a, b) => a.level - b.level);
+	const bannerLockedCount = hiddenLockedCount > 0 ? hiddenLockedCount : allLockedSkins.length;
+	const bannerNextLevel = hiddenLockedCount > 0
+		? (isFinite(nextLockedLevel) ? nextLockedLevel : (allLockedSkins[0]?.level || Math.min(100, spkmodGetSkinPlayerLevel() + 1)))
+		: (allLockedSkins[0]?.level || Math.min(100, spkmodGetSkinPlayerLevel() + 1));
+	if (bannerLockedCount > 0 && !_spkmodSkinsSearchQuery && _spkmodSkinsActiveTab !== "favorites") {
 		const hypeCard = document.createElement("div");
+		hypeCard.id = "spkmod-skins-hype-banner";
 		hypeCard.style.cssText = `
 			grid-column: 1 / -1;
 			display: flex;
@@ -9133,7 +9400,7 @@ function spkmodRenderSkinsGrid() {
 				${spkmodGetSkinUiText("hypeTitle")}
 			</div>
 			<div style="font-size: 11.5px; color: #cbd5e1; max-width: 580px;">
-				${spkmodGetSkinUiText("hypeDesc", hiddenLockedCount, nextUnlockLvl)}
+				${spkmodGetSkinUiText("hypeDesc", bannerLockedCount, bannerNextLevel)}
 			</div>
 		`;
 		frag.appendChild(hypeCard);
