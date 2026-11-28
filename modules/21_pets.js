@@ -529,7 +529,63 @@ const SPKMOD_PET_CATALOG = [
 	{ level: 97, id: "raid7_colossus", icon: "🗿", moveMode: "bounce", voiceType: "boss", targetHeight: 0.88, defaultName: "Mini Earthshaker Colossus", source: "Raid 7 Boss", spec: { kind: "glb", url: "/models/raids/raid7/earthshaker-strata-rigged-v02.glb" } },
 	{ level: 98, id: "chibi_master", icon: "🕶️", moveMode: "bounce", voiceType: "npc", targetHeight: 0.78, defaultName: "Mini ??? (Master NPC)", source: "Special NPC", spec: { kind: "character", charType: "masternpc" } },
 	{ level: 99, id: "chibi_ner", icon: "🔨", moveMode: "bounce", voiceType: "npc", targetHeight: 0.78, defaultName: "Mini Priestess Ner", source: "Special NPC", spec: { kind: "character", charType: "ner" } },
-	{ level: 100, id: "battlecruiser", icon: "🚀", moveMode: "fly", voiceType: "boss", targetHeight: 0.95, defaultName: "Galactic Battlecruiser Flagship", source: "Lv.100 Mythic Flagship", spec: { kind: "glb", url: "/models/battlecruiser/battlecruiser.opt.glb", isHorizontalShip: true } }
+	{ level: 100, id: "battlecruiser", icon: "🚀", moveMode: "fly", voiceType: "boss", targetHeight: 0.95, defaultName: "Galactic Battlecruiser Flagship", source: "Lv.100 Mythic Flagship", spec: { kind: "glb", url: "/models/battlecruiser/battlecruiser.opt.glb", isHorizontalShip: true } },
+
+	// --- EXPANSION PETS (APPENDED TO PRESERVE CODES 1..101 FOR MULTIPLAYER SYNC) ---
+	{ level: 15, id: "snowman_round_glasses", icon: "👓", moveMode: "fly", voiceType: "fairy", targetHeight: 0.48, defaultName: "Round Snowman Glasses", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-round-glasses.glb" } },
+	{ level: 16, id: "snowman_earmuffs", icon: "🎧", moveMode: "fly", voiceType: "fairy", targetHeight: 0.50, defaultName: "Cozy Winter Earmuffs", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-earmuffs.glb" } },
+	{ level: 17, id: "snowman_ski_goggles", icon: "🥽", moveMode: "fly", voiceType: "fairy", targetHeight: 0.48, defaultName: "Alpine Ski Goggles", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-ski-goggles.glb" } },
+	{ level: 18, id: "snowman_bucket_hat", icon: "👒", moveMode: "bounce", voiceType: "slime", targetHeight: 0.50, defaultName: "Cozy Bucket Hat", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-bucket-hat.glb" } },
+	{ level: 19, id: "snowman_pom_beanie", icon: "🧶", moveMode: "bounce", voiceType: "slime", targetHeight: 0.52, defaultName: "Pom-Pom Knit Beanie", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-pom-beanie.glb" } },
+	{ level: 20, id: "snowman_shovel", icon: "⛏️", moveMode: "fly", voiceType: "drone", targetHeight: 0.62, defaultName: "Winter Snow Shovel", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-snow-shovel.glb" } },
+	{ level: 21, id: "snowman_gift_box", icon: "🎁", moveMode: "bounce", voiceType: "fairy", targetHeight: 0.54, defaultName: "Snowman Gift Box", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-gift-box.glb" } },
+	{ level: 22, id: "snowman_candy_cane", icon: "🍬", moveMode: "fly", voiceType: "food", targetHeight: 0.60, defaultName: "Giant Candy Cane", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-candy-cane.glb" } },
+	{ level: 23, id: "snowman_cocoa_mug", icon: "☕", moveMode: "bounce", voiceType: "food", targetHeight: 0.52, defaultName: "Steaming Hot Cocoa Mug", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-cocoa-mug.glb" } },
+	{ level: 24, id: "snowman_antler_band", icon: "🦌", moveMode: "fly", voiceType: "beast", targetHeight: 0.54, defaultName: "Reindeer Antler Headband", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-antler-headband.glb" } },
+	{ level: 25, id: "snowman_santa_hat", icon: "🎅", moveMode: "bounce", voiceType: "fairy", targetHeight: 0.54, defaultName: "Plush Santa Hat", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-santa-hat.glb" } },
+	{ level: 26, id: "snowman_silk_hat", icon: "🎩", moveMode: "bounce", voiceType: "fairy", targetHeight: 0.54, defaultName: "Gentleman Silk Top Hat", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-silk-hat.glb" } },
+	{ level: 27, id: "snowman_top_star", icon: "🌟", moveMode: "fly", voiceType: "fairy", targetHeight: 0.56, defaultName: "Golden Tree Topper Star", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-top-star.glb" } },
+	{ level: 28, id: "winter_feed_bucket", icon: "🧺", moveMode: "bounce", voiceType: "food", targetHeight: 0.54, defaultName: "Reindeer Feed Bucket", source: "Winter Town", spec: { kind: "glb", url: "/models/winter-town/feed-bucket.glb" } },
+	{ level: 29, id: "maid_cleaning_rag", icon: "🧽", moveMode: "fly", voiceType: "fairy", targetHeight: 0.50, defaultName: "Floating Maid Rag", source: "Maid Speaki", spec: { kind: "glb", url: "/models/speaki_Maid/emote/rag_maid.glb" } },
+	{ level: 32, id: "snowman_chickadee", icon: "🐦", moveMode: "fly", voiceType: "fairy", targetHeight: 0.52, defaultName: "Winter Chickadee Bird", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-chickadee.glb" } },
+	{ level: 35, id: "winter_fire_bowl", icon: "🔥", moveMode: "fly", voiceType: "fairy", targetHeight: 0.58, defaultName: "Glowing Winter Fire Bowl", source: "Winter Town", spec: { kind: "glb", url: "/models/winter-town/fire-bowl.glb" } },
+	{ level: 38, id: "winter_fir_tree", icon: "🎄", moveMode: "bounce", voiceType: "fairy", targetHeight: 0.78, defaultName: "Decorated Holiday Fir", source: "Winter Town", spec: { kind: "glb", url: "/models/winter-town/fir-decorated.glb" } },
+	{ level: 40, id: "snowman_ice_crown", icon: "👑", moveMode: "fly", voiceType: "fairy", targetHeight: 0.54, defaultName: "Crystalline Ice Crown", source: "Winter Snowman", spec: { kind: "glb", url: "/models/snowman/prop-ice-crown.glb" } },
+	{ level: 42, id: "obstacle_bumper", icon: "🔴", moveMode: "bounce", voiceType: "slime", targetHeight: 0.58, defaultName: "Bouncy Obstacle Bumper", source: "Obstacle Race", spec: { kind: "glb", url: "/models/obstacle-race/props-v6/v6_bumper.glb" } },
+	{ level: 45, id: "obstacle_mine", icon: "💣", moveMode: "fly", voiceType: "drone", targetHeight: 0.56, defaultName: "Spiky Obstacle Mine", source: "Obstacle Race", spec: { kind: "glb", url: "/models/obstacle-race/props-v6/v6_mine.glb" } },
+	{ level: 48, id: "obstacle_oven", icon: "🔥", moveMode: "bounce", voiceType: "drone", targetHeight: 0.64, defaultName: "Mini Obstacle Oven", source: "Obstacle Race", spec: { kind: "glb", url: "/models/obstacle-race/props-v6/v6_oven.glb" } },
+	{ level: 50, id: "winter_roast_cart", icon: "🌰", moveMode: "bounce", voiceType: "vehicle", targetHeight: 0.68, defaultName: "Roast Chestnut Cart", source: "Winter Town", spec: { kind: "glb", url: "/models/winter-town/roast-cart.glb" } },
+	{ level: 52, id: "winter_cocoa_stall", icon: "🏪", moveMode: "bounce", voiceType: "food", targetHeight: 0.72, defaultName: "Hot Cocoa Stall", source: "Winter Town", spec: { kind: "glb", url: "/models/winter-town/cocoa-stall.glb" } },
+	{ level: 54, id: "winter_frozen_fountain", icon: "⛲", moveMode: "bounce", voiceType: "fairy", targetHeight: 0.72, defaultName: "Frozen Winter Fountain", source: "Winter Town", spec: { kind: "glb", url: "/models/winter-town/frozen-fountain.glb" } },
+	{ level: 55, id: "combat_helmet", icon: "🛡️", moveMode: "fly", voiceType: "drone", targetHeight: 0.56, defaultName: "Master Combat Helmet", source: "Master NPC", spec: { kind: "glb", url: "/models/masterNpc/combatHelmet.glb" } },
+	{ level: 58, id: "snowman_pumpkin_hat", icon: "⛄", moveMode: "bounce", voiceType: "slime", targetHeight: 0.74, defaultName: "Pumpkin-Hat Snowman", source: "Winter Town", spec: { kind: "glb", url: "/models/winter-town/snowman-pumpkin-hat.glb" } },
+	{ level: 60, id: "snowman_pumpkin_head", icon: "🎃", moveMode: "bounce", voiceType: "ghost", targetHeight: 0.76, defaultName: "Pumpkin-Head Snowman", source: "Winter Town", spec: { kind: "glb", url: "/models/winter-town/snowman-pumpkin-head.glb" } },
+	{ level: 62, id: "snowman_priest", icon: "⛪", moveMode: "bounce", voiceType: "fairy", targetHeight: 0.78, defaultName: "Snowman Priest", source: "Winter Town", spec: { kind: "glb", url: "/models/winter-town/snowman-priest.glb" } },
+	{ level: 64, id: "speakov_supply_ammo", icon: "📦", moveMode: "fly", voiceType: "drone", targetHeight: 0.56, defaultName: "Tactical Ammo Supply Box", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/candidate-d/models/supply-ammo-d.glb" } },
+	{ level: 66, id: "speakov_supply_medkit", icon: "🩺", moveMode: "fly", voiceType: "drone", targetHeight: 0.56, defaultName: "Tactical Medical Kit", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/candidate-d/models/supply-medical-d.glb" } },
+	{ level: 68, id: "speakov_supply_rescue", icon: "🚑", moveMode: "fly", voiceType: "drone", targetHeight: 0.58, defaultName: "Tactical Rescue Kit", source: "Speakov", spec: { kind: "glb", url: "/models/speakov/candidate-d/models/supply-rescue-d.glb" } },
+	{ level: 70, id: "classfx_stun_stars", icon: "💫", moveMode: "fly", voiceType: "fairy", targetHeight: 0.54, defaultName: "Spinning Stun Stars", source: "Class FX", spec: { kind: "glb", url: "/models/class-fx/stun-v01.glb" } },
+	{ level: 71, id: "classfx_konpeito", icon: "🍬", moveMode: "fly", voiceType: "fairy", targetHeight: 0.56, defaultName: "Floating Konpeito Star", source: "Class FX", spec: { kind: "glb", url: "/models/class-fx/sc-konpeito-v01.glb" } },
+	{ level: 72, id: "classfx_sprout_plant", icon: "🌿", moveMode: "bounce", voiceType: "fairy", targetHeight: 0.62, defaultName: "Magic Sprout Plant", source: "Class FX", spec: { kind: "glb", url: "/models/class-fx/cb-plant-v01.glb" } },
+	{ level: 73, id: "classfx_magic_orb", icon: "🔮", moveMode: "fly", voiceType: "fairy", targetHeight: 0.58, defaultName: "Arcane Floating Orb", source: "Class FX", spec: { kind: "glb", url: "/models/class-fx/ff-orb-a-v01.glb" } },
+	{ level: 74, id: "classfx_drill", icon: "🌀", moveMode: "fly", voiceType: "drone", targetHeight: 0.62, defaultName: "Turbo Spinning Drill", source: "Class FX", spec: { kind: "glb", url: "/models/class-fx/tc-drill-v01.glb" } },
+	{ level: 75, id: "classfx_summon", icon: "✨", moveMode: "fly", voiceType: "fairy", targetHeight: 0.66, defaultName: "Arcane Summon Spirit", source: "Class FX", spec: { kind: "glb", url: "/models/class-fx/ff-summon-v01.glb" } },
+	{ level: 76, id: "weapon_lollipop_staff", icon: "🍭", moveMode: "fly", voiceType: "fairy", targetHeight: 0.68, defaultName: "Floating Lollipop Staff", source: "Weapons", spec: { kind: "glb", url: "/models/weapons/lollipop_staff.glb" } },
+	{ level: 78, id: "weapon_magic_staff", icon: "🪄", moveMode: "fly", voiceType: "fairy", targetHeight: 0.70, defaultName: "Floating Magic Staff", source: "Weapons", spec: { kind: "glb", url: "/models/weapons/magic_staff.glb" } },
+	{ level: 80, id: "ranker_torch", icon: "🔥", moveMode: "fly", voiceType: "boss", targetHeight: 0.72, defaultName: "Champion Ranker Torch", source: "Ranker Podium", spec: { kind: "glb", url: "/models/ranker_podium_lite/ranker_torch.glb" } },
+	{ level: 82, id: "raid6_big_boar", icon: "🐗", moveMode: "bounce", voiceType: "piglet", targetHeight: 0.72, defaultName: "Big Tusk Boar Calf", source: "Raid 6 (Old Forest)", spec: { kind: "glb", url: "/models/raids/raid6/boar-calf-big-1246-v01.glb" } },
+	{ level: 84, id: "mini_winter_train", icon: "🚂", moveMode: "bounce", voiceType: "vehicle", targetHeight: 0.70, defaultName: "Mini Winter Worldtree Train", source: "Winter Town", spec: { kind: "glb", url: "/models/town-train/worldtree-town-train-winter.glb" } },
+	{ level: 86, id: "mini_winter_carousel", icon: "🎠", moveMode: "bounce", voiceType: "fairy", targetHeight: 0.76, defaultName: "Mini Winter Carousel", source: "Winter Town", spec: { kind: "glb", url: "/models/carousel/worldtree-carousel-winter.glb" } },
+	{ level: 88, id: "mini_winter_ferris", icon: "🎡", moveMode: "fly", voiceType: "fairy", targetHeight: 0.80, defaultName: "Mini Winter Ferris Wheel", source: "Winter Town", spec: { kind: "glb", url: "/models/ferris-wheel/worldtree-ferris-wheel-winter.glb" } },
+	{ level: 89, id: "mini_santa_sleigh_flying", icon: "🛷", moveMode: "fly", voiceType: "fairy", targetHeight: 0.72, defaultName: "Soaring Santa Sleigh", source: "Winter Town", spec: { kind: "glb", url: "/models/winter-town/santa-sleigh-flying.glb" } },
+	{ level: 90, id: "chibi_speaki_burger_a", icon: "🍔", moveMode: "bounce", voiceType: "npc", targetHeight: 0.76, defaultName: "Mini Burger Staff Speaki A", source: "Chibi Speaki", spec: { kind: "character", charType: "speaki_skin", fbxUrl: "/models/speaki_BurgerStaff_A/Speaki_BurgerStaff_A.fbx", bodyTexUrl: "/models/speaki_BurgerStaff_A/textures/Map_BurgerStaffBody_A.png", faceTexUrl: "/models/speaki/Map_Face.png", animUrl: "/models/speaki/animations/idle.fbx" } },
+	{ level: 91, id: "chibi_speaki_burger_b", icon: "🍟", moveMode: "bounce", voiceType: "npc", targetHeight: 0.76, defaultName: "Mini Burger Staff Speaki B", source: "Chibi Speaki", spec: { kind: "character", charType: "speaki_skin", fbxUrl: "/models/speaki_BurgerStaff_B/Speaki_BurgerStaff_B.fbx", bodyTexUrl: "/models/speaki_BurgerStaff_B/textures/Map_BurgerStaffBody_B.png", faceTexUrl: "/models/speaki/Map_Face.png", animUrl: "/models/speaki/animations/idle.fbx" } },
+	{ level: 92, id: "chibi_speaki_pumpkin", icon: "🎃", moveMode: "bounce", voiceType: "npc", targetHeight: 0.76, defaultName: "Mini Pumpkin Speaki", source: "Chibi Speaki", spec: { kind: "character", charType: "speaki_skin", fbxUrl: "/models/speaki_Pumpkin/Speaki_Pumpkin.fbx", bodyTexUrl: "/models/speaki_Pumpkin/textures/Map_Pumpkin.png", faceTexUrl: "/models/speaki/Map_Face.png", animUrl: "/models/speaki/animations/idle.fbx" } },
+	{ level: 93, id: "chibi_speaki_witch", icon: "🧙", moveMode: "bounce", voiceType: "npc", targetHeight: 0.76, defaultName: "Mini Witch Speaki", source: "Chibi Speaki", spec: { kind: "character", charType: "speaki_skin", fbxUrl: "/models/speaki_Witch/Speaki_Witch.fbx", bodyTexUrl: "/models/speaki_Witch/textures/Map_WitchBody.png", faceTexUrl: "/models/speaki/Map_Face.png", animUrl: "/models/speaki/animations/idle.fbx" } },
+	{ level: 94, id: "chibi_speaki_sheep", icon: "🐑", moveMode: "bounce", voiceType: "npc", targetHeight: 0.76, defaultName: "Mini Sheep Speaki", source: "Chibi Speaki", spec: { kind: "character", charType: "speaki_skin", fbxUrl: "/models/speaki_Sheep/Speaki_Sheep.fbx", bodyTexUrl: "/models/speaki_Sheep/textures/Map_SheepWool.png", faceTexUrl: "/models/speaki/Map_Face.png", animUrl: "/models/speaki/animations/idle.fbx" } },
+	{ level: 95, id: "chibi_speaki_maid", icon: "🧹", moveMode: "bounce", voiceType: "npc", targetHeight: 0.76, defaultName: "Mini Maid Speaki", source: "Chibi Speaki", spec: { kind: "character", charType: "speaki_skin", fbxUrl: "/models/speaki_Maid/Speaki_Maid.fbx", bodyTexUrl: "/models/speaki_Maid/textures/Map_MaidBody.png", faceTexUrl: "/models/speaki/Map_Face.png", animUrl: "/models/speaki/animations/idle.fbx" } },
+	{ level: 97, id: "chibi_speaki_purepumpkin", icon: "🌟", moveMode: "bounce", voiceType: "npc", targetHeight: 0.78, defaultName: "Mini Pure Pumpkin Cuayo", source: "Chibi Speaki", spec: { kind: "character", charType: "speaki_skin", fbxUrl: "/models/speaki_Purepumpkin/character/cuayo_character__COPYRIGHT_KIRBY__EXCLUSIVE_LICENSE_DANTEUK__NO_UNAUTHORIZED_USE_OR_REDISTRIBUTION.fbx", bodyTexUrl: "/models/speaki_Purepumpkin/textures/Map_PurePK.png", faceTexUrl: "/models/speaki/Map_Face.png", animUrl: "/models/speaki/animations/idle.fbx" } },
+	{ level: 100, id: "raid9_taecho_root", icon: "🌳", moveMode: "bounce", voiceType: "boss", targetHeight: 0.90, defaultName: "Mini Taecho Witherroot", source: "Raid 9 Boss", spec: { kind: "glb", url: "/models/raids/raid9/taecho-root-1400-v01.glb" } }
 ];
 
 const SPKMOD_PETS_BY_ID = new Map(SPKMOD_PET_CATALOG.map(p => [p.id, p]));
@@ -1132,6 +1188,11 @@ async function spkmodInstantiatePetVisual(pet, instance) {
 					faceAsleepUrl = "/models/komi/Map_Face_Asleep.png";
 					pillowTexUrl = "/models/komi/Kommy_Pillow.png";
 					animUrl = "/models/komi/animations/sleepy_idle__COPYRIGHT_JEREMY_POWEE__NO_UNAUTHORIZED_USE_OR_REDISTRIBUTION.fbx";
+				} else if (charType === "speaki_skin" && spec.fbxUrl) {
+					fbxUrl = spec.fbxUrl;
+					bodyTexUrl = spec.bodyTexUrl || "/models/speaki/Map_Body.png";
+					faceTexUrl = spec.faceTexUrl || "/models/speaki/Map_Face.png";
+					animUrl = spec.animUrl || "/models/speaki/animations/idle.fbx";
 				} else {
 					fbxUrl = "/models/masterNpc/MasterNpc.fbx";
 					bodyTexUrl = "/models/masterNpc/texture_pbr_20250901.png";
@@ -1176,7 +1237,7 @@ async function spkmodInstantiatePetVisual(pet, instance) {
 								kommyFaceMat = nextMat;
 							} else if (mName.includes("pillow")) {
 								nextMat = new THREE.MeshToonMaterial({ color: 0xffffff, map: pillowTex || m?.map || bodyTex });
-							} else if (mName.includes("body") || (charType === "masternpc" && mName.includes("material"))) {
+							} else if (mName.includes("body") || (charType === "masternpc" && mName.includes("material")) || (charType === "speaki_skin" && bodyTex)) {
 								nextMat = new THREE.MeshToonMaterial({
 									color: 0xffffff,
 									map: bodyTex || null,
@@ -4917,13 +4978,14 @@ function spkmodRenderPetsGrid() {
 	grid.innerHTML = "";
 
 	const eqId = window.spkmodPetSettings.equippedId;
-	const allLockedPets = SPKMOD_PET_CATALOG.filter(p => !spkmodIsPetUnlocked(p));
+	const sortedCatalog = [...SPKMOD_PET_CATALOG].sort((a, b) => a.level - b.level);
+	const allLockedPets = sortedCatalog.filter(p => !spkmodIsPetUnlocked(p));
 	const teaserLockedPets = allLockedPets.slice(0, 2);
 	const teaserIds = new Set(teaserLockedPets.map(p => p.id));
 
 	let hiddenFutureCount = 0;
 
-	const filtered = SPKMOD_PET_CATALOG.filter(pet => {
+	const filtered = sortedCatalog.filter(pet => {
 		const unlocked = spkmodIsPetUnlocked(pet);
 		if (_spkmodPetsActiveTab === "favorites") {
 			if (!unlocked || !spkmodIsPetFavorite(pet.id)) return false;
