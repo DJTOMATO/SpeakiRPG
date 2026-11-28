@@ -1106,6 +1106,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-panel-left",
 	"spkmod-party-highlight-enabled",
 	"spkmod-burger-fat-customers",
+	"spkmod-snow-trail-enabled",
 	"spkmod-car-enabled",
 	"spkmod-vehicle-equipped",
 	"spkmod-vehicle-last-equipped",

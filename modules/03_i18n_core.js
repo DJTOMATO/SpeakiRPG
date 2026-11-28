@@ -624,6 +624,8 @@ var lunPanelElements = {
 	carSystemToggleInput: null,
 	burgerFatCustomersToggleLabel: null,
 	burgerFatCustomersToggleInput: null,
+	snowTrailToggleLabel: null,
+	snowTrailToggleInput: null,
 	separatePanelLabel: null,
 	separatePanelToggleInput: null,
 	hidePlayerLevelsLabel: null,

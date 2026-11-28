@@ -701,6 +701,11 @@ window.spkmodBurgerFatCustomersEnabled = (typeof window !== "undefined" && windo
 	? localStorage.getItem("spkmod-burger-fat-customers") !== "false"
 	: true;
 
+// Snow Trail Ground Deformation Toggle (ON by default; persisted in localStorage)
+window.spkmodSnowTrailEnabled = (typeof window !== "undefined" && window.localStorage)
+	? localStorage.getItem("spkmod-snow-trail-enabled") !== "false"
+	: true;
+
 
 
 

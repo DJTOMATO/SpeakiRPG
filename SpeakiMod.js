@@ -701,6 +701,11 @@ window.spkmodBurgerFatCustomersEnabled = (typeof window !== "undefined" && windo
 	? localStorage.getItem("spkmod-burger-fat-customers") !== "false"
 	: true;
 
+// Snow Trail Ground Deformation Toggle (ON by default; persisted in localStorage)
+window.spkmodSnowTrailEnabled = (typeof window !== "undefined" && window.localStorage)
+	? localStorage.getItem("spkmod-snow-trail-enabled") !== "false"
+	: true;
+
 
 
 
@@ -2307,6 +2312,8 @@ var lunPanelElements = {
 	carSystemToggleInput: null,
 	burgerFatCustomersToggleLabel: null,
 	burgerFatCustomersToggleInput: null,
+	snowTrailToggleLabel: null,
+	snowTrailToggleInput: null,
 	separatePanelLabel: null,
 	separatePanelToggleInput: null,
 	hidePlayerLevelsLabel: null,
@@ -5025,6 +5032,7 @@ const SPKMOD_SETTINGS_KEYS = new Set([
 	"spkmod-panel-left",
 	"spkmod-party-highlight-enabled",
 	"spkmod-burger-fat-customers",
+	"spkmod-snow-trail-enabled",
 	"spkmod-car-enabled",
 	"spkmod-vehicle-equipped",
 	"spkmod-vehicle-last-equipped",
@@ -11392,6 +11400,28 @@ document.body.appendChild(
 							} else {
 								window.spkmodBurgerFatCustomersEnabled = !!e.target.checked;
 								if (window.localStorage) localStorage.setItem("spkmod-burger-fat-customers", e.target.checked ? "true" : "false");
+							}
+						}
+					})
+				]),
+
+				// Snow Trail Ground Deformation Toggle (under Fat Burger Shop Customers)
+				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 4px;" }, [
+					lunPanelElements.snowTrailToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;",
+						innerText: "❄️ " + tCustom("snowTrailToggleLabel", "Snow Trails"),
+						title: tCustom("snowTrailToggleDesc", "Enable or disable interactive 3D snow trails left by players, carts, and snowballs")
+					}),
+					lunPanelElements.snowTrailToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: (window.spkmodSnowTrailEnabled !== false),
+						title: tCustom("snowTrailToggleDesc", "Enable or disable interactive 3D snow trails left by players, carts, and snowballs"),
+						onchange: e => {
+							if (typeof window.spkmodSetSnowTrailEnabled === "function") {
+								window.spkmodSetSnowTrailEnabled(e.target.checked);
+							} else {
+								window.spkmodSnowTrailEnabled = !!e.target.checked;
+								if (window.localStorage) localStorage.setItem("spkmod-snow-trail-enabled", e.target.checked ? "true" : "false");
 							}
 						}
 					})
@@ -26471,6 +26501,13 @@ spkmodI18nRenderers.push(() => {
 	}
 	if (lunPanelElements.burgerFatCustomersToggleInput) {
 		lunPanelElements.burgerFatCustomersToggleInput.title = tCustom("burgerFatCustomersToggleDesc", "Make Burger Shop customers who order a big combo (burger + fries + drink + multiplier) wider");
+	}
+	if (lunPanelElements.snowTrailToggleLabel) {
+		setText(lunPanelElements.snowTrailToggleLabel, "❄️ " + tCustom("snowTrailToggleLabel", "Snow Trails"));
+		lunPanelElements.snowTrailToggleLabel.title = tCustom("snowTrailToggleDesc", "Enable or disable interactive 3D snow trails left by players, carts, and snowballs");
+	}
+	if (lunPanelElements.snowTrailToggleInput) {
+		lunPanelElements.snowTrailToggleInput.title = tCustom("snowTrailToggleDesc", "Enable or disable interactive 3D snow trails left by players, carts, and snowballs");
 	}
 	if (lunPanelElements.exportSettingsBtn) setText(lunPanelElements.exportSettingsBtn, t("exportSettingsBtn"));
 	if (lunPanelElements.importSettingsBtn) setText(lunPanelElements.importSettingsBtn, t("importSettingsBtn"));
@@ -65501,12 +65538,15 @@ const spkmodSnowPlane = (function () {
 
 	const PLANE = { x: 69.8, z: 82.8, w: 16.5, h: 10.5 }, PLANE_TOL = 0.3, PLANE_POS_TOL = 2;
 	const SNOW_H = 0.5, EDGE_W = 0.5, CELL = 0.15, BIAS = 0.003, TEXEL = 0.2, FADE = 8, TRAIL_COLOR = "#cfd8e8";
-	const RANGE = 15, HEIGHT_TOL = 2, CART_DIAMETER = 2.6, CHAR_R_MAX = 2.0, TRAIL_R = 0.8, BALL_NAME = "snow-ball-hull", CHECK_MS = 500;
+	const RANGE = 15, HEIGHT_TOL = 2, CART_DIAMETER = 2.6, CHAR_R_MAX = 2.0, TRAIL_R = 0.8, BALL_NAME = "snow-ball-hull";
+	const CHECK_MS = 500, MEASURE_MS = 5000, MEASURE_RETRY_MS = 1000, BALL_SCAN_MS = 1500, STEP_MS = 16;
 	const ZONE_ID = 1;
-	const START_ENABLED = false;                                                                       // off until spkmodSnowPlane(true) is called
+	const START_ENABLED = typeof window !== "undefined" ? window.spkmodSnowTrailEnabled !== false : true;
 	const inZone = () => { const gs = window.gameState; return !!gs && gs.zoneId != null && Number(gs.zoneId) % 10000 === ZONE_ID; };
 	let S = null, enabled = START_ENABLED, building = false, DTClass = null, warned = false;
 	const radii = new WeakMap(), mounts = new WeakMap();
+	const scratchInv = new Float32Array(16), scratchMul = new Float32Array(16);
+	const entOut = [], entPool = [];
 	let vec = null;
 
 
@@ -65526,43 +65566,50 @@ const spkmodSnowPlane = (function () {
 		"	return mix(mix(texture2D(uTrailMap, o.yw).r, texture2D(uTrailMap, o.xw).r, sx), mix(texture2D(uTrailMap, o.yz).r, texture2D(uTrailMap, o.xz).r, sx), sy);",
 		"}"
 	].join("\n");
-	const VS_DECL = [TRAIL_GLSL, "uniform vec2 uMin, uMax, uScale;", "uniform float uZ;", "varying vec2 vTrailUV;"].join("\n");
+	const VS_DECL = [TRAIL_GLSL, "uniform vec2 uMin, uMax, uScale;", "uniform float uZ;", "varying float vTrail;"].join("\n");
 	const VS_NORMAL = "vec3 objectNormal = vec3(0.0, 0.0, 1.0);";                                     
 	const VS_BODY = [
 		"vec2 snUV = (position.xy - uMin) / (uMax - uMin);",
 		"float snD = min(min(position.x - uMin.x, uMax.x - position.x) * uScale.x, min(position.y - uMin.y, uMax.y - position.y) * uScale.y);",  
-		"float snH = smoothstep(0.0, " + f(EDGE_W) + ", snD) * " + f(SNOW_H) + " * (1.0 - snowTrailUV(snUV));",                                 
+		"float snT = snowTrailUV(snUV);",
+		"float snH = smoothstep(0.0, " + f(EDGE_W) + ", snD) * " + f(SNOW_H) + " * (1.0 - snT);",                                 
 		"vec3 transformed = vec3(position.xy, uZ * (snH + " + f(BIAS) + "));",
-		"vTrailUV = snUV;"
+		"vTrail = snT;"
 	].join("\n");
-	const FS_DECL = [TRAIL_GLSL, "uniform vec3 uTrailColor;", "varying vec2 vTrailUV;"].join("\n");
-	const FS_BODY = ["#include <color_fragment>", "diffuseColor.rgb = mix(diffuseColor.rgb, uTrailColor, clamp(snowTrailUV(vTrailUV), 0.0, 1.0));"].join("\n");
+	const FS_DECL = ["uniform vec3 uTrailColor;", "varying float vTrail;"].join("\n");
+	const FS_BODY = ["#include <color_fragment>", "diffuseColor.rgb = mix(diffuseColor.rgb, uTrailColor, clamp(vTrail, 0.0, 1.0));"].join("\n");
 
 
-	function inv4(m) {
+	function inv4(m, out) {
 		const a00 = m[0], a01 = m[1], a02 = m[2], a03 = m[3], a10 = m[4], a11 = m[5], a12 = m[6], a13 = m[7], a20 = m[8], a21 = m[9], a22 = m[10], a23 = m[11], a30 = m[12], a31 = m[13], a32 = m[14], a33 = m[15];
 		const b00 = a00 * a11 - a01 * a10, b01 = a00 * a12 - a02 * a10, b02 = a00 * a13 - a03 * a10, b03 = a01 * a12 - a02 * a11, b04 = a01 * a13 - a03 * a11, b05 = a02 * a13 - a03 * a12;
 		const b06 = a20 * a31 - a21 * a30, b07 = a20 * a32 - a22 * a30, b08 = a20 * a33 - a23 * a30, b09 = a21 * a32 - a22 * a31, b10 = a21 * a33 - a23 * a31, b11 = a22 * a33 - a23 * a32;
 		let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 		if (!det) return null;
 		det = 1 / det;
-		return [
-			(a11 * b11 - a12 * b10 + a13 * b09) * det, (a02 * b10 - a01 * b11 - a03 * b09) * det, (a31 * b05 - a32 * b04 + a33 * b03) * det, (a22 * b04 - a21 * b05 - a23 * b03) * det,
-			(a12 * b08 - a10 * b11 - a13 * b07) * det, (a00 * b11 - a02 * b08 + a03 * b07) * det, (a32 * b02 - a30 * b05 - a33 * b01) * det, (a20 * b05 - a22 * b02 + a23 * b01) * det,
-			(a10 * b10 - a11 * b08 + a13 * b06) * det, (a01 * b08 - a00 * b10 - a03 * b06) * det, (a30 * b04 - a31 * b02 + a33 * b00) * det, (a21 * b02 - a20 * b04 - a23 * b00) * det,
-			(a11 * b07 - a10 * b09 - a12 * b06) * det, (a00 * b09 - a01 * b07 + a02 * b06) * det, (a31 * b01 - a30 * b03 - a32 * b00) * det, (a20 * b03 - a21 * b01 + a22 * b00) * det
-		];
+		const r = out || new Float32Array(16);
+		r[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det; r[1] = (a02 * b10 - a01 * b11 - a03 * b09) * det; r[2] = (a31 * b05 - a32 * b04 + a33 * b03) * det; r[3] = (a22 * b04 - a21 * b05 - a23 * b03) * det;
+		r[4] = (a12 * b08 - a10 * b11 - a13 * b07) * det; r[5] = (a00 * b11 - a02 * b08 + a03 * b07) * det; r[6] = (a32 * b02 - a30 * b05 - a33 * b01) * det; r[7] = (a20 * b05 - a22 * b02 + a23 * b01) * det;
+		r[8] = (a10 * b10 - a11 * b08 + a13 * b06) * det; r[9] = (a01 * b08 - a00 * b10 - a03 * b06) * det; r[10] = (a30 * b04 - a31 * b02 + a33 * b00) * det; r[11] = (a21 * b02 - a20 * b04 - a23 * b00) * det;
+		r[12] = (a11 * b07 - a10 * b09 - a12 * b06) * det; r[13] = (a00 * b09 - a01 * b07 + a02 * b06) * det; r[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det; r[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
+		return r;
 	}
-	function mul4(a, b) {
-		const r = new Array(16).fill(0);
-		for (let c = 0; c < 4; c++) for (let row = 0; row < 4; row++) for (let k = 0; k < 4; k++) r[c * 4 + row] += a[k * 4 + row] * b[c * 4 + k];
+	function mul4(a, b, out) {
+		const r = out || new Float32Array(16);
+		for (let c = 0; c < 4; c++) {
+			const c4 = c * 4, b0 = b[c4], b1 = b[c4 + 1], b2 = b[c4 + 2], b3 = b[c4 + 3];
+			r[c4] = a[0] * b0 + a[4] * b1 + a[8] * b2 + a[12] * b3;
+			r[c4 + 1] = a[1] * b0 + a[5] * b1 + a[9] * b2 + a[13] * b3;
+			r[c4 + 2] = a[2] * b0 + a[6] * b1 + a[10] * b2 + a[14] * b3;
+			r[c4 + 3] = a[3] * b0 + a[7] * b1 + a[11] * b2 + a[15] * b3;
+		}
 		return r;
 	}
 	function planeInfo(orig) {
 		orig.updateWorldMatrix(true, false);
 		const g = orig.geometry;
 		if (!g.boundingBox) g.computeBoundingBox();
-		const b = g.boundingBox, e = Array.from(orig.matrixWorld.elements), inv = inv4(e);
+		const b = g.boundingBox, e = new Float32Array(orig.matrixWorld.elements), inv = inv4(e);
 		if (!inv) return null;
 		const sx = Math.hypot(e[0], e[1], e[2]), sy = Math.hypot(e[4], e[5], e[6]), sz = Math.hypot(e[8], e[9], e[10]) || 1;
 		return { e: e, inv: inv, min: [b.min.x, b.min.y], max: [b.max.x, b.max.y], sx: sx, sy: sy, sz: sz, sign: e[9] >= 0 ? 1 : -1,
@@ -65571,13 +65618,17 @@ const spkmodSnowPlane = (function () {
 	function grid(info) {
 		let nx = Math.max(2, Math.round(info.W / CELL)), ny = Math.max(2, Math.round(info.H / CELL));
 		while ((nx + 1) * (ny + 1) > 160000) { nx = Math.ceil(nx / 2); ny = Math.ceil(ny / 2); }
-		const vx = nx + 1, pos = new Float32Array(vx * (ny + 1) * 3), uv = new Float32Array(vx * (ny + 1) * 2), idx = [];
+		const vx = nx + 1, pos = new Float32Array(vx * (ny + 1) * 3), uv = new Float32Array(vx * (ny + 1) * 2), idx = new Array(nx * ny * 6);
 		const dx = (info.max[0] - info.min[0]) / nx, dy = (info.max[1] - info.min[1]) / ny;
 		for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) {
 			const n = j * vx + i; pos[n * 3] = info.min[0] + i * dx; pos[n * 3 + 1] = info.min[1] + j * dy;
 			uv[n * 2] = i / nx; uv[n * 2 + 1] = j / ny;
 		}
-		for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const a = j * vx + i, b = a + 1, c = a + vx, d = c + 1; idx.push(a, b, c, b, d, c); }
+		let k = 0;
+		for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+			const a = j * vx + i, b = a + 1, c = a + vx, d = c + 1;
+			idx[k++] = a; idx[k++] = b; idx[k++] = c; idx[k++] = b; idx[k++] = d; idx[k++] = c;
+		}
 		return { pos: pos, uv: uv, idx: idx, nx: nx, ny: ny, vertices: vx * (ny + 1) };
 	}
 	function rgb(s, ColorClass) {
@@ -65603,60 +65654,74 @@ const spkmodSnowPlane = (function () {
 	function trailStep(T, info, ents, dt) {
 		const dep = T.dep, W = T.W, H = T.H, inv = info.inv;
 		let live = false;
-		if (T.live) { const k = dt / FADE; for (let i = 0; i < dep.length; i++) { let d = dep[i]; if (d > 0) { d = Math.max(0, d - k); dep[i] = d; if (d > 0) live = true; } } }   
+		if (T.live) { const k = dt / FADE; for (let i = 0; i < dep.length; i++) { let d = dep[i]; if (d > 0) { d -= k; if (d > 0) { dep[i] = d; live = true; } else dep[i] = 0; } } }   
 		for (let n = 0; n < ents.length; n++) {
 			const p = ents[n];
 			const lx = inv[0] * p.x + inv[4] * p.y + inv[8] * p.z + inv[12], ly = inv[1] * p.x + inv[5] * p.y + inv[9] * p.z + inv[13], lz = inv[2] * p.x + inv[6] * p.y + inv[10] * p.z + inv[14];
-			const ball = !!p.ball, rr = p.r, h = lz * info.sz;
+			const ball = p.ball, rr = p.r, h = lz * info.sz;
 			if (Math.abs(ball ? h - rr : h) > HEIGHT_TOL) continue;                                     
 			const u = (lx - info.min[0]) * info.sx, v = (ly - info.min[1]) * info.sy;
 			if (u < -rr || v < -rr || u > info.W + rr || v > info.H + rr) continue;
 			const ci = Math.floor(u / T.cx), cj = Math.floor(v / T.cy), rx = Math.ceil(rr / T.cx), ry = Math.ceil(rr / T.cy);
-			for (let j = Math.max(0, cj - ry); j <= Math.min(H - 1, cj + ry); j++) for (let i = Math.max(0, ci - rx); i <= Math.min(W - 1, ci + rx); i++) {
-				const ex = (i + 0.5) * T.cx - u, ez = (j + 0.5) * T.cy - v, d = Math.sqrt(ex * ex + ez * ez);
-				if (d >= rr) continue;
-				let val;
-				if (ball) val = ballDepth(d, rr, SNOW_H);
-				else { const t = 1 - d / rr; val = t * t * (3 - 2 * t); }
-				if (val > dep[j * W + i]) { dep[j * W + i] = val; live = true; }
+			const j0 = Math.max(0, cj - ry), j1 = Math.min(H - 1, cj + ry), i0 = Math.max(0, ci - rx), i1 = Math.min(W - 1, ci + rx);
+			const rr2 = rr * rr, invR = 1 / rr;
+			for (let j = j0; j <= j1; j++) {
+				const ez = (j + 0.5) * T.cy - v, ez2 = ez * ez, row = j * W;
+				for (let i = i0; i <= i1; i++) {
+					const ex = (i + 0.5) * T.cx - u, d2 = ex * ex + ez2;
+					if (d2 >= rr2) continue;
+					const d = Math.sqrt(d2);
+					let val;
+					if (ball) val = ballDepth(d, rr, SNOW_H);
+					else { const t = 1 - d * invR; val = t * t * (3 - 2 * t); }
+					const idx = row + i;
+					if (val > dep[idx]) { dep[idx] = val; live = true; }
+				}
 			}
 		}
 		if (live || T.live) {                                                                          
 			const b = T.bytes;
-			for (let i = 0, j = 0; i < dep.length; i++, j += 4) b[j] = Math.round(dep[i] * 255);
-			T.tex.needsUpdate = true;
+			let changed = false;
+			for (let i = 0, j = 0; i < dep.length; i++, j += 4) {
+				const nv = (dep[i] * 255 + 0.5) | 0;
+				if (b[j] !== nv) { b[j] = nv; changed = true; }
+			}
+			if (changed) T.tex.needsUpdate = true;
 		}
 		T.live = live;
 	}
 
 	
 	function measure(c, R) {                                                                          
-		c.updateWorldMatrix(true, true);
-		const ci = inv4(Array.from(c.matrixWorld.elements));
+		const ci = inv4(c.matrixWorld.elements, scratchInv);
 		if (!ci) return;
 		let best = 0, any = false, all = 0;
-		R.pels = [];
+		R.pels.length = 0;
 		const attached = o => { for (let p = o; p && p !== c.parent; p = p.parent) if (p.userData && (p.userData.spkmodSkinAttachment || p.userData.spkmodSkinHandProp)) return true; return false; };
 		c.traverse(o => {
 			if (o.isBone && /pelvis/i.test(o.name || "")) R.pels.push(o);                          
 			if (!o.isMesh || !o.geometry || attached(o)) return;
 			const g = o.geometry; if (!g.boundingBox && g.computeBoundingBox) g.computeBoundingBox();
 			const b = g.boundingBox; if (!b) return;
-			const rel = mul4(ci, Array.from(o.matrixWorld.elements));
+			const rel = mul4(ci, o.matrixWorld.elements, scratchMul);
 			let m = 0;
 			for (let i = 0; i < 8; i++) {
 				const x = i & 1 ? b.max.x : b.min.x, y = i & 2 ? b.max.y : b.min.y, z = i & 4 ? b.max.z : b.min.z;
-				m = Math.max(m, Math.abs(rel[0] * x + rel[4] * y + rel[8] * z + rel[12]), Math.abs(rel[2] * x + rel[6] * y + rel[10] * z + rel[14]));
+				const ax = Math.abs(rel[0] * x + rel[4] * y + rel[8] * z + rel[12]);
+				const az = Math.abs(rel[2] * x + rel[6] * y + rel[10] * z + rel[14]);
+				if (ax > m) m = ax;
+				if (az > m) m = az;
 			}
-			all = Math.max(all, m);
-			if (/^mesh_(body|head|face)/i.test(o.name || "")) { best = Math.max(best, m); any = true; }
+			if (m > all) all = m;
+			if (/^mesh_(body|head|face)/i.test(o.name || "")) { if (m > best) best = m; any = true; }
 		});
 		R.base = any ? best : all;
 	}
 	function charRadius(c, now) {                                                                      
 		let R = radii.get(c);
 		if (!R) radii.set(c, R = { base: 0, pels: [], at: -1e9 });
-		if (now - R.at > CHECK_MS) {
+		const interval = R.base > 0 ? MEASURE_MS : MEASURE_RETRY_MS;
+		if (now - R.at > interval) {
 			R.at = now;
 			const keep = R.base;
 			try { measure(c, R); } catch (e) { R.base = keep; }
@@ -65664,11 +65729,11 @@ const spkmodSnowPlane = (function () {
 		}
 		if (!(R.base > 0)) return TRAIL_R;
 		let pf = 1, dev = 0;
-		for (const b of R.pels) { const w = Math.max(b.scale.x, b.scale.z), d = Math.abs(w - 1); if (d > dev) { dev = d; pf = w; } }
+		for (let i = 0; i < R.pels.length; i++) { const b = R.pels[i], w = Math.max(b.scale.x, b.scale.z), d = Math.abs(w - 1); if (d > dev) { dev = d; pf = w; } }
 		const e = c.matrixWorld.elements, sc = Math.max(Math.hypot(e[0], e[1], e[2]), Math.hypot(e[8], e[9], e[10]));
 		return Math.min(CHAR_R_MAX, Math.max(0.1, R.base * sc * pf));
 	}
-	function mounted(c, id, getCtrl, now) {                                                             
+	function mounted(c, id, pl, isLocal, now) {                                                             
 		let M = mounts.get(c);
 		if (!M) mounts.set(c, M = { v: false, at: -1e9 });
 		if (now - M.at <= CHECK_MS) return M.v;
@@ -65680,48 +65745,69 @@ const spkmodSnowPlane = (function () {
 				if (id != null && (en.has(id) || en.has(Number(id)) || en.has(String(id)))) v = true;
 				else for (const e of en.values()) if (e && e.cartGroup && e.cartGroup.parent === c) { v = true; break; }
 			}
-			if (!v) { const ctrl = getCtrl(); if (ctrl && ctrl.mountSitPlaying) v = true; }
+			if (!v) {
+				const ctrl = isLocal
+					? (typeof spkmodGetLocalAnimController === "function" ? spkmodGetLocalAnimController() : null)
+					: ((pl && pl.avatar && pl.avatar.animationController) || c.controller || null);
+				if (ctrl && ctrl.mountSitPlaying) v = true;
+			}
 			if (!v && typeof spkmodRemoteCarInstances !== "undefined" && spkmodRemoteCarInstances) for (const e of spkmodRemoteCarInstances.values()) if (e && e.root && e.root.parent === c) { v = true; break; }   
 			if (!v && typeof _lunBurgerCarState !== "undefined" && _lunBurgerCarState && _lunBurgerCarState.root && _lunBurgerCarState.root.parent === c) v = true;
 		} catch (e) {}
 		return M.v = v;
 	}
-	const localCtrl = () => (typeof spkmodGetLocalAnimController === "function" ? spkmodGetLocalAnimController() : null);
 
 	
 	function balls(now) {                                                                               
 		const scene = window.gameState.scene;
-		if (!S.balls || now - S.ballsAt > CHECK_MS) { S.balls = []; S.ballsAt = now; scene.traverse(o => { if (o.name && o.name.indexOf(BALL_NAME) >= 0 && o.geometry) S.balls.push(o); }); }
+		if (!S.balls || now - S.ballsAt > BALL_SCAN_MS) {
+			if (!S.balls) S.balls = []; else S.balls.length = 0;
+			S.ballsAt = now;
+			scene.traverse(o => { if (o.name && o.name.indexOf(BALL_NAME) >= 0 && o.geometry) S.balls.push(o); });
+		}
 		return S.balls;
 	}
 
+	function pushEnt(x, y, z, r, ball) {
+		const idx = entOut.length;
+		let item = entPool[idx];
+		if (!item) entPool[idx] = item = { x: 0, y: 0, z: 0, r: 0, ball: false };
+		item.x = x; item.y = y; item.z = z; item.r = r; item.ball = ball;
+		entOut.push(item);
+	}
 
 	function entities(now) {
-		const gs = window.gameState, out = [], pc = gs && gs.playerContainer;
-		if (!pc) return out;
+		entOut.length = 0;
+		const gs = window.gameState, pc = gs && gs.playerContainer;
+		if (!pc) return entOut;
 		if (!vec) vec = new pc.position.constructor();
 		const pp = pc.getWorldPosition(vec), px = pp.x, py = pp.y, pz = pp.z, inv = S.info.inv, info = S.info;
 		const u = (inv[0] * px + inv[4] * py + inv[8] * pz + inv[12] - info.min[0]) * info.sx, v = (inv[1] * px + inv[5] * py + inv[9] * pz + inv[13] - info.min[1]) * info.sy;
 		const du = Math.max(-u, 0, u - info.W), dv = Math.max(-v, 0, v - info.H);
-		if (du * du + dv * dv > (RANGE + CHAR_R_MAX) * (RANGE + CHAR_R_MAX)) return out;             
-		const r2 = RANGE * RANGE, near = (x, z) => (x - px) * (x - px) + (z - pz) * (z - pz) <= r2;
-		out.push({ x: px, y: py, z: pz, r: mounted(pc, gs.myPlayerId, localCtrl, now) ? CART_DIAMETER / 2 : charRadius(pc, now) });
+		if (du * du + dv * dv > (RANGE + CHAR_R_MAX) * (RANGE + CHAR_R_MAX)) return entOut;             
+		const r2 = RANGE * RANGE;
+		pushEnt(px, py, pz, mounted(pc, gs.myPlayerId, null, true, now) ? CART_DIAMETER / 2 : charRadius(pc, now), false);
 		const reg = gs.remotePlayers && gs.remotePlayers.remotePlayers;
 		if (reg instanceof Map) for (const [pid, pl] of reg) {
 			const c = pl && pl.container; if (!c) continue;
-			const p = c.position; if (!near(p.x, p.z)) continue;
-			out.push({ x: p.x, y: p.y, z: p.z, r: mounted(c, pid, () => (pl.avatar && pl.avatar.animationController) || c.controller || null, now) ? CART_DIAMETER / 2 : charRadius(c, now) });
+			const p = c.position, dx = p.x - px, dz = p.z - pz;
+			if (dx * dx + dz * dz > r2) continue;
+			pushEnt(p.x, p.y, p.z, mounted(c, pid, pl, false, now) ? CART_DIAMETER / 2 : charRadius(c, now), false);
 		}
-		for (const o of balls(now)) {
+		const bList = balls(now);
+		for (let i = 0; i < bList.length; i++) {
+			const o = bList[i];
 			let root = o; while (root.parent) root = root.parent;
 			if (root !== gs.scene) continue;                                                           
-			const e = o.matrixWorld.elements, g = o.geometry, sc = Math.max(Math.hypot(e[0], e[1], e[2]), Math.hypot(e[4], e[5], e[6]), Math.hypot(e[8], e[9], e[10]));
+			const e = o.matrixWorld.elements, dx = e[12] - px, dz = e[14] - pz;
+			if (dx * dx + dz * dz > r2) continue;
+			const g = o.geometry, sc = Math.max(Math.hypot(e[0], e[1], e[2]), Math.hypot(e[4], e[5], e[6]), Math.hypot(e[8], e[9], e[10]));
 			let R0 = g.parameters && g.parameters.radius;
 			if (!R0) { if (!g.boundingSphere) g.computeBoundingSphere(); R0 = g.boundingSphere ? g.boundingSphere.radius : 0; }
 			const R = R0 * sc;
-			if (R > 0 && near(e[12], e[14])) out.push({ x: e[12], y: e[13], z: e[14], r: R, ball: true });
+			if (R > 0) pushEnt(e[12], e[13], e[14], R, true);
 		}
-		return out;
+		return entOut;
 	}
 
 
@@ -65802,7 +65888,11 @@ const spkmodSnowPlane = (function () {
 			geo.setAttribute("position", new AttrClass(g.pos, 3));
 			geo.setAttribute("uv", new AttrClass(g.uv, 2));
 			geo.setIndex(g.idx);
-			geo.boundingBox = null; geo.boundingSphere = null;
+			geo.computeBoundingBox();
+			geo.computeBoundingSphere();
+			const zPad = (SNOW_H + BIAS) / info.sz;
+			if (geo.boundingBox) { geo.boundingBox.min.z -= zPad; geo.boundingBox.max.z += zPad; }
+			if (geo.boundingSphere) geo.boundingSphere.radius += zPad;
 			const U = { uTrailMap: { value: trail.tex }, uTrailSize: { value: [trail.W, trail.H] }, uMin: { value: info.min }, uMax: { value: info.max }, uScale: { value: [info.sx, info.sy] },
 				uZ: { value: info.sign / info.sz }, uTrailColor: { value: rgb(TRAIL_COLOR, srcMat.color ? srcMat.color.constructor : null) } };
 			const mat = srcMat.clone();                                                                
@@ -65810,7 +65900,7 @@ const spkmodSnowPlane = (function () {
 			mat.polygonOffset = true; mat.polygonOffsetFactor = -1; mat.polygonOffsetUnits = -1;
 			mat.userData = mat.userData || {};
 			mat.userData.outlineParameters = { visible: false };
-			mat.customProgramCacheKey = () => "spkmod-snowplane-final-" + mat.type;
+			mat.customProgramCacheKey = () => "spkmod-snowplane-v2-" + mat.type;
 			mat.onBeforeCompile = sh => {
 				Object.assign(sh.uniforms, U);
 				sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\n" + VS_DECL).replace("#include <beginnormal_vertex>", VS_NORMAL).replace("#include <begin_vertex>", VS_BODY);
@@ -65820,13 +65910,13 @@ const spkmodSnowPlane = (function () {
 			mesh.name = "spkmod_snowplane";
 			mesh.matrixAutoUpdate = false;
 			mesh.matrix.copy(orig.matrixWorld); mesh.matrixWorld.copy(mesh.matrix);
-			mesh.frustumCulled = false;
+			mesh.frustumCulled = true;
 			Object.defineProperty(mesh, "castShadow", { get: () => false, set: () => {} });
 			Object.defineProperty(mesh, "receiveShadow", { get: () => false, set: () => {} });
 			mesh.onBeforeRender = () => {
 				const s = S; if (!s || s.mesh !== mesh) return;
 				const now = performance.now();
-				if (now - trail.last < 5) return;                                                       
+				if (now - trail.last < STEP_MS) return;                                                       
 				const dt = Math.min(30, (now - trail.last) / 1000);
 				trail.last = now;
 				try { trailStep(trail, info, entities(now), dt); } catch (e) { if (!trail.err) { trail.err = true; console.error("[snowplane]", e); } }
@@ -65841,11 +65931,35 @@ const spkmodSnowPlane = (function () {
 	}
 
 
-	
-	function setEnabled(on) {
+	function applyEnabled(on, persist, silentToast) {
 		enabled = on === undefined ? !enabled : !!on;
+		if (persist && typeof window !== "undefined") {
+			window.spkmodSnowTrailEnabled = enabled;
+			if (window.localStorage) {
+				try { localStorage.setItem("spkmod-snow-trail-enabled", enabled ? "true" : "false"); } catch (_) {}
+			}
+		}
+		if (typeof lunPanelElements !== "undefined" && lunPanelElements && lunPanelElements.snowTrailToggleInput) {
+			lunPanelElements.snowTrailToggleInput.checked = enabled;
+		}
 		if (enabled) build(); else { teardown(); warned = false; }
+		if (!silentToast && typeof chatLog === "function") {
+			const msg = enabled
+				? (typeof tCustom === "function" ? tCustom("snowTrailEnabledToast", "❄️ Snow Trails enabled.") : "❄️ Snow Trails enabled.")
+				: (typeof tCustom === "function" ? tCustom("snowTrailDisabledToast", "❄️ Snow Trails disabled.") : "❄️ Snow Trails disabled.");
+			chatLog(msg);
+		}
 		return enabled;
+	}
+
+	function setEnabled(on) {
+		return applyEnabled(on, true, true);
+	}
+
+	if (typeof window !== "undefined") {
+		window.spkmodSetSnowTrailEnabled = function (nextEnabled, silentToast = false) {
+			return applyEnabled(!!nextEnabled, true, silentToast);
+		};
 	}
 
 	

@@ -3043,6 +3043,28 @@ document.body.appendChild(
 					})
 				]),
 
+				// Snow Trail Ground Deformation Toggle (under Fat Burger Shop Customers)
+				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 4px;" }, [
+					lunPanelElements.snowTrailToggleLabel = buildElement("span", {
+						style: "color: #fff; font-size: 11px; font-weight: bold; flex: 1;",
+						innerText: "❄️ " + tCustom("snowTrailToggleLabel", "Snow Trails"),
+						title: tCustom("snowTrailToggleDesc", "Enable or disable interactive 3D snow trails left by players, carts, and snowballs")
+					}),
+					lunPanelElements.snowTrailToggleInput = buildElement("input", {
+						type: "checkbox",
+						checked: (window.spkmodSnowTrailEnabled !== false),
+						title: tCustom("snowTrailToggleDesc", "Enable or disable interactive 3D snow trails left by players, carts, and snowballs"),
+						onchange: e => {
+							if (typeof window.spkmodSetSnowTrailEnabled === "function") {
+								window.spkmodSetSnowTrailEnabled(e.target.checked);
+							} else {
+								window.spkmodSnowTrailEnabled = !!e.target.checked;
+								if (window.localStorage) localStorage.setItem("spkmod-snow-trail-enabled", e.target.checked ? "true" : "false");
+							}
+						}
+					})
+				]),
+
 				// Revival Capsule Fast Hotkey (Click to rebind, Backspace/Delete to unbind, Default: 7)
 				buildElement("div", { className: "spkmod-panel-cat", style: "margin-top: 4px; gap: 4px;" }, [
 					lunPanelElements.reviveHotkeyLabel = buildElement("span", {

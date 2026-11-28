@@ -1084,6 +1084,13 @@ spkmodI18nRenderers.push(() => {
 	if (lunPanelElements.burgerFatCustomersToggleInput) {
 		lunPanelElements.burgerFatCustomersToggleInput.title = tCustom("burgerFatCustomersToggleDesc", "Make Burger Shop customers who order a big combo (burger + fries + drink + multiplier) wider");
 	}
+	if (lunPanelElements.snowTrailToggleLabel) {
+		setText(lunPanelElements.snowTrailToggleLabel, "❄️ " + tCustom("snowTrailToggleLabel", "Snow Trails"));
+		lunPanelElements.snowTrailToggleLabel.title = tCustom("snowTrailToggleDesc", "Enable or disable interactive 3D snow trails left by players, carts, and snowballs");
+	}
+	if (lunPanelElements.snowTrailToggleInput) {
+		lunPanelElements.snowTrailToggleInput.title = tCustom("snowTrailToggleDesc", "Enable or disable interactive 3D snow trails left by players, carts, and snowballs");
+	}
 	if (lunPanelElements.exportSettingsBtn) setText(lunPanelElements.exportSettingsBtn, t("exportSettingsBtn"));
 	if (lunPanelElements.importSettingsBtn) setText(lunPanelElements.importSettingsBtn, t("importSettingsBtn"));
 	if (lunPanelElements.resetPositionsBtn) setText(lunPanelElements.resetPositionsBtn, "🔄 " + (t("resetPositionsBtn") || "Reset Window Positions (F3)"));
