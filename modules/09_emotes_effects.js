@@ -644,6 +644,12 @@ let ritualEmoteTick = 0;
 const RITUAL_RADIUS = 1.4;
 
 function toggleRitual(btn) {
+	if (typeof isRitualDanceBlockedArea === "function" && isRitualDanceBlockedArea()) {
+		window.RitualState = 0;
+		ritualCenter = null;
+		if (typeof syncRitualDanceButtonsForArea === "function") syncRitualDanceButtonsForArea();
+		return;
+	}
 	window.RitualState = (window.RitualState + 1) % 3;
 	if (window.RitualState > 0) {
 		if (lunFollowTargetName && typeof gameState !== "undefined" && gameState?.remotePlayers?.remotePlayers) {
@@ -677,6 +683,12 @@ let partnerDanceIsClockwise = true;
 const DANCE_RADIUS = 2.0;
 
 function togglePartnerDance(btn) {
+	if (typeof isRitualDanceBlockedArea === "function" && isRitualDanceBlockedArea()) {
+		window.PartnerDanceState = 0;
+		partnerDanceCenter = null;
+		if (typeof syncRitualDanceButtonsForArea === "function") syncRitualDanceButtonsForArea();
+		return;
+	}
 	window.PartnerDanceState = (window.PartnerDanceState + 1) % 3;
 	if (window.PartnerDanceState > 0) {
 		if (window.PartnerDanceState === 1) {

@@ -83,6 +83,12 @@ function hookGameStateOnce() {
 				};
 			}
 
+			if ((window.RitualState > 0 || window.PartnerDanceState > 0) && typeof isRitualDanceBlockedArea === "function" && isRitualDanceBlockedArea()) {
+				if (typeof syncRitualDanceButtonsForArea === "function") {
+					syncRitualDanceButtonsForArea();
+				}
+			}
+
 			if (window.RitualState > 0 && ritualCenter) {
 				const pp = getPlayerPos();
 				const dx = pp.x - ritualCenter.x;

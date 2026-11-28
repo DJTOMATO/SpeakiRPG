@@ -481,6 +481,9 @@ function tick() {
 	if (typeof syncFaintButtonsForZone === "function") {
 		syncFaintButtonsForZone(zoneId);
 	}
+	if (typeof syncRitualDanceButtonsForArea === "function") {
+		syncRitualDanceButtonsForArea(zoneId);
+	}
     
     if (window.lunActiveMinigamePanel && gameState.zoneId !== window.lunMinigameZoneStarted) {
         window.lunActiveMinigamePanel.style.display = '';

@@ -212,6 +212,42 @@ function syncFaintButtonsForZone(zoneId) {
 	}
 }
 
+function isRitualDanceBlockedArea(zoneId, pos) {
+	const raw = zoneId !== undefined ? zoneId : (typeof gameState !== "undefined" && gameState ? gameState.zoneId : null);
+	if (typeof raw !== "number" || isNaN(raw)) return false;
+	const zid = raw % 10000;
+	if (zid !== 1) return false;
+	const p = pos || (typeof getPlayerPos === "function" ? getPlayerPos() : null);
+	if (!p || typeof p.x !== "number" || typeof p.z !== "number") return false;
+	return p.x >= 63 && p.x <= 76 && p.z >= 74 && p.z <= 92;
+}
+
+function syncRitualDanceButtonsForArea(zoneId, pos) {
+	const blocked = isRitualDanceBlockedArea(zoneId, pos);
+	if (blocked) {
+		if (window.RitualState > 0) {
+			window.RitualState = 0;
+			if (typeof ritualCenter !== "undefined") ritualCenter = null;
+			if (lunPanelElements.ritualBtn) {
+				setText(lunPanelElements.ritualBtn, t("ritualOff"));
+			}
+		}
+		if (window.PartnerDanceState > 0) {
+			window.PartnerDanceState = 0;
+			if (typeof partnerDanceCenter !== "undefined") partnerDanceCenter = null;
+			if (lunPanelElements.partnerDanceBtn) {
+				setText(lunPanelElements.partnerDanceBtn, t("partnerDanceOff") || "8 Dance: ▶️");
+			}
+		}
+	}
+	if (lunPanelElements.ritualBtn) {
+		lunPanelElements.ritualBtn.disabled = blocked;
+	}
+	if (lunPanelElements.partnerDanceBtn) {
+		lunPanelElements.partnerDanceBtn.disabled = blocked;
+	}
+}
+
 function updateHudBgDropdown() {
 	if (!lunPanelElements.hudBgSelect) return;
 	
@@ -1360,6 +1396,7 @@ document.body.appendChild(
 					id: "spkmod-ritual-btn",
 					className: "spkmod-panel-btn",
 					innerText: t(window.RitualState === 0 ? "ritualOff" : (window.RitualState === 1 ? "ritualOn" : "ritualInverted")),
+					disabled: isRitualDanceBlockedArea(),
 					value: "",
 					onclick: e => {
 						toggleRitual(e.target);
@@ -1474,6 +1511,7 @@ document.body.appendChild(
 					id: "spkmod-partner-dance-btn",
 					className: "spkmod-panel-btn",
 					innerText: t(window.PartnerDanceState === 1 ? "partnerDanceOn" : (window.PartnerDanceState === 2 ? "partnerDanceInverted" : "partnerDanceOff")) || (window.PartnerDanceState === 0 ? "8 Dance ▶️" : (window.PartnerDanceState === 1 ? "8 Dance ⏸️" : "Rev 8 ⏸️")),
+					disabled: isRitualDanceBlockedArea(),
 					value: "",
 					onclick: e => {
 						togglePartnerDance(e.target);
