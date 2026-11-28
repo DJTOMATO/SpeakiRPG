@@ -158,3 +158,8 @@ spk_98,https://i.imgur.com/30qxVIm.png
 spk_140,https://i.imgur.com/2YmPcog.png
 spk_141,https://i.imgur.com/lntApBN.png
 spk_146,https://i.imgur.com/xAGU2q2.gif
+spk_147,https://i.imgur.com/zA96GGL.png
+spk_148,https://i.imgur.com/cTM6KwB.png
+spk_149,https://i.imgur.com/dcUy2Du.png
+spk_150,https://i.imgur.com/aDTnt1e.gif
+spk_151,https://i.imgur.com/wrz6z5Q.png
