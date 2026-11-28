@@ -97,7 +97,7 @@ const SPKMOD_VEHICLE_CATALOG = [
 		spec: { kind: "procedural", builder: "miniTank" }
 	},
 	{
-		code: 15, id: "santa_sleigh", level: 80, category: "air", icon: "🛷", accent: "#dc2626",
+		code: 15, id: "santa_sleigh", level: 10, category: "air", icon: "🛷", accent: "#dc2626",
 		defaultName: "Flying Santa Sleigh", paintable: false, pose: "sit", sfxType: "magic",
 		spec: { kind: "glb", url: "/models/winter-town/santa-sleigh-set.glb", fallbackUrl: "/models/winter-town/santa-sleigh-flying.glb", targetLength: 4.0, keepLocalZ: true, hoverY: 0.36, hoverAmp: 0.10, seatOffsetY: 0.88 }
 	},

@@ -1906,7 +1906,8 @@ async function spkmodBuildCostumeAttachments(skin, avatarRoot, shouldAbort) {
 			const redMat = toon(0xdc2626);
 			const furMat = toon(0xffffff);
 			const hat = new THREE.Group();
-			hat.position.set(0, -0.19, -0.01);
+			hat.position.set(0, -0.24, -0.01);
+			hat.scale.setScalar(1.35);
 			// Big plush white fur brim hugging snugly around Speaki's dome
 			const brim = new THREE.Mesh(new THREE.TorusGeometry(0.41, 0.105, 12, 26), furMat);
 			brim.rotation.x = Math.PI / 2;
