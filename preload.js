@@ -12,6 +12,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
         });
     }
 });
+try {
+    contextBridge.exposeInMainWorld('spkmodFiles', {
+        readBase64: (name) => {
+            try {
+                const p = path.join(__dirname, 'zonemaps', path.basename(String(name)));
+                return fs.existsSync(p) ? fs.readFileSync(p).toString('base64') : null;
+            } catch (e) { return null; }
+        }
+    });
+} catch (error) { console.error('Failed to expose spkmodFiles:', error); }
+
+ try {
+         contextBridge.exposeInMainWorld('spkmodShot', {
+             save: (name, b64) => {
+                 try {
+                     const dir = path.join(__dirname, 'screenshots');
+                     fs.mkdirSync(dir, { recursive: true });
+                     const file = path.join(dir, path.basename(String(name)).replace(/[^\w.\-]/g, '_').replace(/(\.png)?$/i, '.png'));
+                     fs.writeFileSync(file, Buffer.from(String(b64), 'base64'));
+                     return file;
+					 } catch (e) { console.error(e); return null; }
+             }
+         });
+     } catch (error) { console.error('Failed to expose spkmodShot:', error); }
+
 
 // Expose client build version from package.json
 try {
@@ -35,6 +60,18 @@ try {
     }
 } catch (error) {
     console.error('Failed to load erpin.html:', error);
+}
+
+// Dev mode: SPEAKI_LOCAL_MOD=1 makes the injector use the local SpeakiMod.js instead of the GitHub version
+try {
+    if (process.env.SPEAKI_LOCAL_MOD === '1') {
+        const localModPath = path.join(__dirname, 'SpeakiMod.js');
+        const localModCode = fs.readFileSync(localModPath, 'utf8');
+        webFrame.executeJavaScript(`window.__speakiLocalModCode = ${JSON.stringify(localModCode)};`).catch(console.error);
+        console.log('[SpeakiMod] Using local SpeakiMod.js');
+    }
+} catch (error) {
+    console.error('Failed to load local SpeakiMod.js:', error);
 }
 
 // Read and inject the SpeakiMod script into the main world

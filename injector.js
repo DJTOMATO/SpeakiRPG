@@ -37,7 +37,14 @@ window.injectSpeakiMod = () => {
 		try {
 			// Local development: uncomment the line below to test local changes (run `python -m http.server 8000`)
 			//const modCode = await (await fetch("http://localhost:8000/SpeakiMod.js?t=" + Date.now())).text();
-			const modCode = await (await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/SpeakiMod.js?t=" + Date.now())).text();
+		
+let modCode;
+if (typeof window.__speakiLocalModCode === "string" && window.__speakiLocalModCode.length) {
+	modCode = window.__speakiLocalModCode;
+	console.log("[SpeakiMod] Using local SpeakiMod.js (" + modCode.length + " chars)");
+} else {
+	modCode = await (await fetch("https://raw.githubusercontent.com/DJTOMATO/SpeakiRPG/refs/heads/main/SpeakiMod.js?t=" + Date.now())).text();
+}
 
 			const blob = URL.createObjectURL(
 				new Blob([modCode], { type: "text/javascript" })
